@@ -3,10 +3,10 @@
 // La photo réellement capturée est gardée à part (photos, par id d'arme) : le contrat Weapon ne la porte pas,
 // mais la présentation (règle 5 du DA) veut la vraie preuve webcam sur la carte.
 import type { Category, PlayerId, Weapon } from '../core/types';
-import { scanObject, scanNote } from '../ia';
+import { primeWeapon, scanNote, scanObject } from '../ia';
 import { mountCapture } from './capture';
 import { button, clear, el, menuScreen } from './dom';
-import { mountForge } from './forge';
+import { mountForgeView } from './loading';
 import { CAMERA_SVG, categoryTag } from './icons';
 import { presetsReady, weaponPresets } from './presets';
 import { weaponSticker } from './sticker2d';
@@ -61,8 +61,6 @@ function snapTile(onClick: () => void): HTMLDivElement {
   return tile;
 }
 
-/** Au-delà, la forge dit qu'on attend encore (le JSON arrive en 2 à 3 s, repli à 9 s : TIMEOUTS.scan). */
-const SLOW_SCAN_MS = 4000;
 const NOTE_TEXT = {
   offline: "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again.",
   substituted: "Nice try. Real weapons and people don't count. Have this instead.",
@@ -78,23 +76,20 @@ async function forgeAndCard(
   slotNumber: number,
 ): Promise<Weapon> {
   clear(area);
-  // La photo prise reste à l'écran pendant la lecture (lot LSCAN) : le joueur voit tout de suite ce qu'il a snappé.
-  const shot = el('div', 'capture-zone');
-  const img = el('img', 'capture-video');
-  img.src = photoUrl;
-  img.alt = '';
-  const forge = mountForge(category ? `Rethinking it as a ${category}…` : `Gemini is reading ${label}'s object…`);
-  shot.append(img, forge.root);
-  area.append(shot);
-  const slow = window.setTimeout(() => forge.setLabel('Still thinking… hang on.'), SLOW_SCAN_MS);
+  // LLOAD : forge branchée sur les étapes réelles du scan (scan:progress) ; elle reste à côté de la carte jusqu'au sticker.
+  const forge = mountForgeView({ photoUrl, label });
+  area.append(forge.root);
   const weapon = await scanObject(blob, category ? { category } : {});
-  window.clearTimeout(slow);
   return new Promise((resolve) => {
     clear(area);
     const wrap = el('div', 'weapon-confirm');
+    // Lot LSCAN : une arme de secours (réseau lent, objet refusé) est expliquée au joueur, jamais muette.
     const note = scanNote(weapon.id);
     if (note) wrap.append(el('p', 'capture-error', NOTE_TEXT[note]));
-    wrap.append(
+    const pair = el('div', 'lload-pair');
+    wrap.append(pair);
+    pair.append(forge.root);
+    pair.append(
       renderWeaponCard(weapon, {
         player,
         cardNumber: slotNumber,
@@ -168,6 +163,7 @@ function pickArsenal(screenLayer: HTMLElement, player: PlayerId, photos: Map<str
   function assign(weapon: Weapon, photoUrl?: string) {
     const slotIndex = current;
     const cloned: Weapon = { ...weapon, id: `${weapon.id}-p${player}-${slotIndex}` };
+    void primeWeapon(cloned); // LLOAD : sa réplique de pesée se vocalise dès maintenant, pas à la présentation
     slots[slotIndex] = cloned;
     if (photoUrl) photos.set(cloned.id, photoUrl);
     const next = slots.findIndex((w) => !w);
@@ -192,10 +188,19 @@ function pickArsenal(screenLayer: HTMLElement, player: PlayerId, photos: Map<str
   });
 }
 
-export async function runArsenal(screenLayer: HTMLElement): Promise<ArsenalResult> {
+/** Contre l'IA : 3 vraies armes différentes tirées au hasard, une par catégorie autant que possible. */
+function aiArsenal(): Weapon[] {
+  const pool = [...weaponPresets()].sort(() => Math.random() - 0.5);
+  const picked: Weapon[] = [];
+  for (const w of pool) if (picked.length < 3 && !picked.some((p) => p.category === w.category)) picked.push(w);
+  for (const w of pool) if (picked.length < 3 && !picked.includes(w)) picked.push(w);
+  return picked.map((w, i) => ({ ...w, id: `${w.id}-p1-${i}` }));
+}
+
+export async function runArsenal(screenLayer: HTMLElement, vsAI = false): Promise<ArsenalResult> {
   await presetsReady; // les 8 vraies armes (stickers) : fichier local, déjà là en pratique
   const photos = new Map<string, string>();
   const p0 = await pickArsenal(screenLayer, 0, photos);
-  const p1 = await pickArsenal(screenLayer, 1, photos);
+  const p1 = vsAI ? aiArsenal() : await pickArsenal(screenLayer, 1, photos);
   return { weapons: [p0, p1], photos };
 }

@@ -7,13 +7,14 @@
 // retirés (déjà couverts par les barks) ; seule reste la révélation d'une arme scannée en plein match
 // (Caisse Snap), le seul moment propre à une arme qui n'est pas un bark générique.
 import type { Ctx, Install, PlayerId } from '../core/types';
-import { sayScanReveal } from './commentary';
+import { primeWeapon, sayScanReveal } from './commentary';
+import { scanFighter } from './fighter';
 import { scanObject } from './scan';
 import { setRuntimeCtx } from './runtime';
 
-export type { ScanNote, ScanOptions } from './scan';
+export type { ScanNote, ScanOptions, ScanStep } from './scan';
 export { scanNote, scanObject } from './scan';
-export { prepareCommentary } from './commentary';
+export { prepareCommentary, primeWeapon } from './commentary';
 
 /**
  * Le sticker Nano Banana arrive en retard (jusqu'à 25 s, voir TIMEOUTS.sticker) : souvent APRÈS que le
@@ -52,6 +53,9 @@ export const install: Install = (ctx) => {
       arrivedStickers.set(weapon.id, weapon.stickerUrl);
       patchLateSticker(ctx, weapon.id, weapon.stickerUrl);
     }
+    // Lot LLOAD : pendant l'arsenal, la réplique de pesée d'une arme scannée se vocalise dès son arrivée
+    // (la présentation la trouve prête au lieu d'attendre jusqu'à 6 s).
+    if (ctx.state.phase === 'arsenal') void primeWeapon(weapon);
   });
 
   // Sticker arrivé ENTRE la validation de la carte (clone de l'arsenal) et le lancement du match : aucun clone
@@ -82,5 +86,20 @@ export const install: Install = (ctx) => {
     if (!res.ok) throw new Error(`scanObjectFromUrl: fetch ${url} failed (${res.status})`);
     const blob = await res.blob();
     return scanObject(blob, { category: opts.category, player: opts.player ?? ctx.state.active });
+  };
+
+  // window.gameHooks.scanFighterFromUrl(url, player) : même pont côté combattant (lot LSCAN-PERSO). `url`
+  // est fetch()é en Blob (data URL ou chemin servi, ex. /tmp-test/face.png) puis passé tel quel à scanFighter,
+  // qui appelle /api/scan-fighter (mêmes bornes stats/trait que le parcours UI).
+  ctx.hooks.scanFighterFromUrl = (url, player) => {
+    console.info(`[ia] scanFighterFromUrl(${url}, player=${player}) démarré…`);
+    fetch(url)
+      .then((r) => r.blob())
+      .then((blob) => scanFighter(blob))
+      .then((fighter) => {
+        ctx.state.players[player].fighter = fighter;
+        console.info('[ia] scanFighterFromUrl -> fighter posé dans state', fighter);
+      })
+      .catch((e) => console.error('[ia] scanFighterFromUrl', e));
   };
 };

@@ -544,6 +544,7 @@ async function buildCatapult(map: LoadedMap) {
     turret: root.getObjectByName('catapult_turret_blue') ?? null,
     arm: root.getObjectByName('catapult_arm_blue') ?? null,
   };
+  if (map.def.catapultAmmo) await buildVisual(map.def.catapultAmmo, map, {}, true); // préchargé : le tir part sans attente
 }
 
 function aimCatapultAt(map: LoadedMap, target: THREE.Vector3) {
@@ -563,7 +564,7 @@ async function fireCatapult(ctx: Ctx, map: LoadedMap, target: THREE.Vector3): Pr
   applyScale(boulder, map.def.catapultAmmo ? 7 : 1);
   map.group.add(boulder);
   const dur = 1.05;
-  const peak = 7;
+  const peak = 4;
   await ctx.loop.tween(dur, (k) => {
     boulder.position.set(
       from.x + (target.x - from.x) * k,

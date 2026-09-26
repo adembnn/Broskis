@@ -60,7 +60,8 @@ export function loadMovementClips(): Promise<THREE.AnimationClip[]> {
 export function hideHandAccessories(root: THREE.Object3D): void {
   root.traverse((obj) => {
     const parentName = obj.parent?.name;
-    if (parentName === 'handslot.l' || parentName === 'handslot.r') obj.visible = false;
+    // noms assainis par GLTFLoader (handslot.l → handslotl) ; les deux formes par sécurité
+    if (parentName === 'handslotl' || parentName === 'handslotr' || parentName === 'handslot.l' || parentName === 'handslot.r') obj.visible = false;
   });
 }
 
