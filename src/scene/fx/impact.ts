@@ -101,7 +101,7 @@ export function installImpactFx(scene: THREE.Scene): ImpactFx {
     let entry = spritePool.find((s) => !s.sprite.visible);
     if (!entry) {
       if (spritePool.length >= LOCAL_TOKENS.damageNumbers.maxAlive) entry = spritePool[0];
-      else { entry = { sprite: new THREE.Sprite(spriteMat()), t: 0 }; scene.add(entry.sprite); excludeFromOcclusion(entry.sprite); spritePool.push(entry); }
+      else { entry = { sprite: new THREE.Sprite(spriteMat()), t: 0 }; entry.sprite.raycast = () => {}; scene.add(entry.sprite); excludeFromOcclusion(entry.sprite); spritePool.push(entry); } // sans raycast : la caméra lance des rayons sur la scène (erreur « Raycaster.camera »)
     }
     entry.sprite.material.map = numberTexture(`-${Math.round(amount)}`, color);
     entry.sprite.material.needsUpdate = true;

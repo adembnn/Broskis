@@ -1,6 +1,7 @@
 // L'objet en main : sticker de l'arme choisie dans la main droite (handslot.r), ≈ 0,5 m, qui change avec l'arme.
-// Pendant la charge : tremble et luit de plus en plus. Blaster : recul, éclair de bouche, douilles.
-// Suit la main par position/orientation MONDE (pas d'enfant du squelette) : indépendant de l'échelle du rig.
+// Pendant la charge (`charge` 0..1 de l'état du joueur) : tremble et luit de plus en plus. Blaster : recul, éclair
+// de bouche, douilles. Grenade, throwable, bouclier : la main est vide tant que l'arme lancée recharge, puis
+// l'objet y revient d'un coup (pop). Suit la main par position/orientation MONDE : indépendant de l'échelle du rig.
 import * as THREE from 'three';
 import { palette } from '../../art/tokens.js';
 import type { Ctx, PlayerId, Weapon } from '../../core/types';
@@ -8,14 +9,17 @@ import { getRuntime } from '../../gameplay/runtime';
 import { registry } from '../registry';
 import { excludeFromOcclusion } from '../registry';
 import { WEAPON_FX } from './tokens';
+import { lookOf } from './physics';
 import { WeaponModel } from './visual';
 
 interface Held {
   model: WeaponModel | null;
   weaponId: string;
-  hidden: boolean;
+  stowed: boolean;
   pop: number;
   power: number;
+  /** Taille réelle de l'objet (m), bornée pour rester lisible. */
+  size: number;
   kick: number;
   flash: THREE.Sprite;
   flashT: number;
@@ -63,7 +67,7 @@ export function installHands(ctx: Ctx) {
     const flash = new THREE.Sprite(new THREE.SpriteMaterial({ map: star, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
     flash.visible = false; flash.raycast = () => {};
     root.add(flash);
-    return { model: null, weaponId: '', hidden: false, pop: 1, power: 0, kick: 0, flash, flashT: 1, aim: new THREE.Vector3(1, 0, 0) };
+    return { model: null, weaponId: '', stowed: false, pop: 1, power: 0, size: 0.5, kick: 0, flash, flashT: 1, aim: new THREE.Vector3(1, 0, 0) };
   }) as [Held, Held];
 
   // Douilles colorées : petites boîtes qui sautent de la main et rebondissent.
@@ -110,29 +114,28 @@ export function installHands(ctx: Ctx) {
     h.weaponId = w?.id ?? '';
     if (!w) return;
     h.model = new WeaponModel(w);
+    h.size = lookOf(w).size;
     root.add(h.model.root);
     h.pop = 0;
   }
 
-  function show(p: PlayerId): void {
-    const h = held[p];
-    if (!h.hidden) return;
-    h.hidden = false;
-    h.pop = 0;
+  /** Lancé ou posé, l'objet a quitté la main : elle reste vide tant que l'arme recharge (temps réel). */
+  function thrownAway(p: PlayerId): boolean {
+    const ps = ctx.state.players[p];
+    const w = ps.weapons[ps.selected];
+    if (!w || w.category === 'blaster') return false;
+    return (ps.cooldowns?.[ps.selected] ?? 0) > 0;
   }
 
-  ctx.bus.on('match:start', () => { for (const p of [0, 1] as const) { held[p].hidden = false; held[p].weaponId = '#'; } });
-  ctx.bus.on('weapon:pick', ({ player }) => { held[player].hidden = false; held[player].weaponId = '#'; });
-  ctx.bus.on('turn:start', () => { show(0); show(1); });
-  ctx.bus.on('respawn', ({ player }) => show(player));
-  ctx.bus.on('aim:update', ({ player, power, dir }) => {
+  ctx.bus.on('match:start', () => { for (const p of [0, 1] as const) held[p].weaponId = '#'; });
+  ctx.bus.on('weapon:pick', ({ player }) => { held[player].weaponId = '#'; });
+  ctx.bus.on('respawn', ({ player }) => { held[player].pop = 0; });
+  ctx.bus.on('aim:update', ({ player, power }) => {
     held[player].power = getRuntime()?.players?.[player]?.charging ? power : 0;
-    held[player].aim.set(dir[0], dir[1], dir[2]).normalize();
   });
-  ctx.bus.on('fire', ({ player, weapon, dir }) => {
+  ctx.bus.on('fire', ({ player, dir }) => {
     held[player].power = 0;
     held[player].aim.set(dir[0], dir[1], dir[2]).normalize();
-    if (weapon.category === 'shield') held[player].hidden = true; // l'objet devient le mur
   });
 
   function handPos(p: PlayerId, muzzle: boolean): THREE.Vector3 | null {
@@ -142,12 +145,8 @@ export function installHands(ctx: Ctx) {
       return _p.clone();
     }
     const out = h.model.root.position.clone();
-    if (muzzle) out.addScaledVector(h.aim, WEAPON_FX.main.taille * 0.6);
+    if (muzzle) out.addScaledVector(h.aim, h.size * 0.6);
     return out;
-  }
-
-  function released(p: PlayerId): void {
-    held[p].hidden = true;
   }
 
   function shot(p: PlayerId, weapon: Weapon): void {
@@ -186,8 +185,16 @@ export function installHands(ctx: Ctx) {
       const fighter = registry.fighterRoots[p];
       const alive = !rt?.dead && !!fighter && fighter.visible && fighter.scale.x > 0.2;
       const ok = alive && handFrame(p, _p, _q);
-      m.root.visible = ok && !h.hidden;
+      const stowed = thrownAway(p);
+      if (h.stowed && !stowed) h.pop = 0; // l'arme est rechargée : l'objet revient dans la main
+      h.stowed = stowed;
+      m.root.visible = ok && !stowed;
       if (!m.root.visible) continue;
+      // Visée verrouillée : le canon regarde l'adversaire.
+      const me = ctx.state.players[p].pos, them = ctx.state.players[p === 0 ? 1 : 0].pos;
+      h.aim.set(them[0] - me[0], 0, them[2] - me[2]);
+      if (h.aim.lengthSq() < 1e-6) h.aim.set(1, 0, 0);
+      h.aim.normalize();
       h.pop = Math.min(1, h.pop + real * 1000 / WEAPON_FX.main.pop);
       const pop = h.pop < 1 ? 1 + 0.25 * Math.sin(h.pop * Math.PI) : 1;
       // Charge : tremble et luit. Temps réel : `charge` (0..1) dans l'état du joueur ; sinon charge du tour.
@@ -204,7 +211,7 @@ export function installHands(ctx: Ctx) {
       }
       m.root.position.copy(_p);
       m.root.quaternion.copy(_q);
-      m.root.scale.setScalar(WEAPON_FX.main.taille * pop * (1 + 0.12 * k));
+      m.root.scale.setScalar(h.size * pop * (1 + 0.12 * k));
       // Éclair de bouche : 70 ms.
       h.flashT += real;
       const fu = h.flashT / 0.07;
@@ -228,5 +235,5 @@ export function installHands(ctx: Ctx) {
     casingMesh.instanceMatrix.needsUpdate = true;
   }
 
-  return { update, handPos, released, shot, show };
+  return { update, handPos, shot };
 }

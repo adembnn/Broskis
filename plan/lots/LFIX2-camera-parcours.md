@@ -1,4 +1,5 @@
 # Lot LFIX2 · Caméra large façon Smash + parcours complet sans accroc
+> **Obsolète depuis le pivot temps réel (15h25)** pour : bascule de caméra vers le défenseur ; chaque vue de l'écran scindé reste sur son joueur (RTVIEW). Référence : `plan/PIVOT-TEMPS-REEL.md`.
 Exécution : **Gemini** · **Priorité 1** · Retour d'Adem et Titouan (14h, en jouant) : « la caméra est trop proche du personnage ».
 
 ## Déjà corrigé sur main (ne refais pas)

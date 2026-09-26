@@ -2,7 +2,6 @@
 // battent sur un îlot de cuisine ; ses bords francs donnent sur le carrelage, très loin en bas (zone de
 // chute). Le grille-pain est un tremplin ; l'éponge balaie une bande annoncée un tour complet avant.
 // Données pures : engine.ts interprète.
-import type { Vec3 } from '../../core/types';
 import { RESTAURANT } from './assets';
 import type { BackdropSpec, GroundPiece, MapDef, OneWaySpec, PropSpec, StaticCollider } from './types';
 
@@ -67,18 +66,11 @@ function accessoires(): PropSpec[] {
 }
 
 // ---------------------------------------------------------------------------
-// Fond : meubles géants dans la pénombre (frigo, four, placards) et le carrelage tout en bas.
+// Fond (LSKY) : le panorama peint (sky.ts) porte le sol, les murs, la fenêtre et les meubles ; les plans de
+// travail latéraux (parallaxe) sont dans dressing.ts.
 // ---------------------------------------------------------------------------
 function fond(): BackdropSpec[] {
-  const floor: BackdropSpec['items'] = [];
-  for (let i = -4; i <= 4; i++) for (let j = -4; j <= 3; j++) floor.push({ pos: [i * 16, -COUNTER_H - 2, j * 16] as Vec3, scale: [4, 1, 4] });
-  return [
-    { build: { kind: 'model', url: RESTAURANT.floor }, items: floor },
-    { build: { kind: 'model', url: RESTAURANT.fridge }, items: [{ pos: [-40, -COUNTER_H - 2, -50], yaw: 0.25, scale: 14 }] },
-    { build: { kind: 'model', url: RESTAURANT.oven }, items: [{ pos: [2, -COUNTER_H - 2, -58], scale: 14 }, { pos: [30, -COUNTER_H - 2, -58], scale: 14 }] },
-    { build: { kind: 'model', url: RESTAURANT.cabinet }, items: [{ pos: [2, -COUNTER_H - 2, -62], scale: 14 }, { pos: [30, -COUNTER_H - 2, -62], scale: 14 }] },
-    { build: { kind: 'model', url: RESTAURANT.wallWindow }, items: [{ pos: [-18, -COUNTER_H - 2, -68], scale: 15 }, { pos: [42, -COUNTER_H - 2, -68], scale: 15 }] },
-  ];
+  return []; // LSKY : sol, murs et meubles sont peints dans le panorama
 }
 
 export function buildCuisineDef(): MapDef {

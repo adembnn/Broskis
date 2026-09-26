@@ -48,6 +48,8 @@ export interface PlayerRuntime {
   lastGroundedAt: number;
   /** Au sol à l'image précédente (détection d'une sortie du plateau en marchant). */
   wasGrounded: boolean;
+  /** Descente à travers une plateforme traversable jusqu'à ce temps de jeu (« bas + saut »). */
+  dropUntil: number;
 }
 
 export type CancelFn = () => void;
@@ -98,6 +100,7 @@ function makePlayerRuntime(): PlayerRuntime {
     hvel: [0, 0],
     lastGroundedAt: 0,
     wasGrounded: true,
+    dropUntil: 0,
   };
 }
 

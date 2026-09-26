@@ -1,4 +1,5 @@
 # Lot LA · Rendu, persos, caméra, effets
+> **Obsolète depuis le pivot temps réel (15h25)** pour : rotation de caméra au `turn:start` et bascule ; chaque vue de l'écran scindé reste sur son joueur (RTVIEW). Référence : `plan/PIVOT-TEMPS-REEL.md`.
 Responsable : Adem (sous-agent Sonnet) · Coût : élevé · Dépend de : L0
 
 ## Tes chemins
