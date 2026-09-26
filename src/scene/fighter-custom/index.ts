@@ -20,7 +20,7 @@ const TETE = {
    * du sticker passe le seuil du bloom et la tête « brille » à contre-jour (vu en match). */
   emissif: 0.12,
   /** Arrière du crâne : couleur des cheveux, éclaircie jusqu'à cette luminosité (des cheveux noirs faisaient un trou). */
-  dosLuminositeMin: 0.2,
+  dosLuminositeMin: 0.3,
   /** Tête à ressort : raideur (1/s²), amorti (1/s), gain (rad par m/s²), inclinaison max (rad). */
   ressort: { raideur: 110, amorti: 7, gain: 0.012, max: 0.42, gainVertical: 0.006, maxVertical: 0.16 },
 };
