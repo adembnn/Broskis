@@ -1,6 +1,7 @@
 // Éjection (règles v2) : vol cinématique déterministe (gravité + ralentissement, glissade à l'atterrissage),
 // rattrapage au bord, zones d'explosion. La même intégration sert à PRÉDIRE l'issue d'un coup (`willKo`,
 // `aim:update.ejects`) : la prédiction interroge le sol par rayons, le vol réel passe par le contrôleur Rapier.
+import type * as RAPIER from '@dimforge/rapier3d-compat';
 import type { Ctx, PlayerId, Vec3 } from '../core/types';
 import { blastZoneHit, findLedge, getArena, groundYBelow, isGroundCollider, type BlastSide } from './arena';
 import { isVoidAt, placeKinematic, teleport } from './character';
@@ -95,7 +96,8 @@ function advance(ctx: Ctx, b: FlightBody, h: number): void {
   if (dh > 1e-5) {
     const { RAPIER: R, world } = ctx.physics;
     const ray = new R.Ray({ x: b.pos[0], y: b.pos[1] + 0.9, z: b.pos[2] }, { x: dx / dh, y: 0, z: dz / dh });
-    if (world.castRay(ray, dh + CHARACTER_RADIUS, true, undefined, undefined, undefined, undefined, isGroundCollider)) {
+    const wall = (c: RAPIER.Collider) => isGroundCollider(c) && !(c.parent()?.userData as { oneWay?: boolean } | undefined)?.oneWay;
+    if (world.castRay(ray, dh + CHARACTER_RADIUS, true, undefined, undefined, undefined, undefined, wall)) {
       b.vel = [b.vel[0] * -0.15, b.vel[1], b.vel[2] * -0.15];
       dx = 0; dz = 0;
     }

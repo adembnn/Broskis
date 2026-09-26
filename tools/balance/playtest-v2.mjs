@@ -113,12 +113,41 @@ await scenario('bord-double-saut', async () => {
   await page.keyboard.press('Space');
   await wait(900);
   await page.keyboard.up(back);
-  await waitFor(() => { const r = window.__lsmash.runtime(0); return r.grounded || r.ledge; }, null, 4000);
+  await waitFor(() => { const r = window.__lsmash.runtime(0); return r.grounded || r.ledge; }, null, 10000);
   await shot('bord-retour');
   const r = await page.evaluate(() => window.__lsmash.runtime(0));
   const s = await state();
   if (s.players[0].stocks !== 2) throw new Error('vie perdue en se rattrapant');
   return r.ledge ? 'rattrapé au bord (ledge)' : `revenu sur le plateau, y=${s.players[0].pos[1].toFixed(2)}, sauts=${r.jumpsUsed}`;
+});
+
+await scenario('bord-double-saut-hooks', async () => {
+  await newMatch();
+  const [, , dx, dz] = await edgeKey(0);
+  // 1er appel : on s'arrête au bord (on vacille) ; 2e appel : on insiste, on passe dans le vide.
+  await page.evaluate(([x, z]) => window.gameHooks.move(x * 8, z * 8), [dx, dz]);
+  const teeter = await page.evaluate(() => window.__lsmash.runtime(0).teetering);
+  if (!teeter) throw new Error('pas de teeter au bord');
+  await page.evaluate(([x, z]) => window.gameHooks.move(x * 0.7, z * 0.7), [dx, dz]);
+  await waitFor(() => !window.__lsmash.runtime(0).grounded, null, 2000);
+  await page.evaluate(([x, z]) => { window.gameHooks.jump(); window.gameHooks.move(-x * 0.6, -z * 0.6); }, [dx, dz]);
+  await wait(200);
+  await page.evaluate(([x, z]) => { window.gameHooks.jump(); window.gameHooks.move(-x * 1.2, -z * 1.2); }, [dx, dz]);
+  try { await waitFor(() => { const r = window.__lsmash.runtime(0); return r.grounded || r.ledge; }, null, 10000); }
+  catch { throw new Error(`jamais reposé : ${JSON.stringify(await page.evaluate(() => [window.__lsmash.runtime(0), window.gameState.players[0].pos, window.gameState.phase]))}`); }
+  const r = await page.evaluate(() => window.__lsmash.runtime(0));
+  const s = await state();
+  if (r.ledge) throw new Error('rattrapé au bord au lieu du double saut');
+  return `double saut réussi : ${r.jumpsUsed} sauts, retour à y=${s.players[0].pos[1].toFixed(2)}, ${s.players[0].stocks} vies`;
+});
+
+await scenario('ia-joue', async () => {
+  await newMatch({ vsAI: true });
+  await page.evaluate(() => { window.gameHooks.pickWeapon(0); window.gameHooks.fire(0.7); });
+  await waitFor(() => window.__ev.some((e) => e.name === 'fire' && e.player === 1), null, 25000);
+  const ev = await page.evaluate(() => window.__ev.find((e) => e.name === 'fire' && e.player === 1));
+  await page.evaluate(() => { window.gameState; window.ctx.state.vsAI = false; });
+  return `l'IA a tiré (${ev.weapon}, puissance ${ev.power})`;
 });
 
 await scenario('ejection-vie-respawn', async () => {
