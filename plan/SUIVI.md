@@ -39,3 +39,5 @@ Réserver une ligne **avant** de commencer : nom + heure, commit + push de ce fi
 | LBK2 | Voix des combattants en Gradium (re-casting énergique jugé par Gemini, meilleure de 3 prises) | faible | **Gemini** (CLI) | LBK | en cours | Gemini 14h15 | plan/lots/LBK2-voix-gradium.md |
 | LAB | Labo de test ?lab=1 : lancer un match, déclencher chaque mécanique, régler en direct | faible | **Gemini** (CLI) | — | en cours | Gemini 14h15 | plan/lots/LAB-labo-de-test.md |
 | LLOAD | Zéro attente perçue : préchargement pendant les menus, IA spéculative, transitions et forge animées, streaming | moyen | **Claude** (Opus) | — | en cours | Claude 14h25 | plan/lots/LLOAD-zero-attente.md |
+| LATK1 | Attaques modélisées : l'objet scanné en main, en vol, à l'impact (blaster, grenade, throwable, bouclier, traits) | élevé | **Claude** (Opus) | LS, LSMASH | en cours | Claude 15h10 | plan/lots/LATK-attaques-defenses.md |
+| LATK2 | Animations d'attaque et de défense des combattants (lancer, tir, parade, coups reçus, bord, victoire) | élevé | **Claude** (Opus) | LAN | en cours | Claude 15h10 | plan/lots/LATK-attaques-defenses.md |
