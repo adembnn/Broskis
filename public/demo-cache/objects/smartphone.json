@@ -1,0 +1,39 @@
+{
+  "id": "demo-smartphone",
+  "object": "smartphone",
+  "name": "The Doomscroller",
+  "category": "shield",
+  "why": "It forms an impenetrable barrier between you and whatever real-life conversation is happening.",
+  "stats": {
+    "a": 4,
+    "b": 3,
+    "c": 3
+  },
+  "trait": "loud",
+  "palette": [
+    "#000000",
+    "#1c1c1c"
+  ],
+  "lines": {
+    "intro": "Behold the glowing slab of antisocial invulnerability!",
+    "hit": "Blocked! The notification shade absorbed all impact!",
+    "miss": "They put it on airplane mode and completely fumbled!",
+    "parried": "Reflected! That unsolicited group text was returned to sender!"
+  },
+  "physics": {
+    "massKg": 0.2,
+    "sizeM": [
+      0.16,
+      0.075,
+      0.03
+    ],
+    "material": "glass",
+    "shape": "flat",
+    "bounciness": 0.1,
+    "fragile": true,
+    "liquid": false
+  },
+  "stickerUrl": "/demo-cache/stickers/smartphone.jpg",
+  "source": "cache",
+  "cooldown": 0
+}

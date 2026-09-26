@@ -1,0 +1,39 @@
+{
+  "id": "demo-sneaker",
+  "object": "running shoe",
+  "name": "The Aerobic Heel",
+  "category": "throwable",
+  "why": "Nothing delivers blunt trauma quite like airborne footwear chucked across the room.",
+  "stats": {
+    "a": 2,
+    "b": 5,
+    "c": 3
+  },
+  "trait": "bouncy",
+  "palette": [
+    "#ffffff",
+    "#1858c2"
+  ],
+  "lines": {
+    "intro": "Laced up and launched without consent!",
+    "hit": "Sole to face contact confirmed!",
+    "miss": "A whiff of stale athletic defeat!",
+    "parried": "Kicked right back like a bad habit!"
+  },
+  "physics": {
+    "massKg": 0.32,
+    "sizeM": [
+      0.12,
+      0.1,
+      0.28
+    ],
+    "material": "fabric",
+    "shape": "irregular",
+    "bounciness": 0.45,
+    "fragile": false,
+    "liquid": false
+  },
+  "stickerUrl": "/demo-cache/stickers/sneaker.jpg",
+  "source": "cache",
+  "cooldown": 0
+}
