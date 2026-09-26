@@ -510,6 +510,7 @@ async function buildBackdrop(map: LoadedMap, spec: BackdropSpec) {
     im.castShadow = false;
     im.receiveShadow = false;
     im.computeBoundingSphere();
+    im.userData.lointain = true; // perf : caché en palier graphique bas (src/core/quality.ts, lot LPERF)
     map.group.add(im);
     excludeFromOcclusion(im);
   }
