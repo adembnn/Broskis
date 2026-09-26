@@ -9,7 +9,7 @@
 // L'objet en main, les projectiles et les impacts sont au lot LATK1 (src/scene/weapons) : il trouve la main
 // via registry.handSlots et se cale sur `anim:release`, émis ici à l'image exacte du lâcher.
 import * as THREE from 'three';
-import { juice } from '../../art/tokens.js';
+import { durees, juice } from '../../art/tokens.js';
 import type { Ctx, PlayerId, Vec3, Weapon } from '../../core/types';
 import { ANIM } from '../animation/animTokens';
 import { animMetricsImpl } from '../animation/metrics';
@@ -17,6 +17,7 @@ import { loadPack, packData } from '../animation/pack';
 import { LOCAL_TOKENS } from '../localTokens';
 import { angleDelta, angleLerp, easeInOutCubic, expFollow } from '../mathUtils';
 import { setFighterObject, setHandSlot } from '../registry';
+import { applyFighterLook } from '../fighter-custom';
 import { applyVinylRank, buildFighterRig, defaultFighter, disposeFighterRig, type FighterRig } from './rig';
 
 export interface FighterSystem {
@@ -167,6 +168,29 @@ export function installFighters(ctx: Ctx): FighterSystem {
 
   ctx.bus.on('match:start', () => {
     respawnAll().catch((e) => console.error('[fighters] match:start', e));
+  });
+
+  // Lot LE2E : portrait du perso photo arrivé après le délai d'écran → la vraie grosse tête remplace la tête de secours
+  // en plein match, avec un petit « pop » (la tête passe de 30 % à 115 % puis se pose).
+  ctx.bus.on('fighter:portrait', ({ fighterId }) => {
+    for (const p of [0, 1] as const) {
+      const def = ctx.state.players[p].fighter;
+      const rig = rigs[p];
+      if (!rig || def?.id !== fighterId || !def.look || rig.root.getObjectByName('grosse-tete')) continue;
+      void applyFighterLook(rig.root, def.look).then(() => {
+        const tete = rig.root.getObjectByName('grosse-tete')?.children[0];
+        if (!tete) return;
+        const base = tete.scale.x;
+        const t0 = performance.now();
+        const pop = () => {
+          const u = Math.min(1, (performance.now() - t0) / durees.glisse);
+          const k = u < 0.6 ? 0.3 + (1.15 - 0.3) * (u / 0.6) : 1.15 - 0.15 * ((u - 0.6) / 0.4);
+          tete.scale.setScalar(base * k);
+          if (u < 1) requestAnimationFrame(pop);
+        };
+        pop();
+      }).catch((e) => console.error('[fighters] portrait tardif', e));
+    }
   });
 
   // ------------------------------------------------------------------ saut (LFLUID) + salto du double saut
