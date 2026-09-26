@@ -8,6 +8,7 @@ import { install as installIa } from './ia';
 import { install as installScene } from './scene';
 import { install as installMaps } from './scene/maps';
 import { install as installUi } from './ui';
+import { install as installTrailer } from './trailer';
 import type { Install } from './core/types';
 
 const MODULES: [string, Install][] = [
@@ -18,6 +19,7 @@ const MODULES: [string, Install][] = [
   ['ia', installIa],
   ['audio', installAudio],
   ['ui', installUi],
+  ['trailer', installTrailer], // inerte sans ?trailer= dans l'URL (demo/TRAILER.md)
 ];
 
 function showBootError(err: unknown) {
