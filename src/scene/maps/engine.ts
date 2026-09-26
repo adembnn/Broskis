@@ -6,6 +6,7 @@
 // une zone d'alerte qui clignote), les accessoires déclenchés par les tirs et la mort subite.
 // Lumières, ciel, brouillard et post-traitement : PAS ici (src/scene/render/**, lot LDA2).
 import { dressing } from './dressing';
+import { applySky } from './sky'; // LSKY : fond panoramique 360°
 import * as THREE from 'three';
 import type RAPIER from '@dimforge/rapier3d-compat';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -957,6 +958,7 @@ function unloadMap(ctx: Ctx) {
 
 function loadMap(ctx: Ctx, mapId: MapId) {
   unloadMap(ctx);
+  applySky(ctx.three.scene, mapId); // LSKY : panorama de la map (libère le précédent)
   const def = pickBuilder(mapId)();
   const tk = tokensFor(mapId);
   const group = new THREE.Group();
