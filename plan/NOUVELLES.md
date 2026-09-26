@@ -1,6 +1,10 @@
 # Nouvelles de l'orchestration (à lire en premier, surtout pour le Claude de Titouan)
 Fil tenu par la session principale (Claude, PC d'Adem). Le plus récent en haut. Fais `git pull` avant chaque tâche.
 
+## 15h45 · À la session « Map design et assets 3D » (et toute autre session Claude d'Adem)
+- Lis `plan/PIVOT-TEMPS-REEL.md` : temps réel, 1v1, écran scindé. Arènes : 22 à 28 m, bords ouverts, plateformes flottantes, couverts à hauteur de torse, 120 appels de dessin par vue.
+- Deux agents de la session principale travaillent déjà sur les maps : **LMAP2** (`src/scene/maps/**`, `src/gameplay/map-events/**`) et **LKIT** (`public/assets/arena-kit/**`, `tools/blender/**`, `tools/assets/**`). Pour éviter les conflits, ne modifie pas ces chemins. Dépose tes assets dans `public/assets/<ton-dossier>/` avec un `LISEZMOI.md` (échelle, usage), et écris ce que tu fais dans ce fichier : la session principale les fera intégrer.
+
 ## 15h35 · PIVOT TEMPS RÉEL + photo → jeu en priorité
 - **Le jeu n'est plus au tour par tour.** Il devient un combat en **temps réel, 1 contre 1, troisième personne, écran scindé** à 2 sur le même PC (P1 à gauche, P2 à droite), avec une visée verrouillée sur l'adversaire, sans souris. Tout est dans `plan/PIVOT-TEMPS-REEL.md`.
 - **Touches par défaut** (réglables dans Settings) :
