@@ -49,6 +49,9 @@ export interface EventMap {
    *  Lot LLOAD : 'partial' = champs de la réponse Gemini arrivés au fil de l'eau (flux), dans `preview` (objet reconnu,
    *  nom, phrase, déjà nettoyés) ; `preview` porte aussi l'arme complète à 'stats' et 'sticker'. */
   'scan:progress': { player: PlayerId; step: 'reading' | 'partial' | 'stats' | 'sticker' | 'sticker-failed'; weaponId?: string; preview?: Partial<Weapon> };
+  /** Lot LE2E : portrait d'un perso photo arrivé APRÈS le délai d'écran (réseau lent) ; `look.faceUrl` est déjà posé sur
+   *  le FighterDef. La scène pose la grosse tête en plein match, l'interface met le portrait à jour. */
+  'fighter:portrait': { fighterId: string; faceUrl: string };
   'ringout': { player: PlayerId };
   /** Règles v2 (LSMASH) : perte d'une vie, point de sortie de l'arène et côté (bas = chute, haut = éjection vers le ciel). */
   'stock:lost': { player: PlayerId; stocksLeft: number; exitPos: Vec3; side: 'side' | 'top' | 'bottom' };
