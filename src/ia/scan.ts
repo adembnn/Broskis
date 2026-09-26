@@ -66,6 +66,13 @@ function emitScanResult(player: PlayerId | undefined, weapon: Weapon): void {
   ctx.bus.emit('scan:result', { player: player ?? activePlayer(), weapon });
 }
 
+/** Étape réelle d'un scan photo, pour l'affichage « en direct » (lot LUX). */
+function emitScanProgress(player: PlayerId | undefined, step: 'reading' | 'stats' | 'sticker' | 'sticker-failed', weaponId?: string): void {
+  const ctx = getRuntimeCtx();
+  if (!ctx) return;
+  ctx.bus.emit('scan:progress', { player: player ?? activePlayer(), step, weaponId });
+}
+
 function fromApiResult(raw: ScanObjectApiResult | null | undefined, forcedCategory: Category | undefined): Weapon {
   const category = clampCategory(raw?.category, forcedCategory);
   return {
@@ -124,6 +131,7 @@ export async function scanObject(image: Blob | string, opts: ScanOptions = {}): 
     return cached;
   }
 
+  emitScanProgress(opts.player, 'reading');
   const stickerPromise = postJson<StickerApiResult>(
     ENDPOINTS.sticker,
     { imageBase64: base64, mimeType, category: opts.category },
@@ -139,18 +147,24 @@ export async function scanObject(image: Blob | string, opts: ScanOptions = {}): 
   const weapon = raw ? fromApiResult(raw, opts.category) : pickPreset(Math.random, opts.category);
   setCached(imgKey, weapon);
   setCached(weapon.object, weapon);
+  emitScanProgress(opts.player, 'stats', weapon.id);
   emitScanResult(opts.player, weapon);
 
   stickerPromise
     .then((sticker) => {
-      if (!sticker?.dataUrl) return;
+      if (!sticker?.dataUrl) {
+        emitScanProgress(opts.player, 'sticker-failed', weapon.id);
+        return;
+      }
       weapon.stickerUrl = sticker.dataUrl;
       setCached(imgKey, weapon);
       setCached(weapon.object, weapon);
+      emitScanProgress(opts.player, 'sticker', weapon.id);
       emitScanResult(opts.player, weapon);
     })
     .catch(() => {
       /* le sticker est un bonus visuel : une scène de secours (lot LS) existe déjà sans lui */
+      emitScanProgress(opts.player, 'sticker-failed', weapon.id);
     });
 
   return weapon;

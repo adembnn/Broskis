@@ -35,6 +35,8 @@ export interface EventMap {
   'crate:grab': { player: PlayerId };
   'scan:start': { player: PlayerId; source: 'webcam' | 'upload' | 'crate' | 'cache' };
   'scan:result': { player: PlayerId; weapon: Weapon };
+  /** Étapes réelles d'un scan photo (lot LUX, génération « en direct ») : lecture Gemini, stats reçues, sticker prêt ou raté. */
+  'scan:progress': { player: PlayerId; step: 'reading' | 'stats' | 'sticker' | 'sticker-failed'; weaponId?: string };
   'ringout': { player: PlayerId };
   /** Règles v2 (LSMASH) : perte d'une vie, point de sortie de l'arène et côté (bas = chute, haut = éjection vers le ciel). */
   'stock:lost': { player: PlayerId; stocksLeft: number; exitPos: Vec3; side: 'side' | 'top' | 'bottom' };
