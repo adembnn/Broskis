@@ -132,7 +132,7 @@ function playMatch(
 
   let maxDeficit = [0, 0];
 
-  while (!state.winner && state.turn < 50) {
+  while (state.winner === null && state.turn < 50) {
     const activeIdx = state.active;
     const currentHpDiff = state.players[activeIdx].hp - state.players[activeIdx===0?1:0].hp;
     if (currentHpDiff < -maxDeficit[activeIdx]) maxDeficit[activeIdx] = -currentHpDiff;

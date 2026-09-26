@@ -76,7 +76,7 @@ export const SHIELD_HEIGHT_MAX = 2.4;
 export const SHIELD_THICKNESS = 0.25;
 
 // ---------- Dégâts / recul (façon % de Smash : le recul grandit quand les PV baissent) ----------
-export const DAMAGE_PER_POWER = 3.2;
+export const DAMAGE_PER_POWER = 7.5;
 export const FIGHTER_POWER_DAMAGE_FACTOR = 0.06; // bonus de dégâts par point de `power` du perso
 export const CRIT_CHANCE = 0.12;
 export const CRIT_MULT = 1.5;
