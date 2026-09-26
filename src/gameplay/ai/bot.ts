@@ -74,6 +74,8 @@ export class RealtimeBot {
   private edgeFoe = 6;
   private edgeCheckAt = 0;
   private lastTarget: Vec3 = [0, 0, 0];
+  private rawTarget: Vec3 = [0, 0, 0];
+  private safeCheckAt = 0;
   /** Depuis quand la ligne de tir est bouchée (couvert) : on contourne. */
   private noLosSince = -1;
 
@@ -364,8 +366,13 @@ export class RealtimeBot {
     const cd = Math.hypot(cdx, cdz);
     if (cd > safeR) target = [center[0] + (cdx / cd) * safeR, target[1], center[2] + (cdz / cd) * safeR];
     // Arène non ronde (Cuisine : 18 × 11 m) : on vérifie le sol autour du point visé, sinon on le ramène vers le centre.
-    target = this.safeTarget(target, center, arena.top, L.edgeMargin + 1 + me.pct / 80);
-    this.lastTarget = target;
+    // (5 fois par seconde : ~50 rayons par vérification.)
+    if (now >= this.safeCheckAt || flatDist(target, this.rawTarget) > 1.5) {
+      this.safeCheckAt = now + 0.2;
+      this.rawTarget = target;
+      this.lastTarget = this.safeTarget(target, center, arena.top, L.edgeMargin + 1 + me.pct / 80);
+    }
+    target = this.lastTarget;
     const tx = target[0] - me.pos[0], tz = target[2] - me.pos[2];
     const tl = Math.hypot(tx, tz);
     const perp: [number, number] = [-fromFoe[1] * this.strafe, fromFoe[0] * this.strafe];
