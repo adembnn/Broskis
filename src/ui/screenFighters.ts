@@ -3,7 +3,7 @@
 // du lot LW2). Contre l'IA, la machine prend un perso au hasard. Un seul appel à l'action : READY TO FIGHT!
 import type { FighterDef, PlayerId } from '../core/types';
 import { promptVoiceClone } from '../ia/voice';
-import { scanFighter } from '../ia/fighter';
+import { SCAN_ISSUE_TEXT, scanFighterReport, type FighterScanIssue } from '../ia/fighter';
 import { mountCapture } from './capture';
 import { button, clear, el, menuScreen } from './dom';
 import { mountForge } from './forge';
@@ -11,8 +11,9 @@ import { CAMERA_SVG } from './icons';
 import { fighterPortrait } from './portraits';
 import { FIGHTER_PRESETS } from './presets';
 
-/** Photo d'une personne → combattant (lot LP), avec forge pendant l'attente, puis Confirmer / Refaire. */
-async function snapYourself(area: HTMLElement, label: string): Promise<FighterDef | null> {
+/** Photo d'une personne (lot LFACE) : capture seule. La forge tourne ensuite dans l'encart du joueur, pendant que
+ * l'autre joueur fait déjà son scan. */
+async function snapPhoto(area: HTMLElement): Promise<Blob | null> {
   clear(area);
   const capture = mountCapture('Show your face to the camera, or drop in a photo.');
   const back = button('Back', 'b-btn small', () => {
@@ -25,25 +26,25 @@ async function snapYourself(area: HTMLElement, label: string): Promise<FighterDe
   const shot = await Promise.race([capture.result, cancelled]);
   if (!shot) return null;
   capture.dispose();
-  clear(area);
-  const forge = mountForge(`Gemini is turning ${label} into a fighter…`);
-  area.append(forge.root);
-  const fighter = await scanFighter(shot.blob);
-  return new Promise((resolve) => {
-    clear(area);
-    const wrap = el('div', 'fighter-confirm');
-    wrap.append(fighterPortrait(fighter), el('h3', 'b-title', fighter.name));
-    if (fighter.catchphrase) wrap.append(el('p', 'fighter-quote', `"${fighter.catchphrase}"`));
-    const row = el('div', 'confirm-row');
-    row.append(
-      button('Confirm', 'b-btn', () => resolve(fighter)),
-      button('Retry', 'b-btn small alt', () => {
-        snapYourself(area, label).then(resolve);
-      }),
-    );
-    wrap.append(row);
-    area.append(wrap);
-  });
+  return shot.blob;
+}
+
+const FORGING = 'forging-';
+const isForging = (f: FighterDef | null) => !!f && f.id.startsWith(FORGING);
+
+// Nom modifiable et message d'échec du scan (lot LFACE) : ajouts minimes, couleurs du thème existant.
+const LFACE_CSS = `
+.fighter-panel input.name-input { width:100%; min-width:0; border:0; border-bottom:3px dashed var(--b-encre); background:transparent;
+  color:inherit; font:400 clamp(24px, 3.6vh, 36px)/1 var(--b-display); padding:0 0 2px; text-align:inherit; }
+.fighter-panel input.name-input:focus { outline:none; border-bottom-style:solid; }
+.fighter-panel .fighter-issue { font-size:14px; font-weight:700; }
+.fighter-panel .forge { transform:scale(.7); transform-origin:center; margin:-14px 0; }`;
+function injecterStyles(): void {
+  if (document.getElementById('lface-css')) return;
+  const s = document.createElement('style');
+  s.id = 'lface-css';
+  s.textContent = LFACE_CSS;
+  document.head.append(s);
 }
 
 function tile(f: FighterDef, onPick: () => void): HTMLDivElement {
@@ -81,17 +82,43 @@ export function runFighterSelect(screenLayer: HTMLElement, vsAI = false): Promis
   const human = (p: PlayerId) => !(vsAI && p === 1);
   const tiles = new Map<string, HTMLDivElement>();
   const voiceReady: [boolean, boolean] = [false, false];
+  const scanIssues: [FighterScanIssue, FighterScanIssue] = [null, null];
+  const scanned = new Set<string>(); // persos issus d'une photo : nom modifiable
+  injecterStyles();
+
+  /** Nom du perso photo : proposé par Gemini, le joueur tape le sien par-dessus (HUD et écran de fin le reprennent). */
+  function nameField(f: FighterDef, p: PlayerId): HTMLInputElement {
+    const input = document.createElement('input');
+    input.className = 'fighter-panel-name name-input';
+    input.value = f.name;
+    input.maxLength = 14;
+    input.spellcheck = false;
+    input.placeholder = 'Your name';
+    input.setAttribute('aria-label', `Player ${p + 1} name`);
+    const propose = f.name;
+    input.addEventListener('input', () => { f.name = input.value.trim() || propose; });
+    input.addEventListener('keydown', (e) => {
+      e.stopPropagation(); // pas de raccourci de jeu pendant la frappe
+      if (e.key === 'Enter') input.blur();
+    });
+    return input;
+  }
 
   function panel(p: PlayerId): HTMLDivElement {
     const f = picks[p];
     const box = el('div', `fighter-panel p${p + 1}${picking === p && !f ? ' picking' : ''}`);
     box.append(el('span', `ptoken p${p + 1}`, human(p) ? `P${p + 1}` : 'AI'));
-    if (f) {
+    if (isForging(f)) {
+      box.append(mountForge(`Drawing P${p + 1}'s big head…`).root);
+    } else if (f) {
       box.append(fighterPortrait(f, p));
       const text = el('div', 'fighter-panel-text');
-      text.append(el('strong', 'fighter-panel-name', f.name));
-      if (f.catchphrase) text.append(el('span', 'fighter-quote', `"${f.catchphrase}"`));
+      text.append(scanned.has(f.id) && human(p) ? nameField(f, p) : el('strong', 'fighter-panel-name', f.name));
+      const issue = scanIssues[p];
+      if (issue && scanned.has(f.id)) text.append(el('span', 'fighter-issue', SCAN_ISSUE_TEXT[issue]));
+      else if (f.catchphrase) text.append(el('span', 'fighter-quote', `"${f.catchphrase}"`));
       box.append(text);
+      if (scanned.has(f.id) && human(p)) box.append(button(issue ? 'Retry' : 'New photo', 'b-btn small alt', () => void snapFor(p)));
       if (human(p)) {
         if (voiceReady[p]) box.append(el('span', 'voice-badge', 'Voice ready'));
         else
@@ -115,7 +142,7 @@ export function runFighterSelect(screenLayer: HTMLElement, vsAI = false): Promis
             }),
           );
         box.addEventListener('click', (e) => {
-          if ((e.target as HTMLElement).closest('button')) return;
+          if ((e.target as HTMLElement).closest('button, input')) return;
           picking = p;
           render();
         });
@@ -133,15 +160,20 @@ export function runFighterSelect(screenLayer: HTMLElement, vsAI = false): Promis
     else {
       title.append(el('span', `ptoken p${who + 1}`, `P${who + 1}`), ' choose your fighter');
     }
+    // Une même case peut porter plusieurs persos (Snap yourself : un perso photo par joueur).
+    const parCase = new Map<HTMLDivElement, PlayerId[]>();
     for (const [id, t] of tiles) {
-      const tokens = t.querySelector('.fighter-tokens')!;
-      tokens.replaceChildren();
-      ([0, 1] as PlayerId[]).forEach((p) => {
-        if (picks[p]?.id === id) tokens.append(el('span', `ptoken small p${p + 1}`, human(p) ? `P${p + 1}` : 'AI'));
-      });
+      const joueurs = parCase.get(t) ?? [];
+      ([0, 1] as PlayerId[]).forEach((p) => { if (picks[p]?.id === id) joueurs.push(p); });
+      parCase.set(t, joueurs);
+    }
+    for (const [t, joueurs] of parCase) {
+      t.querySelector('.fighter-tokens')!.replaceChildren(
+        ...joueurs.sort().map((p) => el('span', `ptoken small p${p + 1}`, human(p) ? `P${p + 1}` : 'AI')),
+      );
     }
     panels.replaceChildren(panel(0), panel(1));
-    ready.disabled = !(picks[0] && picks[1]);
+    ready.disabled = !(picks[0] && picks[1]) || picks.some(isForging);
     ready.classList.toggle('go', !ready.disabled);
   }
 
@@ -166,20 +198,31 @@ export function runFighterSelect(screenLayer: HTMLElement, vsAI = false): Promis
   const icon = el('div', 'snap-icon');
   icon.innerHTML = CAMERA_SVG;
   snap.append(icon, el('span', 'fighter-tile-name', 'Snap yourself'), el('span', 'fighter-tokens'));
-  snap.addEventListener('click', () => {
-    const p = picking;
+  /** Photo du joueur p, puis forge dans SON encart : le tour passe tout de suite à l'autre joueur (2 scans en
+   * parallèle). À l'arrivée, le perso photo remplace la forge, sauf si le joueur a choisi autre chose entre-temps. */
+  async function snapFor(p: PlayerId): Promise<void> {
     grid.hidden = true;
     side.hidden = false;
-    void snapYourself(side, `Player ${p + 1}`).then((f) => {
-      side.hidden = true;
-      grid.hidden = false;
-      clear(side);
-      if (!f) return;
-      picking = p;
-      tiles.set(f.id, snap);
-      choose(f);
-    });
-  });
+    const blob = await snapPhoto(side);
+    side.hidden = true;
+    grid.hidden = false;
+    clear(side);
+    if (!blob) return;
+    const forging: FighterDef = { id: `${FORGING}${p}-${Date.now()}`, name: 'Forging…', model: 'knight', hpMax: 100, power: 3, agility: 3 };
+    tiles.set(forging.id, snap);
+    picking = p;
+    choose(forging);
+    const report = await scanFighterReport(blob);
+    tiles.delete(forging.id);
+    if (picks[p] !== forging) return;
+    picks[p] = report.fighter;
+    scanIssues[p] = report.issue;
+    scanned.add(report.fighter.id);
+    tiles.set(report.fighter.id, snap);
+    render();
+  }
+
+  snap.addEventListener('click', () => void snapFor(picking));
   grid.append(snap);
   render();
 
