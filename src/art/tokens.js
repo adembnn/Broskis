@@ -20,7 +20,7 @@ export const palette = {
 
 export const rendu = {
   exposition: 1.0,     // sans effet avec 'None'
-  toneMapping: 'None', // AgX mesuré : -35 à -41 % de chroma sur J1/J2, vinyle grisé (L* 93 -> 79)
+  toneMapping: 'ACES', // AgX mesuré : -35 à -41 % de chroma sur J1/J2, vinyle grisé (L* 93 -> 79)
   environnement: 0.3,  // RoomEnvironment : n'agit que sur Standard/Lambert/Phong, jamais sur le toon
   bloom: { force: 0.4, rayon: 0.3, seuil: 0.85 }, // seuls émissifs et VFX additifs le franchissent
   pixelRatioMax: 1.5,
@@ -29,7 +29,7 @@ export const rendu = {
     encre: ENCRE,
     vinyle: VINYLE,
     // unités monde (perso KayKit ≈ 2,5) : trait d'encre, marge vinyle, liseré d'encre extérieur
-    epaisseur: { encre: 0.05, vinyle: 0.11, lisere: 0.135, prop: 0.035, sticker: 0.03 },
+    epaisseur: { encre: 0.015, vinyle: 0.015, lisere: 0.015, prop: 0.035, sticker: 0.03 },
     // par combattant, du plus loin au plus proche (+rang) : liseré, vinyle (depthWrite false), corps + encre
     ordre: { lisere: 1, vinyle: 2, perso: 3, rang: 3 },
   },

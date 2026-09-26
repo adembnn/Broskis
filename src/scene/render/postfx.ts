@@ -5,14 +5,61 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { rendu } from '../../art/tokens.js';
-import type { Ctx } from '../../core/types';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { rendu, maps } from '../../art/tokens.js';
+import type { Ctx, MapId } from '../../core/types';
 
 export interface PostFx {
   composer: EffectComposer;
   bloom: UnrealBloomPass;
-  /** Enregistre un callback à rappeler au resize (ex. particules : uScale dépend de la taille du drawing buffer). */
   onResize(fn: () => void): void;
+}
+
+const ColorGradeShader = {
+  uniforms: {
+    tDiffuse: { value: null },
+    vignetteOffset: { value: 1.0 },
+    vignetteDarkness: { value: 1.2 },
+    tintColor: { value: new THREE.Color(1, 1, 1) },
+    saturation: { value: 1.0 },
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform sampler2D tDiffuse;
+    uniform float vignetteOffset;
+    uniform float vignetteDarkness;
+    uniform vec3 tintColor;
+    uniform float saturation;
+    varying vec2 vUv;
+    void main() {
+      vec4 texel = texture2D(tDiffuse, vUv);
+      
+      // Saturation
+      float luma = dot(texel.rgb, vec3(0.299, 0.587, 0.114));
+      vec3 gray = vec3(luma);
+      vec3 satColor = mix(gray, texel.rgb, saturation);
+      
+      // Tint
+      vec3 tinted = satColor * tintColor;
+      
+      // Vignette
+      vec2 uv = (vUv - vec2(0.5)) * vec2(vignetteOffset);
+      float vignette = clamp(1.0 - dot(uv, uv) * vignetteDarkness, 0.0, 1.0);
+      
+      gl_FragColor = vec4(tinted * vignette, texel.a);
+    }
+  `
+};
+
+function mapEnv(mapId: MapId) {
+  const table = maps as unknown as Record<string, any>;
+  return table[mapId] ?? table.archipel;
 }
 
 export function installPostFx(ctx: Ctx): PostFx {
@@ -20,14 +67,16 @@ export function installPostFx(ctx: Ctx): PostFx {
   const w = window.innerWidth;
   const h = window.innerHeight;
 
-  // Render target en HalfFloat + 4x MSAA : compense l'absence d'AA native du canvas une fois qu'on passe
-  // par un composer (le bloom en profite aussi, moins de banding sur les hautes lumières additives).
   const target = new THREE.WebGLRenderTarget(w, h, { samples: 4, type: THREE.HalfFloatType });
   const composer = new EffectComposer(renderer, target);
   composer.addPass(new RenderPass(scene, camera));
 
   const bloom = new UnrealBloomPass(new THREE.Vector2(w, h), rendu.bloom.force, rendu.bloom.rayon, rendu.bloom.seuil);
   composer.addPass(bloom);
+  
+  const colorGradePass = new ShaderPass(ColorGradeShader);
+  composer.addPass(colorGradePass);
+
   composer.addPass(new OutputPass());
 
   const resizeCbs: (() => void)[] = [];
@@ -36,6 +85,17 @@ export function installPostFx(ctx: Ctx): PostFx {
     for (const cb of resizeCbs) cb();
   }
   window.addEventListener('resize', resize);
+
+  function applyMapFx(mapId: MapId) {
+    const m = mapEnv(mapId);
+    if (m.decor) {
+      colorGradePass.uniforms.tintColor.value.set(m.decor.teinte || '#ffffff');
+      colorGradePass.uniforms.saturation.value = m.decor.saturation ?? 1.0;
+    }
+  }
+  
+  applyMapFx(ctx.state.mapId);
+  ctx.bus.on('match:start', ({ mapId }) => applyMapFx(mapId));
 
   ctx.three.render = () => composer.render();
 
