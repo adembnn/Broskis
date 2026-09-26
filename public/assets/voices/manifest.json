@@ -1,0 +1,1172 @@
+{
+  "announcer": {
+    "match_intro": [
+      {
+        "file": "announcer/match_intro-1.wav",
+        "text": "ARE YOUUUU READYYYY FOR BRAWWWWL!!!"
+      },
+      {
+        "file": "announcer/match_intro-2.wav",
+        "text": "IT IS TIIIIIME TO GET CRANKEEED!!!"
+      },
+      {
+        "file": "announcer/match_intro-3.wav",
+        "text": "LET US GET THIS MAAAATCH GOOOOING!!!"
+      },
+      {
+        "file": "announcer/match_intro-4.wav",
+        "text": "LAAADIES AND BROSKIS, LET US RUMBLEEE!!!"
+      },
+      {
+        "file": "announcer/match_intro-5.wav",
+        "text": "HERE WE GOOOO, PURE CHAOOOOOS!!!"
+      }
+    ],
+    "weigh_in": [
+      {
+        "file": "announcer/weigh_in-1.wav",
+        "text": "WEIGHING IN WITH PURE STEEEEEEL!!!"
+      },
+      {
+        "file": "announcer/weigh_in-2.wav",
+        "text": "CHECK OUUUUT THIS HEAVY HARDWAAAARE!!!"
+      },
+      {
+        "file": "announcer/weigh_in-3.wav",
+        "text": "BRINGING THE PAAAAAIN TODAYYYY!!!"
+      },
+      {
+        "file": "announcer/weigh_in-4.wav",
+        "text": "PACKING A MONSTER OF A MAAAASH!!!"
+      },
+      {
+        "file": "announcer/weigh_in-5.wav",
+        "text": "LOOOOOK AT THAT WRECKING TOOOOOL!!!"
+      }
+    ],
+    "hit": [
+      {
+        "file": "announcer/hit-1.wav",
+        "text": "WHAT A SLAAPPP!!!"
+      },
+      {
+        "file": "announcer/hit-2.wav",
+        "text": "RIGHT IN THE KISSEEEER!!!"
+      },
+      {
+        "file": "announcer/hit-3.wav",
+        "text": "OHHH HE FELT THAAAAAT!!!"
+      },
+      {
+        "file": "announcer/hit-4.wav",
+        "text": "SOLID MAAAAASH!!!"
+      },
+      {
+        "file": "announcer/hit-5.wav",
+        "text": "BOOOOM, DIRECT HIIIIIT!!!"
+      }
+    ],
+    "crit": [
+      {
+        "file": "announcer/crit-1.wav",
+        "text": "ABSOLUTE DEVASTATIOOOON!!!"
+      },
+      {
+        "file": "announcer/crit-2.wav",
+        "text": "THAAAAAT HAS TO HUUUURT!!!"
+      },
+      {
+        "file": "announcer/crit-3.wav",
+        "text": "CRITICAAAAAL DAAMAGE, OUCHHHH!!!"
+      },
+      {
+        "file": "announcer/crit-4.wav",
+        "text": "HE JUST GOT FLATTENEEED!!!"
+      },
+      {
+        "file": "announcer/crit-5.wav",
+        "text": "MIND BLOWWWWING SMAAAASH!!!"
+      }
+    ],
+    "perfect": [
+      {
+        "file": "announcer/perfect-1.wav",
+        "text": "PERFEEECT BLOOOCK!!!"
+      },
+      {
+        "file": "announcer/perfect-2.wav",
+        "text": "UNBELIEVABLE TIIIMING, WOAAAH!!!"
+      },
+      {
+        "file": "announcer/perfect-3.wav",
+        "text": "FLAAAAWLESS PARRYYYY!!!"
+      },
+      {
+        "file": "announcer/perfect-4.wav",
+        "text": "NOT IN MY HOOUUUSE!!!"
+      },
+      {
+        "file": "announcer/perfect-5.wav",
+        "text": "TURNED THAT RIGHT AROUUUUND!!!"
+      }
+    ],
+    "feint": [
+      {
+        "file": "announcer/feint-1.wav",
+        "text": "FOOOOLED HIM COMPLETELYYYY!!!"
+      },
+      {
+        "file": "announcer/feint-2.wav",
+        "text": "SWIIING AND A MIIIIISS!!!"
+      },
+      {
+        "file": "announcer/feint-3.wav",
+        "text": "THE OLD FAAAAKE OUUUUT!!!"
+      },
+      {
+        "file": "announcer/feint-4.wav",
+        "text": "PSYCHED HIM OUUUUUT!!!"
+      },
+      {
+        "file": "announcer/feint-5.wav",
+        "text": "NOBOOODY HOME THERE, FOLKS!!!"
+      }
+    ],
+    "ringout": [
+      {
+        "file": "announcer/ringout-1.wav",
+        "text": "GOOOOING, GOOOING, GOOOOONE!!!"
+      },
+      {
+        "file": "announcer/ringout-2.wav",
+        "text": "KNOCKED OUUUUTTA THE PAAARK!!!"
+      },
+      {
+        "file": "announcer/ringout-3.wav",
+        "text": "HAVE A NIIICE FLIIIGHT!!!"
+      },
+      {
+        "file": "announcer/ringout-4.wav",
+        "text": "CLEAAARED THE BOOOUUUNDS!!!"
+      },
+      {
+        "file": "announcer/ringout-5.wav",
+        "text": "OUTTAAA HEEEERE, SEE YAAAA!!!"
+      }
+    ],
+    "ko": [
+      {
+        "file": "announcer/ko-1.wav",
+        "text": "HE IS OUT COOOOLD!!!"
+      },
+      {
+        "file": "announcer/ko-2.wav",
+        "text": "GOODNIIIGHT BROSKIIII!!!"
+      },
+      {
+        "file": "announcer/ko-3.wav",
+        "text": "KNOCKOUUUUUT, WE HAVE A KNOCKOUUUUUT!!!"
+      },
+      {
+        "file": "announcer/ko-4.wav",
+        "text": "DOOOOWN FOR THE COUNNNNT!!!"
+      },
+      {
+        "file": "announcer/ko-5.wav",
+        "text": "THAT IS AAAALL SHE WROOOOTE!!!"
+      }
+    ],
+    "sudden_death": [
+      {
+        "file": "announcer/sudden_death-1.wav",
+        "text": "SUDDEEEN DEAAAAATH HAS ARRIVEEED!!!"
+      },
+      {
+        "file": "announcer/sudden_death-2.wav",
+        "text": "THE WALLS ARE CLOSING IIIIIN!!!"
+      },
+      {
+        "file": "announcer/sudden_death-3.wav",
+        "text": "NOOOOWHERE LEFT TO RUUUUN!!!"
+      },
+      {
+        "file": "announcer/sudden_death-4.wav",
+        "text": "ONLY ONEEE CAAAAN SURVIIIVE!!!"
+      },
+      {
+        "file": "announcer/sudden_death-5.wav",
+        "text": "IT ALL COMES DOWWWN TO THIIIS!!!"
+      }
+    ],
+    "crate_drop": [
+      {
+        "file": "announcer/crate_drop-1.wav",
+        "text": "LOOOOK AT THE SKYYYYY!!!"
+      },
+      {
+        "file": "announcer/crate_drop-2.wav",
+        "text": "INCOMIIIIING GOODIES, GRAB EEEEM!!!"
+      },
+      {
+        "file": "announcer/crate_drop-3.wav",
+        "text": "FRESH LOOOOOT ON THE WAAAY!!!"
+      },
+      {
+        "file": "announcer/crate_drop-4.wav",
+        "text": "CARE PACKAAAGE INBOUUUUND!!!"
+      },
+      {
+        "file": "announcer/crate_drop-5.wav",
+        "text": "WE GOT CRAAAATES DROPPING NOWWWW!!!"
+      }
+    ],
+    "comeback": [
+      {
+        "file": "announcer/comeback-1.wav",
+        "text": "FROM THE ASHES THEY RIIIISE!!!"
+      },
+      {
+        "file": "announcer/comeback-2.wav",
+        "text": "UNBELIEVABLE TURNAROUUUUUND!!!"
+      },
+      {
+        "file": "announcer/comeback-3.wav",
+        "text": "THE ULTIMAAATE COMEBAAAACK!!!"
+      },
+      {
+        "file": "announcer/comeback-4.wav",
+        "text": "THEY ARE NOT DOOOONE YET!!!"
+      },
+      {
+        "file": "announcer/comeback-5.wav",
+        "text": "FROM THE ASHES THEY RIIIISE!!!"
+      }
+    ],
+    "victory": [
+      {
+        "file": "announcer/victory-1.wav",
+        "text": "WE HAAAVE A CHAMPIOOOON!!!"
+      },
+      {
+        "file": "announcer/victory-2.wav",
+        "text": "THE ULTIMATE BROSKIIII WIIIIINS!!!"
+      },
+      {
+        "file": "announcer/victory-3.wav",
+        "text": "VAAAAST AND GLORIOUS VICTORYYYY!!!"
+      },
+      {
+        "file": "announcer/victory-4.wav",
+        "text": "WHAT A MOOOONSTROUS WIIIIIN!!!"
+      },
+      {
+        "file": "announcer/victory-5.wav",
+        "text": "ALL HAAIL THE KING OF BRAWWWWLS!!!"
+      }
+    ]
+  },
+  "barbarian": {
+    "hit_light": [
+      {
+        "file": "barbarian/hit_light-1.wav",
+        "text": "GRAH! THAT ONLY TICKLES!"
+      },
+      {
+        "file": "barbarian/hit_light-2.wav",
+        "text": "ARGH! WHAT A PUNY HIT!"
+      },
+      {
+        "file": "barbarian/hit_light-3.wav",
+        "text": "OOF! IS THAT ALL?!"
+      }
+    ],
+    "hit_heavy": [
+      {
+        "file": "barbarian/hit_heavy-1.wav",
+        "text": "BAAAH! A WORTHY STRIKE!"
+      },
+      {
+        "file": "barbarian/hit_heavy-2.wav",
+        "text": "ROOOAR! HOW DARE YOU?!"
+      },
+      {
+        "file": "barbarian/hit_heavy-3.wav",
+        "text": "UGGGH! MY THICK SKULL!"
+      }
+    ],
+    "crit_taken": [
+      {
+        "file": "barbarian/crit_taken-1.wav",
+        "text": "GRAAAAGH! MY GLORIOUS FLESH!"
+      },
+      {
+        "file": "barbarian/crit_taken-2.wav",
+        "text": "NOOOO! THAT ACTUALLY HURTS!"
+      },
+      {
+        "file": "barbarian/crit_taken-3.wav",
+        "text": "GAAARGH! I WILL CRUSH YOU!"
+      }
+    ],
+    "parry_perfect": [
+      {
+        "file": "barbarian/parry_perfect-1.wav",
+        "text": "FEEBLE STRIKE! BAHAHAHA!"
+      },
+      {
+        "file": "barbarian/parry_perfect-2.wav",
+        "text": "NOT TODAY, LITTLE WORM!"
+      },
+      {
+        "file": "barbarian/parry_perfect-3.wav",
+        "text": "CLASH! I AM INVINCIBLE!"
+      }
+    ],
+    "parry_good": [
+      {
+        "file": "barbarian/parry_good-1.wav",
+        "text": "NICE TRY! GRUUGH!"
+      },
+      {
+        "file": "barbarian/parry_good-2.wav",
+        "text": "HA! FAR TOO SLOW!"
+      },
+      {
+        "file": "barbarian/parry_good-3.wav",
+        "text": "MY SHIELD STANDS FIRM!"
+      }
+    ],
+    "whiff": [
+      {
+        "file": "barbarian/whiff-1.wav",
+        "text": "RAAAH! JUST STAND STILL!"
+      },
+      {
+        "file": "barbarian/whiff-2.wav",
+        "text": "GRAH! I SWUNG AT AIR!"
+      },
+      {
+        "file": "barbarian/whiff-3.wav",
+        "text": "WHRRRG! STOP YOUR COWARDLY MOVES!"
+      }
+    ],
+    "dodge": [
+      {
+        "file": "barbarian/dodge-1.wav",
+        "text": "HA! YOU COMPLETELY MISSED ME!"
+      },
+      {
+        "file": "barbarian/dodge-2.wav",
+        "text": "TOO QUICK FOR YOU! RAAAH!"
+      },
+      {
+        "file": "barbarian/dodge-3.wav",
+        "text": "SWOOOSH! BAHAHAHA!"
+      }
+    ],
+    "throw_effort": [
+      {
+        "file": "barbarian/throw_effort-1.wav",
+        "text": "YEET! RAAAAH!"
+      },
+      {
+        "file": "barbarian/throw_effort-2.wav",
+        "text": "EAT THIS HEAVY STEEL!"
+      },
+      {
+        "file": "barbarian/throw_effort-3.wav",
+        "text": "FLY, MY WEAPON! GRAH!"
+      }
+    ],
+    "jump_effort": [
+      {
+        "file": "barbarian/jump_effort-1.wav",
+        "text": "HUUUP! TO THE SKIES!"
+      },
+      {
+        "file": "barbarian/jump_effort-2.wav",
+        "text": "GRAAAH! MIGHTY LEAP!"
+      },
+      {
+        "file": "barbarian/jump_effort-3.wav",
+        "text": "BOUNCE LIKE MOUNTAIN GOAT!"
+      }
+    ],
+    "taunt_turn": [
+      {
+        "file": "barbarian/taunt_turn-1.wav",
+        "text": "PREPARE TO BE SMASHED! RAAAAH!"
+      },
+      {
+        "file": "barbarian/taunt_turn-2.wav",
+        "text": "I SMELL YOUR FEAR! BAHAHAHA!"
+      },
+      {
+        "file": "barbarian/taunt_turn-3.wav",
+        "text": "COME MEET YOUR DOOM, LITTLE BUG!"
+      }
+    ],
+    "low_hp": [
+      {
+        "file": "barbarian/low_hp-1.wav",
+        "text": "RAAAH! I WILL NEVER YIELD!"
+      },
+      {
+        "file": "barbarian/low_hp-2.wav",
+        "text": "BLEEDING ONLY MAKES ME MAD! GRAAAH!"
+      },
+      {
+        "file": "barbarian/low_hp-3.wav",
+        "text": "ONE LAST GLORIOUS SWING! RAAAAH!"
+      }
+    ],
+    "ringout_scream": [
+      {
+        "file": "barbarian/ringout_scream-1.wav",
+        "text": "NOOOOOOOO! NOT LIKE THIIIIIS!"
+      },
+      {
+        "file": "barbarian/ringout_scream-2.wav",
+        "text": "GRAAAAAAAAH! I CANNOT FLYYYYYY!"
+      },
+      {
+        "file": "barbarian/ringout_scream-3.wav",
+        "text": "CURSE THE ABYYYYYSSS!"
+      }
+    ],
+    "ko": [
+      {
+        "file": "barbarian/ko-1.wav",
+        "text": "BAHAHAHA! YOU STAY DOWN!"
+      },
+      {
+        "file": "barbarian/ko-2.wav",
+        "text": "CRUSHED LIKE A TINY BUG! RAAAAH!"
+      },
+      {
+        "file": "barbarian/ko-3.wav",
+        "text": "WEAKLING! BRING ME NEXT VICTIM!"
+      }
+    ],
+    "victory": [
+      {
+        "file": "barbarian/victory-1.wav",
+        "text": "I AM THE TRUE CHAMPION! RAAAAAAH!"
+      },
+      {
+        "file": "barbarian/victory-2.wav",
+        "text": "TIME FOR VICTORY BRAWL! BAHAHAHAHA!"
+      },
+      {
+        "file": "barbarian/victory-3.wav",
+        "text": "GREATEST WARRIOR LIVES FOREVER! YEEEAH!"
+      }
+    ],
+    "crate_grab": [
+      {
+        "file": "barbarian/crate_grab-1.wav",
+        "text": "OOH! THIS IS MINE NOW!"
+      },
+      {
+        "file": "barbarian/crate_grab-2.wav",
+        "text": "LOOT FOR THE STRONG! GRAAAH!"
+      },
+      {
+        "file": "barbarian/crate_grab-3.wav",
+        "text": "TREASURE FROM THE CLOUDS! BAHAHAHA!"
+      }
+    ],
+    "new_weapon": [
+      {
+        "file": "barbarian/new_weapon-1.wav",
+        "text": "OOH! SHINY NEW SMASHING TOY!"
+      },
+      {
+        "file": "barbarian/new_weapon-2.wav",
+        "text": "I WILL BREAK BONES WITH THIS! RAAAAH!"
+      },
+      {
+        "file": "barbarian/new_weapon-3.wav",
+        "text": "A GLORIOUS WEAPON FOR ME! YEEEAH!"
+      }
+    ]
+  },
+  "knight": {
+    "hit_light": [
+      {
+        "file": "knight/hit_light-1.wav",
+        "text": "OOF! UNCALLED FOR!!!"
+      },
+      {
+        "file": "knight/hit_light-2.wav",
+        "text": "EGAD! MY ARMOR!!!"
+      },
+      {
+        "file": "knight/hit_light-3.wav",
+        "text": "GAH! MERE SCRATCH!!!"
+      }
+    ],
+    "hit_heavy": [
+      {
+        "file": "knight/hit_heavy-1.wav",
+        "text": "BLAST IT ALL! ARGHHH!!!"
+      },
+      {
+        "file": "knight/hit_heavy-2.wav",
+        "text": "GOOD HEAVENS! OOOOUCH!!!"
+      },
+      {
+        "file": "knight/hit_heavy-3.wav",
+        "text": "FOUL PLAY! RAAAGH!!!"
+      }
+    ],
+    "crit_taken": [
+      {
+        "file": "knight/crit_taken-1.wav",
+        "text": "MY BEAUTIFUL VISAGE!!! NOOOOO!!!"
+      },
+      {
+        "file": "knight/crit_taken-2.wav",
+        "text": "BY THE QUEEN! WAAAGH!!!"
+      },
+      {
+        "file": "knight/crit_taken-3.wav",
+        "text": "ABSOLUTE TREACHERY!!! YEOOOW!!!"
+      }
+    ],
+    "parry_perfect": [
+      {
+        "file": "knight/parry_perfect-1.wav",
+        "text": "FLAWLESS TECHNIQUE! HAH!!!"
+      },
+      {
+        "file": "knight/parry_perfect-2.wav",
+        "text": "NOT TODAY, KNAVE!!! YEEAAH!!!"
+      },
+      {
+        "file": "knight/parry_perfect-3.wav",
+        "text": "ROYAL GUARD! BOOYAH!!!"
+      }
+    ],
+    "parry_good": [
+      {
+        "file": "knight/parry_good-1.wav",
+        "text": "PREDICTABLE! HUAH!!!"
+      },
+      {
+        "file": "knight/parry_good-2.wav",
+        "text": "DEFLECTED! YES!!!"
+      },
+      {
+        "file": "knight/parry_good-3.wav",
+        "text": "NICE TRY, PEASANT!!!"
+      }
+    ],
+    "whiff": [
+      {
+        "file": "knight/whiff-1.wav",
+        "text": "BALDERDASH! I MISSED!!!"
+      },
+      {
+        "file": "knight/whiff-2.wav",
+        "text": "SLIPPED MY GRASP!!! RAAH!!!"
+      },
+      {
+        "file": "knight/whiff-3.wav",
+        "text": "CONFUSTICATE IT ALL!!!"
+      }
+    ],
+    "dodge": [
+      {
+        "file": "knight/dodge-1.wav",
+        "text": "TOO SLOW, RUFFIAN!!!"
+      },
+      {
+        "file": "knight/dodge-2.wav",
+        "text": "DANCING ON CLOUDS! WOO!!!"
+      },
+      {
+        "file": "knight/dodge-3.wav",
+        "text": "NOT EVEN CLOSE! HAH!!!"
+      }
+    ],
+    "throw_effort": [
+      {
+        "file": "knight/throw_effort-1.wav",
+        "text": "HAVE AT THEE! HRRAAAH!!!"
+      },
+      {
+        "file": "knight/throw_effort-2.wav",
+        "text": "TAKE THIS, SCOUNDREL! YAAAH!!!"
+      },
+      {
+        "file": "knight/throw_effort-3.wav",
+        "text": "CHIVALROUS STRIKE! HYAAAH!!!"
+      }
+    ],
+    "jump_effort": [
+      {
+        "file": "knight/jump_effort-1.wav",
+        "text": "UP WE GO! HOOO!!!"
+      },
+      {
+        "file": "knight/jump_effort-2.wav",
+        "text": "BOUNDING FORTH! HUP!!!"
+      },
+      {
+        "file": "knight/jump_effort-3.wav",
+        "text": "SOARING KNIGHT! HYAA!!!"
+      }
+    ],
+    "taunt_turn": [
+      {
+        "file": "knight/taunt_turn-1.wav",
+        "text": "PREPARE TO BE VANQUISHED!!!"
+      },
+      {
+        "file": "knight/taunt_turn-2.wav",
+        "text": "FACE MY ROYAL WRATH!!!"
+      },
+      {
+        "file": "knight/taunt_turn-3.wav",
+        "text": "YIELD NOW, COMMONER!!!"
+      }
+    ],
+    "low_hp": [
+      {
+        "file": "knight/low_hp-1.wav",
+        "text": "I SHALL NEVER SURRENDER!!! RAAAH!!!"
+      },
+      {
+        "file": "knight/low_hp-2.wav",
+        "text": "TIS BUT A FLESH WOUND!!!"
+      },
+      {
+        "file": "knight/low_hp-3.wav",
+        "text": "FOR KING AND COUNTRY! HYAAAH!!!"
+      }
+    ],
+    "ringout_scream": [
+      {
+        "file": "knight/ringout_scream-1.wav",
+        "text": "AWAY I GOOOOOOOOO!!!"
+      },
+      {
+        "file": "knight/ringout_scream-2.wav",
+        "text": "UNHAND MEEEEEEEEEEEEE!!!"
+      },
+      {
+        "file": "knight/ringout_scream-3.wav",
+        "text": "CURSE YOUR SUDDEN BETRAYAAAAAAAL!!!"
+      }
+    ],
+    "ko": [
+      {
+        "file": "knight/ko-1.wav",
+        "text": "A STUNNING DEFEAT!!! YES!!!"
+      },
+      {
+        "file": "knight/ko-2.wav",
+        "text": "THE BATTLE IS WON!!! HUZZAH!!!"
+      },
+      {
+        "file": "knight/ko-3.wav",
+        "text": "GOOD NIGHT, SWEET PRINCE!!!"
+      }
+    ],
+    "victory": [
+      {
+        "file": "knight/victory-1.wav",
+        "text": "GLORY TO THE REALM! HUZZAAAAH!!!"
+      },
+      {
+        "file": "knight/victory-2.wav",
+        "text": "I AM THE CHAMPION!!! YEEEAAAH!!!"
+      },
+      {
+        "file": "knight/victory-3.wav",
+        "text": "ANOTHER GLORIOUS TALE WRITTEN!!!"
+      }
+    ],
+    "crate_grab": [
+      {
+        "file": "knight/crate_grab-1.wav",
+        "text": "A ROYAL BOON! MINE!!!"
+      },
+      {
+        "file": "knight/crate_grab-2.wav",
+        "text": "TREASURE FROM THE HEAVENS! YEEAH!!!"
+      },
+      {
+        "file": "knight/crate_grab-3.wav",
+        "text": "REINFORCEMENTS HAVE ARRIVED!!! WOO!!!"
+      }
+    ],
+    "new_weapon": [
+      {
+        "file": "knight/new_weapon-1.wav",
+        "text": "EXCALIBUR HERSELF WEEPS! BEHOLD!!!"
+      },
+      {
+        "file": "knight/new_weapon-2.wav",
+        "text": "A FINE ADDITION TO MY ARMORY!!!"
+      },
+      {
+        "file": "knight/new_weapon-3.wav",
+        "text": "SMASHING! ABSOLUTELY SMASHING!!! YES!!!"
+      }
+    ]
+  },
+  "mage": {
+    "hit_light": [
+      {
+        "file": "mage/hit_light-1.wav",
+        "text": "OWEE! MY BEARD!!!"
+      },
+      {
+        "file": "mage/hit_light-2.wav",
+        "text": "EEEEK! WATCH IT!"
+      },
+      {
+        "file": "mage/hit_light-3.wav",
+        "text": "NYAAH! PAPER CUT!"
+      }
+    ],
+    "hit_heavy": [
+      {
+        "file": "mage/hit_heavy-1.wav",
+        "text": "BLAAARGH! MY SPLEEEEN!"
+      },
+      {
+        "file": "mage/hit_heavy-2.wav",
+        "text": "OOOF! RIGHT IN THE POTIONS!!!"
+      },
+      {
+        "file": "mage/hit_heavy-3.wav",
+        "text": "YEEEOUCH! MY OLD BONES!!!"
+      }
+    ],
+    "crit_taken": [
+      {
+        "file": "mage/crit_taken-1.wav",
+        "text": "GAAAAAH! MY MAGIC CORE!!!"
+      },
+      {
+        "file": "mage/crit_taken-2.wav",
+        "text": "NOOOOO! MY BEAUTIFUL WAND!!!"
+      },
+      {
+        "file": "mage/crit_taken-3.wav",
+        "text": "REEEEEEE! I'M MELTING!!!"
+      }
+    ],
+    "parry_perfect": [
+      {
+        "file": "mage/parry_perfect-1.wav",
+        "text": "AHAHAAA! I FORESAW THAT!!!"
+      },
+      {
+        "file": "mage/parry_perfect-2.wav",
+        "text": "HEEHEEHEE! TOO SLOW, FOOL!!!"
+      },
+      {
+        "file": "mage/parry_perfect-3.wav",
+        "text": "SHIELDS UP, NINCOMPOOP!!!"
+      }
+    ],
+    "parry_good": [
+      {
+        "file": "mage/parry_good-1.wav",
+        "text": "NYAHA! NICE TRY!!!"
+      },
+      {
+        "file": "mage/parry_good-2.wav",
+        "text": "BOING! RIGHT OFF ME!!!"
+      },
+      {
+        "file": "mage/parry_good-3.wav",
+        "text": "EHEHE! NOT TODAY!!!"
+      }
+    ],
+    "whiff": [
+      {
+        "file": "mage/whiff-1.wav",
+        "text": "DAGNABBIT! MISSED!"
+      },
+      {
+        "file": "mage/whiff-2.wav",
+        "text": "WHOOOPSIE DAISY!!!"
+      },
+      {
+        "file": "mage/whiff-3.wav",
+        "text": "BAH! SLIPPERY CURSE!!!"
+      }
+    ],
+    "dodge": [
+      {
+        "file": "mage/dodge-1.wav",
+        "text": "ZOOOOP! YOU MISSED ME!!!"
+      },
+      {
+        "file": "mage/dodge-2.wav",
+        "text": "HEEHEE! OVER HEEERE!!!"
+      },
+      {
+        "file": "mage/dodge-3.wav",
+        "text": "SKEDADDLE! CAN'T TOUCH THIS!!!"
+      }
+    ],
+    "throw_effort": [
+      {
+        "file": "mage/throw_effort-1.wav",
+        "text": "YEEEET! FIRE IN THE HOLE!!!"
+      },
+      {
+        "file": "mage/throw_effort-2.wav",
+        "text": "ALAKAZAAAAM! TAKE THIS!!!"
+      },
+      {
+        "file": "mage/throw_effort-3.wav",
+        "text": "HNNNNG! EAT MAGIC!!!"
+      }
+    ],
+    "jump_effort": [
+      {
+        "file": "mage/jump_effort-1.wav",
+        "text": "HOOOPLA! UP I GO!!!"
+      },
+      {
+        "file": "mage/jump_effort-2.wav",
+        "text": "WHEEEE! BOUNCY SPELL!!!"
+      },
+      {
+        "file": "mage/jump_effort-3.wav",
+        "text": "HUP! GRAVITY DEFIED!!!"
+      }
+    ],
+    "taunt_turn": [
+      {
+        "file": "mage/taunt_turn-1.wav",
+        "text": "I'LL TURN YOU INTO A TOAAAD!!!"
+      },
+      {
+        "file": "mage/taunt_turn-2.wav",
+        "text": "PREPARE TO BE ZAPPED, WHIPSNAPPER!!!"
+      },
+      {
+        "file": "mage/taunt_turn-3.wav",
+        "text": "CACKLE CACKLE! YOUR DOOM APPROACHES!!!"
+      }
+    ],
+    "low_hp": [
+      {
+        "file": "mage/low_hp-1.wav",
+        "text": "MY MANA IS LEAKING!!!"
+      },
+      {
+        "file": "mage/low_hp-2.wav",
+        "text": "I STILL HAVE ONE TRICK LEFT!!!"
+      },
+      {
+        "file": "mage/low_hp-3.wav",
+        "text": "NOOO! I NEED A HEALING POTION!!!"
+      }
+    ],
+    "ringout_scream": [
+      {
+        "file": "mage/ringout_scream-1.wav",
+        "text": "FLY, YOU FOOOOOOLS!!!"
+      },
+      {
+        "file": "mage/ringout_scream-2.wav",
+        "text": "MY SPELL WORE OUUUUT!!!"
+      },
+      {
+        "file": "mage/ringout_scream-3.wav",
+        "text": "YAAAAAAAAAAH! TOO MUCH GRAVITYYY!!!"
+      }
+    ],
+    "ko": [
+      {
+        "file": "mage/ko-1.wav",
+        "text": "NAP TIME FOR YOU, BOZO!!!"
+      },
+      {
+        "file": "mage/ko-2.wav",
+        "text": "HEEHEEHEE! DOWN FOR THE COUNT!!!"
+      },
+      {
+        "file": "mage/ko-3.wav",
+        "text": "LIGHTS OUT, BONEHEAD!!!"
+      }
+    ],
+    "victory": [
+      {
+        "file": "mage/victory-1.wav",
+        "text": "THE GRAND WIZARD REIGNS SUPREEEEEME!!!"
+      },
+      {
+        "file": "mage/victory-2.wav",
+        "text": "WAHAHAHAAA! I ALCHEMIZED A WIIIN!!!"
+      },
+      {
+        "file": "mage/victory-3.wav",
+        "text": "OOH YEEAAAH! WHO'S THE MAGIC MAN?!"
+      }
+    ],
+    "crate_grab": [
+      {
+        "file": "mage/crate_grab-1.wav",
+        "text": "OOH! SHINY NEW INGREDIENTS!!!"
+      },
+      {
+        "file": "mage/crate_grab-2.wav",
+        "text": "GIMME GIMME GIMME! ALL MINE!!!"
+      },
+      {
+        "file": "mage/crate_grab-3.wav",
+        "text": "JACKPOT! MAGICAL LOOT!!!"
+      }
+    ],
+    "new_weapon": [
+      {
+        "file": "mage/new_weapon-1.wav",
+        "text": "A NEW TOY?! HEEHEEHEE!!!"
+      },
+      {
+        "file": "mage/new_weapon-2.wav",
+        "text": "OOH, THIS WILL STING!!!"
+      },
+      {
+        "file": "mage/new_weapon-3.wav",
+        "text": "PHENOMENAL COSMIC POWERRR!!!"
+      }
+    ]
+  },
+  "rogue": {
+    "hit_light": [
+      {
+        "file": "rogue/hit_light-1.wav",
+        "text": "OW!!! WATCH IT!"
+      },
+      {
+        "file": "rogue/hit_light-2.wav",
+        "text": "HEY!!! MY HAIR!"
+      },
+      {
+        "file": "rogue/hit_light-3.wav",
+        "text": "EEEEK!!! CHEATER!"
+      }
+    ],
+    "hit_heavy": [
+      {
+        "file": "rogue/hit_heavy-1.wav",
+        "text": "OOUUGH!!! YOU MEANIE!!!"
+      },
+      {
+        "file": "rogue/hit_heavy-2.wav",
+        "text": "YAAARGH!!! NOT THE FACE!!!"
+      },
+      {
+        "file": "rogue/hit_heavy-3.wav",
+        "text": "GAAAAH!!! THAT ACTUALLY HURT!!!"
+      }
+    ],
+    "crit_taken": [
+      {
+        "file": "rogue/crit_taken-1.wav",
+        "text": "WAAAAAH!!! UNFAIR UNFAIR UNFAAAIR!!!"
+      },
+      {
+        "file": "rogue/crit_taken-2.wav",
+        "text": "NOOOOO!!! MOMMYYYY!!!"
+      },
+      {
+        "file": "rogue/crit_taken-3.wav",
+        "text": "YEOOOOWCH!!! MY BONES!!!"
+      }
+    ],
+    "parry_perfect": [
+      {
+        "file": "rogue/parry_perfect-1.wav",
+        "text": "HA!!! TOO SLOW!!!"
+      },
+      {
+        "file": "rogue/parry_perfect-2.wav",
+        "text": "BOOOING!!! RIGHT BACK ATCHA!!!"
+      },
+      {
+        "file": "rogue/parry_perfect-3.wav",
+        "text": "DENIED!!! YOU STINK!!!"
+      }
+    ],
+    "parry_good": [
+      {
+        "file": "rogue/parry_good-1.wav",
+        "text": "NOPE!!! TRY AGAIN!!!"
+      },
+      {
+        "file": "rogue/parry_good-2.wav",
+        "text": "HEHE!!! I SAW THAT!!!"
+      },
+      {
+        "file": "rogue/parry_good-3.wav",
+        "text": "BLOCKED IT!!! LOSER!!!"
+      }
+    ],
+    "whiff": [
+      {
+        "file": "rogue/whiff-1.wav",
+        "text": "WHOOPS!!! SLIPPED!!!"
+      },
+      {
+        "file": "rogue/whiff-2.wav",
+        "text": "DARN IT!!! HOLD STILL!!!"
+      },
+      {
+        "file": "rogue/whiff-3.wav",
+        "text": "GAHHH!!! CHEAP DODGE!!!"
+      }
+    ],
+    "dodge": [
+      {
+        "file": "rogue/dodge-1.wav",
+        "text": "WOOOSH!!! MISSED ME!!!"
+      },
+      {
+        "file": "rogue/dodge-2.wav",
+        "text": "HAHAHA!!! TOO SLUGGGISH!!!"
+      },
+      {
+        "file": "rogue/dodge-3.wav",
+        "text": "YEEHEE!!! OVER HEEEEERE!!!"
+      }
+    ],
+    "throw_effort": [
+      {
+        "file": "rogue/throw_effort-1.wav",
+        "text": "YAAAH!!! CATCH THIS!!!"
+      },
+      {
+        "file": "rogue/throw_effort-2.wav",
+        "text": "HYAAAH!!! EAT DIRT!!!"
+      },
+      {
+        "file": "rogue/throw_effort-3.wav",
+        "text": "YEET!!! INCOMINGGGG!!!"
+      }
+    ],
+    "jump_effort": [
+      {
+        "file": "rogue/jump_effort-1.wav",
+        "text": "HUP!!! UP I GO!!!"
+      },
+      {
+        "file": "rogue/jump_effort-2.wav",
+        "text": "WEEEEE!!! LOOK AT ME!!!"
+      },
+      {
+        "file": "rogue/jump_effort-3.wav",
+        "text": "BOING!!! ALLEY OOP!!!"
+      }
+    ],
+    "taunt_turn": [
+      {
+        "file": "rogue/taunt_turn-1.wav",
+        "text": "MY TURN!!! PREPARE TO CRY!!!"
+      },
+      {
+        "file": "rogue/taunt_turn-2.wav",
+        "text": "WATCH AND LEARN!!! DUMMIES!!!"
+      },
+      {
+        "file": "rogue/taunt_turn-3.wav",
+        "text": "HAHAHA!!! I ALWAYS WIN!!!"
+      }
+    ],
+    "low_hp": [
+      {
+        "file": "rogue/low_hp-1.wav",
+        "text": "I AM NOT YIELDING!!! NEVERRRR!!!"
+      },
+      {
+        "file": "rogue/low_hp-2.wav",
+        "text": "YOU WONT BEAT ME!!! WAAAAH!!!"
+      },
+      {
+        "file": "rogue/low_hp-3.wav",
+        "text": "BACK OFF!!! IM STILL KICKING!!!"
+      }
+    ],
+    "ringout_scream": [
+      {
+        "file": "rogue/ringout_scream-1.wav",
+        "text": "WHYYYYYYYY!!! CURSE YOUUUUUU!!!"
+      },
+      {
+        "file": "rogue/ringout_scream-2.wav",
+        "text": "I HATE GRAVITYYYYYYY!!!"
+      },
+      {
+        "file": "rogue/ringout_scream-3.wav",
+        "text": "ILL BE BAAAAACK!!!"
+      }
+    ],
+    "ko": [
+      {
+        "file": "rogue/ko-1.wav",
+        "text": "SLEEP TIGHT!!! SNOOZER!!!"
+      },
+      {
+        "file": "rogue/ko-2.wav",
+        "text": "HAHAHA!!! WHAT A PUSHOVER!!!"
+      },
+      {
+        "file": "rogue/ko-3.wav",
+        "text": "NIGHTY NIGHT!!! LOSER!!!"
+      }
+    ],
+    "victory": [
+      {
+        "file": "rogue/victory-1.wav",
+        "text": "YEEES!!! I AM THE GREATEST!!!"
+      },
+      {
+        "file": "rogue/victory-2.wav",
+        "text": "CHAMPION!!! IN YOUR FACE!!!"
+      },
+      {
+        "file": "rogue/victory-3.wav",
+        "text": "WOOOOHOOO!!! WEEP AND BOOHOO!!!"
+      }
+    ],
+    "crate_grab": [
+      {
+        "file": "rogue/crate_grab-1.wav",
+        "text": "MINE!!! ALL MINE!!!"
+      },
+      {
+        "file": "rogue/crate_grab-2.wav",
+        "text": "OOH!!! PRESENTS FOR ME!!!"
+      },
+      {
+        "file": "rogue/crate_grab-3.wav",
+        "text": "YOINK!!! FINDERS KEEPERS!!!"
+      }
+    ],
+    "new_weapon": [
+      {
+        "file": "rogue/new_weapon-1.wav",
+        "text": "OH YEAH!!! NEW TOY!!!"
+      },
+      {
+        "file": "rogue/new_weapon-2.wav",
+        "text": "SHINY!!! LETS BREAK STUFF!!!"
+      },
+      {
+        "file": "rogue/new_weapon-3.wav",
+        "text": "HEHEHE!!! UPGRADE TIIIIIME!!!"
+      }
+    ]
+  }
+}

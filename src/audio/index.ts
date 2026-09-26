@@ -2,6 +2,7 @@
 // Voir plan/lots/LV-audio.md. Rien ici ne dépend d'un fichier son : tout est synthétisé en WebAudio
 // (repris de reference/bagarre-de-taverne/src/audio.js) pour que le build reste léger et sans asset.
 import type { Install } from '../core/types';
+import { installBarks } from './barks';
 import { installCommentary } from './commentary';
 import { AudioEngine } from './engine';
 import { installMusic } from './music';
@@ -20,6 +21,7 @@ export const install: Install = (ctx) => {
   installSfx(ctx.bus, engine);
   const music = installMusic(ctx.bus, engine, () => ctx.state);
   const commentary = installCommentary(ctx.bus, engine, music);
+  installBarks(ctx, engine, music);
   installParryCues(ctx.bus, engine);
 
   window.addEventListener('keydown', (e) => {
