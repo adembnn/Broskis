@@ -1,0 +1,24 @@
+{
+  "iterations": [
+    {
+      "n": 1,
+      "horodatage": "2026-09-26_16h26",
+      "changement": "référence : pipeline actuel de main (sans physique LSCAN)",
+      "moyenne": 4.92,
+      "injouables": 4,
+      "notes": {
+        "tasse-verre": 5.4,
+        "chaise-bureau": 4.68,
+        "feutre-velleda": 5.48,
+        "telephone": 3.68,
+        "mocassin": 5.88,
+        "tabouret-rotin": 3,
+        "pendule-newton": 4.6,
+        "lampe-champignon": 5.68,
+        "roi-echecs": 5.08,
+        "montre": 5.68
+      },
+      "reprise": true
+    }
+  ]
+}
