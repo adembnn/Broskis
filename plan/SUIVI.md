@@ -15,7 +15,8 @@ Réserver une ligne **avant** de commencer : nom + heure, commit + push de ce fi
 | LP | Perso photo en direct | moyen | Adem (sous-agent) | LI | à prendre | | |
 | LS | Sticker 3D | faible | **Titouan** | — | à prendre | | Autonome, peut démarrer tout de suite |
 | LV | Audio et voix | faible | **Titouan** | L0 | à prendre | | |
-| LP2 | Vedettes 3D préparées | faible | **Titouan** | clé Tripo | à prendre | | |
+| LP2 | Vedettes 3D préparées (sans Tripo : MCP Blender + Rodin gratuit) | faible | PC d'Adem (Gemini) | MCP Blender | à prendre | | |
 | LD | Démo, vidéo, bande-annonce | faible | **Titouan** (+ Adem) | — | à prendre | | Références visuelles dès maintenant |
+| LK | Parade avancée (validée par Adem) | moyen | Adem (Gemini) | LG, LA, LU, LV | à prendre | | Spéc complète : plan/lots/LK-parade.md |
 | LX | Adversaire IA (vague 2) | moyen | Adem | LG | à prendre | | |
 | LW | Scandex + voix clonée (vague 2) | faible | partagé | LI, LU | à prendre | | |

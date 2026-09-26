@@ -21,7 +21,7 @@ Quand on scanne un objet, Nano Banana le redessine en arme cartoon sur un fond u
   6. face avant texturée (UV calées sur la boîte du contour) ;
   7. tranche couleur carton ;
   8. bord blanc de 2 à 3 % autour, comme un vrai sticker.
-- **Matériau toon** : reprendre `createToonMaterial` et `addOutline` de `C:\Users\Adem\repos\bagarre-de-taverne\toon-kit.js`.
+- **Matériau toon** : reprendre `createToonMaterial` et `addOutline` de `reference/bagarre-de-taverne/toon-kit.js`.
 - **Page de test** : `src/scene/sticker/preview.html`, ouverte avec `npm run dev` à `http://localhost:5173/src/scene/sticker/preview.html`.
   - Elle charge 3 images de test (dessine-les toi-même sur fond `#FF00FF`, ou demande-les à Adem) ;
   - elle les fait tourner en 3D.

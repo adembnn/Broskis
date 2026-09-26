@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Bagarre de Taverne</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800&display=swap">
+</head>
+<body>
+<div id="bootError" hidden style="position:fixed;left:16px;right:16px;bottom:16px;z-index:99;padding:12px 14px;background:#f6ecd6;color:#2b1d14;border:3px solid #2b1d14;box-shadow:4px 4px 0 #2b1d14;font:600 14px/1.4 Nunito,system-ui,sans-serif;white-space:pre-wrap"></div>
+<script>
+  // Affiche toute erreur à l'écran : sans console dans l'artifact, c'est le seul moyen de savoir ce qui casse.
+  (function () {
+    function show(msg) {
+      var el = document.getElementById('bootError');
+      if (!el) return;
+      el.hidden = false;
+      el.textContent = 'Erreur du jeu (à me transmettre) : ' + String(msg).slice(0, 400);
+    }
+    window.addEventListener('error', function (e) { show((e.error && e.error.stack) || e.message); });
+    window.addEventListener('unhandledrejection', function (e) { var r = e.reason; show((r && (r.stack || r.message)) || r); });
+  })();
+</script>
+
+<div id="stage"></div>
+<div id="layer" aria-hidden="true"></div>
+
+<header id="hud" hidden>
+  <div class="fh p1">
+    <div class="fh-top"><span id="name1" class="fname">Toi</span><span id="hpNum1" class="num">100</span></div>
+    <div class="bar hp"><s id="ghost1"></s><i id="hp1"></i><b id="sh1"></b></div>
+    <div class="mana-row"><div class="bar mana" title="Mana"><i id="mana1"></i></div><span id="manaNum1" class="mana-num num">100</span></div>
+    <ul id="st1" class="statuses" aria-label="États"></ul>
+  </div>
+  <div class="fh p2">
+    <div class="fh-top"><span id="hpNum2" class="num">100</span><span id="name2" class="fname">Boulon le Rouge</span></div>
+    <div class="bar hp"><s id="ghost2"></s><i id="hp2"></i><b id="sh2"></b></div>
+    <div class="mana-row"><span id="manaNum2" class="mana-num num">100</span><div class="bar mana" title="Mana"><i id="mana2"></i></div></div>
+    <ul id="st2" class="statuses" aria-label="États"></ul>
+  </div>
+</header>
+
+<section id="caption" aria-live="polite" hidden></section>
+
+<footer id="dock" hidden>
+  <div class="chips"><span id="turn" class="turn" aria-live="polite"></span><span id="slowmo" class="slowmo" hidden></span></div>
+  <form id="castForm" autocomplete="off">
+    <input id="incant" name="incant" maxlength="160" spellcheck="false" placeholder="Écris une incantation…" aria-label="Incantation" disabled>
+    <span id="timerNum" class="num timer-num" aria-label="Secondes restantes">15</span>
+    <button id="castBtn" type="submit" disabled>Lancer</button>
+  </form>
+  <div class="timer" aria-hidden="true"><i id="timerFill"></i></div>
+  <div class="dock-meta">
+    <span id="decor"></span>
+    <span class="meta-right"><span id="oracle"></span><button id="muteBtn" class="text-btn" type="button" aria-pressed="false">Couper le son</button></span>
+  </div>
+</footer>
+
+<section id="title" class="overlay">
+  <div class="panel">
+    <h1>Bagarre de Taverne</h1>
+    <p class="lede">Un duel de sorciers au milieu des chopes. Écris ce que tu veux : un sort, ou une idée qui se sert du décor. Le feu, l'eau, la foudre et l'huile réagissent entre eux.</p>
+    <ul class="examples">
+      <li>« brûle la corde du lustre »</li>
+      <li>« renverse la soupe sur lui » puis « un éclair »</li>
+      <li>« de l'eau sur lui » puis « gèle-le »</li>
+    </ul>
+    <div class="modes">
+      <button id="modeTournament" class="btn primary" type="button">Tournoi</button>
+      <button id="modeDuel" class="btn alt" type="button">Duel 2 joueurs</button>
+    </div>
+    <p class="small"><span id="loading">Chargement de la taverne…</span><span id="modeHint">Tournoi : trois adversaires puis ton reflet, en temps réel. Duel : chacun son tour, 15 secondes, même clavier.</span></p>
+  </div>
+</section>
+
+<section id="card" class="overlay" hidden>
+  <div class="panel">
+    <p id="cardKicker" class="kicker"></p>
+    <h2 id="cardTitle"></h2>
+    <p id="cardSub" class="sub"></p>
+    <p id="cardBody" class="lede"></p>
+    <button id="cardBtn" class="btn primary" type="button">Au combat !</button>
+  </div>
+</section>
+
+<section id="over" class="overlay" hidden>
+  <div class="panel">
+    <h2 id="overTitle">Victoire !</h2>
+    <p id="overText" class="lede"></p>
+    <ul id="overCombos" class="combos"></ul>
+    <button id="againBtn" class="btn primary" type="button">Revanche</button>
+  </div>
+</section>
+
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
