@@ -7,6 +7,7 @@
 // Lumières, ciel, brouillard et post-traitement : PAS ici (src/scene/render/**, lot LDA2).
 import { dressing } from './dressing';
 import { applySky } from './sky'; // LSKY : fond panoramique 360°
+import { install as installPropAnim } from './prop-anim';
 import * as THREE from 'three';
 import type RAPIER from '@dimforge/rapier3d-compat';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -1191,8 +1192,11 @@ export function isOverVoid(pos: Vec3): boolean {
   return !hit;
 }
 
+export function __getMapRuntime(): any { return current; }
+
 export async function install(ctx: Ctx): Promise<void> {
   ctxRef = ctx;
+  installPropAnim(ctx);
   ctx.bus.on('match:start', ({ mapId }) => { void loadMap(ctx, mapId); });
   ctx.bus.on('projectile:spawn', ({ from, vel }) => { if (current) simulateProjectile(ctx, current, from, vel); });
   ctx.bus.on('hit', ({ pos }) => { if (current) proximityTrigger(ctx, current, pos); });
