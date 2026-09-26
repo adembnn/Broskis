@@ -1,10 +1,9 @@
 // Perso photo (lots LP puis LFACE) : tenue de la photo sur le corps KayKit, et GROSSE TÊTE « figurine à ressort »
-// portant le portrait cartoon du joueur (Nano Banana Pro), découpée en carton comme les armes (module sticker).
-// Tout reste en mémoire : le portrait n'est jamais écrit nulle part.
+// en vinyle gonflé : le portrait cartoon du joueur (Nano Banana) bombé vers l'avant, la même tête vue de dos bombée
+// vers l'arrière. Tout reste en mémoire : le portrait n'est jamais écrit nulle part.
 import * as THREE from 'three';
 import type { FighterLook } from '../../core/types';
 import { rendu } from '../../art/tokens.js';
-import { makeSticker } from '../sticker/index';
 
 /** Réglages de la grosse tête (valeurs visuelles locales au lot, comme scene/localTokens.ts). */
 const TETE = {
@@ -13,9 +12,12 @@ const TETE = {
   /** Part de la grosse tête qui descend sous le cou (le menton couvre le col). */
   menton: 0.04,
   /** Avancée vers l'avant (fraction de la hauteur) : le visage ne rentre pas dans le buste. */
-  avance: 0.1,
-  /** Épaisseur du carton (fraction de la hauteur). */
-  epaisseur: 0.06,
+  avance: 0.03,
+  /** Vinyle gonflé (plan/recherche/DA-objets-scannes.md §2, en plus rond pour une tête) : bombé de chaque face et
+   * distance au bord où il est atteint (fractions de la hauteur), finesse de la grille (rangées). */
+  bombe: 0.2,
+  rayon: 0.32,
+  rangees: 56,
   /** Le visage reste lisible à contre-jour : part d'auto-éclairage du portrait. Faible : au-delà, le bord blanc
    * du sticker passe le seuil du bloom et la tête « brille » à contre-jour (vu en match). */
   emissif: 0.12,
@@ -112,9 +114,19 @@ function chargerImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-/** Texture du portrait sans trous : seul le fond magenta RELIÉ AU BORD devient transparent (une langue rose ou un
- * t-shirt magenta au milieu du visage restent opaques, contrairement au détourage générique des armes). */
-function texturePortrait(img: HTMLImageElement): THREE.CanvasTexture {
+interface Detoure {
+  canvas: HTMLCanvasElement;
+  /** 1 = tête, 0 = fond. */
+  masque: Uint8Array;
+  w: number;
+  h: number;
+  boite: { x0: number; y0: number; x1: number; y1: number };
+}
+
+/** Portrait sans trous : seul le fond magenta RELIÉ AU BORD devient transparent (une bouche ouverte reste pleine), puis
+ * le bord blanc de sticker qui le touche (le bord de la tête devient le trait d'encre et la couleur cheveux / peau).
+ * Si ce bord blanc « fuit » dans le dessin (trait ouvert), on le garde. */
+function detourer(img: HTMLImageElement): Detoure {
   const w = img.naturalWidth || img.width;
   const h = img.naturalHeight || img.height;
   const canvas = document.createElement('canvas');
@@ -125,53 +137,182 @@ function texturePortrait(img: HTMLImageElement): THREE.CanvasTexture {
   const im = ctx.getImageData(0, 0, w, h);
   const d = im.data;
   const n = w * h;
-  const cle = new Uint8Array(n);
-  for (let i = 0; i < n; i++) {
-    const r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2];
-    // Magenta : rouge et bleu hauts, vert bas (tolérant au bruit JPEG).
-    cle[i] = r > 150 && b > 150 && g < 110 && Math.abs(r - b) < 90 ? 1 : 0;
-  }
-  const fond = new Uint8Array(n);
+  const magenta = (i: number) => { const r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2]; return r > 150 && b > 150 && g < 110 && Math.abs(r - b) < 90; };
+  const blanc = (i: number) => { const r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2]; return Math.min(r, g, b) > 185 && Math.max(r, g, b) - Math.min(r, g, b) < 45; };
+  const fond = new Uint8Array(n); // 1 = magenta, 2 = bord blanc
   const file = new Int32Array(n);
-  let tete = 0, queue = 0;
-  const pousser = (i: number) => { if (cle[i] && !fond[i]) { fond[i] = 1; file[queue++] = i; } };
-  for (let x = 0; x < w; x++) { pousser(x); pousser((h - 1) * w + x); }
-  for (let y = 0; y < h; y++) { pousser(y * w); pousser(y * w + w - 1); }
-  while (tete < queue) {
-    const i = file[tete++];
-    const x = i % w, y = (i / w) | 0;
-    if (x > 0) pousser(i - 1);
-    if (x < w - 1) pousser(i + 1);
-    if (y > 0) pousser(i - w);
-    if (y < h - 1) pousser(i + w);
+  const remplir = (accepte: (i: number) => boolean, marque: number, depart: number[]) => {
+    let tete = 0, queue = 0;
+    const pousser = (i: number) => { if (!fond[i] && accepte(i)) { fond[i] = marque; file[queue++] = i; } };
+    for (const i of depart) pousser(i);
+    while (tete < queue) {
+      const i = file[tete++];
+      const x = i % w, y = (i / w) | 0;
+      if (x > 0) pousser(i - 1);
+      if (x < w - 1) pousser(i + 1);
+      if (y > 0) pousser(i - w);
+      if (y < h - 1) pousser(i + w);
+    }
+    return queue;
+  };
+  const bords: number[] = [];
+  for (let x = 0; x < w; x++) bords.push(x, (h - 1) * w + x);
+  for (let y = 0; y < h; y++) bords.push(y * w, y * w + w - 1);
+  const nMagenta = remplir(magenta, 1, bords);
+  // Bord blanc : départ depuis les pixels voisins du fond magenta.
+  const frontiere: number[] = [];
+  for (let i = 0; i < n; i++) {
+    if (fond[i] !== 1) continue;
+    const x = i % w;
+    if (x > 0 && !fond[i - 1]) frontiere.push(i - 1);
+    if (x < w - 1 && !fond[i + 1]) frontiere.push(i + 1);
+    if (i >= w && !fond[i - w]) frontiere.push(i - w);
+    if (i < n - w && !fond[i + w]) frontiere.push(i + w);
   }
+  const nBlanc = remplir(blanc, 2, frontiere);
+  if (nBlanc > (n - nMagenta) * 0.3) for (let i = 0; i < n; i++) if (fond[i] === 2) fond[i] = 0; // fuite : on garde le bord
+  const masque = new Uint8Array(n);
+  let x0 = w, y0 = h, x1 = 0, y1 = 0;
   for (let i = 0; i < n; i++) {
     if (fond[i]) { d[i * 4 + 3] = 0; continue; }
+    masque[i] = 1;
+    const x = i % w, y = (i / w) | 0;
+    if (x < x0) x0 = x;
+    if (x > x1) x1 = x;
+    if (y < y0) y0 = y;
+    if (y > y1) y1 = y;
     // Liseré : on retire la teinte magenta qui bave sur le bord (despill).
     const r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2];
     const exces = Math.min(r, b) - g;
     if (exces > 40) { d[i * 4] = r - exces * 0.5; d[i * 4 + 2] = b - exces * 0.5; }
   }
   ctx.putImageData(im, 0, 0);
+  if (x1 <= x0 || y1 <= y0) { x0 = 0; y0 = 0; x1 = w - 1; y1 = h - 1; }
+  return { canvas, masque, w, h, boite: { x0, y0, x1: x1 + 1, y1: y1 + 1 } };
+}
+
+function texture(canvas: HTMLCanvasElement): THREE.CanvasTexture {
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 4;
   return tex;
 }
 
-/** L'extrusion range face arrière puis face avant dans un même groupe : on les sépare pour peindre l'arrière du
- * crâne et la tranche (couleur des cheveux) au lieu d'un visage en miroir. */
-function peindreArriere(mesh: THREE.Mesh, arriere: THREE.Material): void {
-  const geo = mesh.geometry as THREE.BufferGeometry;
-  const [couvercles, ...cotes] = geo.groups.map((g) => ({ ...g }));
-  if (!couvercles || !Array.isArray(mesh.material)) return;
-  const mats = [...mesh.material, arriere];
-  const moitie = couvercles.count / 2;
-  geo.clearGroups();
-  geo.addGroup(couvercles.start, moitie, mats.length - 1);
-  geo.addGroup(couvercles.start + moitie, moitie, 0);
-  for (const g of cotes) geo.addGroup(g.start, g.count, mats.length - 1);
-  mesh.material = mats;
+/** Dos de la tête, peint dans le repère de la FACE (même silhouette) : la tête vue de dos dessinée par Nano Banana,
+ * en miroir (vue de derrière, la gauche du perso est à gauche), sur la couleur des cheveux. Sans elle : des mèches. */
+function textureDos(face: Detoure, dos: Detoure | null, cheveux: THREE.Color): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = face.w;
+  c.height = face.h;
+  const g = c.getContext('2d')!;
+  g.fillStyle = `#${cheveux.getHexString()}`;
+  g.fillRect(0, 0, c.width, c.height);
+  const { x0, y0, x1, y1 } = face.boite;
+  if (dos) {
+    const b = dos.boite;
+    g.save();
+    g.translate(x1, y0);
+    g.scale(-1, 1);
+    g.drawImage(dos.canvas, b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0, 0, 0, x1 - x0, y1 - y0);
+    g.restore();
+  } else {
+    // Repli : mèches du sommet vers la nuque, plus sombres et plus claires que la couleur des cheveux.
+    const hsl = { h: 0, s: 0, l: 0 };
+    cheveux.getHSL(hsl);
+    const bw = x1 - x0, bh = y1 - y0;
+    g.lineCap = 'round';
+    for (let k = 0; k < 90; k++) {
+      const u = (k * 0.618) % 1;
+      const l = THREE.MathUtils.clamp(hsl.l + (k % 3 === 0 ? 0.12 : -0.1), 0.05, 0.9);
+      g.strokeStyle = `hsl(${hsl.h * 360}, ${hsl.s * 100}%, ${l * 100}%)`;
+      g.lineWidth = Math.max(2, bw / 45);
+      const xs = x0 + bw * (0.5 + (u - 0.5) * 0.3), ys = y0 + bh * 0.08;
+      const xe = x0 + bw * (0.08 + u * 0.84), ye = y0 + bh * (0.55 + 0.35 * ((k * 0.37) % 1));
+      g.beginPath();
+      g.moveTo(xs, ys);
+      g.quadraticCurveTo((xs + xe) / 2 + (u - 0.5) * bw * 0.3, (ys + ye) / 2, xe, ye);
+      g.stroke();
+    }
+  }
+  // Même silhouette que la face : les 2 moitiés de la tête se rejoignent au bord.
+  g.globalCompositeOperation = 'destination-in';
+  g.drawImage(face.canvas, 0, 0);
+  return texture(c);
+}
+
+/** Tête gonflée : une grille sur la boîte du portrait, chaque face bombée selon la distance au bord de la silhouette
+ * (0 au bord, `bombe` au cœur). Le contour exact vient de la texture (alphaTest) ; face avant = groupe 0, dos = 1. */
+function geometrieGonflee(face: Detoure): { geo: THREE.BufferGeometry; aspect: number } {
+  const { x0, y0, x1, y1 } = face.boite;
+  const bw = x1 - x0, bh = y1 - y0;
+  const aspect = bw / bh;
+  const rows = TETE.rangees;
+  const cols = Math.max(8, Math.round(rows * aspect));
+  // Carte des distances au bord, 4 fois plus fine que la grille (chanfrein 3-4, 2 passes).
+  const F = 4, dc = cols * F, dr = rows * F;
+  const dist = new Float32Array(dc * dr);
+  for (let j = 0; j < dr; j++) for (let i = 0; i < dc; i++) {
+    const px = Math.min(face.w - 1, Math.floor(x0 + ((i + 0.5) / dc) * bw));
+    const py = Math.min(face.h - 1, Math.floor(y0 + ((j + 0.5) / dr) * bh));
+    dist[j * dc + i] = face.masque[py * face.w + px] ? 1e9 : 0;
+  }
+  const at = (i: number, j: number) => (i < 0 || j < 0 || i >= dc || j >= dr ? 0 : dist[j * dc + i]);
+  for (let j = 0; j < dr; j++) for (let i = 0; i < dc; i++) {
+    const k = j * dc + i;
+    if (dist[k]) dist[k] = Math.min(dist[k], at(i - 1, j) + 3, at(i, j - 1) + 3, at(i - 1, j - 1) + 4, at(i + 1, j - 1) + 4);
+  }
+  for (let j = dr - 1; j >= 0; j--) for (let i = dc - 1; i >= 0; i--) {
+    const k = j * dc + i;
+    if (dist[k]) dist[k] = Math.min(dist[k], at(i + 1, j) + 3, at(i, j + 1) + 3, at(i + 1, j + 1) + 4, at(i - 1, j + 1) + 4);
+  }
+  const unite = 1 / (3 * dr); // pas de chanfrein → fraction de la hauteur
+  const nx = cols + 1, ny = rows + 1, nv = nx * ny;
+  const pos = new Float32Array(nv * 2 * 3);
+  const uv = new Float32Array(nv * 2 * 2);
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    // Distance au sommet de la grille : moyenne des 4 cases fines qui le touchent.
+    const fi = i * F, fj = j * F;
+    const dd = (at(fi - 1, fj - 1) + at(fi, fj - 1) + at(fi - 1, fj) + at(fi, fj)) / 4 * unite;
+    const t = Math.min(1, dd / TETE.rayon);
+    const hz = TETE.bombe * Math.pow(Math.sin((t * Math.PI) / 2), 0.8);
+    const x = (i / cols - 0.5) * aspect, y = 0.5 - j / rows;
+    const u = (x0 + (i / cols) * bw) / face.w, v = 1 - (y0 + (j / rows) * bh) / face.h;
+    for (const [k, sens] of [[0, 1], [1, -1]] as const) {
+      const vi = k * nv + j * nx + i;
+      pos[vi * 3] = x; pos[vi * 3 + 1] = y; pos[vi * 3 + 2] = sens * hz;
+      uv[vi * 2] = u; uv[vi * 2 + 1] = v;
+    }
+  }
+  // Cases utiles seulement (au moins une case fine dans la tête).
+  const utile = (i: number, j: number) => {
+    for (let b = 0; b < F; b++) for (let a = 0; a < F; a++) if (dist[(j * F + b) * dc + i * F + a] > 0) return true;
+    return false;
+  };
+  const avant: number[] = [];
+  const arriere: number[] = [];
+  for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+    if (!utile(i, j)) continue;
+    const a = j * nx + i, b = a + 1, c = a + nx, e = c + 1;
+    avant.push(a, c, b, b, c, e);
+    arriere.push(nv + a, nv + b, nv + c, nv + b, nv + e, nv + c);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  geo.setIndex([...avant, ...arriere]);
+  geo.addGroup(0, avant.length, 0);
+  geo.addGroup(avant.length, arriere.length, 1);
+  geo.computeVertexNormals();
+  return { geo, aspect };
+}
+
+function materiauTete(tex: THREE.Texture): THREE.MeshStandardMaterial {
+  // Blancs ramenés au vinyle de la DA (luminance 0,82, sous le seuil du bloom) ; auto-éclairage partiel pour rester
+  // lisible à contre-jour ; DoubleSide : la couture du bord ne laisse jamais voir à travers.
+  return new THREE.MeshStandardMaterial({
+    map: tex, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.55, metalness: 0,
+    color: rendu.contour.vinyle, emissive: rendu.contour.vinyle, emissiveMap: tex, emissiveIntensity: TETE.emissif,
+  });
 }
 
 /** Tête à ressort : la grosse tête traîne derrière les accélérations du cou puis rebondit (course, saut, coup). */
@@ -253,34 +394,29 @@ function ajouterRessort(r: Ressort): void {
   if (!rafRessorts) { dernierTick = performance.now(); rafRessorts = requestAnimationFrame(tickRessorts); }
 }
 
-/** Remplace la tête KayKit par la grosse tête au portrait du joueur. Renvoie false si rien n'a pu être posé. */
+/** Remplace la tête KayKit par la grosse tête gonflée (face + dos). Renvoie false si rien n'a pu être posé.
+ * Rappelable (portrait arrivé en retard) : l'ancienne grosse tête est retirée. */
 async function poserGrosseTete(root: THREE.Object3D, look: FighterLook): Promise<boolean> {
   const os = trouverOs(root, 'head');
   if (!os || !look.faceUrl) return false;
-  const img = await chargerImage(look.faceUrl);
-  const sticker = await makeSticker(img, { height: 1, depth: TETE.epaisseur });
-  const mesh = sticker.children.find((c) => (c as THREE.Mesh).isMesh && Array.isArray((c as THREE.Mesh).material)) as THREE.Mesh | undefined;
-  if (!mesh || sticker.userData.sticker == null) return false; // détourage raté : on garde la tête KayKit
-
-  // Visage : texture sans trous, découpe nette, auto-éclairage partiel pour rester lisible à contre-jour.
-  const face = (mesh.material as THREE.Material[])[0] as THREE.MeshToonMaterial;
-  const tex = texturePortrait(img);
-  face.map?.dispose();
-  face.map = tex;
-  face.transparent = false;
-  face.alphaTest = 0.5;
-  // Blancs du portrait ramenés au vinyle de la DA (luminance 0,82, sous le seuil du bloom) : plus de halo.
-  face.color = new THREE.Color(rendu.contour.vinyle);
-  face.emissive = new THREE.Color(rendu.contour.vinyle);
-  face.emissiveMap = tex;
-  face.emissiveIntensity = TETE.emissif;
-  face.needsUpdate = true;
+  const [imgFace, imgDos] = await Promise.all([
+    chargerImage(look.faceUrl),
+    look.backUrl ? chargerImage(look.backUrl).catch(() => null) : Promise.resolve(null),
+  ]);
+  const face = detourer(imgFace);
+  const fb = face.boite;
+  if (fb.x1 - fb.x0 < 16 || fb.y1 - fb.y0 < 16) return false; // détourage raté : on garde la tête KayKit
+  const dos = imgDos ? detourer(imgDos) : null;
   const cheveux = new THREE.Color(look.hair ?? '#3a2a20');
   const hsl = { h: 0, s: 0, l: 0 };
   cheveux.getHSL(hsl);
   cheveux.setHSL(hsl.h, hsl.s, Math.max(hsl.l, TETE.dosLuminositeMin));
-  peindreArriere(mesh, new THREE.MeshStandardMaterial({ color: cheveux, roughness: 0.6 }));
+  const { geo } = geometrieGonflee(face);
+  const tete = new THREE.Mesh(geo, [materiauTete(texture(face.canvas)), materiauTete(textureDos(face, dos, cheveux))]);
+  tete.name = 'grosse-tete-vinyle';
+  tete.castShadow = true;
 
+  os.getObjectByName('grosse-tete')?.removeFromParent();
   // Mesures dans le repère du perso, en pose de repos (avant toute animation).
   root.updateMatrixWorld(true);
   const tetesKayKit: THREE.Object3D[] = [];
@@ -296,16 +432,13 @@ async function poserGrosseTete(root: THREE.Object3D, look: FighterLook): Promise
   const centre = boite.getCenter(new THREE.Vector3());
   const hauteur = tailleTete.y * TETE.echelle;
 
-  const bSticker = new THREE.Box3().setFromObject(sticker);
-  const hSticker = Math.max(1e-3, bSticker.max.y - bSticker.min.y);
-  sticker.scale.setScalar(hauteur / hSticker);
+  tete.scale.setScalar(hauteur); // la géométrie fait 1 de haut
   // Le pivot est au cou : c'est autour de lui que la tête bascule et rebondit.
   const pivot = new THREE.Group();
   pivot.name = 'grosse-tete';
   pivot.position.set(centre.x, boite.min.y, centre.z);
-  sticker.position.set(0, hauteur * (0.5 - TETE.menton), hauteur * TETE.avance);
-  pivot.add(sticker);
-  sticker.traverse((o) => { if ((o as THREE.Mesh).isMesh && !o.userData.isOutline) o.castShadow = true; });
+  tete.position.set(0, hauteur * (0.5 - TETE.menton), hauteur * TETE.avance);
+  pivot.add(tete);
 
   for (const t of tetesKayKit) t.visible = false;
   root.add(pivot);

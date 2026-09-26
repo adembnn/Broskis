@@ -21,17 +21,21 @@ const FALLBACK_FIGHTER: FighterDef = {
   catchphrase: 'Who, me?'
 };
 
-/** Délai maximum côté joueur (plan/lots/LFACE) : au-delà, l'écran se débloque avec la tête de secours. */
-const SCAN_FIGHTER_TIMEOUT_MS = 25_000;
+/** Délai maximum côté joueur (demande d'Adem 17h15 : 12 s) : au-delà, l'écran se débloque avec la tête de secours et le
+ * vrai visage arrive ensuite en jeu (`fighter:portrait`). */
+const SCAN_FIGHTER_TIMEOUT_MS = 12_000;
+/** Photo envoyée à l'IA : 512 px au plus (le visage y est déjà recadré serré) ; plus léger, plus rapide. */
+const PHOTO_MAX_PX = 512;
 /** Lot LE2E : la requête du portrait n'est PAS abandonnée au délai d'écran (le serveur tente 2 modèles puis un repli,
  *  23 s chacun) ; un portrait tardif est posé sur le perso, même en plein match (`fighter:portrait`). */
 const PORTRAIT_REQUEST_MS = 75_000;
 
-/** Portrait arrivé après le délai d'écran : complète LE MÊME FighterDef (déjà dans l'état du match) et prévient la scène. */
-function portraitTardif(fighter: FighterDef, faceUrl: string): void {
-  fighter.portraitUrl = faceUrl;
-  if (fighter.look) fighter.look.faceUrl = faceUrl;
-  getRuntimeCtx()?.bus.emit('fighter:portrait', { fighterId: fighter.id, faceUrl });
+/** Portrait arrivé après le délai d'écran : complète LE MÊME FighterDef (déjà dans l'état du match) et prévient la scène.
+ * La planche est découpée d'abord : la face ET le dos de la tête arrivent ensemble (lot LFACE). */
+function portraitTardif(fighter: FighterDef, planche: string): void {
+  void appliquerPortrait(fighter, planche).then(() => {
+    getRuntimeCtx()?.bus.emit('fighter:portrait', { fighterId: fighter.id, faceUrl: fighter.portraitUrl ?? planche, backUrl: fighter.look?.backUrl });
+  });
 }
 
 interface ScanFighterApiResult {
@@ -68,7 +72,7 @@ export const SCAN_ISSUE_TEXT: Record<Exclude<FighterScanIssue, null>, string> = 
   'no-face': "We couldn't find a face. Face the camera in good light and try again.",
   'no-portrait': "Your cartoon head didn't come out this time. Try again, or fight as is.",
   blocked: "That photo can't be used. Try another one.",
-  timeout: 'The AI took too long. Try again, or fight as is.',
+  timeout: 'Your head is still being drawn: it will pop in during the fight.',
 };
 
 const cache = new Map<string, Promise<FighterScanReport>>();
@@ -139,8 +143,7 @@ async function scanner(base64: string, mimeType: string, resizeMs: number, onTex
     return { fighter: FALLBACK_FIGHTER, issue, ms };
   }
   if (faceUrl) {
-    fighter.portraitUrl = faceUrl;
-    if (fighter.look) fighter.look.faceUrl = faceUrl;
+    await appliquerPortrait(fighter, faceUrl);
     return { fighter, issue: null, ms, portraitModel: portrait?.timings?.imageModel };
   }
   const reason = portrait?.imageReason;
@@ -148,7 +151,87 @@ async function scanner(base64: string, mimeType: string, resizeMs: number, onTex
   return { fighter, issue, ms };
 }
 
+/** Magenta du fond (tolérant au bruit JPEG) : même règle que src/scene/fighter-custom. */
+const estFond = (r: number, g: number, b: number) => r > 150 && b > 150 && g < 110 && Math.abs(r - b) < 90;
+
+function chargerImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('planche illisible'));
+    img.src = src;
+  });
+}
+
+/** Planche Nano Banana (tête de face à gauche, même tête de dos à droite, fond magenta) → 2 images recadrées, fond
+ * magenta gardé (les détourages en aval ne changent pas). Pas de séparation nette : tout va dans `front`. */
+export async function decouperPlanche(url: string): Promise<{ front: string; back?: string }> {
+  const img = await chargerImage(url);
+  const W = img.naturalWidth || img.width;
+  const H = img.naturalHeight || img.height;
+  if (W < H * 1.3) return { front: url }; // portrait simple, pas une planche
+  const k = Math.min(1, 400 / W);
+  const w = Math.max(1, Math.round(W * k));
+  const h = Math.max(1, Math.round(H * k));
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  const g = c.getContext('2d', { willReadFrequently: true })!;
+  g.drawImage(img, 0, 0, w, h);
+  const d = g.getImageData(0, 0, w, h).data;
+  const cols = new Uint16Array(w);
+  const plein = new Uint8Array(w * h);
+  for (let i = 0; i < w * h; i++) {
+    if (estFond(d[i * 4], d[i * 4 + 1], d[i * 4 + 2])) continue;
+    plein[i] = 1;
+    cols[i % w]++;
+  }
+  // Gouttière : la colonne la plus vide au milieu de l'image.
+  let coupe = -1;
+  for (let x = Math.round(w * 0.3); x <= Math.round(w * 0.7); x++) if (coupe < 0 || cols[x] < cols[coupe]) coupe = x;
+  if (coupe < 0 || cols[coupe] > h * 0.02) return { front: url };
+  const boite = (x0: number, x1: number) => {
+    let minX = x1, maxX = x0, minY = h, maxY = -1, aire = 0;
+    for (let y = 0; y < h; y++) for (let x = x0; x < x1; x++) {
+      if (!plein[y * w + x]) continue;
+      aire++;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+    return { minX, maxX, minY, maxY, aire };
+  };
+  const a = boite(0, coupe);
+  const b = boite(coupe, w);
+  if (a.aire < w * h * 0.03 || b.aire < a.aire * 0.3) return { front: url };
+  const recadrer = (r: { minX: number; maxX: number; minY: number; maxY: number }) => {
+    const pad = Math.round(Math.max(r.maxX - r.minX, r.maxY - r.minY) * 0.04);
+    const x0 = Math.max(0, (r.minX - pad) / k), y0 = Math.max(0, (r.minY - pad) / k);
+    const x1 = Math.min(W, (r.maxX + 1 + pad) / k), y1 = Math.min(H, (r.maxY + 1 + pad) / k);
+    const out = document.createElement('canvas');
+    out.width = Math.round(x1 - x0);
+    out.height = Math.round(y1 - y0);
+    out.getContext('2d')!.drawImage(img, x0, y0, x1 - x0, y1 - y0, 0, 0, out.width, out.height);
+    return out.toDataURL('image/jpeg', 0.92); // JPEG : 5 à 10 fois plus rapide à encoder, le détourage le tolère
+  };
+  return { front: recadrer(a), back: recadrer(b) };
+}
+
+/** Pose un portrait arrivé (planche face + dos) sur le combattant : UI (portraitUrl), tête de face et de dos. À appeler
+ * aussi pour un portrait arrivé en retard, pour que les 2 faces arrivent ensemble. */
+export async function appliquerPortrait(fighter: FighterDef, planche: string): Promise<void> {
+  const { front, back } = await decouperPlanche(planche).catch(() => ({ front: planche, back: undefined }));
+  fighter.portraitUrl = front;
+  if (fighter.look) {
+    fighter.look.backUrl = back;
+    fighter.look.faceUrl = front;
+  }
+}
+
 let prechauffe = false;
+// Préchauffe dès le lancement du jeu (écran-titre), pas seulement à l'écran de choix.
+if (typeof window !== 'undefined') window.setTimeout(() => prechaufferScanFighter(), 1500);
 /** Charge le module serveur du scan avant la 1re photo (en dev, le 1er appel coûte jusqu'à 30 s de compilation). */
 export function prechaufferScanFighter(): void {
   if (prechauffe) return;
@@ -162,7 +245,7 @@ export async function scanFighterReport(image: Blob | string, opts: { onText?: (
   if (typeof image === 'string' && !isDataUrl(image)) return { fighter: FALLBACK_FIGHTER, issue: 'no-face', ms: { resize: 0, total: 0 } };
   try {
     const t0 = performance.now();
-    const { base64, mimeType } = await toResizedJpegBase64(image);
+    const { base64, mimeType } = await toResizedJpegBase64(image, PHOTO_MAX_PX);
     const resize = Math.round(performance.now() - t0);
     const cle = empreinte(base64);
     let p = cache.get(cle);
