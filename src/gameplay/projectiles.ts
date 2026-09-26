@@ -3,12 +3,15 @@
 // dégâts ÷ 3 et recul ÷ 2, ou PARADE PARFAITE si le blocage a commencé moins de 150 ms avant (renvoi,
 // ralenti ×0,3, `parry:result`). `projectile:incoming` part 400 ms avant l'impact prévu (anneau de repère).
 // Le visuel rejoue le même vol à partir de `projectile:spawn` (from, vel, gravity) et s'arrête à `projectile:end`.
+// Physique réelle (physics-feel.ts) : taille de contact = taille de l'objet, rebonds selon `bounciness`
+// (`projectile:bounce`), objet fragile = éclats autour de l'impact, objet liquide = flaque glissante 3 s.
 import type * as RAPIER from '@dimforge/rapier3d-compat';
-import type { Ctx, PlayerId, Vec3, Weapon } from '../core/types';
+import type { Ctx, Material, PlayerId, Vec3, Weapon } from '../core/types';
 import { isGroundCollider } from './arena';
 import { applyHit, applySplash } from './damage';
 import type { ShotMods } from './formulas';
 import { inFight } from './phases';
+import { physicsFeel } from './physics-feel';
 import { getRuntime, otherPlayer } from './runtime';
 import { isInvulnerable } from './stocks';
 import { CHARACTER_HALF_HEIGHT, CHARACTER_RADIUS, GRENADE_RADIUS_MAX, GRENADE_RADIUS_MIN, RT, SHOT_ORIGIN_HEIGHT, TRAIT_TUNING } from './tuning';
@@ -29,6 +32,15 @@ interface Projectile {
   /** Durée de vol prévue jusqu'à la cible (grenade) : sert au repère `projectile:incoming`. */
   flightS: number;
   incomingSent: boolean;
+  /** L'objet lui-même vole (throwable, grenade) : sa physique compte (rebonds, éclats, giclée). */
+  isObject: boolean;
+  bouncesLeft: number;
+  restitution: number;
+  fragile: boolean;
+  liquid: boolean;
+  mass: number;
+  material: Material | null;
+  size: Vec3;
 }
 
 let seq = 0;
@@ -50,15 +62,41 @@ export function liveProjectiles(): readonly { id: string; owner: PlayerId; pos: 
 export function spawnProjectile(
   ctx: Ctx, owner: PlayerId, weapon: Weapon, from: Vec3, vel: Vec3, gravity: number, mods: Partial<ShotMods>, flightS = 0,
 ): void {
-  const splash = weapon.category === 'grenade'
+  const feel = physicsFeel(weapon);
+  const isObject = weapon.category === 'throwable' || weapon.category === 'grenade';
+  let splash = weapon.category === 'grenade'
     ? lerp(GRENADE_RADIUS_MIN, GRENADE_RADIUS_MAX, weapon.stats.b) + (weapon.trait === 'explosive' ? TRAIT_TUNING.explosive.bonusRadius : 0)
     : weapon.trait === 'explosive' ? TRAIT_TUNING.explosive.bonusRadius : 0;
+  if (weapon.category === 'grenade' && feel.fragile) splash *= RT.shards.grenadeRadiusMult;
   const p: Projectile = {
-    id: `proj-${++seq}`, owner, weapon, pos: [...from], vel: [...vel], gravity, radius: RT.radius[weapon.category] || 0.3,
-    age: 0, splash, mods, flightS, incomingSent: false,
+    id: `proj-${++seq}`, owner, weapon, pos: [...from], vel: [...vel], gravity,
+    radius: isObject && feel.radius > 0 ? feel.radius : RT.radius[weapon.category] || 0.3,
+    age: 0, splash, mods, flightS, incomingSent: false, isObject,
+    bouncesLeft: isObject ? feel.bounces + (weapon.trait === 'bouncy' ? TRAIT_TUNING.bouncy.extraBounces : 0) : 0,
+    restitution: feel.restitution, fragile: isObject && feel.fragile, liquid: isObject && feel.liquid,
+    mass: feel.massKg, material: feel.material, size: feel.sizeM,
   };
   live.push(p);
-  ctx.bus.emit('projectile:spawn', { id: p.id, weapon, from: [...from], vel: [...vel], gravity, owner });
+  ctx.bus.emit('projectile:spawn', {
+    id: p.id, weapon, from: [...from], vel: [...vel], gravity, owner, mass: p.mass, material: p.material, size: [...p.size],
+  });
+}
+
+/** Objet fragile : éclats autour de l'impact (dégâts réduits, jamais au lanceur). */
+function shards(ctx: Ctx, p: Projectile, at: Vec3): void {
+  applySplash(ctx, { attacker: p.owner, weapon: p.weapon, impactPos: at, fromPos: at, center: at, radius: RT.shards.radius, mods: { ...p.mods, fragment: RT.shards.damage } });
+}
+
+/** Objet liquide : la giclée rend le sol glissant quelques secondes autour de l'impact. */
+function puddle(ctx: Ctx, at: Vec3): void {
+  getRuntime().puddles.push({ pos: [at[0], at[1], at[2]], radius: RT.puddle.radius, until: ctx.loop.time + RT.puddle.ms / 1000 });
+  ctx.bus.emit('ground:slippery', { pos: [at[0], at[1], at[2]], radius: RT.puddle.radius, ms: RT.puddle.ms });
+}
+
+/** Effets d'impact de l'objet lui-même (éclats, giclée), après le contact avec un perso ou le décor. */
+function objectImpact(ctx: Ctx, p: Projectile, at: Vec3): void {
+  if (p.fragile) shards(ctx, p, at);
+  if (p.liquid) puddle(ctx, at);
 }
 
 function end(ctx: Ctx, p: Projectile, reason: 'hit' | 'world' | 'parried' | 'expired'): void {
@@ -154,10 +192,11 @@ export function stepProjectiles(ctx: Ctx, dt: number): void {
     const seg: Vec3 = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
     const len = Math.hypot(seg[0], seg[1], seg[2]);
     let worldT = Infinity;
+    let normal: Vec3 = [0, 1, 0];
     if (len > 1e-5) {
       const ray = new R.Ray({ x: a[0], y: a[1], z: a[2] }, { x: seg[0] / len, y: seg[1] / len, z: seg[2] / len });
-      const hit = world.castRay(ray, len, true, undefined, undefined, undefined, undefined, (c: RAPIER.Collider) => isGroundCollider(c));
-      if (hit) worldT = hit.timeOfImpact / len;
+      const hit = world.castRayAndGetNormal(ray, len, true, undefined, undefined, undefined, undefined, (c: RAPIER.Collider) => isGroundCollider(c));
+      if (hit) { worldT = hit.timeOfImpact / len; normal = [hit.normal.x, hit.normal.y, hit.normal.z]; }
     }
     // Perso visé (capsule), s'il est touchable.
     let playerT = Infinity;
@@ -167,12 +206,25 @@ export function stepProjectiles(ctx: Ctx, dt: number): void {
     }
     if (playerT < Infinity && playerT <= worldT) {
       p.pos = [a[0] + seg[0] * playerT, a[1] + seg[1] * playerT, a[2] + seg[2] * playerT];
-      end(ctx, p, hitPlayer(ctx, p, target, p.pos));
+      const how = hitPlayer(ctx, p, target, p.pos);
+      if (how === 'hit' && p.isObject) objectImpact(ctx, p, p.pos);
+      end(ctx, p, how);
       continue;
     }
     if (worldT < Infinity) {
       p.pos = [a[0] + seg[0] * worldT, a[1] + seg[1] * worldT, a[2] + seg[2] * worldT];
+      if (p.bouncesLeft > 0 && !p.fragile) {
+        // Rebond selon `bounciness` : vitesse réfléchie sur la normale, amortie.
+        p.bouncesLeft -= 1;
+        const vn = p.vel[0] * normal[0] + p.vel[1] * normal[1] + p.vel[2] * normal[2];
+        const k = p.restitution;
+        p.vel = [(p.vel[0] - 2 * vn * normal[0]) * k, (p.vel[1] - 2 * vn * normal[1]) * k, (p.vel[2] - 2 * vn * normal[2]) * k];
+        p.pos = [p.pos[0] + normal[0] * 0.05, p.pos[1] + normal[1] * 0.05, p.pos[2] + normal[2] * 0.05];
+        ctx.bus.emit('projectile:bounce', { id: p.id, pos: [...p.pos], vel: [...p.vel] });
+        if (Math.hypot(p.vel[0], p.vel[1], p.vel[2]) > 1.5) continue;
+      }
       if (p.splash > 0) explode(ctx, p, p.pos);
+      if (p.isObject) objectImpact(ctx, p, p.pos);
       end(ctx, p, 'world');
       continue;
     }

@@ -66,6 +66,8 @@ export interface GameplayRuntime {
   nextCrateAt: number;
   /** Arme bonus en cours de préparation (scan en cache) pour la caisse posée. */
   crateWeapon: Weapon | null;
+  /** Flaques glissantes laissées par les objets liquides (jusqu'à `until`, temps de jeu). */
+  puddles: { pos: Vec3; radius: number; until: number }[];
 }
 
 function makePlayerRuntime(): PlayerRuntime {
@@ -108,6 +110,7 @@ function makeRuntime(): GameplayRuntime {
     shieldBodies: [],
     nextCrateAt: 0,
     crateWeapon: null,
+    puddles: [],
   };
 }
 

@@ -27,9 +27,15 @@ export interface ShotMods {
   fragment: number;
   /** Multiplicateur du recul seul (blocage temps réel : ÷ 2). */
   launchMult: number;
+  /** Physique réelle de l'objet (physics-feel.ts) : dégâts et recul ~ quantité de mouvement, bornés. */
+  massDamage: number;
+  massLaunch: number;
 }
 
-export const NO_MODS: ShotMods = { charge: 0.5, burst: 1, mult: 1, crit: false, nice: false, superDamage: 1, superLaunch: 1, fragment: 1, launchMult: 1 };
+export const NO_MODS: ShotMods = {
+  charge: 0.5, burst: 1, mult: 1, crit: false, nice: false, superDamage: 1, superLaunch: 1, fragment: 1, launchMult: 1,
+  massDamage: 1, massLaunch: 1,
+};
 
 /** Dégâts en % d'un coup (arrondis à l'unité, au moins 1). */
 export function damagePct(w: WeaponLike, fighterPower: number, m: ShotMods, critMult: number): number {
@@ -41,6 +47,7 @@ export function damagePct(w: WeaponLike, fighterPower: number, m: ShotMods, crit
   if (m.nice) dmg *= NICE_DAMAGE_MULT;
   if (m.crit) dmg *= critMult;
   if (w.trait === 'explosive') dmg *= 1.1;
+  dmg *= m.massDamage;
   dmg = Math.min(dmg, MAX_PCT_PER_HIT);
   dmg *= m.superDamage * m.mult * m.fragment;
   return Math.max(1, Math.round(dmg));
@@ -63,7 +70,9 @@ export function launchBase(w: WeaponLike, charge: number): number {
 export function launchSpeed(w: WeaponLike, pctAfter: number, m: ShotMods, targetHpMax = 100): number {
   const weight = Math.pow(100 / Math.max(50, targetHpMax), WEIGHT_EXP);
   // BRO SMASH : même une arme légère (tir de blaster) frappe au moins comme une grosse grenade, puis ×1,8.
-  const base = m.superLaunch > 1 ? Math.max(launchBase(w, m.charge), SUPER_MIN_LAUNCH_BASE) : launchBase(w, m.charge);
+  // Objet lourd : recul de base plus fort, mais plafonné (un coup à 40 % ne doit pas sortir quelqu'un du centre).
+  const massed = Math.min(launchBase(w, m.charge) * m.massLaunch, LAUNCH_BASE_CAP * 1.25);
+  const base = m.superLaunch > 1 ? Math.max(massed, SUPER_MIN_LAUNCH_BASE) : massed;
   // `m.mult` (parade GOOD, atténuation d'explosion) ne touche que les dégâts : le % après coup, plus bas, suffit.
   return base * (1 + (Math.max(0, pctAfter) / 100) * LAUNCH_K2) * weight * m.superLaunch * m.fragment * m.launchMult;
 }

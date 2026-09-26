@@ -28,6 +28,13 @@ export function viewForward(ctx: Ctx, player: PlayerId): [number, number] {
   return l > 1e-3 ? [dx / l, dz / l] : [player === 0 ? 1 : -1, 0];
 }
 
+/** Sur une flaque glissante encore active (objet liquide) ? Les flaques expirées sont retirées au passage. */
+function onPuddle(ctx: Ctx, pos: Vec3): boolean {
+  const list = getRuntime().puddles;
+  for (let i = list.length - 1; i >= 0; i--) if (list[i].until <= ctx.loop.time) list.splice(i, 1);
+  return list.some((q) => Math.hypot(pos[0] - q.pos[0], pos[2] - q.pos[2]) <= q.radius && Math.abs(pos[1] - q.pos[1]) < 1);
+}
+
 /** Le joueur peut-il bouger/sauter ? (en combat, ni éjecté, ni mort ; accroché : seulement remonter). */
 function canMove(ctx: Ctx, player: PlayerId): boolean {
   const rt = getRuntime().players[player];
@@ -108,7 +115,11 @@ export function stepPlayerControl(ctx: Ctx, player: PlayerId, input: PlayerInput
   let speed = RT.moveSpeed;
   if (ps.blocking) speed *= RT.blockMoveMult;
   else if (rt.charging) speed *= RT.chargeMoveMult;
-  if (rt.grounded) {
+  if (rt.grounded && onPuddle(ctx, ps.pos)) {
+    // Flaque d'un objet liquide : on glisse (la vitesse ne rejoint la direction voulue que lentement).
+    const k = Math.min(1, RT.puddle.accel * dt);
+    rt.hvel = [rt.hvel[0] + (wx * speed - rt.hvel[0]) * k, rt.hvel[1] + (wz * speed - rt.hvel[1]) * k];
+  } else if (rt.grounded) {
     rt.hvel = [wx * speed, wz * speed]; // au sol : réponse immédiate
   } else {
     // En l'air : l'élan se garde ; la direction voulue le rejoint progressivement (contrôle aérien).

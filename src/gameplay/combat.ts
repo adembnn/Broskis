@@ -10,6 +10,7 @@ import { consumeSuper } from './bro';
 import type { PlayerInput } from './controls';
 import type { ShotMods } from './formulas';
 import { inFight } from './phases';
+import { physicsFeel } from './physics-feel';
 import { aimOrigin, spawnProjectile } from './projectiles';
 import { getRuntime, otherPlayer } from './runtime';
 import { BRO_SMASH, RT, SHIELD_HEIGHT_MAX, SHIELD_HEIGHT_MIN, SHIELD_PLACE_DISTANCE, SHIELD_THICKNESS, SHIELD_WIDTH_MAX, SHIELD_WIDTH_MIN } from './tuning';
@@ -80,14 +81,16 @@ export function fireWeapon(ctx: Ctx, shooter: PlayerId, charge: number): boolean
   ps.charge = 0;
   const c = Math.max(0, Math.min(1, charge));
   const origin = aimOrigin(ctx, shooter);
-  const mods: Partial<ShotMods> = { charge: c };
-  ps.cooldowns[idx] = RT.cooldownS[weapon.category];
+  // Physique réelle de l'objet (physics-feel.ts) : vitesse, gravité, portée, recharge, dégâts et recul.
+  const feel = physicsFeel(weapon);
+  const mods: Partial<ShotMods> = { charge: c, massDamage: feel.damageMult, massLaunch: feel.launchMult };
+  ps.cooldowns[idx] = RT.cooldownS[weapon.category] * feel.cooldownMult;
   const dirTo = (p: Vec3): Vec3 => {
     const d: Vec3 = [p[0] - origin[0], p[1] - origin[1], p[2] - origin[2]];
     const l = Math.hypot(d[0], d[1], d[2]) || 1;
     return [d[0] / l, d[1] / l, d[2] / l];
   };
-  const aimAt = leadTarget(ctx, shooter, RT.speed[weapon.category] || 12);
+  const aimAt = leadTarget(ctx, shooter, (RT.speed[weapon.category] || 12) * feel.speedMult);
   rt.aimDir = dirTo(aimAt);
   ctx.bus.emit('fire', { player: shooter, weapon, dir: rt.aimDir, power: c });
   if (weapon.category !== 'shield' && consumeSuper(ctx, shooter)) {
@@ -99,7 +102,7 @@ export function fireWeapon(ctx: Ctx, shooter: PlayerId, charge: number): boolean
   if (weapon.category === 'shield') {
     placeShield(ctx, shooter, weapon);
   } else if (weapon.category === 'blaster') {
-    const speed = RT.speed.blaster * (1 + RT.chargeSpeedBonus * c);
+    const speed = RT.speed.blaster * feel.speedMult * (1 + RT.chargeSpeedBonus * c);
     for (let i = 0; i < RT.blasterShots; i++) {
       ctx.loop.later(i * RT.blasterIntervalS, () => {
         if (getRuntime().matchSeq !== seq || !inFight(ctx) || getRuntime().players[shooter].dead) return;
@@ -118,15 +121,31 @@ export function fireWeapon(ctx: Ctx, shooter: PlayerId, charge: number): boolean
     // Avance partielle sur la course de l'adversaire (il peut encore sortir de la zone en changeant de direction).
     const v = getRuntime().players[otherPlayer(shooter)].vel;
     const t: Vec3 = [t0[0] + v[0] * T * 0.5, t0[1], t0[2] + v[2] * T * 0.5];
-    const dx = t[0] - origin[0], dz = t[2] - origin[2], dy = t[1] + 0.3 - origin[1];
-    const g = RT.grenadeGravity;
+    let dx = t[0] - origin[0], dz = t[2] - origin[2];
+    const dy = t[1] + 0.3 - origin[1];
+    // Objet lourd : portée max plus courte (il retombe avant la cible, à esquiver en reculant) ; la charge allonge.
+    const range = RT.grenadeBaseRange * feel.rangeMult * (0.8 + 0.4 * c);
+    const d = Math.hypot(dx, dz);
+    if (d > range) { dx *= range / d; dz *= range / d; }
+    const g = RT.grenadeGravity * feel.lobGravityMult;
     spawnProjectile(ctx, shooter, weapon, origin, [dx / T, (dy + 0.5 * g * T * T) / T, dz / T], g, mods, T);
   } else {
-    const speed = RT.speed.throwable * (1 + RT.chargeSpeedBonus * c);
-    spawnProjectile(ctx, shooter, weapon, origin, [rt.aimDir[0] * speed, rt.aimDir[1] * speed, rt.aimDir[2] * speed], 0, mods);
+    // Lancer tendu ; un objet lourd est lent et tombe (gravité propre) : on relève juste ce qu'il faut, sans dépasser
+    // RT.throwMaxElevationDeg — au-delà de sa portée, il retombe court.
+    const speed = RT.speed.throwable * feel.speedMult * (1 + RT.chargeSpeedBonus * c);
+    const g = feel.throwGravity;
+    let dir = rt.aimDir;
+    if (g > 0) {
+      const h = Math.hypot(aimAt[0] - origin[0], aimAt[2] - origin[2]);
+      const tof = h / speed;
+      const lift = Math.min(Math.tan((RT.throwMaxElevationDeg * Math.PI) / 180), (0.5 * g * tof * tof) / Math.max(0.5, h));
+      dir = dirTo([aimAt[0], aimAt[1] + lift * h, aimAt[2]]);
+    }
+    spawnProjectile(ctx, shooter, weapon, origin, [dir[0] * speed, dir[1] * speed, dir[2] * speed], g, mods);
   }
   return true;
 }
+
 
 /** Armes, charge et blocage d'un joueur pour cette image. */
 export function stepCombat(ctx: Ctx, player: PlayerId, input: PlayerInput, dt: number): void {

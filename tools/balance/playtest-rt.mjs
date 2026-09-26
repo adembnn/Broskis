@@ -23,7 +23,7 @@ await page.waitForFunction(() => window.gameHooks && window.ctx && window.__lsma
 await page.evaluate(() => {
   const KEEP = new Set(['match:banner', 'countdown', 'fire', 'hit', 'stock:lost', 'ringout', 'respawn', 'ledge:grab',
     'ledge:climb', 'teeter', 'super:ready', 'super:fire', 'move:jump', 'weapon:pick', 'weapon:ready', 'block',
-    'parry:result', 'projectile:incoming', 'crate:grab', 'ko', 'match:end']);
+    'parry:result', 'projectile:incoming', 'crate:grab', 'ko', 'match:end', 'ground:slippery', 'projectile:bounce']);
   window.__ev = [];
   window.ctx.bus.onAny((name, p) => {
     if (!KEEP.has(name)) return;
@@ -181,6 +181,32 @@ await scenario('bro-smash', async () => {
   await shot('bro-smash');
   const s = await state();
   return `BRO SMASH tiré, P2 à ${s.players[1].pct} %`;
+});
+
+await scenario('physique-objets', async () => {
+  // Même arme (throwable 4/3/3) portée par 3 objets réels : chaise lourde, canette liquide, verre fragile.
+  const mk = (id, object, physics) => ({
+    id, object, name: object, category: 'throwable', why: '', stats: { a: 4, b: 3, c: 3 }, trait: 'heavy',
+    palette: ['#888888', '#222222'], lines: { intro: '', hit: '', miss: '', parried: '' }, source: 'scan', cooldown: 0, physics,
+  });
+  const chair = mk('t-chair', 'chair', { massKg: 5, sizeM: [0.9, 0.5, 0.5], material: 'wood', shape: 'box', bounciness: 0.1, fragile: false, liquid: false });
+  const can = mk('t-can', 'soda can', { massKg: 0.35, sizeM: [0.12, 0.066, 0.066], material: 'metal', shape: 'round', bounciness: 0.2, fragile: false, liquid: true });
+  const glass = mk('t-glass', 'wine glass', { massKg: 0.2, sizeM: [0.2, 0.08, 0.08], material: 'glass', shape: 'long', bounciness: 0.05, fragile: true, liquid: false });
+  await page.evaluate((w) => { window.__ev.length = 0; window.gameHooks.startMatch({ seed: 9, map: 'archipel', weapons: [w, w] }); }, [chair, can, glass]);
+  await waitFor(() => window.gameState.phase === 'fight', null, 30000);
+  const out = [];
+  for (const [i, key] of [[0, 'Digit1'], [1, 'Digit2'], [2, 'Digit3']]) {
+    await page.evaluate(() => { window.__lsmash.setPct(1, 0); window.__ev.length = 0; });
+    await page.keyboard.press(key);
+    await page.keyboard.down('KeyF'); await wait(60); await page.keyboard.up('KeyF');
+    await waitFor(() => window.__ev.some((e) => e.name === 'fire'), null, 8000);
+    const cd = await page.evaluate((k) => window.gameState.players[0].cooldowns[k], i);
+    const hit = await page.waitForFunction(() => window.__ev.find((e) => e.name === 'hit' && e.target === 1), null, { timeout: 15000, polling: 50 }).then((h) => h.jsonValue()).catch(() => null);
+    out.push(`${['chaise', 'canette', 'verre'][i]} : recharge ${cd.toFixed(2)} s, ${hit ? `${hit.damage} %, recul ${Math.hypot(...hit.launch).toFixed(1)} m/s, masse ${hit.mass} kg` : 'raté'}`);
+    await wait(1500);
+  }
+  const extra = await page.evaluate(() => ({ flaques: window.__ev.filter((e) => e.name === 'ground:slippery').length }));
+  return out.join(' ; ') + ` ; flaques ${extra.flaques}`;
 });
 
 await scenario('game-fin', async () => {

@@ -29,6 +29,13 @@ export const RT = {
   /** Rayon des projectiles pour le contact avec la capsule d'un perso (m). */
   radius: { blaster: 0.22, throwable: 0.38, grenade: 0.3, shield: 0 } as Record<Category, number>,
   grenadeGravity: 14,
+  /** Portée de base d'une grenade (m) ; × physique (objet lourd = plus court) × charge. */
+  grenadeBaseRange: 22,
+  /** Relèvement max d'un lancer tendu d'objet lourd (degrés) : au-delà de sa portée, il retombe court. */
+  throwMaxElevationDeg: 25,
+  /** Objet fragile : éclats (rayon m, fraction des dégâts) ; objet liquide : sol glissant (rayon m, durée ms). */
+  shards: { radius: 1.3, damage: 0.35, grenadeRadiusMult: 0.75 },
+  puddle: { radius: 1.8, ms: 3000, accel: 1.6 },
   /** Durée de vol de la grenade : min + distance × perM, plafonnée. */
   grenadeFlight: { min: 0.55, perM: 0.035, max: 1.1 },
   projectileMaxLifeS: 3.5,
