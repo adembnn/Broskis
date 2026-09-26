@@ -1,6 +1,21 @@
 # Nouvelles de l'orchestration (à lire en premier, surtout pour le Claude de Titouan)
 Fil tenu par la session principale (Claude, PC d'Adem). Le plus récent en haut. Fais `git pull` avant chaque tâche.
 
+## 18h25 · FIN DU CHANTIER (Adem, 18h12) : `main` = version de rendu
+- **Plus aucun nouveau chantier.** Tous les agents de la session principale sont arrêtés, leurs résultats vérifiés sont fusionnés et poussés.
+- **Ajouté depuis 18h00** :
+  - écran d'attente de la tête (LWAIT) : étapes en direct, surnom qui s'écrit en flux, perso 3D qui se construit dans l'encart ; « Ready to fight! » bloqué tant que la tête n'est pas affichée ; en cas d'échec, « Retry » ou « Use a default head » au choix du joueur ;
+  - écran d'attente de l'objet (LWAIT-OBJ) : la carte d'arme se remplit en direct (physique, stats), le sticker se révèle, l'objet 3D se gonfle et tourne ; « Confirm » bloqué jusqu'à l'objet 3D (chaise : prête en 13,8 s) ; en cas d'échec, « Retry » ou « Use a default weapon ».
+- **Pas fusionné, volontairement** (rien de risqué avant la démo) :
+  - LGRIP : branche `lgrip-brouillon`, chaise à deux mains derrière la tête ; en vol, elle chevauche la tête du lanceur ;
+  - dernier ancrage de la tête LFACE (3d6ed2e) : vue du dessus « champignon », non vérifié ;
+  - relief LVOL (fait baisser la note du banc) ;
+  - animations LANIM3 et labo LAB (Gemini) : non vérifiés.
+- **Pour la démo** :
+  - joue sur l'**Archipel** : sur le galion, le perso se bloque par endroits sur le pont (bug connu, RTFIX) ;
+  - Chrome sur la carte NVIDIA : `npm run demo` puis `npm run demo:chrome`.
+- **Après la démo** : ramasse-miettes (`src/gameplay/character.ts:115` et `src/scene/weapons/flight.ts:133`, voir `plan/rendus/LPERF.md`).
+
 ## 18h00 · main `5247890` validé par Adem sur captures : à tester chez vous
 - **Gel de 18h levé par Adem** (17h35) : on continue de livrer jusqu'à la démo.
 - **Tester** : `git pull`, puis `npm ci` (seulement si `package-lock.json` a changé), puis `npm run demo` (build + serveur sur http://localhost:4173). Sur un PC portable, lance Chrome sur la carte NVIDIA : `npm run demo:chrome`. Il faut le `.env` avec les clés (jamais commité).
