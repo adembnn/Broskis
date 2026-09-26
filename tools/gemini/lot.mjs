@@ -67,6 +67,16 @@ child.stdout.pipe(flux);
 child.stderr.on('data', (d) => flux.write(JSON.stringify({ type: 'stderr', text: String(d) }) + '\n'));
 child.on('close', (code) => {
   const minutes = ((Date.now() - t0) / 60000).toFixed(1);
+  // Filet de sécurité : Gemini oublie parfois de commiter. On commite ce qu'il a laissé, fichier par fichier.
+  try {
+    const restants = sh('git status --porcelain --untracked-files=all', wt).split('\n')
+      .map((l) => l.slice(3).trim()).filter((f) => f && !f.startsWith('node_modules') && !f.includes('.env'));
+    if (restants.length) {
+      for (const f of restants) { try { sh(`git add -- "${f}"`, wt); } catch {} }
+      sh(`git commit -q -m "Lot ${id} : travail laissé non commité par Gemini, commité par le lanceur" -m "Co-Authored-By: Gemini <noreply@google.com>"`, wt);
+      log({ source: 'gemini', kind: mode, status: 'info', lot: id, title: `Lot ${id} : ${restants.length} fichier(s) oubliés, commités par le lanceur` });
+    }
+  } catch {}
   let resume = '';
   try { resume = sh(`git log --oneline main..HEAD`, wt).trim(); } catch {}
   if (mode === 'agent') {
