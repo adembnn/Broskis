@@ -110,9 +110,12 @@ export function mountForgeView(opts: ForgeOptions = {}): ForgeView {
   };
 
   // Abonnement à `scan:progress` : la 1re arme identifiée devient « la nôtre », les étapes des autres sont ignorées.
+  // Lot LE2E : seule SON étape 'stats' l'identifie. Le sticker tardif du scan précédent (objet validé sans attendre)
+  // arrivait avant et s'affichait dans cette forge : la canette de P2 montrait la tasse de P1.
   const off = getRuntimeCtx()?.bus.on('scan:progress', (e) => {
     if (opts.player != null && e.player !== opts.player) return;
     if (weaponId && e.weaponId && e.weaponId !== weaponId) return;
+    if (!weaponId && e.weaponId && e.step !== 'stats') return;
     if (!weaponId && e.weaponId) weaponId = e.weaponId;
     update(e.step, e.preview);
     if (e.step === 'sticker' || e.step === 'sticker-failed') off?.(); // forge terminée : plus rien à écouter
