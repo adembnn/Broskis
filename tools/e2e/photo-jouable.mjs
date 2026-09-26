@@ -44,6 +44,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const errors = [];
 const shots = []; // captures du rapport
 const rows = new Map(); // clé objet → mesures
+const persosInfo = { s: null, issues: [] }; // durée du scan des 2 persos, messages d'échec affichés (LFACE)
 
 // ---------------------------------------------------------------------------------------------------------------
 // Canette : Adem n'a pas de photo de canette → une canette dessinée (SVG) photographiée par le navigateur.
@@ -231,7 +232,12 @@ async function pickFighters(page, withPhotos) {
     if (await confirm.isVisible().catch(() => false)) await confirm.click();
     await sleep(300);
   }
-  if (withPhotos) log(`  persos photo prêts en ${Math.round((Date.now() - t0) / 1000)} s`);
+  if (withPhotos) {
+    const issues = await page.evaluate(() => [...document.querySelectorAll('.fighter-panel .fighter-issue')].map((e) => e.textContent.trim()));
+    persosInfo.s = Math.round((Date.now() - t0) / 1000);
+    persosInfo.issues = issues;
+    log(`  persos photo prêts en ${persosInfo.s} s${issues.length ? ` · message : ${issues.join(' / ')}` : ''}`);
+  }
   await sleep(1200); // vitrine 3D des 2 persos
   await shot(page, `persos-${withPhotos ? 'photos' : 'presets'}`, withPhotos ? `Persos tirés de 2 visages FICTIFS (${Math.round((Date.now() - t0) / 1000)} s)` : 'Persos préréglés', { group: 'persos', noMask: true });
   await ready.click({ force: true }); // bouton animé (pulsation) : jamais « stable » pour Playwright
@@ -333,6 +339,7 @@ async function toFight(page) {
 const PAGE_TOOLS = async () => {
   const { teleport } = await import('/src/gameplay/character.ts');
   const { getRuntime } = await import('/src/gameplay/runtime.ts');
+  const { LAUNCH_K2 } = await import('/src/gameplay/tuning.ts');
   const ctx = window.ctx;
   const bbox = (obj) => {
     obj.updateMatrixWorld(true);
@@ -371,6 +378,10 @@ const PAGE_TOOLS = async () => {
       return out.filter(Boolean);
     },
     alive: () => getRuntime().matchSeq,
+    /** Murs-boucliers encore debout (ils arrêteraient les tirs suivants). */
+    walls: () => getRuntime().shieldBodies.length,
+    /** Recul « à 0 % » : l'éjection grandit avec le % APRÈS le coup (et donc avec un critique) ; on retire ce facteur. */
+    k2: LAUNCH_K2,
   };
   return true;
 };
@@ -379,6 +390,15 @@ const maxDim = (s) => (s ? Math.max(...s) : null);
 const r2 = (x) => (x == null || !Number.isFinite(x) ? null : Math.round(x * 100) / 100);
 
 async function measureMatch(page, match, idx) {
+  // Sonde du rendu : fonction de rendu en place (pause LLOAD restée ?), contexte WebGL perdu ?
+  const sonde = await page.evaluate(() => ({
+    render: String(window.ctx.three.render).replace(/\s+/g, ' ').slice(0, 50),
+    perdu: window.ctx.three.renderer.getContext().isContextLost(),
+    vues: window.ctx.three.views().length,
+    transition: window.__lloadTransition ?? null,
+  }));
+  log(`  sonde du rendu : ${JSON.stringify(sonde)}`);
+  if (sonde.perdu || /^\(\) => \{ ?\}$/.test(sonde.render)) errors.push(`match ${idx} : rendu 3D arrêté (${sonde.perdu ? 'contexte WebGL perdu' : 'fonction de rendu restée en pause'})`);
   await page.evaluate(PAGE_TOOLS);
   const st = await page.evaluate(() => window.gameState);
   const split = st.split;
@@ -398,7 +418,8 @@ async function measureMatch(page, match, idx) {
       const key = match[shooter][slot];
       const r = row(key);
       try {
-        // 1) Coup au but à 7 m, % remis à 0.
+        // 1) Coup au but à 7 m, % remis à 0, aucun mur-bouclier encore debout (il arrêterait le tir).
+        for (let i = 0; i < 40 && (await page.evaluate(() => window.__e2eTools.walls())) > 0; i++) await sleep(200);
         await page.evaluate(({ a, b, s, t }) => { const T = window.__e2eTools; T.place(s, a); T.place(t, b); T.reset(0); T.reset(1); T.untouchable(t, 0); }, { a: at(-3.5 * sign), b: at(3.5 * sign), s: shooter, t: target });
         await page.keyboard.press(WEAPON_KEYS[shooter][slot]);
         await sleep(450);
@@ -441,7 +462,10 @@ async function measureMatch(page, match, idx) {
             r.damage = first.p.crit ? r2(first.p.damage / 1.35) : first.p.damage;
             r.crit = first.p.crit;
             const l = first.p.launch ?? first.p.knockback;
-            r.launch = r2(l ? Math.hypot(l[0], l[1], l[2]) : null);
+            const k2 = await page.evaluate(() => window.__e2eTools.k2);
+            // Recul ramené à 0 % (retire l'effet du % après le coup, donc d'un critique) : compare les objets, pas le hasard.
+            r.launch = r2(l ? Math.hypot(l[0], l[1], l[2]) / (1 + ((first.p.pct ?? 0) / 100) * k2) : null);
+            r.launchRaw = r2(l ? Math.hypot(l[0], l[1], l[2]) : null);
             r.massHit = r2(first.p.mass);
           }
           r.hits = hits.map((h) => h.p.damage);
@@ -509,7 +533,7 @@ function verdicts(matches) {
 
   const m1 = matches[0];
   add('persos', '2 persos tirés de photos (visages fictifs)', !!m1 && m1.fighters.every((f) => f.face),
-    m1 ? m1.fighters.map((f) => `${f.name} (${f.model}${f.face ? ', visage' : ', sans visage'})`).join(' · ') : 'match non atteint');
+    m1 ? `${m1.fighters.map((f) => `${f.name} (${f.model}${f.face ? ', visage' : ', sans visage'})`).join(' · ')} ; scan ${persosInfo.s ?? '?'} s${persosInfo.issues.length ? ` ; message : ${persosInfo.issues.join(' / ')}` : ''}` : 'match non atteint');
 
   add('match', 'Match en écran scindé, chaque joueur avec SES objets', !!m1 && m1.split === true && m1.phase === 'fight', m1 ? `split=${m1.split}, phase=${m1.phase}` : 'match non atteint');
 
@@ -571,7 +595,7 @@ function html(V, matches, meta) {
   const ch = rows.get('chaise-bureau'), ca = rows.get('canette');
   const ratio = (f) => (ch?.[f] != null && ca?.[f] ? `×${r2(ch[f] / ca[f])}` : '—');
   const cmpRows = [['Masse (kg)', ch?.weapon?.physics?.massKg, ca?.weapon?.physics?.massKg, 'massKg'], ['Dégâts (%)', ch?.damage, ca?.damage, 'damage'],
-    ['Recul (m/s)', ch?.launch, ca?.launch, 'launch'], ['Vitesse (m/s)', ch?.speed, ca?.speed, 'speed'], ['Portée (m)', ch?.range, ca?.range, 'range'],
+    ['Recul à 0 % (m/s)', ch?.launch, ca?.launch, 'launch'], ['Vitesse (m/s)', ch?.speed, ca?.speed, 'speed'], ['Portée (m)', ch?.range, ca?.range, 'range'],
     ['Recharge (s)', ch?.cooldown, ca?.cooldown, 'cooldown'], ['Taille en main (m)', maxDim(ch?.held), maxDim(ca?.held), null]];
   const groups = [...new Set(shots.map((s) => s.group ?? 'autres'))];
   return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>LE2E photo jouable</title>
@@ -600,7 +624,7 @@ ${V.map((v) => `<tr><td>${esc(v.label)}</td><td class="v ${v.ok ? 'ok' : 'ko'}">
 ${cmpRows.map(([l, a, b, f]) => `<tr><td>${l}</td>${cell(r2(a))}${cell(r2(b))}<td>${f ? ratio(f) : '—'}</td></tr>`).join('\n')}
 </table>
 <h2>Toutes les mesures (événements du bus)</h2>
-<div class="wrap"><table><tr><th>Objet</th><th>Arme</th><th>Cat.</th><th>Masse kg</th><th>Taille réelle m</th><th>Matière</th><th>Fragile</th><th>Liquide</th><th>Rebond</th><th>En main m</th><th>Vitesse m/s</th><th>Dégâts %</th><th>Recul m/s</th><th>Recharge s</th><th>Portée m</th><th>Rebonds</th><th>Flaques</th><th>Coups</th><th>Sticker</th></tr>
+<div class="wrap"><table><tr><th>Objet</th><th>Arme</th><th>Cat.</th><th>Masse kg</th><th>Taille réelle m</th><th>Matière</th><th>Fragile</th><th>Liquide</th><th>Rebond</th><th>En main m</th><th>Vitesse m/s</th><th>Dégâts %</th><th>Recul à 0 % m/s</th><th>Recharge s</th><th>Portée m</th><th>Rebonds</th><th>Flaques</th><th>Coups</th><th>Sticker</th></tr>
 ${order.map((r) => { const ph = r.weapon?.physics; return `<tr><td>${esc(r.key)}${r.categoryScan ? ` <span class="meta">(scan : ${esc(r.categoryScan)})</span>` : ''}</td>${cell(r.weapon?.name ?? (r.preset ? 'preset' : null))}${cell(r.category ?? r.weapon?.category)}${cell(r2(ph?.massKg))}${cell(ph ? r2(maxDim(ph.sizeM)) : null)}${cell(ph?.material)}${cell(ph ? (ph.fragile ? 'oui' : 'non') : null)}${cell(ph ? (ph.liquid ? 'oui' : 'non') : null)}${cell(r2(ph?.bounciness))}${cell(r2(maxDim(r.held)))}${cell(r.speed)}${cell(r.damage)}${cell(r.launch)}${cell(r.cooldown)}${cell(r.range != null ? `${r.range} (${r.rangeEnd})` : null)}${cell(r.bounces)}${cell(r.splash != null ? r.splash + (r.splashNear ?? 0) : null)}${cell(r.hits?.length ? r.hits.join('+') : null)}${cell(r.sticker)}</tr>`; }).join('\n')}
 </table></div>
 ${errors.length ? `<h2>Maillons cassés relevés</h2><ul class="err">${errors.map((e) => `<li>${esc(e)}</li>`).join('')}</ul>` : ''}
@@ -613,7 +637,8 @@ ${groups.map((g) => `<h3>${esc(g)}</h3><div class="gal">${shots.filter((s) => (s
 async function main() {
   const t0 = Date.now();
   const base = await startServer();
-  const gpu = ['--use-angle=d3d11', '--ignore-gpu-blocklist', '--enable-gpu-rasterization', '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding', '--disable-background-timer-throttling', '--autoplay-policy=no-user-gesture-required'];
+  // Carte NVIDIA (mémoire vidéo à elle) : la puce Intel partage la RAM, saturée par les agents → contexte WebGL perdu.
+  const gpu = ['--use-angle=d3d11', '--ignore-gpu-blocklist', '--enable-gpu-rasterization', '--force_high_performance_gpu', '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding', '--disable-background-timer-throttling', '--autoplay-policy=no-user-gesture-required'];
   const browser = await chromium.launch({ headless: !HEADED, args: gpu });
   const matches = [];
   let renderer = '?', glLost = [];
@@ -624,6 +649,8 @@ async function main() {
     await context.addInitScript(RECORDER);
     page = await context.newPage();
     page.on('pageerror', (e) => errors.push(`erreur page : ${String(e.message).slice(0, 160)}`));
+    let nConsole = 0;
+    page.on('console', (m) => { if (m.type() === 'error' && nConsole++ < 12 && !/Failed to load resource/.test(m.text())) errors.push(`console : ${m.text().slice(0, 200)}`); });
     await page.goto(`${base}/`, { waitUntil: 'load', timeout: 180000 });
     await page.waitForFunction(() => window.__e2e?.hooked, null, { timeout: 120000 });
     renderer = await page.evaluate(() => {
