@@ -3,6 +3,7 @@ import './style.css';
 import { install as installAudio } from './audio';
 import { createCtx } from './core/ctx';
 import { installPreload } from './core/preload';
+import { installQualite } from './core/quality';
 import { install as installGameplay } from './gameplay';
 import { install as installMapEvents } from './gameplay/map-events';
 import { install as installIa } from './ia';
@@ -12,6 +13,7 @@ import { install as installUi } from './ui';
 import type { Install } from './core/types';
 
 const MODULES: [string, Install][] = [
+  ['qualite', installQualite], // lot LPERF : palier graphique et résolution dynamique (avant le rendu, qui écoute resize)
   ['scene', installScene],
   ['maps', installMaps],
   ['map-events', installMapEvents],
