@@ -2,6 +2,7 @@
 import './style.css';
 import { install as installAudio } from './audio';
 import { createCtx } from './core/ctx';
+import { installPreload } from './core/preload';
 import { install as installGameplay } from './gameplay';
 import { install as installMapEvents } from './gameplay/map-events';
 import { install as installIa } from './ia';
@@ -18,6 +19,7 @@ const MODULES: [string, Install][] = [
   ['ia', installIa],
   ['audio', installAudio],
   ['ui', installUi],
+  ['preload', installPreload], // lot LLOAD : charge persos et maps pendant les menus
 ];
 
 function showBootError(err: unknown) {
