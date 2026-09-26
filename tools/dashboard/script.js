@@ -11,99 +11,123 @@ eventSource.onmessage = (event) => {
 };
 
 function updateDashboard(state) {
-    // 1. Qui travaille
-    const workersGrid = document.getElementById('workers-grid');
-    workersGrid.innerHTML = '';
-    if (state.workers && state.workers.length > 0) {
-        state.workers.forEach(w => {
-            const card = document.createElement('div');
-            card.className = `worker-card ${w.source || 'inconnu'}`;
-            const actionsHTML = w.actions && w.actions.length > 0 
-                ? `<ul>${w.actions.map(a => `<li>${a.message || a.title || JSON.stringify(a)}</li>`).join('')}</ul>`
-                : '<p>Aucune action récente</p>';
-            card.innerHTML = `<h3>${w.model || w.source || 'Worker'}</h3>
-                              <p>Dernières actions :</p>
-                              ${actionsHTML}`;
-            workersGrid.appendChild(card);
-        });
-    } else {
-        workersGrid.innerHTML = '<p>Personne ne travaille en ce moment.</p>';
-    }
-
-    // 2. Le fil
-    const feed = document.getElementById('feed');
-    feed.innerHTML = '';
-    if (state.events && state.events.length > 0) {
-        state.events.forEach(e => {
-            const item = document.createElement('div');
-            item.className = `event-item`;
-            const timeStr = e.t || e.time ? new Date(e.t || e.time).toLocaleTimeString() : new Date().toLocaleTimeString();
-            item.innerHTML = `<span class="event-time">${timeStr}</span>
-                              <strong>${e.source || '?'}</strong>: ${e.title || e.message || 'Événement'}`;
-            feed.appendChild(item);
-        });
-    } else {
-        feed.innerHTML = '<p>Aucun événement récent.</p>';
-    }
-
-    // 3. Les lots
-    const updateLots = (id, lots) => {
-        const col = document.getElementById(id);
-        const title = id === 'lots-todo' ? 'À prendre' : id === 'lots-doing' ? 'En cours' : 'Fait';
-        col.innerHTML = `<h3>${title}</h3>`;
-        if (lots && lots.length > 0) {
-            lots.forEach(l => {
-                const el = document.createElement('div');
-                el.className = 'lot-item';
-                el.innerHTML = `<strong>[${l.id}]</strong> ${l.title}<br><small>${l.assignee || l.owner || 'Non assigné'}</small>`;
-                col.appendChild(el);
+    // 1. Colonne Gemini
+    const geminiGrid = document.getElementById('gemini-grid');
+    if (geminiGrid) {
+        geminiGrid.innerHTML = '';
+        if (state.workers && state.workers.length > 0) {
+            state.workers.forEach(w => {
+                const card = document.createElement('div');
+                card.className = `worker-card gemini ${w.status === 'fait' ? 'done' : ''}`;
+                
+                // Barre d'activité pour l'état en-cours
+                const activityBar = w.status === 'en-cours' ? '<div class="activity-bar"></div>' : '';
+                
+                const actionsHTML = w.actions && w.actions.length > 0 
+                    ? `<ul>${w.actions.map(a => `<li>${a}</li>`).join('')}</ul>`
+                    : '<p>Aucune action récente</p>';
+                
+                card.innerHTML = `<h3>${w.title}</h3>
+                                  <div class="lot-meta">
+                                      <span class="status ${w.status}">${w.status}</span>
+                                      <span class="duration">${w.duration}</span>
+                                  </div>
+                                  ${activityBar}
+                                  <div class="actions">${actionsHTML}</div>`;
+                geminiGrid.appendChild(card);
             });
+        } else {
+            geminiGrid.innerHTML = '<p>Aucun lot Gemini en cours.</p>';
         }
-    };
-    if (state.lots) {
-        updateLots('lots-todo', state.lots.todo);
-        updateLots('lots-doing', state.lots.doing);
-        updateLots('lots-done', state.lots.done);
+    }
+
+    // 2. Colonne Claude
+    const claudeGrid = document.getElementById('claude-grid');
+    if (claudeGrid) {
+        claudeGrid.innerHTML = '';
+        if (state.claude && state.claude.length > 0) {
+            state.claude.forEach(c => {
+                const card = document.createElement('div');
+                card.className = `worker-card claude ${c.status === 'fait' ? 'done' : ''}`;
+                
+                const activityBar = c.status === 'en-cours' ? '<div class="activity-bar"></div>' : '';
+
+                card.innerHTML = `<h3>${c.title}</h3>
+                                  <div class="lot-meta">
+                                      <span class="status ${c.status}">${c.status}</span>
+                                      <span class="duration">${c.duration}</span>
+                                  </div>
+                                  ${activityBar}
+                                  <div class="details"><p>${c.details || 'Travail en cours...'}</p></div>`;
+                claudeGrid.appendChild(card);
+            });
+        } else {
+            claudeGrid.innerHTML = '<p>Aucun agent Claude actif.</p>';
+        }
+    }
+
+    // 3. Colonne Gradium / Générations
+    const gradiumGrid = document.getElementById('gradium-grid');
+    if (gradiumGrid) {
+        gradiumGrid.innerHTML = '';
+        if (state.gradium && state.gradium.length > 0) {
+            state.gradium.forEach(g => {
+                const item = document.createElement('div');
+                item.className = `event-item`;
+                const timeStr = new Date(g.t).toLocaleTimeString();
+                item.innerHTML = `<span class="event-time">${timeStr}</span>
+                                  <strong>${g.source}</strong>: ${g.title || g.message || 'Génération'}`;
+                gradiumGrid.appendChild(item);
+            });
+        } else {
+            gradiumGrid.innerHTML = '<p>Aucune génération récente.</p>';
+        }
     }
 
     // 4. Résultats
     const capturesDiv = document.getElementById('latest-captures');
-    capturesDiv.innerHTML = '<h3>Dernières captures</h3>';
-    if (state.results && state.results.captures && state.results.captures.length > 0) {
-        state.results.captures.forEach(c => {
-            capturesDiv.innerHTML += `<img src="/files/${encodeURIComponent(c)}" class="capture-img" style="max-height: 200px; margin-right: 10px; margin-bottom: 10px;">`;
-        });
-    } else {
-        capturesDiv.innerHTML += '<p>Aucune capture récente.</p>';
-    }
-
-    const scoresDiv = document.getElementById('latest-scores');
-    scoresDiv.innerHTML = '<h3>Scores</h3>';
-    if (state.results && state.results.anim) {
-        scoresDiv.innerHTML += `<p>Animation : <strong>${state.results.anim.score !== undefined ? state.results.anim.score : '?'}</strong> / 100</p>`;
-    }
-    if (state.results && state.results.balance) {
-        scoresDiv.innerHTML += `<p>Équilibrage : ${JSON.stringify(state.results.balance)}</p>`;
+    if (capturesDiv) {
+        capturesDiv.innerHTML = '<h3>Images & Planches</h3>';
+        if (state.results && state.results.captures && state.results.captures.length > 0) {
+            state.results.captures.forEach(c => {
+                capturesDiv.innerHTML += `<img src="/files/${encodeURIComponent(c)}" class="capture-img" style="max-height: 200px; margin-right: 10px; margin-bottom: 10px;">`;
+            });
+        } else {
+            capturesDiv.innerHTML += '<p>Aucune image récente.</p>';
+        }
     }
 
     const audioDiv = document.getElementById('latest-audio');
-    audioDiv.innerHTML = '<h3>Dernières Voix</h3>';
-    if (state.results && state.results.voices && state.results.voices.files) {
-        const files = Object.keys(state.results.voices.files).slice(-3); // Prend les 3 dernières
-        files.forEach(f => {
-            audioDiv.innerHTML += `<div><small>${f}</small><br><audio controls src="/files/public/assets/voices/${f}"></audio></div>`;
-        });
+    if (audioDiv) {
+        audioDiv.innerHTML = '<h3>Dernières Voix</h3>';
+        let hasAudio = false;
+
+        if (state.results && state.results.presetAudio && state.results.presetAudio.length > 0) {
+            hasAudio = true;
+            state.results.presetAudio.forEach(f => {
+                audioDiv.innerHTML += `<div style="margin-bottom: 10px;">
+                    <small>${f.split('/').pop()}</small><br>
+                    <audio controls src="/files/${encodeURIComponent(f)}" style="height: 30px;"></audio>
+                </div>`;
+            });
+        }
+
+        if (!hasAudio) {
+            audioDiv.innerHTML += '<p>Aucun fichier audio récent.</p>';
+        }
     }
 
     const reportsDiv = document.getElementById('latest-reports');
-    reportsDiv.innerHTML = '<h3>Derniers rapports</h3>';
-    if (state.results && state.results.reports && state.results.reports.length > 0) {
-        state.results.reports.slice(-3).forEach(r => {
-            reportsDiv.innerHTML += `<div style="background: var(--vinyle); padding: 5px; margin-bottom: 5px; border-radius: 4px;">
-                <strong><a href="/files/${r.file}" target="_blank">${r.title || r.file}</a></strong>
-                <p style="margin: 0; font-size: 0.8em;">${r.lines.join('<br>')}</p>
-            </div>`;
-        });
+    if (reportsDiv) {
+        reportsDiv.innerHTML = '<h3>Derniers rapports</h3>';
+        if (state.results && state.results.reports && state.results.reports.length > 0) {
+            state.results.reports.slice(-3).forEach(r => {
+                reportsDiv.innerHTML += `<div style="background: var(--vinyle); padding: 5px; margin-bottom: 5px; border-radius: 4px;">
+                    <strong><a href="/files/${r.file}" target="_blank">${r.title || r.file}</a></strong>
+                    <p style="margin: 0; font-size: 0.8em;">${r.lines.join('<br>')}</p>
+                </div>`;
+            });
+        }
     }
 }
 
