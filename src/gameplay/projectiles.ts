@@ -67,8 +67,9 @@ function launchOne(
     && Math.hypot(tp[0] - traj.impact[0], tp[2] - traj.impact[2]) <= traj.splashRadius + (weapon.trait === 'explosive' ? TRAIT_TUNING.explosive.bonusRadius : 0) + 0.4;
   const threatensDefender = weapon.category === 'grenade' ? splashReach : traj.hitPlayer === target;
   if (!threatensDefender) {
-    // Rate tout (mur, esquive de la trajectoire...) : pas de parade possible, mais on garde le rythme visuel.
-    setTimeout(() => { if (!stale(ctx, matchSeq)) onDone(); }, totalTravelMs);
+    // Rate tout (mur, esquive de la trajectoire...) : pas de parade possible. On n'attend pas qu'un tir perdu
+    // finisse ses 40 m de vol pour rendre la main (4 s de vide) : le temps d'une bascule + d'un vol court.
+    setTimeout(() => { if (!stale(ctx, matchSeq)) onDone(); }, Math.min(totalTravelMs, CAMERA_SWING_MS + MIN_REMAINING_FLIGHT_MS));
     return;
   }
   registerIncoming(ctx, {

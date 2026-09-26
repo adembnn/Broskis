@@ -14,7 +14,8 @@ import { resetParryState } from './parry';
 import { beginTurn, finishMatch, playersSettled, setPhase } from './phases';
 import { getRuntime, resetRuntime } from './runtime';
 import {
-  CRATE_INTERVAL_TURNS, FIRST_TURN_BANNER_S, GO_MAX_WAIT_MS, READY_GO_S, STOCKS_DEFAULT, STOCKS_DEMO, defaultArsenal, defaultFighters,
+  CRATE_INTERVAL_TURNS, FIRST_TURN_BANNER_S, GO_MAX_WAIT_MS, READY_GO_S, STOCKS_DEFAULT, STOCKS_DEMO, SUDDEN_DEATH_PCT,
+  defaultArsenal, defaultFighters,
 } from './tuning';
 
 function startMatch(ctx: Ctx, opts: StartMatchOptions = {}): void {
@@ -105,6 +106,15 @@ declare global {
 export function install(ctx: Ctx): void {
   ctx.hooks.startMatch = (opts) => startMatch(ctx, opts);
   ctx.hooks.forcerVictoire = (player) => forcerVictoire(ctx, player);
+  // Régie de démo (?demo=1), F4 = « KO au ralenti » du script : le défenseur passe à 150 % (le prochain coup
+  // qui touche l'éjecte, zoom KO compris). Rien d'autre ne change.
+  if (ctx.demo) {
+    ctx.bus.on('demo:cue', ({ key }) => {
+      if (key !== 'F4' || ctx.state.winner != null) return;
+      const defender = ctx.state.players[ctx.state.active === 0 ? 1 : 0];
+      defender.pct = Math.max(defender.pct, SUDDEN_DEATH_PCT);
+    });
+  }
   window.__lsmash = {
     setPct: (player, pct) => { ctx.state.players[player].pct = Math.max(0, pct); },
     superReady: (player) => forceSuperReady(ctx, player),

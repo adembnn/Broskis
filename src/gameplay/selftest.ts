@@ -57,7 +57,13 @@ async function runSelftest(ctx: Ctx): Promise<SelftestResult> {
   const errors: string[] = [];
   const step = (s: string) => steps.push(s);
   const originalError = console.error;
-  console.error = (...args: unknown[]) => { errors.push(args.map(String).join(' ')); originalError(...args); };
+  // Seules les erreurs du gameplay (ses systèmes, ou un écouteur du bus) font échouer ce test : une erreur d'un
+  // autre lot (rendu, caméra…) est signalée par tools/capture.mjs, pas ici.
+  console.error = (...args: unknown[]) => {
+    const text = args.map(String).join(' ');
+    if (/gameplay|\[bus\]/.test(text)) errors.push(text);
+    originalError(...args);
+  };
 
   try {
     const seen: string[] = [];
