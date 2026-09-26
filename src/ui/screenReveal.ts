@@ -3,6 +3,7 @@
 import type { Ctx, PlayerId, Weapon } from '../core/types';
 import { prepareCommentary } from '../ia';
 import { button, clear, el, menuScreen } from './dom';
+import { typewriter } from './loading';
 import type { ArsenalResult } from './screenArsenal';
 import { renderWeaponCard } from './weaponCard';
 
@@ -48,6 +49,7 @@ export async function runReveal(ctx: Ctx, screenLayer: HTMLElement, arsenal: Ars
   card.append(el('h2', 'b-title', 'Weapon Check'));
   const stage = el('div', 'reveal-stage');
   const subtitle = el('p', 'reveal-subtitle');
+  const line = typewriter(subtitle); // LLOAD : la réplique s'écrit au rythme de la voix au lieu d'apparaître d'un bloc
   subtitle.hidden = true;
   const nextBtn = button('Announcer is warming up…', 'b-btn');
   const skipBtn = button('Skip presentation', 'b-btn small alt');
@@ -70,7 +72,7 @@ export async function runReveal(ctx: Ctx, screenLayer: HTMLElement, arsenal: Ars
     );
     // Réplique écrite par défaut, remplacée par ce que l'animateur dit RÉELLEMENT (voice:line).
     subtitle.hidden = false;
-    subtitle.textContent = weapon.lines.intro;
+    line.set(weapon.lines.intro);
   };
   // La 1re carte est là tout de suite : pas d'écran vide pendant que l'animateur se prépare.
   if (order.length) showCard(0);
@@ -83,14 +85,14 @@ export async function runReveal(ctx: Ctx, screenLayer: HTMLElement, arsenal: Ars
     new Promise((r) => setTimeout(r, 6000)),
     new Promise<void>((r) => skipBtn.addEventListener('click', () => { skipped = true; r(); }, { once: true })),
   ]);
-  if (skipped) return;
+  if (skipped) { line.dispose(); return; }
   nextBtn.disabled = false;
   nextBtn.textContent = 'Next';
 
   const offVoice = ctx.bus.on('voice:line', ({ text, speaker }) => {
     if (speaker !== 'announcer') return;
     subtitle.hidden = false;
-    subtitle.textContent = text;
+    line.set(text);
   });
 
   for (let i = 0; i < order.length; i++) {
@@ -100,4 +102,5 @@ export async function runReveal(ctx: Ctx, screenLayer: HTMLElement, arsenal: Ars
     if ((await waitAdvance(nextBtn, skipBtn, autoMs)) === 'skip') break;
   }
   offVoice();
+  line.dispose();
 }
