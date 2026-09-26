@@ -107,3 +107,32 @@ Recette qui marche (code complet dans `tools/perf/bench.mjs`, option `split`) et
 - `node tools/perf/diag.mjs --map galion` : lumières, ombres, objets, matériaux partagés.
 - `node tools/perf/compare-qualite.mjs --map galion [--lumiere]` : même image dans 2 réglages.
 - Tous lancent leur propre serveur Vite (ports 5377 à 5381) et n'arrêtent que lui.
+
+## Mise à jour 18h17 : paliers graphiques, shaders en combat, carte de commandes
+Mesures NVIDIA, écran scindé réel, 15 s de combat scripté (`npm run perf -- --gpu nvidia --port 5392 --shaders`).
+
+| Map | Avant (critique 17h17 / banc) | Après (21d4aae … 28672c7) |
+|---|---|---|
+| Cuisine | 27 à 44 i/s, 1 % bas 1,4 à 3,8, pire image 791 à 1146 ms, 111 à 141 shaders compilés en combat | 71,7 i/s (plafond 72), 1 % bas 51, pire 35 ms, 0 tâche longue |
+| Galion | 49 i/s, pire image 875 ms | 71,8 i/s, 1 % bas 56, pire 28 ms |
+| Archipel | 76 i/s, 1 % bas 14, pire image 201 ms | 71,2 i/s, 1 % bas 35, pire 70 ms (1 image) |
+
+- **Cause principale des 111 shaders sur la Cuisine : mon code.** La qualité auto baissait le palier en plein match quand une image ralentissait ; chaque bascule recompilait tous les matériaux. Corrigé (21d4aae) : en match, seule la résolution s'adapte.
+- Décalques, mots d'impact, nombres de dégâts : image posée dès la création (`TEXTURE_VIDE`), shader compilé à la préchauffe (2eff265, 28672c7). Préchauffe en 2 passes (bbd067e).
+- Restent 2 à 4 shaders « map(arena_kit) » en combat : variantes transparentes de l'occlusion (RTVIEW), compilées en tâche de fond, sans gel.
+- Carte de commandes (3fd2854) : bascule H, pire 61,7 → 7,6 ms (`node tools/perf/aide.mjs`).
+- Paliers (218b6d4) : haut / moyen / bas, `?q=haut|moyen|bas`, API `setQuality('auto'|'high'|'medium'|'low')` / `getQuality()` / `onQualityChange()` dans `src/core/quality.ts` (aussi `window.__qualite`). Intel UHD, écran scindé, palier bas : décor lointain caché, 201 → 133 appels de dessin, image médiane 34,7 → 20,9 ms. Plafond ~60 i/s (9754d30).
+
+## Ramasse-miettes : mesuré, NON corrigé (gel de 18h)
+`npm run perf -- --alloc` : 19,75 Mo/s de déchets en combat sur la Cuisine. Plus gros allocateurs :
+1. **`src/gameplay/character.ts:115`** (RTCORE) : `isFallingDebris(c)` dans le filtre du contrôleur Rapier lit le corps PENDANT `computeColliderMovement` → Rapier lève « recursive use of an object detected » à CHAQUE appel (2,9 Mo/s, exceptions). Vérifié par expérience : Rapier traite cette erreur comme `true`, donc la dalle qui tombe n'est jamais ignorée. Correctif sûr, même comportement : `if (!data?.oneWay) return true;` (mesuré : 19,75 → 7 Mo/s). Correctif voulu par LJUMP : calculer la liste des débris qui tombent AVANT `computeColliderMovement`.
+2. three.js `getParameters` / clé de programme / uniformes (~9 Mo/s) : projectiles et halos de `latk-vol` (`src/scene/weapons/flight.ts:133-134`) créent un matériau neuf à CHAQUE tir. Réutiliser un matériau par couleur (Map couleur → matériau).
+3. `src/scene/animation/animator.ts:483` (`applyProcedural`) et `AnimationMixer.evaluate` : ~0,4 Mo/s.
+4. `src/gameplay/projectiles.ts:234` (`stepProjectiles`) et `:117` (`segmentToCapsule`) : ~0,22 Mo/s de Vec3 par image → vecteurs réutilisés.
+5. `src/scene/weapons/blast.ts:701` (`update`) : 0,12 Mo/s ; `take()` (blast.ts) trie une copie du pool à chaque effet.
+
+## Point 4, pour LMAP3 / LTEX : programmes de shaders sur la Cuisine
+`node tools/perf/diag.mjs --map cuisine` : 57 programmes en solo, 117 en écran scindé et palier haut (196 quand ma qualité auto recompilait). Le décor utilise des `MeshStandardMaterial` distincts (`map(...)`, `src/scene/maps/materials.ts:51`) pour des objets qui pourraient partager le même matériau. Chaque matériau distinct compte un appel de préparation par objet, et chaque variante (instancié / non instancié, ombre reçue ou non) un programme. À faire : un matériau par texture (cache par nom de texture) dans `materials.ts`, et `material.clone()` pour les `InstancedMesh` (`src/scene/maps/engine.ts`, `buildBackdrop`), pour que le même matériau ne serve jamais à la fois à un objet instancié et à un objet simple.
+
+## Non commité
+`THREE.Cache.enabled = true` dans `src/main.ts` : 13,6 → 11,6 Mo avant le 1er match (4 persos et des textures téléchargés 2 à 9 fois, `node tools/perf/poids.mjs`). Retiré, faute d'une 2e mesure du temps de chargement avant le gel.
