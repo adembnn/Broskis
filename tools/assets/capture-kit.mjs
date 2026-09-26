@@ -9,7 +9,7 @@ import net from 'node:net';
 const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
 const OUT = opt('--out', 'captures/lkit');
-const VUES = opt('--vues', 'arene,kit').split(',');
+const VUES = opt('--vues', 'arene-archipel,arene-galion,arene-cuisine,kit').split(',');
 const SUFFIXE = opt('--suffixe', '');
 mkdirSync(OUT, { recursive: true });
 
@@ -28,11 +28,12 @@ try {
   page.on('pageerror', (e) => erreurs.push(e.message));
   page.on('console', (m) => m.type() === 'error' && erreurs.push(m.text()));
   for (const vue of VUES) {
-    await page.goto(`${base}/arena-kit.html?vue=${vue}&fixe=1`);
+    const [v, map] = vue.split('-'); // « arene-galion » -> ?vue=arene&map=galion
+    await page.goto(`${base}/arena-kit.html?vue=${v}${map ? `&map=${map}` : ''}&fixe=1`);
     await page.waitForFunction(() => window.kitPret === true, null, { timeout: 60000 });
     await page.waitForTimeout(1500);
     const info = await page.evaluate(() => window.kitInfo());
-    const nom = vue === 'kit' ? 'kit' : 'arene';
+    const nom = vue;
     await page.screenshot({ path: `${OUT}/${nom}${SUFFIXE}.png` });
     console.log(`${OUT}/${nom}${SUFFIXE}.png · appels de dessin ${info.appels} · triangles ${info.triangles}`);
   }

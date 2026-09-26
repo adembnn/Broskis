@@ -4,7 +4,7 @@
 //   3. kit.json est réécrit (dimensions, ancre, surface de marche, collider conseillé, usage, triangles, Ko).
 // Usage : node tools/assets/build-kit.mjs [--only nom1,nom2] [--blender "C:\...\blender.exe"]
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { glbStats } from './glb-stats.mjs';
@@ -17,14 +17,20 @@ const RAW = join(tmpdir(), 'broskis-arena-kit');
 const DEST = 'public/assets/arena-kit';
 mkdirSync(RAW, { recursive: true });
 mkdirSync(DEST, { recursive: true });
+// dossier brut vidé (reconstruction complète) ou limité aux pièces demandées : jamais de GLB périmé recopié
+const demandees = new Set(ONLY.split(',').filter(Boolean));
+for (const f of readdirSync(RAW)) if (!demandees.size || demandees.has(f.replace(/\.glb$/, ''))) unlinkSync(join(RAW, f));
 
 const b = spawnSync(BLENDER, ['-b', '--factory-startup', '-P', 'tools/blender/arena_kit.py', '--', '--out', RAW, ...(ONLY ? ['--only', ONLY] : [])], { encoding: 'utf8' });
 const log = (b.stdout || '') + (b.stderr || '');
 for (const l of log.split('\n')) if (l.includes('[arena_kit]') || /Error|Traceback/.test(l)) console.log(l.trim());
 if (b.status !== 0 || /Traceback/.test(log)) { console.error('Blender a échoué'); process.exit(1); }
 
-const o = spawnSync(process.execPath, ['tools/assets/optimise.mjs', RAW, DEST], { encoding: 'utf8', stdio: 'inherit' });
-if (o.status !== 0) process.exit(1);
+for (const f of readdirSync(RAW)) {
+  if (!f.endsWith('.glb') || (demandees.size && !demandees.has(f.replace(/\.glb$/, '')))) continue;
+  const o = spawnSync(process.execPath, ['tools/assets/optimise.mjs', join(RAW, f), DEST], { encoding: 'utf8', stdio: 'inherit' });
+  if (o.status !== 0) process.exit(1);
+}
 
 // kit.json : fusion des métadonnées Blender (pieces.json) avec l'existant (pour les reconstructions partielles)
 const neuves = JSON.parse(readFileSync(join(RAW, 'pieces.json'), 'utf8'));

@@ -62,9 +62,9 @@ PAL = {
     'beam': hx('#D2BE98'), 'beam_d': hx('#B09A76'), 'hull': hx('#5A4535'), 'hull_d': hx('#3F3029'),
     'iron': hx('#3B3A3C'),
     # cuisine : carreaux crème, joints, chant de hêtre clair, caisson
-    'tile': hx('#E6DED0'), 'tile_b': hx('#9DB3B0'), 'grout': hx('#8E8578'),
-    'beech': hx('#C9A77C'), 'beech_l': hx('#DEC29A'), 'beech_d': hx('#A5825B'), 'cabinet': hx('#8A918F'),
-    'cabinet_d': hx('#646A6A'),
+    'tile': hx('#E6DED0'), 'tile_b': hx('#9DB3B0'), 'grout': hx('#7E766B'),
+    'beech': hx('#C9A77C'), 'beech_l': hx('#DEC29A'), 'beech_d': hx('#A5825B'), 'cabinet': hx('#7F9790'),
+    'cabinet_d': hx('#586A66'), 'chrome': hx('#CBD0CF'), 'chrome_d': hx('#8C9392'),
     # fonds et nuages
     'cloud': hx('#FFF4E6'), 'cloud_d': hx('#C9B4BE'),
 }
@@ -220,11 +220,12 @@ def rounded_rect(a, b, r):
 
 
 def ring_pts(P, N, s, d, z, jr=0.0, jz=0.0, seed=0.0, freq=0.45, zfield=None):
-    """Anneau du profil : point du contour mis à l'échelle s, rentré de d le long de la normale.
+    """Anneau du profil : point du contour mis à l'échelle s (nombre ou (sx, sy)), rentré de d le long de la normale.
     jr : rentrée aléatoire (jamais vers l'extérieur), jz : décalage vertical (champ partagé zfield)."""
+    sx, sy = s if isinstance(s, tuple) else (s, s)
     out = []
     for p, nrm in zip(P, N):
-        q = p * s - nrm * d
+        q = Vector((p.x * sx, p.y * sy)) - nrm * d
         zz = z
         if jr:
             k = noise.noise(Vector((q.x * freq, q.y * freq, seed)))
@@ -238,6 +239,91 @@ def ring_pts(P, N, s, d, z, jr=0.0, jz=0.0, seed=0.0, freq=0.45, zfield=None):
 # --------------------------------------------------------------------------------------------------
 # Occlusion ambiante cuite (lancer de rayons sur BVH, hémisphère pondérée en cosinus)
 # --------------------------------------------------------------------------------------------------
+
+
+def clip_convex(poly, clip):
+    """Sutherland-Hodgman : découpe le polygone `poly` par le polygone CONVEXE `clip` (tous deux en sens trigo, 2D)."""
+    def inside(p, a, b):
+        return (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x) >= 0
+
+    def inter(s, e, a, b):
+        d1, d2 = e - s, b - a
+        den = d1.x * d2.y - d1.y * d2.x
+        if abs(den) < 1e-12:
+            return e.copy()
+        t = ((a.x - s.x) * d2.y - (a.y - s.y) * d2.x) / den
+        return s + d1 * t
+
+    out = [p.copy() for p in poly]
+    for i in range(len(clip)):
+        a, b = clip[i], clip[(i + 1) % len(clip)]
+        inp, out = out, []
+        if not inp:
+            break
+        s = inp[-1]
+        for e in inp:
+            if inside(e, a, b):
+                if not inside(s, a, b):
+                    out.append(inter(s, e, a, b))
+                out.append(e)
+            elif inside(s, a, b):
+                out.append(inter(s, e, a, b))
+            s = e
+    # retire les points quasi confondus
+    clean = []
+    for p in out:
+        if not clean or (p - clean[-1]).length > 1e-4:
+            clean.append(p)
+    if len(clean) > 2 and (clean[0] - clean[-1]).length <= 1e-4:
+        clean.pop()
+    return clean
+
+
+def poly_area(poly):
+    return 0.5 * sum(poly[i].x * poly[(i + 1) % len(poly)].y - poly[(i + 1) % len(poly)].x * poly[i].y for i in range(len(poly)))
+
+
+def plank_layout(clip, width=0.46, gap=0.035, seg=(2.2, 4.2), seed=1.0):
+    """Lames de pont le long de X, joints décalés d'une rangée à l'autre ; chaque lame est découpée par le contour."""
+    rng = random.Random(int(seed * 977))
+    ys = [p.y for p in clip]
+    xs = [p.x for p in clip]
+    out = []
+    y = min(ys)
+    row = 0
+    while y < max(ys):
+        y0, y1 = y + gap / 2, y + width - gap / 2
+        x = min(xs) - rng.uniform(0, seg[1])
+        while x < max(xs):
+            ln = rng.uniform(*seg)
+            x0, x1 = x + gap / 2, x + ln - gap / 2
+            rect = [Vector((x0, y0)), Vector((x1, y0)), Vector((x1, y1)), Vector((x0, y1))]
+            poly = clip_convex(rect, clip)
+            if len(poly) >= 3 and poly_area(poly) > 0.02:
+                out.append((poly, rng.uniform(-1, 1)))
+            x += ln
+        y += width
+        row += 1
+    return out
+
+
+def tile_layout(clip, size=1.5, grout=0.07, seed=1.0):
+    """Carreaux géants en damier, alignés sur le centre ; chaque carreau est découpé par le contour."""
+    rng = random.Random(int(seed * 613))
+    xs = [p.x for p in clip]
+    ys = [p.y for p in clip]
+    out = []
+    i0, i1 = math.floor(min(xs) / size) - 1, math.ceil(max(xs) / size) + 1
+    j0, j1 = math.floor(min(ys) / size) - 1, math.ceil(max(ys) / size) + 1
+    for i in range(i0, i1):
+        for j in range(j0, j1):
+            x0, y0 = i * size + grout / 2, j * size + grout / 2
+            x1, y1 = (i + 1) * size - grout / 2, (j + 1) * size - grout / 2
+            rect = [Vector((x0, y0)), Vector((x1, y0)), Vector((x1, y1)), Vector((x0, y1))]
+            poly = clip_convex(rect, clip)
+            if len(poly) >= 3 and poly_area(poly) > 0.02:
+                out.append((poly, (1.0 if (i + j) % 2 == 0 else -1.0) * (0.6 + 0.4 * rng.random())))
+    return out
 
 
 def hemi_dirs(n):
@@ -345,6 +431,12 @@ def export(ob, path):
     )
 
 
+def contour_three(outline, n=32, inset=0.0):
+    """Contour de la surface de marche en repère three : [[x, z], ...] (sens trigo vu du dessus en Blender)."""
+    pts, nrm = outline.sample(n)
+    return [[round(p.x - m.x * inset, 3), round(-(p.y - m.y * inset), 3)] for p, m in zip(pts, nrm)]
+
+
 def bbox(mb):
     xs = [v.x for v in mb.verts]
     ys = [v.y for v in mb.verts]
@@ -410,73 +502,171 @@ def island_colorfn(a, b, depth, top='grass'):
             return PAL['earth_d']
         if zone == 'ledge':
             return mix(PAL['ledge'], PAL['rock_deep'], smooth01(-p.z / depth))
+        # --- bois de pont (galion)
+        if zone == 'plank':
+            grain = noise.noise(Vector((p.x * 0.35, p.y * 4.0, tone * 3.0)))
+            c = mix(PAL['plank'], PAL['plank_l'] if tone > 0 else PAL['plank_d'], abs(tone) * 0.5)
+            return c * (1.0 + 0.07 * grain)
+        if zone == 'gap':
+            return PAL['gap']
+        if zone in ('beam_top', 'beam_chamfer', 'beam_side'):
+            c = mix(PAL['beam'], PAL['beam_d'], 0.3 + 0.3 * tone)
+            if zone == 'beam_chamfer':
+                c = mix(c, PAL['beam'], 0.6) * 1.06
+            elif zone == 'beam_side':
+                c = mix(c, PAL['beam_d'], 0.55)
+            return c * (1.0 + 0.05 * noise.noise(Vector((p.x * 0.5, p.y * 0.5, p.z * 6.0))))
+        if zone == 'hull_band':
+            return mix(PAL['plank_d'], PAL['hull'], 0.35)
+        if zone == 'hull':
+            c = PAL['hull'] if int(tone) % 2 == 0 else mix(PAL['hull'], PAL['plank_d'], 0.3)
+            c = c * (1.0 + 0.06 * noise.noise(Vector((p.x * 0.3, p.y * 0.3, p.z * 2.0 + 5.0))))
+            return mix(c, PAL['hull_d'], smooth01(-p.z / depth) * 0.7)
+        if zone == 'hull_ledge':
+            return PAL['hull_d'] * 0.8
+        if zone == 'iron':
+            return PAL['iron']
+        # --- cuisine (îlot de cuisine géant)
+        if zone == 'tile':
+            base = PAL['tile'] if tone > 0 else PAL['tile_b']
+            return base * (0.95 + 0.06 * abs(tone))
+        if zone == 'grout':
+            return PAL['grout']
+        if zone in ('beech_top', 'beech_chamfer', 'beech_side', 'board'):
+            grain = noise.noise(Vector((p.x * 0.3, p.y * 3.2, 1.7)))
+            c = mix(PAL['beech'], PAL['beech_l'], 0.55 + 0.25 * grain)
+            if zone == 'beech_chamfer':
+                c = mix(c, PAL['beech_l'], 0.6) * 1.05
+            elif zone == 'beech_side':
+                c = mix(c, PAL['beech_d'], 0.45)
+            return c
+        if zone == 'groove':
+            return mix(PAL['beech'], PAL['beech_d'], 0.75)
+        if zone == 'cab_band':
+            return mix(PAL['beech'], PAL['beech_d'], 0.5)
+        if zone == 'cab':
+            c = PAL['cabinet'] if int(tone) % 2 == 0 else mix(PAL['cabinet'], PAL['cabinet_d'], 0.18)
+            return mix(c, PAL['cabinet_d'], smooth01(-p.z / depth) * 0.6)
+        if zone == 'cab_ledge':
+            return PAL['cabinet_d'] * 0.55
+        if zone in ('chrome', 'chrome_d'):
+            return PAL['chrome'] if zone == 'chrome' else PAL['chrome_d']
         return rock_color(tone, p, n, depth)
     return fn
 
 
+def rim_spans(outline, max_len, max_angle_deg):
+    """Découpe le contour en segments de liseré : longs sur les parties droites, courts dans les virages
+    (au plus max_angle_deg de rotation de la normale par segment), longueurs égalisées par tronçon."""
+    step = outline.total / 720
+    cuts = [0.0]
+    u, start_n = 0.0, outline.at(0.0)[1]
+    while u < outline.total - step:
+        u += step
+        n = outline.at(u)[1]
+        ang = math.degrees(math.acos(max(-1.0, min(1.0, n.dot(start_n)))))
+        if u - cuts[-1] >= max_len or ang >= max_angle_deg:
+            cuts.append(u)
+            start_n = n
+    if outline.total - cuts[-1] < max_len * 0.35 and len(cuts) > 1:
+        cuts.pop()
+    cuts.append(outline.total)
+    return list(zip(cuts, cuts[1:]))
+
+
+BODY = {  # zones (flanc sous le liseré, strates, replats) par style de dessous
+    'rock': ('earth', 'rock', 'ledge'),
+    'hull': ('hull_band', 'hull', 'hull_ledge'),
+    'cabinet': ('cab_band', 'cab', 'cab_ledge'),
+}
+RIM = {
+    'stone': ('stone_top', 'stone_chamfer', 'stone_side'),
+    'beam': ('beam_top', 'beam_chamfer', 'beam_side'),
+    'beech': ('beech_top', 'beech_chamfer', 'beech_side'),
+}
+
+
 def floating_island(name, outline, segs, depth, strata, rim=None, top_rings=(0.4, 0.75), tip=(0.0, 0.0),
-                    seed=1.0, jr=0.35, jz=0.18, earth=0.34, overhang=0.05):
-    """Île flottante : dessus plat (herbe), liseré de pierres chanfreinées, dessous en strates effilées.
-    strata : liste de (s, d, z) pour le bas de chaque strate (z négatif), la dernière est l'anneau avant la pointe."""
+                    seed=1.0, jr=0.35, jz=0.18, earth=0.34, overhang=0.05, top='grass', body='rock',
+                    ledge_in=0.18, ledge_frac=0.3, ledge_h=0.1, chamfer_in=0.14, top_kw=None):
+    """Île flottante : dessus plat (herbe, lames de pont ou carreaux), liseré chanfreiné, dessous en strates.
+    strata : (s, d, z) ou (sx, sy, d, z) pour le bas de chaque strate (z négatif) ; la dernière précède la pointe."""
     mb = MB()
     P, N = outline.sample(segs)
     W = rim['width'] if rim else 0.0
-    # --- dessus (herbe)
-    c = mb.v((0, 0, 0))
-    rings = [mb.ring(ring_pts(P, N, s, 0, 0)) for s in top_rings]
-    mb.fan(c, rings[0], 'grass')
-    for r0, r1 in zip(rings, rings[1:]):
-        mb.bridge(r0, r1, 'grass')
-    prev = rings[-1]
-    if rim:
-        r_in = mb.ring(ring_pts(P, N, 1.0, W + 0.28, 0))
-        mb.bridge(prev, r_in, 'grass')
-        r_under = mb.ring(ring_pts(P, N, 1.0, W - 0.1, 0))
-        mb.bridge(r_in, r_under, 'grass')
-        edge = mb.ring(ring_pts(P, N, 1.0, 0.02, -0.03))
-        mb.bridge(r_under, edge, 'hidden')
-        prev = edge
+    band, main, ledge_zone = BODY[body]
+    if top == 'grass':
+        c = mb.v((0, 0, 0))
+        rings = [mb.ring(ring_pts(P, N, s, 0, 0)) for s in top_rings]
+        mb.fan(c, rings[0], 'grass')
+        for r0, r1 in zip(rings, rings[1:]):
+            mb.bridge(r0, r1, 'grass')
+        prev = rings[-1]
+        if rim:
+            r_in = mb.ring(ring_pts(P, N, 1.0, W + 0.28, 0))
+            mb.bridge(prev, r_in, 'grass')
+            r_under = mb.ring(ring_pts(P, N, 1.0, W - 0.1, 0))
+            mb.bridge(r_in, r_under, 'grass')
+            edge = mb.ring(ring_pts(P, N, 1.0, 0.02, -0.03))
+            mb.bridge(r_under, edge, 'hidden')
+            prev = edge
+        else:
+            edge = mb.ring(ring_pts(P, N, 1.0, 0.0, 0))
+            mb.bridge(prev, edge, 'grass')
+            prev = edge
     else:
-        edge = mb.ring(ring_pts(P, N, 1.0, 0.0, 0))
-        mb.bridge(prev, edge, 'grass')
+        # lames ou carreaux découpés dans le contour, posés sur une sous-couche sombre qui dessine les joints
+        clip = [Vector((q.x, q.y)) for q in ring_pts(P, N, 1.0, max(W - 0.1, 0.0), 0.0)]
+        under = [mb.v((q.x, q.y, -0.045)) for q in clip]
+        mb.f(under, 'gap' if top == 'planks' else 'grout')
+        layout = plank_layout if top == 'planks' else tile_layout
+        zone = 'plank' if top == 'planks' else 'tile'
+        for poly, tone in layout(clip, seed=seed, **(top_kw or {})):
+            mb.f([mb.v((q.x, q.y, 0.0)) for q in poly], zone, tone)
+        edge = mb.ring(ring_pts(P, N, 1.0, 0.02, -0.03))
+        mb.bridge(under, edge, 'hidden')
         prev = edge
-    # --- flanc de terre puis chanfrein vers la roche
+    # --- flanc sous le liseré puis chanfrein rentrant
     r = mb.ring(ring_pts(P, N, 1.0, 0.0, -earth))
-    mb.bridge(prev, r, 'earth')
+    mb.bridge(prev, r, band)
     prev = r
-    r = mb.ring(ring_pts(P, N, 1.0, 0.14, -earth - 0.1))
-    mb.bridge(prev, r, 'earth')
+    r = mb.ring(ring_pts(P, N, 1.0, chamfer_in, -earth - 0.1))
+    mb.bridge(prev, r, band)
     prev = r
     # --- strates
-    for k, (s, d, z) in enumerate(strata):
-        last = k == len(strata) - 1
+    norm = [((st[0], st[0]), st[1], st[2]) if len(st) == 3 else ((st[0], st[1]), st[2], st[3]) for st in strata]
+    for k, (S, d, z) in enumerate(norm):
+        last = k == len(norm) - 1
         zf = seed * 10 + k * 1.7
-        bottom = mb.ring(ring_pts(P, N, s, d, z, jr=jr, jz=jz, seed=seed + k, zfield=zf))
-        mb.bridge(prev, bottom, 'rock', tone=k)
+        bottom = mb.ring(ring_pts(P, N, S, d, z, jr=jr, jz=jz, seed=seed + k, zfield=zf))
+        mb.bridge(prev, bottom, main, tone=k)
         prev = bottom
         if not last:
-            s2, d2 = strata[k + 1][0], strata[k + 1][1]
-            ledge_s = s - (s - s2) * 0.25
-            ledge_d = d + (d2 - d) * 0.35 + 0.18
-            ledge = mb.ring(ring_pts(P, N, ledge_s, ledge_d, z - 0.1, jr=jr, jz=jz, seed=seed + k + 0.5, zfield=zf))
-            mb.bridge(prev, ledge, 'ledge', tone=k)
+            S2, d2 = norm[k + 1][0], norm[k + 1][1]
+            ls = (S[0] - (S[0] - S2[0]) * ledge_frac, S[1] - (S[1] - S2[1]) * ledge_frac)
+            ld = d + (d2 - d) * ledge_frac + ledge_in
+            ledge = mb.ring(ring_pts(P, N, ls, ld, z - ledge_h, jr=jr, jz=jz, seed=seed + k + 0.5, zfield=zf))
+            mb.bridge(prev, ledge, ledge_zone, tone=k)
             prev = ledge
     t = mb.v((tip[0], tip[1], -depth))
-    mb.fan(t, prev, 'rock', tone=len(strata), down=True)
-    # --- liseré de pierres
+    mb.fan(t, prev, main, tone=len(norm), down=True)
+    # --- liseré (pierres, poutres ou chant de hêtre)
     if rim:
+        style = rim.get('style', 'stone')
         rng = random.Random(int(seed * 1000))
-        n_st = max(6, round(outline.total / rim['len']))
-        L = outline.total / n_st
         g = rim.get('gap', 0.035)
-        for k in range(n_st):
-            u0, u1 = k * L + g / 2, (k + 1) * L - g / 2
+        for u0, u1 in rim_spans(outline, rim['len'], rim.get('angle', 14.0)):
+            u0, u1 = u0 + g / 2, u1 - g / 2
             p0, n0 = outline.at(u0)
             p1, n1 = outline.at(u1)
-            ztop = rim['top'] + rng.uniform(-0.012, 0.018)
+            jit = (-0.012, 0.018) if style == 'stone' else (-0.004, 0.004)
+            ztop = rim['top'] + rng.uniform(*jit)
             corners = [p0 - n0 * W, p0 + n0 * overhang, p1 + n1 * overhang, p1 - n1 * W]
-            tone = rng.uniform(-0.8, 0.8) if rng.random() > 0.1 else 0.9  # 1 pierre sur 10 moussue
-            mb.box(corners, rim['bot'], ztop, rim.get('chamfer', 0.06), ('stone_top', 'stone_chamfer', 'stone_side'), tone)
+            if style == 'stone':
+                tone = rng.uniform(-0.8, 0.8) if rng.random() > 0.1 else 0.9  # 1 pierre sur 10 moussue
+            else:
+                tone = rng.uniform(-1, 1)
+            mb.box(corners, rim['bot'], ztop, rim.get('chamfer', 0.06), RIM[style], tone)
     return mb
 
 
@@ -548,16 +738,24 @@ def build_plateau_pierre():
     ol = Outline(superellipse(a, b, 2.6))
     depth = 6.6
     strata = [(1.0, 0.22, -1.25), (0.9, 0.62, -2.3), (0.74, 0.9, -3.3), (0.55, 1.0, -4.3), (0.34, 0.8, -5.35)]
-    mb = floating_island('plateau_pierre', ol, 52, depth, strata,
+    mb = floating_island('plateau_pierre', ol, 48, depth, strata,
                          rim={'width': 0.75, 'len': 1.3, 'top': 0.05, 'bot': -0.3, 'chamfer': 0.07},
-                         top_rings=(0.2, 0.4, 0.6, 0.78), tip=(0.4, -0.6), seed=1.3, earth=0.28)
+                         top_rings=(0.4, 0.6, 0.78), tip=(0.4, -0.6), seed=1.3, earth=0.28)
+    # cercle de duel : un anneau de dalles usées affleurant l'herbe au centre (le « ring » de l'animateur)
+    n_dalles, r0, r1 = 22, 2.35, 2.9
+    for k in range(n_dalles):
+        t0 = 2 * math.pi * (k + 0.04) / n_dalles
+        t1 = 2 * math.pi * (k + 0.96) / n_dalles
+        cs = [Vector((math.cos(t0) * r0, math.sin(t0) * r0)), Vector((math.cos(t0) * r1, math.sin(t0) * r1)),
+              Vector((math.cos(t1) * r1, math.sin(t1) * r1)), Vector((math.cos(t1) * r0, math.sin(t1) * r0))]
+        mb.box(cs, -0.05, 0.012, 0.0, STONE_ZONES, -0.55 + 0.25 * math.sin(k * 2.3))
     hanger(mb, 0.52 * a, 0.15 * b, -2.9, 1.1, 2.5, 0.4)
     hanger(mb, -0.5 * a, -0.2 * b, -2.9, 1.2, 3.0, 1.9)
     hanger(mb, 0.1 * a, 0.45 * b, -2.6, 0.9, 2.1, 3.1)
     meta = {'role': 'plateau', 'variante': 'herbe et pierre', 'map': 'archipel',
             'surface': {'forme': 'superellipse', 'demiX': a, 'demiZ': b, 'exposant': 2.6, 'y': 0.0,
-                        'liseré': 0.75},
-            'collider': {'type': 'cylindre ou convexe du contour', 'conseil': 'box hx 9.2 hy 0.25 hz 7.2 centrée y=-0.25, ou trimesh du dessus'},
+                        'liseré': 0.75, 'contour': contour_three(ol)},
+            'collider': {'type': 'convexe', 'conseil': 'ColliderDesc.convexHull des points du contour à y=0 et y=-0.6 (jamais de trimesh du mesh entier)'},
             'usage': "Plateau principal flottant façon Battlefield : dessus d'herbe net, liseré de pierres claires = bord du vide."}
     return mb, island_colorfn(a, b, depth), {'rays': 28, 'dist': 1.4}, meta
 
@@ -568,12 +766,12 @@ def build_plateforme(size):
     ol = Outline(rounded_rect(a, b, 0.8))  # rayon > rentrée max (0,68 m) : pas de boucle dans les coins
     depth = {'S': 0.95, 'M': 1.05, 'L': 1.15}[size]
     strata = [(1.0, 0.16, -0.62), (0.62, 0.3, -0.86)]
-    mb = floating_island('plateforme_' + size, ol, 32 if size != 'S' else 28, depth, strata,
+    mb = floating_island('plateforme_pierre_' + size, ol, 32 if size != 'S' else 28, depth, strata,
                          rim={'width': 0.4, 'len': 0.8, 'top': 0.04, 'bot': -0.22, 'chamfer': 0.05},
                          top_rings=(0.25,), tip=(0.1, 0.0), seed={'S': 2.1, 'M': 3.4, 'L': 4.7}[size],
                          jr=0.1, jz=0.05, earth=0.26, overhang=0.04)
     meta = {'role': 'plateforme', 'variante': 'herbe et pierre', 'map': 'archipel',
-            'surface': {'forme': 'rectangle arrondi', 'demiX': a, 'demiZ': b, 'y': 0.0},
+            'surface': {'forme': 'rectangle arrondi', 'demiX': a, 'demiZ': b, 'y': 0.0, 'contour': contour_three(ol, 20)},
             'collider': {'type': 'box traversable par le dessous (one-way)', 'conseil': f'box hx {a - 0.05:.2f} hy 0.15 hz {b - 0.05:.2f} centrée y=-0.15'},
             'usage': 'Plateforme flottante fine (2,2 à 2,8 m au-dessus du plateau), traversable en sautant.'}
     return mb, island_colorfn(a, b, depth), {'rays': 24, 'dist': 0.8}, meta
@@ -620,14 +818,338 @@ def build_ile_lointaine(variant):
     return mb, island_colorfn(a, b, depth), {'rays': 16, 'dist': 0.8}, meta
 
 
+PLAT_DIMS = {'S': (1.6, 1.0), 'M': (2.3, 1.2), 'L': (3.1, 1.4)}  # demi-longueur X, demi-largeur Z (m)
+
+
+def build_plateau_pont():
+    """Galion : pont ovale en lames délavées, liseré de poutres blanchies par le sel, coque à clins sous le pont."""
+    a, b = 9.5, 6.6
+    ol = Outline(superellipse(a, b, 2.2))
+    depth = 4.3
+    strata = [(1.0, 1.0, 0.1, -0.85), (0.98, 0.9, 0.16, -1.6), (0.93, 0.74, 0.2, -2.35), (0.84, 0.54, 0.2, -3.05),
+              (0.7, 0.3, 0.15, -3.7)]
+    mb = floating_island('plateau_pont', ol, 52, depth, strata, top='planks', body='hull',
+                         rim={'width': 0.5, 'len': 1.6, 'top': 0.07, 'bot': -0.24, 'chamfer': 0.05, 'style': 'beam', 'gap': 0.03},
+                         tip=(0.0, 0.0), seed=2.7, jr=0.02, jz=0.0, earth=0.32, ledge_in=0.07, ledge_frac=0.0,
+                         ledge_h=0.07, chamfer_in=0.1, top_kw={'width': 0.5, 'gap': 0.04})
+    meta = {'role': 'plateau', 'variante': 'planches de pont', 'map': 'galion',
+            'surface': {'forme': 'superellipse', 'demiX': a, 'demiZ': b, 'exposant': 2.2, 'y': 0.0, 'liseré': 0.5,
+                        'contour': contour_three(ol)},
+            'collider': {'type': 'convexe', 'conseil': 'ColliderDesc.convexHull des points du contour à y=0 et y=-0.6'},
+            'usage': "Pont ouvert sans bastingage (lames le long de X, l'axe du duel) ; mât Kenney à poser au fond (z négatif)."}
+    return mb, island_colorfn(a, b, depth), {'rays': 24, 'dist': 1.2}, meta
+
+
+def handles(mb, outline, d_face, z, spacing, half_len=0.6, proud=0.16, h=0.075, phase=0.0):
+    """Poignées de tiroir géantes (barres chromées) réparties sur une rangée du caisson."""
+    n = max(4, round(outline.total / spacing))
+    for k in range(n):
+        p, nrm = outline.at(outline.total * (k + 0.5 + phase) / n)
+        t = Vector((-nrm.y, nrm.x))
+        cs = [p - nrm * (d_face + 0.02) - t * half_len, p - nrm * (d_face - proud) - t * half_len,
+              p - nrm * (d_face - proud) + t * half_len, p - nrm * (d_face + 0.02) + t * half_len]
+        mb.box(cs, z - h, z + h, 0.03, ('chrome', 'chrome', 'chrome_d'), 0.0, bottom=True)
+
+
+def build_plateau_cuisine():
+    """Cuisine géante : îlot de cuisine, carreaux géants en damier, chant de hêtre clair, tiroirs et poignées."""
+    a, b = 9.5, 7.0
+    ol = Outline(rounded_rect(a, b, 1.4))
+    depth = 4.9
+    strata = [(1.0, 0.3, -1.65), (1.0, 0.3, -3.25), (1.0, 0.3, -4.8)]
+    mb = floating_island('plateau_cuisine', ol, 56, depth, strata, top='tiles', body='cabinet',
+                         rim={'width': 0.45, 'len': 3.2, 'angle': 15.0, 'top': 0.035, 'bot': -0.14, 'chamfer': 0.12, 'style': 'beech', 'gap': 0.012},
+                         tip=(0.0, 0.0), seed=3.9, jr=0.0, jz=0.0, earth=0.42, ledge_in=0.07, ledge_frac=0.0,
+                         ledge_h=0.12, chamfer_in=0.3, overhang=0.02, top_kw={'size': 1.5, 'grout': 0.08})
+    handles(mb, ol, 0.3, -1.1, 3.4)
+    handles(mb, ol, 0.3, -2.45, 3.4, phase=0.5)
+    meta = {'role': 'plateau', 'variante': 'plan de travail carrelé', 'map': 'cuisine',
+            'surface': {'forme': 'rectangle arrondi', 'demiX': a, 'demiZ': b, 'rayonCoins': 1.4, 'y': 0.0, 'liseré': 0.45,
+                        'contour': contour_three(ol)},
+            'collider': {'type': 'convexe', 'conseil': 'ColliderDesc.convexHull des points du contour à y=0 et y=-0.6'},
+            'usage': "Îlot de cuisine géant (carreaux de 1,5 m : les persos sont minuscules), tiroirs tout autour, le sol de la cuisine loin dessous."}
+    return mb, island_colorfn(a, b, depth), {'rays': 24, 'dist': 1.2}, meta
+
+
+def build_radeau(size):
+    """Galion : radeau de lames (plateforme), même langage que le pont."""
+    a, b = PLAT_DIMS[size]
+    ol = Outline(rounded_rect(a, b, 0.7))
+    depth = 0.72
+    strata = [(1.0, 1.0, 0.08, -0.46), (0.86, 0.6, 0.2, -0.62)]
+    mb = floating_island('radeau_' + size, ol, 28, depth, strata, top='planks', body='hull',
+                         rim={'width': 0.34, 'len': 1.0, 'top': 0.06, 'bot': -0.2, 'chamfer': 0.04, 'style': 'beam', 'gap': 0.03},
+                         seed={'S': 5.1, 'M': 5.4, 'L': 5.7}[size], jr=0.0, jz=0.0, earth=0.24, ledge_in=0.05,
+                         ledge_frac=0.0, ledge_h=0.05, chamfer_in=0.08, overhang=0.03, top_kw={'width': 0.42, 'gap': 0.04})
+    meta = {'role': 'plateforme', 'variante': 'radeau de planches', 'map': 'galion',
+            'surface': {'forme': 'rectangle arrondi', 'demiX': a, 'demiZ': b, 'y': 0.0, 'contour': contour_three(ol, 20)},
+            'collider': {'type': 'box traversable par le dessous (one-way)', 'conseil': f'box hx {a - 0.05:.2f} hy 0.15 hz {b - 0.05:.2f} centrée y=-0.15'},
+            'usage': 'Plateforme flottante du galion (débris de pont), traversable en sautant.'}
+    return mb, island_colorfn(a, b, depth), {'rays': 20, 'dist': 0.6}, meta
+
+
+def build_planche(size):
+    """Cuisine : planche à découper géante (plateforme) avec sa rainure à jus."""
+    a, b = PLAT_DIMS[size]
+    ol = Outline(rounded_rect(a, b, 0.6))
+    P, N = ol.sample(28)
+    mb = MB()
+    thick, g = 0.24, 0.26
+    c = mb.v((0, 0, 0))
+    r1 = mb.ring(ring_pts(P, N, 1.0, g + 0.09, 0.0))
+    mb.fan(c, r1, 'board')
+    r2 = mb.ring(ring_pts(P, N, 1.0, g + 0.05, -0.045))
+    r3 = mb.ring(ring_pts(P, N, 1.0, g - 0.05, -0.045))
+    r4 = mb.ring(ring_pts(P, N, 1.0, g - 0.09, 0.0))
+    mb.bridge(r1, r2, 'groove')
+    mb.bridge(r2, r3, 'groove')
+    mb.bridge(r3, r4, 'groove')
+    r5 = mb.ring(ring_pts(P, N, 1.0, 0.07, 0.0))
+    mb.bridge(r4, r5, 'board')
+    r6 = mb.ring(ring_pts(P, N, 1.0, 0.0, -0.07))
+    mb.bridge(r5, r6, 'beech_chamfer')
+    r7 = mb.ring(ring_pts(P, N, 1.0, 0.0, -thick + 0.05))
+    mb.bridge(r6, r7, 'beech_side')
+    r8 = mb.ring(ring_pts(P, N, 1.0, 0.06, -thick))
+    mb.bridge(r7, r8, 'beech_side')
+    mb.fan(mb.v((0, 0, -thick)), r8, 'beech_side', down=True)
+    meta = {'role': 'plateforme', 'variante': 'planche à découper', 'map': 'cuisine',
+            'surface': {'forme': 'rectangle arrondi', 'demiX': a, 'demiZ': b, 'y': 0.0, 'contour': contour_three(ol, 20)},
+            'collider': {'type': 'box traversable par le dessous (one-way)', 'conseil': f'box hx {a - 0.05:.2f} hy 0.12 hz {b - 0.05:.2f} centrée y=-0.12'},
+            'usage': 'Plateforme flottante de la cuisine : planche en hêtre de 24 cm, rainure sombre = bord lisible.'}
+    return mb, island_colorfn(a, b, 1.0), {'rays': 16, 'dist': 0.4}, meta
+
+
+def hexagon(apothem, rr):
+    """Hexagone « flat-top » (sommets sur ±X, comme le disque de tuiles pointy-top) aux coins arrondis de rayon rr."""
+    k = (-0.866025404, 0.5, 0.577350269)
+    h = apothem - rr
+
+    def sd(px, py):
+        px, py = abs(px), abs(py)
+        d = 2.0 * min(k[0] * px + k[1] * py, 0.0)
+        px, py = px - d * k[0], py - d * k[1]
+        cx = max(-k[2] * h, min(k[2] * h, px))
+        qx, qy = px - cx, py - h
+        return math.hypot(qx, qy) * (1 if qy > 0 else -1) - rr
+
+    def fn(t):
+        d = Vector((math.cos(t), math.sin(t)))
+        lo, hi = 0.0, apothem * 2
+        for _ in range(40):
+            m = (lo + hi) / 2
+            if sd(d.x * m, d.y * m) > 0:
+                hi = m
+            else:
+                lo = m
+        return d * lo
+    return fn
+
+
+def build_socle_hex(k):
+    """Archipel : dessous rocheux à glisser sous un disque de tuiles hex KayKit de rayon k (anneaux)."""
+    apo = (2 * k + 0.35) * math.sqrt(3) / 2  # sous les tuiles extérieures, sans dépasser leur bord
+    ol = Outline(hexagon(apo, 0.9))
+    depth = 2.2 + 1.1 * k
+    f = depth / 6.6
+    strata = [(1.0, 0.25, -1.0 * f - 0.3), (0.88, 0.5, -2.2 * f), (0.7, 0.7, -3.4 * f), (0.48, 0.7, -4.5 * f),
+              (0.28, 0.5, -5.4 * f)]
+    mb = floating_island('socle_hex_%d' % k, ol, 36 + 4 * k, depth, strata, rim=None, top_rings=(0.5,),
+                         tip=(0.2, -0.3), seed=7.0 + k, jr=0.3, jz=0.12, earth=0.3)
+    if k >= 3:
+        hanger(mb, 0.45 * apo, 0.2 * apo, -2.0 * f - 0.4, 0.8, 2.0, 0.3)
+        hanger(mb, -0.4 * apo, -0.25 * apo, -2.0 * f - 0.4, 0.9, 2.4, 1.3)
+    meta = {'role': 'socle', 'variante': 'roche sous tuiles hex', 'map': 'archipel',
+            'surface': {'forme': 'hexagone (sommets sur ±X)', 'apotheme': round(apo, 3), 'y': 0.0},
+            'ancre': "centre du dessus du socle : le poser SOUS les tuiles (y = dessus des tuiles - 1, soit le bas des tuiles KayKit)",
+            'collider': {'type': 'aucun', 'conseil': 'les tuiles gardent leurs colliders ; quand un anneau tombe, passer au socle k-1 (ou échelle (k-1)/k en X/Z)'},
+            'usage': 'Transforme le disque de tuiles hex en île céleste : dessous en strates rocheuses, invisible depuis le dessus.'}
+    return mb, island_colorfn(apo, apo, depth), {'rays': 20, 'dist': 1.2}, meta
+
+
+def build_muret():
+    """Couvert : muret de ruine bas (3,2 m), pierres chanfreinées en 3 assises, sommet cassé, 2 blocs tombés."""
+    mb = MB()
+    rng = random.Random(31)
+    L, D = 3.2, 0.62
+    courses = [(0.0, 0.42, 1.0), (0.42, 0.8, 0.82), (0.8, 1.14, 0.45)]  # (bas, haut, part de la longueur)
+    for ci, (z0, z1, part) in enumerate(courses):
+        x = -L / 2 + (0.0 if ci % 2 == 0 else 0.35)
+        xmax = -L / 2 + L * part if ci < 2 else -L / 2 + L * part - 0.2
+        while x < xmax - 0.2:
+            ln = min(rng.uniform(0.6, 0.95), xmax - x)
+            x0, x1 = x + 0.02, x + ln - 0.02
+            dy = rng.uniform(-0.03, 0.03)
+            cs = [Vector((x0, -D / 2 + dy)), Vector((x1, -D / 2 + dy)), Vector((x1, D / 2 + dy)), Vector((x0, D / 2 + dy))]
+            mb.box(cs, z0 - (0.05 if ci == 0 else 0.0), z1 + rng.uniform(-0.03, 0.02), 0.055, RIM['stone'], rng.uniform(-0.8, 0.8))
+            x += ln
+    # blocs tombés au pied (côté +X)
+    for (x, y, s, rot) in ((1.75, 0.55, 0.3, 0.4), (1.35, -0.62, 0.24, -0.3)):
+        c, sn = math.cos(rot), math.sin(rot)
+        cs = [Vector((x + (-s) * c - (-s) * sn, y + (-s) * sn + (-s) * c)), Vector((x + s * c - (-s) * sn, y + s * sn + (-s) * c)),
+              Vector((x + s * c - s * sn, y + s * sn + s * c)), Vector((x + (-s) * c - s * sn, y + (-s) * sn + s * c))]
+        mb.box(cs, -0.02, s * 1.3, 0.05, RIM['stone'], rng.uniform(-0.8, 0.2))
+    meta = {'role': 'couvert', 'variante': 'muret de ruine', 'map': 'archipel',
+            'ancre': 'centre de la base, au sol (y=0)',
+            'collider': {'type': 'box', 'conseil': 'box hx 1.6 hy 0.55 hz 0.31 centrée y=0.55 (le haut cassé est plus bas à droite)'},
+            'usage': 'Couvert bas (1,1 m : on voit la tête du perso derrière), jamais au centre de la ligne de tir.'}
+    return mb, island_colorfn(1, 1, 1), {'rays': 24, 'dist': 0.6, 'ground': 4.0}, meta
+
+
+def build_caisse():
+    """Couvert : caisse de 1,1 m, panneaux de planches sombres, cadre en bois clair."""
+    mb = MB()
+    s, fr, H = 0.55, 0.13, 1.1
+    inner = s - 0.03
+    mb.box([Vector((-inner, -inner)), Vector((inner, -inner)), Vector((inner, inner)), Vector((-inner, inner))], 0.0, H - 0.02, 0.02,
+           ('plank', 'plank', 'plank'), -0.6)
+    for (x, y) in ((-1, -1), (1, -1), (1, 1), (-1, 1)):  # montants d'angle
+        cx, cy = x * (s - fr / 2), y * (s - fr / 2)
+        cs = [Vector((cx - fr / 2, cy - fr / 2)), Vector((cx + fr / 2, cy - fr / 2)), Vector((cx + fr / 2, cy + fr / 2)), Vector((cx - fr / 2, cy + fr / 2))]
+        mb.box(cs, 0.0, H, 0.025, RIM['beam'], 0.2)
+    t = s - 0.012  # traverses rentrées de 12 mm par rapport aux montants : pas de faces confondues
+    for z0, z1 in ((0.0, fr), (H - fr, H)):  # traverses haut et bas
+        for (ax, ay, bx, by) in ((-t, -t, t, -t + fr), (t - fr, -t, t, t), (-t, t - fr, t, t), (-t, -t, -t + fr, t)):
+            cs = [Vector((ax, ay)), Vector((bx, ay)), Vector((bx, by)), Vector((ax, by))]
+            mb.box(cs, z0, z1 + 0.005, 0.02, RIM['beam'], -0.2)
+    meta = {'role': 'couvert', 'variante': 'caisse', 'map': 'toutes',
+            'ancre': 'centre de la base, au sol (y=0)',
+            'collider': {'type': 'box', 'conseil': 'box hx 0.55 hy 0.55 hz 0.55 centrée y=0.55'},
+            'usage': 'Couvert ou élément « knockable » (poussée) ; cadre clair lisible de loin.'}
+    return mb, island_colorfn(1, 1, 1), {'rays': 20, 'dist': 0.45, 'ground': 3.0}, meta
+
+
+def build_tonneau():
+    """Couvert : tonneau (1,1 m), douelles alternées, 2 cerclages sombres, couvercle en retrait."""
+    mb = MB()
+    segs = 14
+    prof = [(0.0, 0.40), (0.14, 0.44), (0.55, 0.49), (0.96, 0.44), (1.1, 0.40)]  # (z, rayon)
+    rings = []
+    for z, r in prof:
+        rings.append([mb.v((math.cos(2 * math.pi * i / segs) * r, math.sin(2 * math.pi * i / segs) * r, z)) for i in range(segs)])
+    for k, (r0, r1) in enumerate(zip(rings, rings[1:])):
+        for i in range(segs):
+            j = (i + 1) % segs
+            mb.f((r0[i], r0[j], r1[j], r1[i]), 'plank', 0.5 if i % 2 == 0 else -0.4, smooth=True)
+    for z in (0.2, 0.9):  # cerclages
+        rr = 0.475 if z == 0.2 else 0.475
+        lo = [mb.v((math.cos(2 * math.pi * i / segs) * (rr + 0.015), math.sin(2 * math.pi * i / segs) * (rr + 0.015), z - 0.05)) for i in range(segs)]
+        hi = [mb.v((math.cos(2 * math.pi * i / segs) * (rr + 0.015), math.sin(2 * math.pi * i / segs) * (rr + 0.015), z + 0.05)) for i in range(segs)]
+        mb.bridge(lo, hi, 'iron', up=True, smooth=True)
+    lid = [mb.v((math.cos(2 * math.pi * i / segs) * 0.35, math.sin(2 * math.pi * i / segs) * 0.35, 1.06)) for i in range(segs)]
+    mb.bridge(rings[-1], lid, 'beam_side', up=True)
+    mb.fan(mb.v((0, 0, 1.06)), lid, 'plank', 0.2)
+    meta = {'role': 'couvert', 'variante': 'tonneau', 'map': 'toutes',
+            'ancre': 'centre de la base, au sol (y=0)',
+            'collider': {'type': 'cylindre', 'conseil': 'cylinder radius 0.47 halfHeight 0.55 centré y=0.55'},
+            'usage': 'Couvert rond ou tonneau explosif (même collider que props.glb barrel_small).'}
+    return mb, island_colorfn(1, 1, 1), {'rays': 20, 'dist': 0.45, 'ground': 3.0}, meta
+
+
+def icosphere():
+    t = (1 + math.sqrt(5)) / 2
+    v = [Vector(p).normalized() for p in ((-1, t, 0), (1, t, 0), (-1, -t, 0), (1, -t, 0), (0, -1, t), (0, 1, t), (0, -1, -t), (0, 1, -t),
+                                          (t, 0, -1), (t, 0, 1), (-t, 0, -1), (-t, 0, 1))]
+    f = [(0, 11, 5), (0, 5, 1), (0, 1, 7), (0, 7, 10), (0, 10, 11), (1, 5, 9), (5, 11, 4), (11, 10, 2), (10, 7, 6), (7, 1, 8),
+         (3, 9, 4), (3, 4, 2), (3, 2, 6), (3, 6, 8), (3, 8, 9), (4, 9, 5), (2, 4, 11), (6, 2, 10), (8, 6, 7), (9, 8, 1)]
+    cache = {}
+
+    def mid(a, b):
+        key = (min(a, b), max(a, b))
+        if key not in cache:
+            v.append(((v[a] + v[b]) / 2).normalized())
+            cache[key] = len(v) - 1
+        return cache[key]
+    nf = []
+    for a, b, c in f:
+        ab, bc, ca = mid(a, b), mid(b, c), mid(c, a)
+        nf += [(a, ab, ca), (b, bc, ab), (c, ca, bc), (ab, bc, ca)]
+    return v, nf
+
+
+def build_nuage(variant):
+    """Fond : nuage en boules facettées à dessous plat, blanc chaud dessus, mauve dessous."""
+    mb = MB()
+    rng = random.Random(11 if variant == 'A' else 23)
+    V, F = icosphere()
+    blobs = ([(-1.9, 0.0, 0.2, 1.0), (-0.6, 0.2, 0.55, 1.45), (0.9, -0.1, 0.45, 1.3), (2.1, 0.1, 0.1, 0.9), (0.2, -0.5, 0.0, 1.0)]
+             if variant == 'A' else
+             [(-1.3, 0.0, 0.1, 0.95), (0.0, 0.1, 0.45, 1.25), (1.35, -0.1, 0.15, 0.95), (0.6, 0.5, 0.0, 0.8)])
+    for (x, y, z, r) in blobs:
+        sq = rng.uniform(0.75, 0.85)
+        idx = []
+        for p in V:
+            zz = z + p.z * r * sq
+            idx.append(mb.v((x + p.x * r, y + p.y * r * 0.8, max(zz, 0.0))))
+        for a, b, c in F:
+            mb.f((idx[a], idx[b], idx[c]), 'cloud', 0.0, smooth=True)
+
+    def colorfn(zone, tone, p, n):
+        t = smooth01(0.5 + 0.5 * n.z) * 0.7 + smooth01(p.z / 1.6) * 0.3
+        return mix(PAL['cloud_d'], PAL['cloud'], t)
+    meta = {'role': 'fond', 'variante': 'nuage ' + variant, 'map': 'archipel',
+            'ancre': 'centre du dessous (plat)', 'collider': {'type': 'aucun'},
+            'usage': "Nuage de fond (5 m à l'échelle 1) : échelle 2 à 5, sous et autour du plateau, sans ombre portée."}
+    return mb, colorfn, {'rays': 12, 'dist': 0.8}, meta
+
+
+def build_rocher(size):
+    """Fond : rocher flottant (petite île sans liseré) en 3 tailles."""
+    a = {'S': 0.9, 'M': 1.5, 'L': 2.3}[size]
+    b = a * 0.8
+    ol = Outline(superellipse(a, b, 2.2))
+    depth = a * 1.7
+    strata = [(0.95, 0.12 * a, -0.35 * depth), (0.72, 0.15 * a, -0.62 * depth), (0.4, 0.12 * a, -0.85 * depth)]
+    mb = floating_island('rocher_' + size, ol, 12 if size == 'S' else 16, depth, strata, rim=None, top_rings=(0.55,),
+                         tip=(0.1 * a, -0.1 * a), seed={'S': 8.1, 'M': 8.6, 'L': 9.2}[size], jr=0.18 * a, jz=0.06 * a,
+                         earth=0.18 * a, ledge_in=0.08 * a)
+    meta = {'role': 'fond', 'variante': 'rocher flottant ' + size, 'map': 'archipel',
+            'collider': {'type': 'aucun'},
+            'usage': 'Rocher flottant de décor, hors du plateau (5 à 25 m), léger mouvement de flottaison conseillé.'}
+    return mb, island_colorfn(a, b, depth), {'rays': 12, 'dist': 0.6}, meta
+
+
+def build_bord_bois():
+    """Bord modulaire droit de 2 m en poutre blanchie (galion), même ancre que bord_pierre."""
+    mb = MB()
+    cs = [Vector((-0.99, -0.5)), Vector((0.99, -0.5)), Vector((0.99, 0.04)), Vector((-0.99, 0.04))]
+    mb.box(cs, -0.24, 0.07, 0.05, RIM['beam'], 0.1)
+    meta = {'role': 'bord', 'variante': 'poutre', 'map': 'galion',
+            'surface': {'forme': 'segment droit', 'longueur': 2.0, 'largeur': 0.5, 'y': 0.07},
+            'ancre': "milieu de l'arête extérieure, dessus à y=0 ; le vide est côté -Z",
+            'collider': {'type': 'aucun (visuel)'},
+            'usage': 'Liseré clair pour les bords du pont Kenney (remplace le bastingage enlevé).'}
+    return mb, island_colorfn(1, 1, 1), {'rays': 16, 'dist': 0.4, 'ground': 3.0}, meta
+
+
 PIECES = {
     'plateau_pierre': build_plateau_pierre,
-    'plateforme_S': lambda: build_plateforme('S'),
-    'plateforme_M': lambda: build_plateforme('M'),
-    'plateforme_L': lambda: build_plateforme('L'),
+    'plateau_pont': build_plateau_pont,
+    'plateau_cuisine': build_plateau_cuisine,
+    'plateforme_pierre_S': lambda: build_plateforme('S'),
+    'plateforme_pierre_M': lambda: build_plateforme('M'),
+    'plateforme_pierre_L': lambda: build_plateforme('L'),
+    'radeau_S': lambda: build_radeau('S'),
+    'radeau_M': lambda: build_radeau('M'),
+    'radeau_L': lambda: build_radeau('L'),
+    'planche_S': lambda: build_planche('S'),
+    'planche_M': lambda: build_planche('M'),
+    'planche_L': lambda: build_planche('L'),
+    'socle_hex_2': lambda: build_socle_hex(2),
+    'socle_hex_3': lambda: build_socle_hex(3),
+    'socle_hex_4': lambda: build_socle_hex(4),
     'bord_pierre': build_bord_pierre,
+    'bord_bois': build_bord_bois,
+    'muret_ruine': build_muret,
+    'caisse': build_caisse,
+    'tonneau': build_tonneau,
     'ile_lointaine_A': lambda: build_ile_lointaine('A'),
     'ile_lointaine_B': lambda: build_ile_lointaine('B'),
+    'rocher_S': lambda: build_rocher('S'),
+    'rocher_M': lambda: build_rocher('M'),
+    'rocher_L': lambda: build_rocher('L'),
+    'nuage_A': lambda: build_nuage('A'),
+    'nuage_B': lambda: build_nuage('B'),
 }
 
 
