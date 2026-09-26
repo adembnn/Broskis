@@ -6,11 +6,11 @@ export const TIMEOUTS = {
   /** Scan JSON (api/scan-object), relance comprise. Mesuré : 2,3 à 2,7 s avec gemini-3.8-flash. Pas 2,5 s comme
    *  une action en match : ici le joueur attend SA photo (forge + photo affichées), et un repli trop tôt colle
    *  une arme sans rapport sur sa photo (vu en test : un mug devenu « Gnome Wrecker », lot LSCAN). */
-  scan: 9000,
+  scan: 14000, // 8,7-8,9 s mesurés sous charge (17h55) : à 9 s on tombait sur une arme de secours sans rapport
   /** Sticker Nano Banana (plus lent : dessin d'image). */
-  sticker: 30000, // mesuré : 9,5 à 14 s avec Nano Banana 2 (lot LSCAN) ; laisse la place à un second essai
+  sticker: 45000, // mesuré : 9,5 à 14 s au calme, > 17 s quand la machine/le réseau sont chargés (17h55) ; l'arme se joue déjà pendant l'attente
   /** Premier essai du sticker : au-delà, l'appel est jugé bloqué et relancé une fois (dans TIMEOUTS.sticker). */
-  stickerTry: 17000,
+  stickerTry: 32000, // couper à 17 s tuait des dessins presque finis (ERR_ABORTED vu en jeu à 17h50) : un seul long essai
   /** Répliques de l'animateur, préparées à l'avance : un peu de marge est tolérable. */
   commentary: 40000, // pré-génération avec gemini-3.1-pro-preview (12 à 33 s mesurés)
   /** Une ligne vocalisée (Gradium TTS). */
