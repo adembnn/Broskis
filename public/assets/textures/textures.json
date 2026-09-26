@@ -1,0 +1,54 @@
+{
+  "hex-herbe": {
+    "file": "hex-herbe.jpg",
+    "usage": "map (archipel)"
+  },
+  "hex-pierre": {
+    "file": "hex-pierre.jpg",
+    "usage": "map (archipel), côtés des dalles"
+  },
+  "ruine-pierre": {
+    "file": "ruine-pierre.jpg",
+    "usage": "map (archipel)"
+  },
+  "pont-bois": {
+    "file": "pont-bois.jpg",
+    "usage": "map (galion)"
+  },
+  "coque-bois": {
+    "file": "coque-bois.jpg",
+    "usage": "map (galion)"
+  },
+  "voile-toile": {
+    "file": "voile-toile.jpg",
+    "usage": "map (galion)"
+  },
+  "metal-canon": {
+    "file": "metal-canon.jpg",
+    "usage": "map (galion)"
+  },
+  "plan-travail-bois": {
+    "file": "plan-travail-bois.jpg",
+    "usage": "map (cuisine)"
+  },
+  "carrelage-sol": {
+    "file": "carrelage-sol.jpg",
+    "usage": "map (cuisine)"
+  },
+  "planche-decouper": {
+    "file": "planche-decouper.jpg",
+    "usage": "map (cuisine)"
+  },
+  "metal-inox": {
+    "file": "metal-inox.jpg",
+    "usage": "map (cuisine)"
+  },
+  "tonneau-bois": {
+    "file": "tonneau-bois.jpg",
+    "usage": "objet (communs)"
+  },
+  "caisse-bois": {
+    "file": "caisse-bois.jpg",
+    "usage": "objet (communs)"
+  }
+}
