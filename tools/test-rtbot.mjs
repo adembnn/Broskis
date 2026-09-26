@@ -3,7 +3,7 @@
 //   node tools/test-rtbot.mjs --port 5391 --niveaux easy,medium --matchs 10 --paralleles 4 [--hors-ligne] [--captures]
 // Sortie : tableau par difficulté (victoires du bot, durée, coups, parades) + mesures Gemini, JSON dans captures/rtbot/.
 import { chromium } from 'playwright';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 
 const args = process.argv.slice(2);
@@ -14,6 +14,8 @@ const matchs = Number(opt('--matchs', '10'));
 const paralleles = Number(opt('--paralleles', '4'));
 const stocks = Number(opt('--vies', '2'));
 const horsLigne = args.includes('--hors-ligne');
+// Gemini « lent » : chaque réponse de /api/ai-move retardée de 2,5 s (le jeu abandonne à 2 s) → mesure du maintien de la posture.
+const geminiLent = args.includes('--gemini-lent');
 const captures = args.includes('--captures');
 // Sans rendu (défaut) : le banc mesure le gameplay ; le rendu 3D sans carte graphique ralentit le jeu sous le temps réel.
 const avecRendu = captures || args.includes('--rendu');
@@ -25,8 +27,16 @@ const url = `http://localhost:${port}/`;
 async function up() { try { return (await fetch(url)).ok; } catch { return false; } }
 let server = null;
 if (!(await up())) {
-  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--port', String(port), '--strictPort'], { stdio: 'ignore' });
-  console.log(`Vite lancé (PID ${server.pid}) sur ${url}`);
+  // Build figé + `vite preview` (défaut) : aucun rechargement à chaud si on modifie le code pendant le banc.
+  // `--dev` : serveur de développement (plus rapide à lancer, mais recharge la page à chaque modification).
+  const dev = args.includes('--dev');
+  if (!dev) {
+    const b = spawnSync(process.execPath, ['node_modules/vite/bin/vite.js', 'build', '--outDir', 'captures/rtbot/dist', '--emptyOutDir', '--logLevel', 'error'], { stdio: 'inherit' });
+    if (b.status !== 0) throw new Error('build du banc en échec');
+  }
+  const cli = dev ? ['--port', String(port), '--strictPort'] : ['preview', '--outDir', 'captures/rtbot/dist', '--port', String(port), '--strictPort'];
+  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', ...cli], { stdio: 'ignore' });
+  console.log(`Vite ${dev ? 'dev' : 'preview'} lancé (PID ${server.pid}) sur ${url}`);
   for (let i = 0; i < 60 && !(await up()); i++) await new Promise((r) => setTimeout(r, 500));
 }
 
@@ -35,18 +45,20 @@ const browser = await chromium.launch({ args: ['--ignore-gpu-blocklist', '--enab
 async function newPage() {
   const context = await browser.newContext({ viewport: { width: 640, height: 360 } });
   const page = await context.newPage();
+  if (geminiLent) await page.route('**/api/ai-move', async (route) => { await new Promise((r) => setTimeout(r, 2500)); await route.continue().catch(() => {}); });
   page.on('pageerror', (e) => console.log('  [erreur page]', String(e).slice(0, 200)));
   await page.goto(url, { waitUntil: 'load', timeout: 60000 });
   await page.waitForFunction(() => window.gameHooks && window.__bot && window.ctx, null, { timeout: 60000 });
   if (!avecRendu) await page.evaluate(() => { window.ctx.three.renderer.render = () => {}; });
   await page.evaluate(() => {
-    const log = { hits: [0, 0], perfect: [0, 0], good: [0, 0], fire: [0, 0], jump: [0, 0], block: [0, 0], stock: [0, 0], crate: [0, 0] };
+    const log = { hits: [0, 0], perfect: [0, 0], good: [0, 0], fire: [0, 0], proj: [0, 0], jump: [0, 0], block: [0, 0], stock: [0, 0], crate: [0, 0] };
     window.__rtlog = log;
     const b = window.ctx.bus;
     b.on('match:start', () => { for (const k of Object.keys(log)) log[k] = [0, 0]; });
     b.on('hit', ({ attacker }) => { log.hits[attacker] += 1; });
     b.on('parry:result', ({ player, grade }) => { if (grade === 'perfect') log.perfect[player] += 1; else if (grade === 'good') log.good[player] += 1; });
     b.on('fire', ({ player }) => { log.fire[player] += 1; });
+    b.on('projectile:spawn', ({ owner }) => { if (owner === 0 || owner === 1) log.proj[owner] += 1; });
     b.on('move:jump', ({ player }) => { log.jump[player] += 1; });
     b.on('block', ({ player, on }) => { if (on) log.block[player] += 1; });
     b.on('stock:lost', ({ player }) => { log.stock[player] += 1; });
@@ -100,7 +112,7 @@ async function worker(w) {
     res.gameSpeed = +((res.realTime - rt0) / ((Date.now() - t0) / 1000)).toFixed(2);
     results.push(res);
     const who = res.winner === 1 ? 'BOT' : res.winner === 0 ? 'humain' : '—';
-    console.log(`[p${w}] ${job.d.padEnd(8)} ${job.map.padEnd(8)} gagnant=${who.padEnd(6)} ${res.fightTime?.toFixed(0)} s  % ${res.pct.join('/')}  coups h/b ${res.log.hits.join('/')}  parfaites h/b ${res.log.perfect.join('/')}  blocages h/b ${res.log.good.join('/')}  tirs h/b ${res.log.fire.join('/')}  sauts b ${res.log.jump[1]}  vitesse ${res.gameSpeed}  posture ${res.bot.stance}  gemini ${res.bot.gemini.ok}/${res.bot.gemini.requests}`);
+    console.log(`[p${w}] ${job.d.padEnd(8)} ${job.map.padEnd(8)} gagnant=${who.padEnd(6)} ${res.fightTime?.toFixed(0)} s  % ${res.pct.join('/')}  coups h/b ${res.log.hits.join('/')}  parfaites h/b ${res.log.perfect.join('/')}  blocages h/b ${res.log.good.join('/')}  tirs h/b ${res.log.fire.join('/')}  précision h/b ${res.log.hits.map((h, i) => (h / Math.max(1, res.log.proj[i])).toFixed(2)).join('/')}  sauts b ${res.log.jump[1]}  vitesse ${res.gameSpeed}  posture ${res.bot.stance}  gemini ${res.bot.gemini.ok}/${res.bot.gemini.requests}`);
   }
   await page.context().close();
 }
@@ -125,4 +137,4 @@ for (const d of niveaux) {
   };
 }
 console.log(JSON.stringify(table, null, 2));
-writeFileSync(`${OUT}/resultats-${horsLigne ? 'hors-ligne' : 'gemini'}-${niveaux.join('-')}.json`, JSON.stringify({ table, results }, null, 2));
+writeFileSync(`${OUT}/resultats-${horsLigne ? 'hors-ligne' : geminiLent ? 'gemini-lent' : 'gemini'}-${niveaux.join('-')}.json`, JSON.stringify({ table, results }, null, 2));
