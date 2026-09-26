@@ -11,8 +11,10 @@ const STATS_FR = {
 const CATEGORIE_FR = { blaster: 'blaster (tir rapide)', grenade: 'grenade (rebondit, explose)', throwable: 'lancer lourd', shield: 'bouclier' };
 const NOMS_MODELES = { 'gemini-3.1-flash-image': 'Nano Banana 2', 'gemini-3.1-flash-lite-image': 'Nano Banana 2 Lite', 'gemini-3-pro-image': 'Nano Banana Pro' };
 const CRITERES = [
+  ['fidelite', 'Fidélité ×2'],
   ['reconnaissable', 'Reconnaissable'],
   ['style', 'Style KayKit'],
+  ['volume', 'Volume 3D'],
   ['detourage', 'Détourage'],
   ['jouable', 'Jouable'],
   ['physique', 'Physique'],
@@ -90,9 +92,10 @@ function tableJournal(journal, objets) {
   const lignes = ids.map((id) => `<tr><td>${esc(id)}</td>${its.map((it) => `<td class="${niveau(it.notes[id])}">${fr(it.notes[id])}</td>`).join('')}</tr>`).join('');
   const moy = `<tr class="moy"><td>Moyenne</td>${its.map((it) => `<td class="${niveau(it.moyenne)}">${fr(it.moyenne, 2)}</td>`).join('')}</tr>`;
   const inj = `<tr><td>Injouables</td>${its.map((it) => `<td>${it.injouables}</td>`).join('')}</tr>`;
+  const sous = (k, l) => `<tr><td>${l}</td>${its.map((it) => `<td class="${niveau(it[k])}">${typeof it[k] === 'number' ? fr(it[k], 2) : '—'}</td>`).join('')}</tr>`;
   const changements = its.map((it) => `<li><b>n° ${it.n}</b> (${esc(it.horodatage.replace('_', ' '))}) — ${esc(it.changement || 'référence')} → ${fr(it.moyenne, 2)}/10</li>`).join('');
-  return `<div class="defile"><table class="journal"><thead><tr><th>Objet</th>${tete}</tr></thead><tbody>${lignes}${moy}${inj}</tbody></table></div>
-  <ol class="changements">${changements}</ol><p class="discret">* passage qui réutilise les réponses API précédentes (seul le rendu a changé).</p>`;
+  return `<div class="defile"><table class="journal"><thead><tr><th>Objet</th>${tete}</tr></thead><tbody>${lignes}${moy}${sous('fidelite', 'Fidélité')}${sous('esthetique', 'Esthétique')}${inj}</tbody></table></div>
+  <ol class="changements">${changements}</ol><p class="discret">* passage qui réutilise les réponses API précédentes (seul le rendu a changé). Les passages 1 à 3 ont été notés avec la première grille (sans fidélité ni volume) : ils ne se comparent pas point par point aux suivants.</p>`;
 }
 
 export function ecrireRapport(chemin, resume, objets, journal) {
@@ -155,7 +158,7 @@ tr.ok td.etat { color: var(--bon); font-weight: 700; } tr.ko td { color: var(--f
 .stats { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
 .stats span { background: var(--fond); border: 1px solid var(--trait); border-radius: 999px; padding: 2px 10px; }
 .stats.petit span { font-size: 13px; }
-.criteres { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.criteres { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
 .criteres div { border-radius: 8px; padding: 6px; text-align: center; }
 .criteres small { display: block; font-size: 11px; } .criteres b { font-size: 18px; }
 .piste { border-left: 3px solid var(--accent); padding-left: 10px; }
@@ -168,7 +171,7 @@ tr.ok td.etat { color: var(--bon); font-weight: 700; } tr.ko td { color: var(--f
 @media (max-width: 760px) {
   .galerie { grid-template-columns: repeat(2, 1fr); }
   .galerie.large, .colonnes { grid-template-columns: 1fr; }
-  .criteres { grid-template-columns: repeat(3, 1fr); }
+  .criteres { grid-template-columns: repeat(4, 1fr); }
 }
 </style>
 </head>
@@ -178,6 +181,8 @@ tr.ok td.etat { color: var(--bon); font-weight: 700; } tr.ko td { color: var(--f
   <p class="sous">« Snap any real object: it becomes your weapon. » ${objets.length} photos réelles prises par Adem, passées dans le vrai pipeline du jeu (stats et physique par Gemini, sticker par Nano Banana, détourage et objet 3D par le code du jeu), puis notées. Passage du ${esc(resume.horodatage.replace('_', ' à '))}${resume.iteration ? `, itération n° ${resume.iteration}` : ' (partiel)'}${resume.reprise ? ', réponses API réutilisées' : ''}.</p>
   <div class="bandeau">
     <div class="tuile ${niveau(resume.moyenne)}"><small>Note moyenne</small><b>${fr(resume.moyenne, 2)} / 10</b></div>
+    <div class="tuile ${niveau(resume.fidelite)}"><small>Fidélité à la photo</small><b>${fr(resume.fidelite, 2)} / 10</b></div>
+    <div class="tuile ${niveau(resume.esthetique)}"><small>Esthétique (style, volume, détourage)</small><b>${fr(resume.esthetique, 2)} / 10</b></div>
     <div class="tuile"><small>Objets injouables</small><b>${resume.injouables.length}</b>${resume.injouables.length ? `<small>${esc(resume.injouables.join(', '))}</small>` : ''}</div>
     <div class="tuile"><small>Objectif</small><b class="objectif ${atteint ? 'ok' : 'ko'}">${atteint ? 'atteint' : 'pas encore'}</b><small>moyenne ≥ 8 et 0 injouable</small></div>
   </div>
@@ -185,7 +190,7 @@ tr.ok td.etat { color: var(--bon); font-weight: 700; } tr.ko td { color: var(--f
   ${tableJournal(journal, objets)}
   ${objets.map(carteObjet).join('\n')}
   <h3>Méthode</h3>
-  <p class="methode">Chaque photo est réduite à 768 px comme dans le jeu, puis envoyée aux vraies API du jeu : <code>/api/scan-object</code> (Gemini, catégorie, stats et physique) et <code>/api/sticker</code> (Nano Banana, sticker sur fond magenta), en parallèle. Le sticker est détouré et extrudé par le code du jeu (<code>src/scene/sticker</code>), puis rendu à côté d'un chevalier KayKit du jeu. Note d'un objet = moyenne de 5 critères : 4 notes du juge Gemini 3.1 Pro en vision (reconnaissable, style KayKit, détourage, jouable) et la physique (part des 7 vérifications réussies contre la vérité terrain, catégorie comprise, ramenée sur 10). Le détourage est plafonné à 5 si le code mesure plus de ${3} % de pixels roses au bord ; un objet sans sticker est plafonné à 3 et compté injouable, comme un objet que le juge juge injouable ou dont la note « jouable » est sous 5. Les photos d'origine ne sont jamais affichées.</p>
+  <p class="methode">Chaque photo est réduite à 768 px comme dans le jeu, puis envoyée aux vraies API du jeu : <code>/api/scan-object</code> (Gemini, catégorie, stats et physique) et <code>/api/sticker</code> (Nano Banana, sticker sur fond magenta), en parallèle. Le sticker est détouré et extrudé par le code du jeu (<code>src/scene/sticker</code>), puis rendu à côté d'un chevalier KayKit du jeu. Note d'un objet = moyenne pondérée de 7 critères : 6 notes du juge Gemini 3.1 Pro en vision, qui compare les rendus à la photo d'origine (fidélité à la photo, comptée double ; reconnaissable ; style KayKit ; volume 3D ; détourage ; jouable) et la physique (part des 7 vérifications réussies contre la vérité terrain, catégorie comprise, ramenée sur 10). Esthétique = moyenne de style, volume et détourage. Le détourage est plafonné à 5 si le code mesure plus de ${3} % de pixels roses au bord ; un objet sans sticker est plafonné à 3 et compté injouable, comme un objet que le juge juge injouable ou dont la note « jouable » est sous 5. Les photos d'origine ne sont jamais affichées.</p>
 </main>
 </body>
 </html>

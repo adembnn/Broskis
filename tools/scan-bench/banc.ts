@@ -203,6 +203,7 @@ async function rendre(e: Entree) {
   let info: { contourPoints?: number } | undefined;
   a.modele.root.traverse((o) => { if (o.userData.sticker) info = o.userData.sticker; });
   mesures.pointsContour = info?.contourPoints ?? 0;
+  mesures.trous = (info as { holes?: number } | undefined)?.holes ?? 0;
   const taille = new THREE.Box3().setFromObject(a.modele.root).getSize(new THREE.Vector3());
   mesures.epaisseur = +(taille.z / Math.max(taille.x, taille.y)).toFixed(3);
   {

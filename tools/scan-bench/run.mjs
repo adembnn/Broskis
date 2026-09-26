@@ -169,37 +169,39 @@ function regles(attendu, scan, mesures, stickerOk) {
 // ---------------------------------------------------------------------------
 // Juge Gemini 3.1 Pro (vision)
 // ---------------------------------------------------------------------------
+// Grille v2 (retour d'Adem, 16h55 : « penser à l'esthétique et à la fidélité à la réalité ») : fidélité à la photo
+// (comptée double) et volume 3D (un seul objet lisible sous tous les angles) s'ajoutent aux critères du départ.
+const NOTES_JUGE = ['fidelite', 'reconnaissable', 'style', 'volume', 'detourage', 'jouable', 'note'];
 const SCHEMA_JUGE = {
   type: 'OBJECT',
   properties: {
     objetVu: { type: 'STRING' },
-    reconnaissable: { type: 'NUMBER' },
-    style: { type: 'NUMBER' },
-    detourage: { type: 'NUMBER' },
-    jouable: { type: 'NUMBER' },
-    note: { type: 'NUMBER' },
+    ...Object.fromEntries(NOTES_JUGE.map((k) => [k, { type: 'NUMBER' }])),
     injouable: { type: 'BOOLEAN' },
     justification: { type: 'STRING' },
     defauts: { type: 'ARRAY', items: { type: 'STRING' } },
     piste: { type: 'STRING' },
   },
-  required: ['objetVu', 'reconnaissable', 'style', 'detourage', 'jouable', 'note', 'injouable', 'justification', 'defauts', 'piste'],
+  required: ['objetVu', ...NOTES_JUGE, 'injouable', 'justification', 'defauts', 'piste'],
+  propertyOrdering: ['objetVu', ...NOTES_JUGE, 'injouable', 'justification', 'defauts', 'piste'],
 };
 
 function consigneJuge(attendu) {
   return `Tu es directeur artistique et game designer d'un jeu de combat 3D cartoon (Broskis). Les persos sont des KayKit : cartoon "chunky", formes simples et épaisses, aplats de couleurs franches, contours nets.
-Le joueur photographie un objet réel ; le jeu le redessine en sticker cartoon (IA d'image), retire le fond magenta, puis l'extrude en objet 3D qu'il tient et lance sur l'adversaire.
+Le joueur photographie un objet réel ; le jeu le redessine en sticker cartoon (IA d'image), retire le fond magenta, puis en fait un objet 3D qu'il tient et lance sur l'adversaire.
 Objet réellement photographié : « ${attendu.objet} ».
-Images, dans l'ordre : 1) la photo d'origine (référence seulement, jamais montrée au joueur) ; 2) le sticker détouré sur damier sombre (damier = transparent) ; 3-5) l'objet 3D de face, de trois-quarts, de profil ; 6) l'objet à côté d'un perso KayKit (≈ 1,7 m), à la taille du jeu (taille réelle bornée entre 0,35 et 1,6 m pour rester lisible) ; 7) l'objet en vol, vu de l'épaule du lanceur, à la même taille.
+Images, dans l'ordre : 1) la photo d'origine (référence pour juger la fidélité, jamais montrée au joueur) ; 2) le sticker détouré sur damier sombre (damier = transparent) ; 3-5) l'objet 3D de face, de trois-quarts, de profil ; 6) l'objet à côté d'un perso KayKit (≈ 1,7 m), à la taille du jeu (taille réelle bornée pour rester lisible) ; 7) l'objet en vol, vu de l'épaule du lanceur, à la même taille.
 Note chaque critère sur 10, sévèrement mais justement (7 = correct, 9 = vraiment bon) :
-- reconnaissable : un joueur qui ne voit QUE l'objet 3D reconnaît-il ${attendu.objet} ? Fidèle à la photo (forme, couleurs, matière) ?
+- fidelite : compare l'objet 3D à la photo 1, au détail près : forme et proportions, couleurs, matières, détails distinctifs (par exemple la coque et le piètement noir à roulettes d'une chaise de bureau, le cadran et le bracelet d'une montre, le cannage d'un tabouret, les billes d'un pendule). Un objet générique de la même famille vaut au plus 5.
+- reconnaissable : un joueur qui ne voit QUE l'objet 3D reconnaît-il ${attendu.objet} ?
 - style : colle-t-il aux persos KayKit (chunky, aplats, contour net) ? Pénalise photoréalisme, dégradés, détails fins illisibles, texte ou logos.
-- detourage : contour propre, sans liseré rose ni reste de fond, sans main, doigt ou autre objet, objet entier et pas coupé.
-- jouable : se lit-il d'un coup d'œil en main et en vol (image 7) ? L'épaisseur 3D (profil) le rend-elle crédible ?
+- volume : sous tous les angles (images 3 à 5), lit-on UN seul objet au volume crédible ? Pénalise l'effet brique, une tranche épaisse ou sombre, une double silhouette.
+- detourage : contour propre, sans liseré rose ni reste de fond, sans main, doigt ou autre objet, trous de l'objet bien vides, objet entier et pas coupé.
+- jouable : se lit-il d'un coup d'œil en main et en vol (image 7) ?
 - note : ta note globale sur 10.
 - injouable : true seulement si l'objet est inutilisable en démo (méconnaissable, invisible en vol, cassé, main dessinée…).
 - objetVu : ce que tu vois dans l'objet 3D, en 2 à 5 mots, sans t'aider du nom donné plus haut.
-- justification : 2 phrases maximum. defauts : 3 défauts concrets au plus. piste : UNE correction concrète (consigne de l'IA d'image, ou détourage/extrusion).
+- justification : 2 phrases maximum. defauts : 3 défauts concrets au plus. piste : UNE correction concrète (consigne de l'IA d'image, ou volume 3D).
 Réponds en français, en JSON conforme au schéma.`;
 }
 
@@ -230,7 +232,7 @@ async function juger(cle, attendu, photoBase64, images) {
     const env = await r.json();
     const texte = env?.candidates?.[0]?.content?.parts?.map((p) => p.text).filter(Boolean).join('') ?? '';
     const v = JSON.parse(texte.trim().replace(/^```json\s*/i, '').replace(/```\s*$/, ''));
-    for (const k of ['reconnaissable', 'style', 'detourage', 'jouable', 'note']) v[k] = Math.max(0, Math.min(10, Number(v[k]) || 0));
+    for (const k of NOTES_JUGE) v[k] = Math.max(0, Math.min(10, Number(v[k]) || 0));
     return { ...v, ms: Date.now() - t0 };
   } catch (e) {
     return { erreur: String(e?.message ?? e), ms: Date.now() - t0 };
@@ -238,8 +240,11 @@ async function juger(cle, attendu, photoBase64, images) {
 }
 
 // ---------------------------------------------------------------------------
-// Note d'un objet : moyenne de 5 critères (4 du juge + physique), plafonds si le code constate un échec
+// Note d'un objet : moyenne pondérée de 7 critères (6 du juge, fidélité comptée double, + physique du code),
+// plafonds si le code constate un échec. Esthétique = moyenne de style, volume et détourage.
 // ---------------------------------------------------------------------------
+const POIDS = { fidelite: 2, reconnaissable: 1, style: 1, volume: 1, detourage: 1, jouable: 1, physique: 1 };
+
 function noter(juge, reglesObj) {
   const phys = reglesObj.filter((r) => r.groupe === 'physique');
   const physique = +(10 * phys.filter((r) => r.ok).length / phys.length).toFixed(1);
@@ -250,16 +255,20 @@ function noter(juge, reglesObj) {
     return { note: null, physique, injouable: !sticker, criteres: null };
   }
   const criteres = {
+    fidelite: juge.fidelite,
     reconnaissable: juge.reconnaissable,
     style: juge.style,
+    volume: juge.volume,
     detourage: magenta ? juge.detourage : Math.min(juge.detourage, 5),
     jouable: juge.jouable,
     physique,
   };
-  let note = Object.values(criteres).reduce((a, b) => a + b, 0) / 5;
+  const poidsTotal = Object.values(POIDS).reduce((a, b) => a + b, 0);
+  let note = Object.entries(criteres).reduce((s, [k, v]) => s + POIDS[k] * v, 0) / poidsTotal;
   if (!sticker) note = Math.min(note, 3);
   const injouable = !sticker || juge.injouable === true || juge.jouable < 5;
-  return { note: +note.toFixed(2), physique, injouable, criteres };
+  const esthetique = +((criteres.style + criteres.volume + criteres.detourage) / 3).toFixed(2);
+  return { note: +note.toFixed(2), physique, injouable, criteres, esthetique, fidelite: criteres.fidelite };
 }
 
 // ---------------------------------------------------------------------------
@@ -368,6 +377,9 @@ async function main() {
     // --- Résumé, journal, rapport ---
     const notes = resultats.map((o) => o.note).filter((x) => typeof x === 'number');
     const moyenne = notes.length ? +(notes.reduce((a, b) => a + b, 0) / notes.length).toFixed(2) : null;
+    const moy = (k) => { const v = resultats.map((o) => o[k]).filter((x) => typeof x === 'number'); return v.length ? +(v.reduce((a, b) => a + b, 0) / v.length).toFixed(2) : null; };
+    const fidelite = moy('fidelite');
+    const esthetique = moy('esthetique');
     const injouables = resultats.filter((o) => o.injouable).map((o) => o.id);
     const partiel = !!args.seulement;
     const journal = existsSync(JOURNAL) ? JSON.parse(readFileSync(JOURNAL, 'utf8')) : { iterations: [] };
@@ -375,7 +387,7 @@ async function main() {
       n: journal.iterations.length + 1,
       horodatage: HORODATAGE,
       changement: typeof args.note === 'string' ? args.note : '',
-      moyenne, injouables: injouables.length,
+      moyenne, fidelite, esthetique, grille: 2, injouables: injouables.length,
       notes: Object.fromEntries(resultats.map((o) => [o.id, o.note])),
       reprise: !!reprise,
     };
@@ -385,7 +397,7 @@ async function main() {
     }
     const resume = {
       horodatage: HORODATAGE, iteration: partiel ? null : iteration.n, partiel, reprise: !!reprise,
-      juge: cleJuge ? JUGE_MODELE : null, moyenne, injouables,
+      juge: cleJuge ? JUGE_MODELE : null, moyenne, fidelite, esthetique, grille: 2, injouables,
       objets: resultats.map(({ images, ...o }) => o),
       erreursPage,
     };
