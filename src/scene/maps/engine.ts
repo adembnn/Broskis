@@ -219,7 +219,7 @@ function buildProcedural(build: Extract<PropBuild, { kind: 'procedural' }>, mp: 
   const size = build.size ?? [1, 1, 1];
   switch (build.shape) {
     case 'rock': {
-      const m = new THREE.Mesh(rockGeometry(size, Math.round(size[0] * 97 + size[1] * 13)), flatMat(build.color ?? mp.matiere, grade, 0.95));
+      const m = new THREE.Mesh(rockGeometry(size, Math.round(size[0] * 97 + size[1] * 13)), flatMat(build.color ?? mp.matiere, grade, 0.95).clone());
       g.add(m);
       break;
     }
@@ -238,7 +238,7 @@ function buildProcedural(build: Extract<PropBuild, { kind: 'procedural' }>, mp: 
       shape.lineTo(-sx / 2, -sz / 2 + bevel);
       const geo = new THREE.ExtrudeGeometry(shape, { depth: sy - bevel * 2, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel * 0.6, bevelSegments: 1 });
       geo.rotateX(Math.PI / 2).translate(0, -bevel, 0);
-      g.add(new THREE.Mesh(geo, flatMat(build.color ?? mp.sol, grade, 0.7)));
+      g.add(new THREE.Mesh(geo, flatMat(build.color ?? mp.sol, grade, 0.7).clone()));
       break;
     }
     case 'deck': {
@@ -332,7 +332,7 @@ function buildProcedural(build: Extract<PropBuild, { kind: 'procedural' }>, mp: 
       break;
     }
     case 'giantFallback': {
-      g.add(new THREE.Mesh(new THREE.IcosahedronGeometry(size[0], 0), flatMat(build.color ?? mp.matiere, grade)));
+      g.add(new THREE.Mesh(new THREE.IcosahedronGeometry(size[0], 0), flatMat(build.color ?? mp.matiere, grade).clone()));
       break;
     }
   }

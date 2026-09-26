@@ -64,7 +64,7 @@ function readyToFade(mesh: THREE.Mesh, original: FadeMaterial): boolean {
 function collect(o: THREE.Object3D, out: THREE.Mesh[]): void {
   // Plateformes à sauter (maps/engine.ts les exclut) : en troisième personne, une planche entre la caméra et
   // son perso le cachait entièrement (Cuisine, planche à découper, mesuré). Seul le plateau ne s'efface jamais.
-  const excluded = registry.occlusionExcluded.has(o) && !o.name.startsWith('oneway-');
+  const excluded = registry.occlusionExcluded.has(o);
   if (!o.visible || excluded || registry.fighterRoots.includes(o)) return;
   const m = o as THREE.Mesh;
   if (m.isMesh && !(m as THREE.InstancedMesh).isInstancedMesh && !m.userData.isOutline && !Array.isArray(m.material)) {

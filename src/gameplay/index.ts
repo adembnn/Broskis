@@ -14,10 +14,12 @@ import { stepMatchClock } from './phases';
 import { stepProjectiles } from './projectiles';
 import { installSelftest } from './selftest';
 import { installStocks } from './stocks';
+import { installDebugColliders } from './debug-colliders';
 import { install as installAI } from './ai/index';
 
 export const install: Install = (ctx) => {
   installFallbackGround(ctx);
+  installDebugColliders(ctx);
   installStocks();
   installBro(ctx);
   installControls();
