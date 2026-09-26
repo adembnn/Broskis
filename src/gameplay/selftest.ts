@@ -41,11 +41,18 @@ function testWeapons(): [Weapon[], Weapon[]] {
   return [make(), make()];
 }
 
+/** Attend que la boucle de jeu ait tourné `n` images (sans carte graphique, une image peut prendre 1 s). */
+async function frames(ctx: Ctx, n = 2): Promise<void> {
+  const t0 = ctx.loop.realTime;
+  await waitUntil(() => ctx.loop.realTime > t0 + n * 0.001, 8000, 10).catch(() => {});
+}
+
 async function tap(ctx: Ctx, player: PlayerId, action: InputAction, holdMs = 60): Promise<void> {
   ctx.hooks.input?.(player, action, true);
   await wait(holdMs);
+  await frames(ctx);
   ctx.hooks.input?.(player, action, false);
-  await wait(40);
+  await frames(ctx);
 }
 
 async function runSelftest(ctx: Ctx): Promise<SelftestResult> {
@@ -73,10 +80,11 @@ async function runSelftest(ctx: Ctx): Promise<SelftestResult> {
 
     // Déplacement et saut de P1 (touches simulées).
     const x0 = [...ctx.state.players[0].pos];
+    const dist = () => Math.hypot(ctx.state.players[0].pos[0] - x0[0], ctx.state.players[0].pos[2] - x0[2]);
     ctx.hooks.input?.(0, 'up', true);
-    await wait(350);
+    await waitUntil(() => dist() > 1, 5000).catch(() => {}); // images parfois lentes sans carte graphique
     ctx.hooks.input?.(0, 'up', false);
-    const moved = Math.hypot(ctx.state.players[0].pos[0] - x0[0], ctx.state.players[0].pos[2] - x0[2]);
+    const moved = dist();
     assert(moved > 0.3, `P1 doit avancer (déplacé de ${moved.toFixed(2)} m)`);
     await tap(ctx, 0, 'jump');
     assert(seen.includes('move:jump'), 'le saut doit être émis');
@@ -95,7 +103,7 @@ async function runSelftest(ctx: Ctx): Promise<SelftestResult> {
     assert(ctx.state.players[0].selected === 1, "P1 doit passer à l'arme 2");
     await waitUntil(() => !getRuntime().players[1].launch, 4000); // pas de blocage pendant qu'on vole
     ctx.hooks.input?.(1, 'parry', true);
-    await wait(80);
+    await waitUntil(() => ctx.state.players[1].blocking, 4000).catch(() => {});
     assert(ctx.state.players[1].blocking, 'P2 doit bloquer');
     const pctBlock = ctx.state.players[1].pct;
     await tap(ctx, 0, 'fire', 60);

@@ -10,8 +10,6 @@ export const RT = {
   moveSpeed: 6.5,
   /** Fraction de la vitesse au sol disponible en l'air (contrôle aérien). */
   airControl: 0.85,
-  jumpVelocity: 7.2,
-  airJumpVelocity: 6.8,
   maxJumps: 2,
   /** Au bord : on vacille ; en poussant ce temps-là, on passe dans le vide. */
   teeterPushS: 0.3,
@@ -69,10 +67,17 @@ export const SETTLE_TIMEOUT_MS = 7000;
 
 // ---------- Déplacement (le budget lui-même est MOVE_BUDGET/JUMP_COST dans core/state.ts) ----------
 export const MOVE_SPEED = 4; // m/s au clavier
-export const JUMP_VELOCITY = 5.6; // m/s, vitesse verticale initiale du saut
-/** 2e saut (gratuit, seulement en l'air) : un peu plus fort, c'est le saut de rattrapage. */
-export const AIR_JUMP_VELOCITY = 6.4;
+/** Sauts (temps réel, exigences LJUMP) : avec GRAVITY = 20, saut ≈ 1,4 m + double saut ≈ 1,3 m = 2,7 m
+ * (≥ 2,6 m : les plateformes à 2,3 m sont atteignables). */
+export const JUMP_VELOCITY = 7.5; // m/s, vitesse verticale initiale du saut
+/** 2e saut (seulement en l'air) : le saut de rattrapage. */
+export const AIR_JUMP_VELOCITY = 7.2;
 export const MAX_JUMPS_PER_TURN = 2;
+/** « Coyote time » : on peut encore faire le saut du sol juste après avoir quitté le bord (s). */
+export const COYOTE_S = 0.1;
+/** Élan aérien : en l'air, la vitesse horizontale rejoint la direction voulue à ce rythme (1/s), et se garde sans entrée. */
+export const AIR_ACCEL = 5;
+export const AIR_DRAG = 0.4;
 export const GRAVITY = 20; // m/s², un peu plus nerveux que la gravité par défaut du monde Rapier
 export const EDGE_RAYCAST_AHEAD = 0.35; // m devant les pieds, dans la direction du pas
 export const EDGE_RAYCAST_DEPTH = 1.35; // m sous les pieds : au-delà, c'est le vide
