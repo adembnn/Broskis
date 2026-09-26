@@ -34,35 +34,100 @@ async function getState() {
   const state = {
     events: [],
     workers: [],
+    claude: [],
+    gradium: [],
     lots: { todo: [], doing: [], done: [] },
     git: { log: [], worktrees: [], branch: '' },
     results: {}
   };
 
-  // 1. Events (last 60)
+  // 1. Events (all)
   const eventsLines = safeRead(path.join(DASH_DIR, 'events.jsonl')).trim().split('\n').filter(Boolean);
-  state.events = eventsLines.map(l => {
+  const allEvents = eventsLines.map(l => {
     try { return JSON.parse(l); } catch { return null; }
-  }).filter(Boolean).slice(-60).reverse(); // newest first
+  }).filter(Boolean);
+  
+  state.events = [...allEvents].slice(-60).reverse(); // newest first for generic feed if needed
+
+  const lotStatus = {};
+  allEvents.forEach(e => {
+    if (e.lot) {
+      if (!lotStatus[e.lot] || new Date(e.t) > new Date(lotStatus[e.lot].t)) {
+        lotStatus[e.lot] = e;
+      }
+    }
+  });
+
+  const formatGeminiAction = (a) => {
+    const toolName = a.name || a.tool || (a.type === 'tool_use' ? a.name : null) || a.action || a.type || '';
+    const name = toolName.replace('default_api:', '');
+    const params = a.params || a.args || a;
+
+    if (name === 'read_file') return `lit <code>${params.file_path}</code>`;
+    if (name === 'write_file' || name === 'replace') return `modifie <code>${params.file_path}</code>`;
+    if (name === 'run_shell_command') return `lance <code>${(params.command || '').substring(0, 30)}</code>...`;
+    if (name === 'update_topic') return params.summary || params.title || 'Mise à jour du sujet';
+    if (name === 'result') return `terminé : ${a.tool_calls || 0} appels, ${a.tokens || 0} k jetons, ${a.duration_ms ? Math.round(a.duration_ms / 60000) : 0} min`;
+    
+    if (a.type === 'result') return `terminé : ${a.tool_calls || 0} appels, ${a.tokens || 0} k jetons, ${a.duration_ms ? Math.round(a.duration_ms / 60000) : 0} min`;
+    
+    if (name) return `outil : ${name}`;
+    return JSON.stringify(a).substring(0, 50);
+  };
 
   // 2. Workers (from logs/gem-*.jsonl)
   if (fs.existsSync(LOGS_DIR)) {
     const files = fs.readdirSync(LOGS_DIR).filter(f => f.startsWith('gem-') && f.endsWith('.jsonl'));
     for (const file of files) {
+      const lotIdMatch = file.match(/gem-(.+)\.jsonl/);
+      const lotId = lotIdMatch ? lotIdMatch[1] : file;
+      const lotEvent = lotStatus[lotId] || {};
+
       const lines = safeRead(path.join(LOGS_DIR, file)).trim().split('\n').filter(Boolean);
       const parsed = lines.map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
       if (parsed.length > 0) {
+        const startEvent = allEvents.find(e => e.lot === lotId && e.status === 'en-cours');
+        const startTime = startEvent ? new Date(startEvent.t) : new Date();
+        const diffMs = Date.now() - startTime;
+        const diffMin = Math.floor(diffMs / 60000);
+        const durationStr = lotEvent.status === 'fait' ? 'Terminé' : `${diffMin} min`;
+
         state.workers.push({
-          id: file,
-          model: 'Gemini',
-          source: 'gemini',
-          actions: parsed.slice(-3).reverse() // last 3
+          id: lotId,
+          title: lotEvent.title || `Lot ${lotId}`,
+          status: lotEvent.status || 'en-cours',
+          duration: durationStr,
+          actions: parsed.slice(-3).reverse().map(formatGeminiAction)
         });
       }
     }
   }
 
-  // 3. Lots from plan/SUIVI.md
+  // 3. Claude events
+  const claudeAgents = {};
+  allEvents.filter(e => e.source === 'claude').forEach(e => {
+    const key = e.title || e.lot || 'Agent Claude';
+    if (!claudeAgents[key] || new Date(e.t) > new Date(claudeAgents[key].t)) {
+      claudeAgents[key] = { ...e, startTime: claudeAgents[key]?.startTime || e.t };
+    }
+  });
+  state.claude = Object.values(claudeAgents).map(c => {
+    const diffMs = Date.now() - new Date(c.startTime);
+    return {
+      title: c.title || c.lot,
+      status: c.status || 'info',
+      duration: c.status === 'fait' ? 'Terminé' : `${Math.floor(diffMs / 60000)} min`,
+      details: c.details || ''
+    };
+  });
+
+  // 4. Gradium / Generations
+  state.gradium = allEvents
+    .filter(e => e.kind === 'generation')
+    .slice(-15) // keep last 15
+    .reverse();
+
+  // 5. Lots from plan/SUIVI.md
   const suivi = safeRead(path.join(ROOT_DIR, 'plan', 'SUIVI.md'));
   const tableLines = suivi.split('\n').filter(l => l.startsWith('|') && !l.includes('---|'));
   tableLines.slice(1).forEach(line => { // skip header
@@ -96,20 +161,29 @@ async function getState() {
   
   // Actually instruction says: captures/**/*.png, captures/anim/rapport.json, etc.
   const capturesDir = path.join(ROOT_DIR, 'captures');
-  const findPngs = (dir, fileList = []) => {
+  const presetsDir = path.join(ROOT_DIR, 'public', 'assets', 'presets');
+
+  const findFiles = (dir, extList, fileList = []) => {
     if(!fs.existsSync(dir)) return fileList;
     const files = fs.readdirSync(dir);
     for (const file of files) {
-      const stat = fs.statSync(path.join(dir, file));
+      const fullPath = path.join(dir, file);
+      const stat = fs.statSync(fullPath);
       if (stat.isDirectory()) {
-        findPngs(path.join(dir, file), fileList);
-      } else if (file.endsWith('.png')) {
-        fileList.push(path.join(dir, file).replace(ROOT_DIR, '').replace(/\\/g, '/'));
+        findFiles(fullPath, extList, fileList);
+      } else if (extList.some(ext => file.endsWith(ext))) {
+        fileList.push({ path: fullPath.replace(ROOT_DIR, '').replace(/\\/g, '/'), mtime: stat.mtimeMs });
       }
     }
     return fileList;
   };
-  state.results.captures = findPngs(capturesDir).slice(-5);
+
+  const sortByMtime = (files) => files.sort((a, b) => b.mtime - a.mtime).map(f => f.path);
+
+  state.results.captures = sortByMtime([
+    ...findFiles(capturesDir, ['.png', '.jpg']),
+    ...findFiles(presetsDir, ['.jpg'])
+  ]).slice(-5);
   
   state.results.anim = safeReadJson(path.join(capturesDir, 'anim', 'rapport.json'));
   state.results.balance = safeReadJson(path.join(capturesDir, 'balance', 'rapport.json'));
@@ -129,15 +203,20 @@ async function getState() {
   state.results.reports.push(...readMds(rendusDir));
 
   // Voice/Presets
+  const voicesDir = path.join(ROOT_DIR, 'public', 'assets', 'voices');
   state.results.presets = safeReadJson(path.join(ROOT_DIR, 'public', 'assets', 'presets', 'presets.json'));
   state.results.voices = safeReadJson(path.join(ROOT_DIR, 'public', 'assets', 'voices', 'manifest.json'));
+  state.results.presetAudio = sortByMtime([
+    ...findFiles(presetsDir, ['.wav']),
+    ...findFiles(voicesDir, ['.wav', '.mp3'])
+  ]).slice(-5);
 
   return state;
 }
 
 
 // --- HTTP Server ---
-const PORT = 4545;
+const PORT = process.env.PORT || 4545;
 
 const MIME_TYPES = {
   '.html': 'text/html',
