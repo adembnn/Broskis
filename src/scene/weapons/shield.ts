@@ -41,7 +41,7 @@ export function installShields(ctx: Ctx, blast: BlastFx) {
     const me = ctx.state.players[player].pos;
     const yaw = Math.atan2(pos[0] - me[0], pos[2] - me[2]);
     const base = new THREE.Vector3(pos[0], pos[1] - height / 2, pos[2]);
-    const model = new WeaponModel(weapon, true); // épaisseur fixée par le mur lui-même
+    const model = new WeaponModel(weapon); // même épaisseur que partout (DA « vinyle gonflé »)
     root.add(model.root);
     // Durée de vie = celle du collider (RT.shieldLifeS, en temps de jeu comme dans combat.ts).
     walls.push({ owner: player, model, base, yaw, width, height, t: 0, wobble: 0, wobbleV: 0, life: RT.shieldLifeS, leaving: 0 });

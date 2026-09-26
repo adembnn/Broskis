@@ -45,4 +45,4 @@ Toutes les 2 h : `jury-simule` + `coupeur`. Au démarrage et quand c'est « bien
 - Git (commits, branches, conflits) → skill `discipline-code`.
 
 ## Horaire
-10h30 concept figé + direction artistique choisie · 12h00 script de démo · 15h00 boucle jouable belle · 18h00 **GEL des fonctionnalités** · 18h–19h polish seulement · 19h opt-in + vidéo de secours · 19h30 répétition chronométrée.
+10h30 concept figé + direction artistique choisie · 12h00 script de démo · 15h00 boucle jouable belle · **gel de 18h levé par Adem (17h35) : on continue de livrer jusqu'à la démo** · 19h opt-in + vidéo de secours · 19h30 répétition chronométrée.

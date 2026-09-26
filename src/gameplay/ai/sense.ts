@@ -1,7 +1,7 @@
 // Perception et « manette » partagées par le bot et l'humain simulé des tests. Lecture seule du monde (sol,
 // ligne de tir, projectiles) ; les actions passent UNIQUEMENT par `gameHooks.input`, comme un clavier.
 import type { Category, Ctx, InputAction, PlayerId, Vec3, Weapon } from '../../core/types';
-import { getArena, groundYBelow, isGroundCollider } from '../arena';
+import { groundYBelow, isGroundCollider } from '../arena';
 import { isVoidAt } from '../character';
 import { viewForward } from '../movement';
 import { liveProjectiles } from '../projectiles';
@@ -52,10 +52,6 @@ export function lineOfFire(ctx: Ctx, from: Vec3, to: Vec3): boolean {
   return !hit;
 }
 
-/** Centre de l'arène (mesuré par gameplay/arena.ts). */
-export function arenaCenter(ctx: Ctx): Vec3 {
-  return getArena(ctx).center;
-}
 
 /** Rayon d'explosion d'une arme (même formule que projectiles.ts). */
 export function splashOf(weapon: Weapon): number {
