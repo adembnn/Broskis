@@ -166,7 +166,8 @@ function traits(raw: Record<string, any>) {
 }
 
 const handler: ApiHandler<ScanFighterRequest> = async ({ body, env }) => {
-  if (!body?.imageBase64) return fail(400, 'missing imageBase64');
+  if (!body || !Object.keys(body).length) return ok({ ready: true }); // préchauffe du module (src/ia/fighter)
+  if (!body.imageBase64) return fail(400, 'missing imageBase64');
   const apiKey = env.GEMINI_API_KEY;
   if (!apiKey) return fail(500, 'missing GEMINI_API_KEY');
   if (body.imageBase64.length > 2_000_000) return fail(400, 'image too large');
