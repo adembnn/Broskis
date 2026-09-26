@@ -11,8 +11,8 @@ import { sayScanReveal } from './commentary';
 import { scanObject } from './scan';
 import { setRuntimeCtx } from './runtime';
 
-export type { ScanOptions } from './scan';
-export { scanObject } from './scan';
+export type { ScanNote, ScanOptions } from './scan';
+export { scanNote, scanObject } from './scan';
 export { prepareCommentary } from './commentary';
 
 /**
@@ -25,6 +25,9 @@ export { prepareCommentary } from './commentary';
  * `stickerUrl` en place ; si l'arme est équipée en ce moment (match en cours), on réémet `weapon:pick`
  * (index inchangé) pour que src/scene/fighters/index.ts réattache le vrai sticker sur-le-champ.
  */
+/** Stickers arrivés, par id d'arme d'origine : relus au lancement du match (voir match:start plus bas). */
+const arrivedStickers = new Map<string, string>();
+
 function patchLateSticker(ctx: Ctx, sourceId: string, stickerUrl: string): void {
   for (const player of [0, 1] as PlayerId[]) {
     const ps = ctx.state.players[player];
@@ -45,7 +48,22 @@ export const install: Install = (ctx) => {
   // initial (déjà couverts par la pesée, weigh_in — voir prepareCommentary).
   ctx.bus.on('scan:result', ({ weapon }) => {
     void sayScanReveal(ctx, weapon);
-    if (weapon.stickerUrl) patchLateSticker(ctx, weapon.id, weapon.stickerUrl);
+    if (weapon.stickerUrl) {
+      arrivedStickers.set(weapon.id, weapon.stickerUrl);
+      patchLateSticker(ctx, weapon.id, weapon.stickerUrl);
+    }
+  });
+
+  // Sticker arrivé ENTRE la validation de la carte (clone de l'arsenal) et le lancement du match : aucun clone
+  // n'était encore dans ctx.state, patchLateSticker n'a rien trouvé. Rattrapé ici, en synchrone : la scène
+  // (installée avant) n'a lancé que des chargements asynchrones et lira stickerUrl après ce patch.
+  ctx.bus.on('match:start', () => {
+    for (const ps of ctx.state.players) {
+      for (const w of ps.weapons) {
+        if (w.stickerUrl) continue;
+        for (const [id, url] of arrivedStickers) if (w.id.startsWith(`${id}-`)) w.stickerUrl = url;
+      }
+    }
   });
 
   // window.gameHooks.scan(objectKey) : personne d'autre ne le branche (LG énumère les siens sans lui,
