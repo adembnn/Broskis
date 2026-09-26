@@ -1,5 +1,6 @@
 // Moteur WebAudio bas niveau : contexte partagé, bus de gains (master → sfx / musique / voix), sons
 // synthétisés (aucun fichier à charger). Repris et adapté de reference/bagarre-de-taverne/src/audio.js.
+import { musique } from '../art/tokens.js';
 import type { Rng } from '../core/rng';
 
 export type ToneShape = 'sine' | 'square' | 'sawtooth' | 'triangle';
@@ -59,7 +60,7 @@ export class AudioEngine {
       this.sfxBus.connect(master);
 
       this.musicBus = ctx.createGain();
-      this.musicBus.gain.value = 0.35;
+      this.musicBus.gain.value = musique.volume; // Lot LMUSIQUE : bas, sous les voix (tokens)
       this.musicBus.connect(master);
 
       this.voiceBus = ctx.createGain();
