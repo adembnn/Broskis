@@ -59,6 +59,8 @@ async function snapYourself(area: HTMLElement, label: string): Promise<FighterDe
   });
 }
 
+import { promptVoiceClone } from '../ia/voice';
+
 function pickOne(screenLayer: HTMLElement, player: PlayerId): Promise<FighterDef> {
   clear(screenLayer);
   const { root, card } = menuScreen('fighters-card');
@@ -68,7 +70,22 @@ function pickOne(screenLayer: HTMLElement, player: PlayerId): Promise<FighterDef
   const grid = el('div', 'fighter-grid');
   const snapArea = el('div', 'fighter-snap-area');
   const snapBtn = button('Snap yourself', 'b-btn alt');
-  card.append(grid, snapArea, snapBtn);
+  
+  const voiceWrap = el('div', 'voice-wrap');
+  const voiceBtn = button('🎤 USE MY VOICE', 'b-btn voice-btn', async () => {
+    voiceBtn.disabled = true;
+    voiceBtn.textContent = '🎤 RECORDING...';
+    await promptVoiceClone(player, snapArea, () => {
+      const badge = el('span', 'voice-badge', '🎤 VOICE READY');
+      voiceWrap.append(badge);
+    });
+    voiceBtn.hidden = true;
+    const warning = el('p', 'voice-warning', 'Your voice is only used for this session.');
+    voiceWrap.append(warning);
+  });
+  voiceWrap.append(voiceBtn);
+  
+  card.append(grid, snapArea, snapBtn, voiceWrap);
   screenLayer.append(root);
 
   return new Promise((resolve) => {
@@ -82,6 +99,7 @@ function pickOne(screenLayer: HTMLElement, player: PlayerId): Promise<FighterDef
     snapBtn.addEventListener('click', () => {
       grid.hidden = true;
       snapBtn.hidden = true;
+      voiceBtn.hidden = true;
       snapYourself(snapArea, label).then(finish);
     });
   });

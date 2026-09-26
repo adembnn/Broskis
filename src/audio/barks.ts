@@ -4,7 +4,7 @@
 // tout est no-op tant qu'il n'est pas prêt (le jeu doit tourner même si la banque de voix est absente/vide —
 // voir tools/voices/LISEZMOI.md, "stratégie de secours").
 import type { Bus } from '../core/bus';
-import type { Category, Ctx, ModelId } from '../core/types';
+import type { Category, Ctx, ModelId, PlayerId } from '../core/types';
 import type { AudioEngine } from './engine';
 import type { MusicDirector } from './music';
 
@@ -380,3 +380,49 @@ export function installBarks(ctx: Ctx, engine: AudioEngine, music: MusicDirector
   void barkPlayer.loadManifest();
   installBusHandlers(ctx.bus, ctx);
 }
+
+// -- Lot LW2 : Override voix clonée --
+const voiceOverrides = new Map<PlayerId, Partial<Record<BarkEvent, string[]>>>();
+
+export function setVoiceOverride(player: PlayerId, bank: Partial<Record<BarkEvent, string[]>> | null): void {
+  if (bank) voiceOverrides.set(player, bank);
+  else voiceOverrides.delete(player);
+}
+
+// Patch BarkPlayer.play temporaire si Titouan n'a pas encore ajouté playBark
+const originalPlay = BarkPlayer.prototype.play;
+BarkPlayer.prototype.play = function(this: BarkPlayer, role: BarkRole, event: BarkEvent, opts?: { isAnnouncer?: boolean }) {
+  if (!opts?.isAnnouncer && window.gameState) {
+    // Retrouver le playerId depuis le rôle (approximation)
+    const state = window.gameState as any;
+    let overrideFound = false;
+    for (let p = 0; p < 2; p++) {
+      const fighter = state.players[p]?.fighter;
+      if (fighter && (MODEL_TO_ROLE[fighter.model as ModelId] ?? 'knight') === role) {
+        const override = voiceOverrides.get(p as PlayerId);
+        if (override && override[event]) {
+          const list = override[event]!;
+          const url = list[Math.floor(Math.random() * list.length)];
+          this['queue'].push({ role, isAnnouncer: false, entry: { file: url, text: '' }, priority: PRIORITY[event] ?? 30, enqueuedAt: performance.now() });
+          this['pump']();
+          overrideFound = true;
+          break;
+        }
+      }
+    }
+    if (overrideFound) return;
+  }
+  originalPlay.call(this, role, event, opts);
+};
+
+// Intercepte loadBuffer pour lire les Blob URLs
+const originalLoadBuffer = BarkPlayer.prototype['loadBuffer'];
+BarkPlayer.prototype['loadBuffer'] = function(this: BarkPlayer, url: string): Promise<AudioBuffer> {
+  if (url.startsWith('blob:')) {
+    const ctx = this['engine'].ctx!;
+    return fetch(url)
+      .then(r => r.arrayBuffer())
+      .then(buf => ctx.decodeAudioData(buf));
+  }
+  return originalLoadBuffer.call(this, url);
+};
