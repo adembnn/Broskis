@@ -5,6 +5,8 @@ import type { MapId, Vec3 } from '../../core/types';
 import { currentMapDef, currentMapId, getArenaBounds, getCrateSpots, getSpawnPoints, isOneWayCollider, isOverVoid } from './engine';
 
 export { getSpawnPoints, getCrateSpots, isOverVoid, getArenaBounds, isOneWayCollider };
+/** Hauteur max (m) d'une plateforme / marche au-dessus du plateau : le double saut doit la dépasser (LJUMP). */
+export { MAX_LEDGE_HEIGHT } from './types';
 
 export function currentMap(): MapId | null {
   return currentMapId();

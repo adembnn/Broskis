@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Textures Preview (LTEX)</title>
+  <style>
+    body { background: #333; color: #fff; font-family: sans-serif; margin: 20px; }
+    h1 { text-align: center; }
+    .grid { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
+    .texture-card { background: #222; padding: 10px; border-radius: 8px; text-align: center; }
+    .texture-preview {
+      width: 256px;
+      height: 256px;
+      /* Background repeats by default to show tiling */
+      background-size: 128px 128px;
+      background-repeat: repeat;
+      border: 1px solid #555;
+      margin: 0 auto 10px auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>LTEX Textures - Tiling Preview</h1>
+  <div class="grid" id="grid"></div>
+  <script>
+    fetch('./assets/textures/textures.json')
+      .then(res => res.json())
+      .then(data => {
+        const grid = document.getElementById('grid');
+        for (const [name, info] of Object.entries(data)) {
+          const card = document.createElement('div');
+          card.className = 'texture-card';
+          
+          const preview = document.createElement('div');
+          preview.className = 'texture-preview';
+          preview.style.backgroundImage = `url(./assets/textures/${info.file})`;
+          
+          const title = document.createElement('div');
+          title.textContent = name;
+          
+          const usage = document.createElement('div');
+          usage.style.fontSize = '0.8em';
+          usage.style.color = '#aaa';
+          usage.textContent = info.usage;
+          
+          card.appendChild(preview);
+          card.appendChild(title);
+          card.appendChild(usage);
+          grid.appendChild(card);
+        }
+      })
+      .catch(err => console.error(err));
+  </script>
+</body>
+</html>

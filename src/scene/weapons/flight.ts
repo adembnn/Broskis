@@ -318,7 +318,7 @@ export function installFlights(ctx: Ctx, deps: FlightDeps) {
     const gy = groundBelow(at);
     const g = new THREE.Vector3(at.x, at.y - gy < 3 ? gy : at.y, at.z);
     // Pour le son (clang, crash, splash…) : matière et masse réelles de l'objet.
-    ctx.bus.emit('weapon:impact', { pos: [at.x, at.y, at.z], weaponId: w.id, category: w.category, material: p.material, massKg: p.massKg, fragile: p.fragile, liquid: p.liquid, on });
+    if (f.kind !== 'bolt') ctx.bus.emit('weapon:impact', { pos: [at.x, at.y, at.z], weaponId: w.id, category: w.category, material: p.material, massKg: p.massKg, fragile: p.fragile, liquid: p.liquid, on });
     if (p.liquid) lastLiquid = { pos: at.clone(), color: w.palette[0], t: performance.now() };
     if (f.kind === 'grenade') {
       // L'explosion part du point d'impact ; son anneau au sol montre le VRAI rayon de dégâts. La matière s'y
@@ -448,10 +448,19 @@ export function installFlights(ctx: Ctx, deps: FlightDeps) {
     cameraShakeFor(f, 0.35);
   });
 
-  // Flaque glissante du gameplay (objet liquide) : à la couleur du dernier objet liquide qui a giclé là.
+  // Flaque glissante du gameplay (objet liquide) : à la couleur de l'objet qui gicle. Le gameplay l'émet juste
+  // AVANT `projectile:end` : l'objet liquide est encore en vol tout près ; sinon le dernier qui a giclé.
   ctx.bus.on('ground:slippery', ({ pos, radius, ms }) => {
     const at = new THREE.Vector3(pos[0], groundBelow(new THREE.Vector3(pos[0], pos[1] + 0.5, pos[2])), pos[2]);
-    const color = lastLiquid && lastLiquid.pos.distanceTo(at) < 3 && performance.now() - lastLiquid.t < 1000 ? lastLiquid.color : WEAPON_FX.matiere.eau;
+    const src = new THREE.Vector3(pos[0], pos[1], pos[2]);
+    let color: string = WEAPON_FX.matiere.eau;
+    let best = 9;
+    for (const f of flights) {
+      if (f.state !== 'flying' || !f.look.phys.liquid) continue;
+      const d = f.pos.distanceToSquared(src);
+      if (d < best) { best = d; color = f.weapon.palette[0]; }
+    }
+    if (best === 9 && lastLiquid && lastLiquid.pos.distanceTo(src) < 3 && performance.now() - lastLiquid.t < 1000) color = lastLiquid.color;
     blast.puddle(at, color, radius, ms);
   });
 

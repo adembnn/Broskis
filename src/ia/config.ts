@@ -8,7 +8,9 @@ export const TIMEOUTS = {
    *  une arme sans rapport sur sa photo (vu en test : un mug devenu « Gnome Wrecker », lot LSCAN). */
   scan: 9000,
   /** Sticker Nano Banana (plus lent : dessin d'image). */
-  sticker: 25000, // mesuré : 10 s avec Nano Banana 2 (lot LSCAN) ; laisse la place à un second essai si le dessin est raté
+  sticker: 30000, // mesuré : 9,5 à 14 s avec Nano Banana 2 (lot LSCAN) ; laisse la place à un second essai
+  /** Premier essai du sticker : au-delà, l'appel est jugé bloqué et relancé une fois (dans TIMEOUTS.sticker). */
+  stickerTry: 17000,
   /** Répliques de l'animateur, préparées à l'avance : un peu de marge est tolérable. */
   commentary: 40000, // pré-génération avec gemini-3.1-pro-preview (12 à 33 s mesurés)
   /** Une ligne vocalisée (Gradium TTS). */

@@ -89,6 +89,8 @@ export function installPostFx(ctx: Ctx): PostFx {
 
   const target = new THREE.WebGLRenderTarget(w, h, { samples: 4, type: THREE.HalfFloatType });
   const composer = new EffectComposer(renderer, target);
+  // Lot LPERF : définition CSS fixe (sinon +56 % de pixels au 1er redimensionnement, sans rien gagner à l'œil).
+  composer.setPixelRatio(1);
   composer.addPass(new ViewsPass(drawer));
 
   const bloom = new UnrealBloomPass(new THREE.Vector2(w, h), rendu.bloom.force, rendu.bloom.rayon, rendu.bloom.seuil);
@@ -101,8 +103,6 @@ export function installPostFx(ctx: Ctx): PostFx {
 
   const resizeCbs: (() => void)[] = [];
   function resize(): void {
-    // Le ratio de pixels change avec le mode (écran scindé : 1) : core/ctx.ts l'a déjà appliqué au renderer.
-    composer.setPixelRatio(renderer.getPixelRatio());
     composer.setSize(window.innerWidth, window.innerHeight);
     for (const cb of resizeCbs) cb();
   }

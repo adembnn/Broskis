@@ -92,6 +92,9 @@ function createThree(root: HTMLElement): { three: Three; drawer: ViewsDrawer } {
   window.addEventListener('resize', resize);
 
   const size = new THREE.Vector2();
+  // Relevé pour les bancs (plan/rendus/RTVIEW.md) : appels de dessin de la dernière image, par vue.
+  const rtview = { calls: [0, 0], mode: 'solo' as ViewMode };
+  window.__rtview = rtview;
   const drawer: ViewsDrawer = {
     draw(target) {
       renderer.getSize(size);
@@ -119,7 +122,9 @@ function createThree(root: HTMLElement): { three: Three; drawer: ViewsDrawer } {
         }
         for (const fn of beforeView) fn(v);
         renderer.render(scene, v.camera);
+        rtview.calls[v.player] = renderer.info.render.calls; // info repart de 0 à chaque render() (+ ombres pour la 1re vue)
       }
+      rtview.mode = three.viewMode;
       if (target) {
         target.viewport.set(0, 0, target.width, target.height);
         target.scissor.set(0, 0, target.width, target.height);
@@ -184,7 +189,7 @@ function createThree(root: HTMLElement): { three: Three; drawer: ViewsDrawer } {
   return { three, drawer };
 }
 
-declare global { interface Window { ctx?: Ctx } }
+declare global { interface Window { ctx?: Ctx; __rtview?: { calls: number[]; mode: ViewMode } } }
 
 let _drawer: ViewsDrawer | null = null;
 /** Pour le post-traitement : dessin des vues dans une cible. */
