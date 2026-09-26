@@ -36,12 +36,20 @@ export function showTauntBubble(ctx: Ctx, aiId: PlayerId, text: string, tag?: st
       if (current === bubble) current = null;
       return false;
     }
+    // Projetée dans la vue où le bot est visible (lot RTVIEW : en solo, la vue plein écran de l'humain).
     const p = ctx.state.players[aiId].pos;
-    v.set(p[0], p[1] + 2.4, p[2]).project(ctx.three.camera);
-    const behind = v.z > 1;
-    bubble.style.visibility = behind ? 'hidden' : 'visible';
-    bubble.style.left = `${(v.x * 0.5 + 0.5) * window.innerWidth}px`;
-    bubble.style.top = `${(v.y * -0.5 + 0.5) * window.innerHeight}px`;
+    const box = ctx.three.canvas.getBoundingClientRect();
+    const views = ctx.three.views?.() ?? [{ camera: ctx.three.camera, x: 0, y: 0, width: box.width, height: box.height }];
+    let shown = false;
+    for (const view of views) {
+      v.set(p[0], p[1] + 2.4, p[2]).project(view.camera);
+      if (v.z > 1 || Math.abs(v.x) > 1.1 || Math.abs(v.y) > 1.1) continue;
+      bubble.style.left = `${box.left + view.x + (v.x * 0.5 + 0.5) * view.width}px`;
+      bubble.style.top = `${box.top + view.y + (v.y * -0.5 + 0.5) * view.height}px`;
+      shown = true;
+      break;
+    }
+    bubble.style.visibility = shown ? 'visible' : 'hidden';
     bubble.style.transform = 'translate(-50%, -100%)';
     return true;
   });

@@ -51,7 +51,7 @@ export class SimHuman {
     ctx.bus.on('match:start', () => { this.pad.forget(); this.active = false; this.charging = false; this.blockUntil = 0; this.blockFrom = Infinity; });
     // Un tir du bot : après sa réaction, il bloque (une fois sur deux), à un moment approximatif.
     ctx.bus.on('projectile:spawn', ({ owner }) => {
-      if (owner !== this.foe || !this.active || this.rng() >= this.profile.blockChance) return;
+      if (owner !== this.foe || !this.on || !this.active || this.rng() >= this.profile.blockChance) return;
       const now = ctx.loop.time;
       const from = now + this.profile.reactionS + this.rng() * 0.3;
       if (from < this.blockFrom || now > this.blockUntil) this.blockFrom = from;
@@ -59,8 +59,23 @@ export class SimHuman {
     });
   }
 
+  private on = false;
+
+  /** (Re)lance l'humain simulé avec une graine (un match = une graine, reproductible). */
+  start(seed: number): void {
+    this.rng = createRng(seed);
+    this.on = true;
+  }
+
+  stop(): void {
+    this.on = false;
+    this.pad.releaseAll();
+    this.active = false;
+  }
+
   step(): void {
     const ctx = this.ctx;
+    if (!this.on) return;
     if (!inFight(ctx)) {
       if (this.active) { this.pad.releaseAll(); this.active = false; }
       return;

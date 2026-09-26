@@ -232,7 +232,6 @@ export class RealtimeBot {
   private blockSoon(now: number, withinS: number): boolean {
     for (const t of this.threats.values()) {
       if ((t.plan === 'block' || t.plan === 'perfect') && t.impactAt - t.lead < now + withinS && t.impactAt > now - 0.1) return true;
-      if (t.plan === null && t.impactAt < now + withinS + 0.3) return true; // tir pas encore « vu » mais déjà en l'air
     }
     return false;
   }
@@ -301,10 +300,11 @@ export class RealtimeBot {
         : d >= 1.5 && d <= hi + 5 && (los || (cat === 'grenade' && d >= 4));
       // Précision : on attend une cible lisible (pas en garde, pas en plein pas chassé) si on sait attendre.
       if (go && !punish && cat !== 'shield') {
+        // Loin, une cible en pas chassé esquive (l'avance de visée est partielle) : on tire quand elle est lisible.
         const v = rtFoe.vel;
         const ax = norm2(foe.pos[0] - me.pos[0], foe.pos[2] - me.pos[2]);
         const lateral = Math.abs(-v[0] * ax[1] + v[2] * ax[0]);
-        const messy = foe.blocking || lateral > 4.5 || d > hi + 2 || d < lo - 3;
+        const messy = foe.blocking || (lateral > 4.5 && d > lo + 1) || d > hi + 2 || d < lo - 3;
         if (messy && r() < L.precision) { go = false; this.nextFireAt = now + 0.12 + r() * 0.2; }
       }
       if (go) {

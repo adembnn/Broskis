@@ -5,6 +5,7 @@ import type { Install } from '../../core/types';
 import { RealtimeBot } from './bot';
 import type { Stance } from './levels';
 import { SimHuman } from './sim-human';
+import { showTauntBubble } from './taunt-bubble';
 import { installStrategist, type StrategistStats } from './strategist';
 
 declare global {
@@ -17,6 +18,8 @@ declare global {
       setStance(stance: Stance): void;
       /** Tests : coupe Gemini (mesure du maintien de la posture sans réponse). */
       offline(on: boolean): void;
+      /** Captures : affiche tout de suite une provocation (texte donné ou dernière de Gemini). */
+      taunt(text?: string): void;
     };
   }
 }
@@ -33,8 +36,13 @@ export const install: Install = (ctx) => {
 
   window.__bot = {
     info: () => ({ ...bot.debug(), gemini: strategist.stats }),
-    simHuman: (on = true, seed = 7) => { sim = on ? new SimHuman(ctx, 0, undefined, seed) : null; },
+    simHuman: (on = true, seed = 7) => {
+      if (!on) { sim?.stop(); return; }
+      sim ??= new SimHuman(ctx, 0);
+      sim.start(seed);
+    },
     setStance: (stance) => bot.setPlan(stance, null),
     offline: (on) => { strategist.offline = on; },
+    taunt: (text) => showTauntBubble(ctx, bot.me, text ?? strategist.stats.lastTaunt ?? 'Stand still, I dare you.', bot.stance),
   };
 };
