@@ -59,10 +59,37 @@ export function archipelTokens(): ArchipelTokens { return mapsToken.archipel; }
 export function galionTokens(): GalionTokens { return mapsToken.galion; }
 export function cuisineTokens(): CuisineTokens { return mapsToken.cuisine; }
 
+// ---------------------------------------------------------------------------
+// Lot LMAP3 : revêtements et variations (valeurs VISUELLES du plateau, propres à ce lot ; le ciel, le
+// brouillard et les lumières restent dans src/art/tokens.js).
+// ---------------------------------------------------------------------------
+export type DetailKind = 'bois' | 'herbe' | 'pierre' | 'faience';
+
+/** Texture de détail triplanaire : echelle = répétitions par mètre, force = 0 (rien) à 1 (plein contraste). */
+export const SURFACES: Record<DetailKind, { echelle: number; force: number }> = {
+  bois: { echelle: 0.45, force: 0.9 },
+  herbe: { echelle: 0.6, force: 0.85 },
+  pierre: { echelle: 0.5, force: 0.8 },
+  faience: { echelle: 0.4, force: 0.6 },
+};
+
+export const PLATEAU = {
+  /** Archipel : grade des dalles hex (pleine couleur, le décor lointain reste désaturé). */
+  archipelDalles: { saturation: 0.8, teinte: '#F6F0E4' },
+  /** Variation de teinte par dalle / planche : ± luminosité, ± teinte (tours de roue chromatique). */
+  variation: { luminosite: 0.16, teinte: 0.02 },
+  /** Grille-pain de la cuisine : chrome, bakélite, pain de mie, croûte, levier. */
+  grillePain: { chrome: '#C9CFD2', bakelite: '#2B2522', mie: '#E8C489', croute: '#9A5A26', levier: '#D8402E', metal: 0.85, rugosite: 0.22 },
+  /** Rouleau à pâtisserie : hêtre clair. */
+  rouleau: { bois: '#C99A62' },
+  /** Éponge : mousse et grattoir. */
+  eponge: { mousse: '#E8C84A', grattoir: '#3E7A4A' },
+};
+
 /** Hypothèses STRUCTURELLES (pas des valeurs visuelles) : géométrie du galion, angle de gîte. */
 export const LOCAL_TOKENS = {
   galion: {
-    shipScale: 1.45, // ship-pirate-large.glb : coque de 19 x 7 m, à peine plus grande que le pont jouable (18 x 6,8)
+    shipScale: 2.14, // ship-pirate-large.glb : 13,1 x 4,8 m -> coque de 28 x 10,3 m sous le pont jouable (LMAP3)
     deckLocalY: 2.1, // hauteur (repère du modèle) du haut du bastingage : la coque est abaissée d'autant sous le pont
     tiltDeg: 12,     // angle de gîte demandé par le lot (mécanique de jeu, pas une teinte)
   },

@@ -10,6 +10,7 @@ import { applySky } from './sky'; // LSKY : fond panoramique 360°
 import * as THREE from 'three';
 import type RAPIER from '@dimforge/rapier3d-compat';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import type { Ctx, MapId, PlayerId, Vec3 } from '../../core/types';
 import { excludeFromOcclusion } from '../registry';
 import { buildArchipelDef } from './archipel';
@@ -19,9 +20,10 @@ import { HEX_R } from './hex';
 import { shipOutline } from './outline';
 import { instantiate } from './loader';
 import { flatMat, hazardMaterial, hazardRect, worldStripeUVs, type Grade } from './materials';
-import { archipelTokens, cuisineTokens, galionTokens, LOCAL_TOKENS, palette, rendu, type MapPalette } from './tokens';
+import { archipelTokens, cuisineTokens, galionTokens, LOCAL_TOKENS, PLATEAU, rendu, type MapPalette } from './tokens';
+import { applySurface } from './surfaces';
 import type {
-  BackdropSpec, ColliderSpec, MapDef, OneWaySpec, PropBuild, PropKind, PropSpec, VisualPart,
+  BackdropSpec, ColliderSpec, GroundPiece, MapDef, OneWaySpec, PropBuild, PropKind, PropSpec, VisualPart,
 } from './types';
 
 // ---------------------------------------------------------------------------
@@ -92,6 +94,8 @@ interface LoadedMap {
   spongeBand: { z: number; dir: 1 | -1 } | null;
   sea: THREE.Mesh[];
   pendingDropXZ: [number, number] | null;
+  /** Socles qui rétrécissent quand un anneau tombe (archipel). */
+  shrinkers: { obj: THREE.Object3D; spec: NonNullable<GroundPiece['shrinkWithRing']> }[];
 }
 
 let current: LoadedMap | null = null;
@@ -260,28 +264,56 @@ function buildProcedural(build: Extract<PropBuild, { kind: 'procedural' }>, mp: 
       break;
     }
     case 'toaster': {
+      // Grille-pain chromé à coins arrondis sur socle de bakélite, deux tranches de pain de mie qui dépassent,
+      // levier rouge et molette : identifiable au premier coup d'oeil (LMAP3).
       const [sx, sy, sz] = size;
-      const body = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), flatMat(build.color ?? mp.matiere, grade, 0.35));
-      body.position.y = sy / 2;
-      const slotMat = flatMat(rendu.contour.encre, {}, 0.9);
-      for (const dx of [-sx * 0.22, sx * 0.22]) {
-        const slot = new THREE.Mesh(new THREE.BoxGeometry(sx * 0.3, 0.06, sz * 0.62), slotMat);
-        slot.position.set(dx, sy + 0.01, 0);
-        g.add(slot);
+      const t = PLATEAU.grillePain;
+      const chrome = new THREE.MeshStandardMaterial({ color: t.chrome, metalness: t.metal, roughness: t.rugosite });
+      const bake = flatMat(t.bakelite, {}, 0.5);
+      const baseH = sy * 0.12;
+      const base = new THREE.Mesh(new RoundedBoxGeometry(sx * 1.04, baseH, sz * 1.06, 3, baseH * 0.45), bake);
+      base.position.y = baseH / 2;
+      const bodyH = sy * 0.8;
+      const body = new THREE.Mesh(new RoundedBoxGeometry(sx, bodyH, sz, 5, Math.min(sx, sz) * 0.2), chrome);
+      body.position.y = baseH + bodyH / 2;
+      g.add(base, body);
+      const top = baseH + bodyH;
+      const slotMat = flatMat(t.bakelite, {}, 0.9);
+      const crust = flatMat(t.croute, {}, 0.85);
+      const crumb = flatMat(t.mie, {}, 0.95);
+      for (const dx of [-sx * 0.2, sx * 0.2]) {
+        const slot = new THREE.Mesh(new RoundedBoxGeometry(sx * 0.2, 0.08, sz * 0.72, 2, 0.03), slotMat);
+        slot.position.set(dx, top, 0);
+        const sliceH = sy * 0.62, sliceW = sz * 0.6, sliceT = sx * 0.1;
+        const c = new THREE.Mesh(new RoundedBoxGeometry(sliceT, sliceH, sliceW, 3, sliceW * 0.16), crust);
+        const m = new THREE.Mesh(new RoundedBoxGeometry(sliceT * 1.08, sliceH * 0.86, sliceW * 0.86, 3, sliceW * 0.12), crumb);
+        c.position.set(dx, top + sliceH * 0.12, 0);
+        m.position.set(dx, top + sliceH * 0.1, 0);
+        applySurface(m, { detail: 'herbe', space: 'local' }); // mie alvéolée
+        g.add(slot, c, m);
       }
-      const lever = new THREE.Mesh(new THREE.BoxGeometry(sx * 0.1, sy * 0.12, sz * 0.2), flatMat(palette.danger, {}, 0.5));
-      lever.position.set(sx / 2 + sx * 0.05, sy * 0.75, 0);
-      g.add(body, lever);
+      const lever = new THREE.Mesh(new RoundedBoxGeometry(sx * 0.14, sy * 0.1, sz * 0.22, 2, 0.05), flatMat(t.levier, {}, 0.45));
+      lever.position.set(sx / 2 + sx * 0.06, baseH + bodyH * 0.72, 0);
+      const knob = new THREE.Mesh(new THREE.CylinderGeometry(sy * 0.07, sy * 0.07, sx * 0.08, 20).rotateZ(Math.PI / 2), bake);
+      knob.position.set(sx / 2 + sx * 0.03, baseH + bodyH * 0.3, 0);
+      g.add(lever, knob);
       break;
     }
     case 'rollingPin': {
+      // Rouleau tourné (profil de révolution) : cylindre bombé, gorges, poignées et boutons (LMAP3).
       const [r, len] = size;
-      const main = flatMat(build.color ?? mp.accent, grade, 0.6);
-      const body = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 16), main);
-      const handleGeo = new THREE.CylinderGeometry(r * 0.45, r * 0.45, len * 0.2, 10);
-      const h1 = new THREE.Mesh(handleGeo, flatMat(mp.matiere, grade)); h1.position.y = len * 0.6;
-      const h2 = new THREE.Mesh(handleGeo, flatMat(mp.matiere, grade)); h2.position.y = -len * 0.6;
-      g.add(body, h1, h2);
+      const L = len / 2;
+      const prof: [number, number][] = [
+        [0, -L * 1.22], [r * 0.42, -L * 1.22], [r * 0.5, -L * 1.17], [r * 0.3, -L * 1.1], [r * 0.34, -L * 1.03],
+        [r * 0.4, -L * 1.0], [r * 0.93, -L * 0.99], [r, -L * 0.94], [r, -L * 0.5], [r * 1.02, 0], [r, L * 0.5],
+        [r, L * 0.94], [r * 0.93, L * 0.99], [r * 0.4, L * 1.0], [r * 0.34, L * 1.03], [r * 0.3, L * 1.1],
+        [r * 0.5, L * 1.17], [r * 0.42, L * 1.22], [0, L * 1.22],
+      ];
+      const geo = new THREE.LatheGeometry(prof.map(([x, y]) => new THREE.Vector2(x, y)), 28);
+      const m = new THREE.Mesh(geo, flatMat(build.color ?? PLATEAU.rouleau.bois, {}, 0.55).clone());
+      (m.material as THREE.MeshStandardMaterial).flatShading = false;
+      applySurface(m, { detail: 'bois', space: 'local' });
+      g.add(m);
       break;
     }
     case 'giantFallback': {
@@ -294,11 +326,13 @@ function buildProcedural(build: Extract<PropBuild, { kind: 'procedural' }>, mp: 
 
 async function buildVisual(build: PropBuild, map: LoadedMap, grade: Grade, shadows: boolean): Promise<THREE.Object3D> {
   let obj: THREE.Object3D | null;
+  if (build.kind === 'model' && build.graded === false) grade = {};
   if (build.kind === 'model') {
     obj = await instantiate(build.url, build.node, grade, shadows);
     for (const name of build.hide ?? []) { const n = obj?.getObjectByName(name); if (n) n.visible = false; }
   } else obj = buildProcedural(build, map.mapPalette, grade);
   if (!obj) obj = buildProcedural({ kind: 'procedural', shape: 'giantFallback' }, map.mapPalette, grade);
+  if (build.surface) applySurface(obj, build.surface);
   obj.traverse((o) => {
     const m = o as THREE.Mesh;
     if (m.isMesh) { m.castShadow = shadows; m.receiveShadow = true; }
@@ -433,7 +467,8 @@ function removeFallbackGround(ctx: Ctx) {
 async function buildTileVisuals(map: LoadedMap) {
   const { def } = map;
   if (!def.tiles.length || !def.tileModel) return;
-  const template = await buildVisual(def.tileModel, map, map.backGrade, false);
+  const tg = def.tileGrade ? { saturation: def.tileGrade.saturation, tint: def.tileGrade.teinte } : map.backGrade;
+  const template = await buildVisual(def.tileSurface ? { ...def.tileModel, surface: def.tileSurface } as PropBuild : def.tileModel, map, tg, false);
   let mesh: THREE.Mesh | null = null;
   template.traverse((o) => { if (!mesh && (o as THREE.Mesh).isMesh) mesh = o as THREE.Mesh; });
   if (!mesh) return;
@@ -442,7 +477,21 @@ async function buildTileVisuals(map: LoadedMap) {
   im.castShadow = false;
   im.receiveShadow = true;
   const m4 = new THREE.Matrix4();
-  def.tiles.forEach((tile, i) => { m4.makeTranslation(tile.pos[0], tile.pos[1], tile.pos[2]); im.setMatrixAt(i, m4); });
+  // Variation par dalle (luminosité, teinte) : fini le carrelage uniforme ; rotation de 60° au hasard.
+  const rnd = seeded(97);
+  const col = new THREE.Color();
+  const rot = new THREE.Quaternion();
+  const one = new THREE.Vector3(1, 1, 1);
+  const v = PLATEAU.variation;
+  def.tiles.forEach((tile, i) => {
+    rot.setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.floor(rnd() * 6) * (Math.PI / 3));
+    m4.compose(new THREE.Vector3(tile.pos[0], tile.pos[1], tile.pos[2]), rot, one);
+    im.setMatrixAt(i, m4);
+    const l = 1 + (rnd() - 0.5) * 2 * v.luminosite;
+    col.setRGB(l, l, l).offsetHSL((rnd() - 0.5) * 2 * v.teinte, 0, 0);
+    im.setColorAt(i, col);
+  });
+  if (im.instanceColor) im.instanceColor.needsUpdate = true;
   im.computeBoundingSphere();
   im.name = 'map-tiles';
   map.group.add(im);
@@ -456,6 +505,7 @@ async function buildGroundVisuals(map: LoadedMap) {
     const grade = piece.tint ? { saturation: map.backGrade.saturation, tint: map.mapPalette[piece.tint] } : map.backGrade;
     const obj = await addPart(map, parent, { build: piece.build, offset: piece.pos, yaw: piece.yaw, scale: piece.scale }, grade, true);
     obj.name = piece.id;
+    if (piece.shrinkWithRing) map.shrinkers.push({ obj, spec: piece.shrinkWithRing });
     if (piece.id.startsWith('plateau')) excludeFromOcclusion(obj); // le sol ne s'efface jamais ; un mât, si
   }
 }
@@ -623,19 +673,21 @@ varying float vWave;`)
 function buildSponge(map: LoadedMap) {
   const tk = cuisineTokens();
   const g = new THREE.Group();
-  const foam = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.3, 3.2), flatMat(tk.palette.accent, {}, 0.95));
+  void tk;
+  const foam = new THREE.Mesh(new RoundedBoxGeometry(2.6, 1.3, 3.2, 4, 0.35), flatMat(PLATEAU.eponge.mousse, {}, 0.95).clone());
+  (foam.material as THREE.MeshStandardMaterial).flatShading = false;
   foam.position.y = 0.65;
-  const scrub = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.45, 3.2), flatMat(darken(tk.palette.accent, 0.55), {}, 0.9));
-  scrub.position.y = 1.52;
+  applySurface(foam, { detail: 'pierre', space: 'local' }); // mousse alvéolée
+  const scrub = new THREE.Mesh(new RoundedBoxGeometry(2.6, 0.45, 3.2, 3, 0.12), flatMat(PLATEAU.eponge.grattoir, {}, 0.9).clone());
+  (scrub.material as THREE.MeshStandardMaterial).flatShading = false;
+  scrub.position.y = 1.5;
+  applySurface(scrub, { detail: 'herbe', space: 'local' });
   g.add(foam, scrub);
   g.visible = false;
   map.group.add(g);
   map.sponge = g;
 }
 
-function darken(hex: string, f: number): string {
-  return `#${new THREE.Color(hex).multiplyScalar(f).getHexString()}`;
-}
 
 // ---------------------------------------------------------------------------
 // Zones d'alerte (préavis d'un tour complet) : fusionnées en une géométrie, elles clignotent.
@@ -843,6 +895,12 @@ async function ringFall(ctx: Ctx, map: LoadedMap) {
   doomed.forEach(({ t }, i) => ctx.loop.later(i * 0.045, () => { if (current === map) wakeTile(ctx, map, t); }));
   map.ringLevel = ring - 1;
   ctx.loop.later(doomed.length * 0.045 + 0.05, () => { if (current === map) dropPlayersOverVoid(map); });
+  // Le socle rocheux suit : il se rétracte sous le nouvel anneau extérieur (aucune corniche sans collider).
+  for (const { obj, spec } of map.shrinkers) {
+    const from = obj.scale.x;
+    const to = (spec.base + spec.perRing * map.ringLevel) / spec.modelApothem;
+    void ctx.loop.tween(0.5, (k) => { const sc = from + (to - from) * k; obj.scale.x = sc; obj.scale.z = sc; });
+  }
 }
 
 function wakeTile(ctx: Ctx, map: LoadedMap, t: TileRuntime) {
@@ -972,7 +1030,7 @@ function loadMap(ctx: Ctx, mapId: MapId) {
     backGrade: { saturation: tk.decor.saturation, tint: tk.decor.teinte },
     tileMesh: null, tiles: [], props: new Map(), triggerByCollider: new Map(), groundColliders: new Set(),
     platforms: [], transient: [], ringLevel: Math.max(0, ...def.tiles.map((t) => t.ring)), hazard: null, tilt: 0,
-    catapult: null, sponge: null, spongeBand: null, sea: [], pendingDropXZ: null,
+    catapult: null, sponge: null, spongeBand: null, sea: [], pendingDropXZ: null, shrinkers: [],
   };
   current = map;
   buildPhysics(ctx, map);        // 1. synchrone : le vide est ouvert dès le premier tour
