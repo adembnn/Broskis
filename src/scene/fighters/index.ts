@@ -73,6 +73,8 @@ export function installFighters(ctx: Ctx): FighterSystem {
   const lab: { pos: [Vec3 | null, Vec3 | null]; charge: [number | null, number | null]; flying: [boolean | null, boolean | null] } = {
     pos: [null, null], charge: [null, null], flying: [null, null],
   };
+  /** Vol simulé (banc) : arc balistique de 1,1 s imposé à la position, pour voir la vrille sans le gameplay. */
+  const labFlight: ({ t: number; start: Vec3; dir: [number, number] } | null)[] = [null, null];
   loadPack().catch(() => { /* déjà journalisé : les clips du perso suffisent */ });
 
   // ------------------------------------------------------------------ lectures d'état
@@ -213,6 +215,7 @@ export function installFighters(ctx: Ctx): FighterSystem {
   function startChargePose(rig: FighterRig, weapon: Weapon): void {
     const a = rig.animator;
     rig.body.upper = 'charge';
+    rig.body.cat = weapon.category;
     if (weapon.category === 'blaster') {
       a.playUpper(a.pick('aim1h', 'cast'), { loop: true, fade: 0.12 });
       return;
@@ -234,6 +237,7 @@ export function installFighters(ctx: Ctx): FighterSystem {
     if (!rig) return;
     const a = rig.animator;
     rig.body.upper = 'attack';
+    rig.body.cat = weapon.category;
     if (weapon.category === 'blaster') {
       // Bras tendu vers l'adversaire pendant toute la rafale ; le recul arrive à chaque projectile.
       if (a.upperName !== 'aim1h') a.playUpper(a.pick('aim1h', 'cast'), { loop: true, fade: 0.06 });
@@ -418,6 +422,14 @@ export function installFighters(ctx: Ctx): FighterSystem {
       const b = rig.body;
       const ps = ctx.state.players[p];
       const rt = runtimeOf(p);
+      const lf = labFlight[p];
+      if (lf) {
+        lf.t += dt;
+        const u = Math.min(lf.t, 1.1);
+        lab.pos[p] = [lf.start[0] + lf.dir[0] * 9 * u, lf.start[1] + 8 * u - 7.3 * u * u, lf.start[2] + lf.dir[1] * 9 * u];
+        lab.flying[p] = lf.t < 1.1;
+        if (lf.t > 1.8) { labFlight[p] = null; lab.pos[p] = null; lab.flying[p] = null; }
+      }
       const pos = lab.pos[p] ?? ps.pos;
       tmpTarget.set(pos[0], pos[1], pos[2]);
 
@@ -534,15 +546,18 @@ export function installFighters(ctx: Ctx): FighterSystem {
       if (!busy && !dead && !b.outcome && !tumbling && b.climbT < 0) {
         const want = hanging ? a.pick('jumpAir', 'idle') : locomotionClip(rig);
         if (a.current !== want && a.has(want)) a.play(want, { fade: want === 'run' ? 0.12 : 0.18 });
-        const rate = want === 'strafeL' || want === 'strafeR' || want === 'backpedal' ? directionalRate(want, speed) : null;
-        if (rate !== null) a.setBaseRate(rate);
+        const nat = want === 'strafeL' || want === 'strafeR' || want === 'backpedal' ? packData()?.speeds.get(want) : undefined;
+        if (nat) {
+          const rate = directionalRate(want, speed) ?? 1;
+          a.setBaseRate(rate, rate * nat * LOCAL_TOKENS.fighterScale);
+        }
       }
 
       // Charge : pose tenue qui tremble ; relâchée sans tir → retour.
       const weapon = selectedWeapon(p);
       if (charge > 0 && weapon && b.upper === null && !tumbling && !hanging) startChargePose(rig, weapon);
       if (charge <= 0 && b.upper === 'charge') { b.upper = null; a.stopUpper(0.15); }
-      if (weapon?.category === 'blaster' && b.upper === 'attack' && a.upperName === 'aim1h' && now > b.burstUntil) endAttack(rig);
+      if (b.cat === 'blaster' && b.upper === 'attack' && now > b.burstUntil) endAttack(rig);
 
       // Couche procédurale.
       const pr = a.proc;
@@ -552,9 +567,10 @@ export function installFighters(ctx: Ctx): FighterSystem {
       else look.set(opp[0], opp[1] + 1.15, opp[2]);
       pr.lookAt = look;
       pr.lookWeight = tumbling || hanging || b.outcome || b.teeter ? 0 : rig.locked ? 0.9 : rig.moving ? 0 : 0.55;
-      pr.charge = b.upper === 'charge' ? (weapon?.category === 'blaster' ? charge * 0.4 : charge) : 0;
+      pr.charge = b.upper === 'charge' ? (b.cat === 'blaster' ? charge * 0.4 : charge) : 0;
       pr.hang = hanging;
       pr.guard = b.upper === 'guard' || b.upper === 'react' ? 1 : 0;
+      pr.aimArm = (b.upper === 'charge' || b.upper === 'attack') && b.cat === 'blaster' ? 1 : 0;
       if (b.teeter && !hanging && !rig.moving) {
         const c = arenaCenter();
         pr.teeter = voidDirs[p].set(cp.x - c[0], 0, cp.z - c[2]).normalize();
@@ -604,9 +620,29 @@ export function installFighters(ctx: Ctx): FighterSystem {
       case 'shield': if (w) ctx.bus.emit('fire', { player, weapon: { ...w, category: 'shield' }, dir: [0, 0, 1], power: 1 }); break;
       case 'hitFront': fakeHit(player, true, 3); break;
       case 'hitBack': fakeHit(player, false, 3); break;
-      case 'ko': case 'eject': fakeHit(player, true, 14); break;
+      case 'ko': case 'eject': {
+        const ps = ctx.state.players[player];
+        const opp = ctx.state.players[opponentOf(player)].pos;
+        const d = Math.hypot(ps.pos[0] - opp[0], ps.pos[2] - opp[2]) || 1;
+        labFlight[player] = { t: 0, start: [ps.pos[0], ps.pos[1], ps.pos[2]], dir: [(ps.pos[0] - opp[0]) / d, (ps.pos[2] - opp[2]) / d] };
+        lab.flying[player] = true;
+        fakeHit(player, true, 14);
+        break;
+      }
       case 'teeter': rig.body.teeter = true; break;
       case 'parry': blockOn[player] = true; startGuard(rig); break;
+      case 'parryPerfect':
+        blockOn[player] = true; startGuard(rig);
+        setTimeout(() => ctx.bus.emit('parry:result', { player, grade: 'perfect', deltaMs: 0 }), 300);
+        break;
+      case 'ledge': {
+        const ps = ctx.state.players[player];
+        lab.pos[player] = [ps.pos[0], ps.pos[1] - 1.3, ps.pos[2]];
+        ps.onLedge = true;
+        ctx.bus.emit('ledge:grab', { player, pos: ps.pos });
+        break;
+      }
+      case 'climb': ctx.state.players[player].onLedge = false; lab.pos[player] = null; ctx.bus.emit('ledge:climb', { player }); break;
       case 'victory': ctx.bus.emit('match:end', { winner: player }); break;
       case 'walk': case 'run': case 'idle': a.play(action, { fade: 0.1 }); break;
       default: if (a.has(action)) a.play(action, { loop: true, fade: 0.1 });
