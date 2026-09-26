@@ -82,6 +82,52 @@
         "montre": 6.75
       },
       "reprise": true
+    },
+    {
+      "n": 5,
+      "horodatage": "2026-09-26_17h01",
+      "changement": "main à jour, LATK1 : épaisseur plafonnée (×3 et 25 % de la largeur), tranche à la couleur de l'objet, taille minimale 0,5 m ; mêmes réponses API que le n° 3",
+      "moyenne": 6.19,
+      "fidelite": 5.7,
+      "esthetique": 5.47,
+      "grille": 2,
+      "injouables": 3,
+      "notes": {
+        "tasse-verre": 6.5,
+        "chaise-bureau": 6,
+        "feutre-velleda": 6.25,
+        "telephone": 6.13,
+        "mocassin": 6.38,
+        "tabouret-rotin": 6.5,
+        "pendule-newton": 5.33,
+        "lampe-champignon": 6.75,
+        "roi-echecs": 5.88,
+        "montre": 6.13
+      },
+      "reprise": true
+    },
+    {
+      "n": 6,
+      "horodatage": "2026-09-26_17h03",
+      "changement": "LBENCH : gonflage (faces bombées selon la distance au bord, épaisseur totale inchangée) + dos uni à la couleur de l'objet avec liseré blanc ; mêmes réponses API que le n° 3",
+      "moyenne": 6.24,
+      "fidelite": 5.8,
+      "esthetique": 5.43,
+      "grille": 2,
+      "injouables": 3,
+      "notes": {
+        "tasse-verre": 6.5,
+        "chaise-bureau": 5.63,
+        "feutre-velleda": 6.13,
+        "telephone": 6.75,
+        "mocassin": 6.75,
+        "tabouret-rotin": 5.63,
+        "pendule-newton": 4.83,
+        "lampe-champignon": 7.13,
+        "roi-echecs": 6.13,
+        "montre": 6.88
+      },
+      "reprise": true
     }
   ]
 }
