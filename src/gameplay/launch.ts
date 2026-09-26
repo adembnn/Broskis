@@ -29,7 +29,7 @@ export function startLaunch(ctx: Ctx, player: PlayerId, vel: Vec3, attacker: Pla
   rt.grounded = false;
   rt.charging = false;
   setTeeter(ctx, player, false);
-  rt.launch = { vel: [vel[0], vel[1], vel[2]], grounded: false, attacker, t: 0 };
+  rt.launch = { vel: [vel[0], vel[1], vel[2]], grounded: false, attacker, t: 0, acc: 0 };
 }
 
 export function setTeeter(ctx: Ctx, player: PlayerId, on: boolean): void {
@@ -76,12 +76,12 @@ export function stepLaunches(ctx: Ctx, dt: number): void {
     const rt = getRuntime().players[p];
     const l = rt.launch;
     if (!l || rt.dead) continue;
-    // Sous-pas fixes : trajectoire identique quel que soit le nombre d'images par seconde (et à la prédiction).
-    let remaining = Math.min(dt, 0.1);
-    while (remaining > 1e-6 && rt.launch) {
-      const h = Math.min(STEP, remaining);
-      remaining -= h;
-      stepOne(ctx, p, h);
+    // Pas FIXES de 1/60 s (le reste est gardé pour l'image suivante) : trajectoire identique à la prédiction
+    // (willKo, rattrapage), quel que soit le nombre d'images par seconde.
+    l.acc = Math.min(l.acc + dt, 0.1);
+    while (l.acc >= STEP && rt.launch === l) {
+      l.acc -= STEP;
+      stepOne(ctx, p, STEP);
     }
   }
 }
@@ -150,8 +150,8 @@ export function stepFalls(ctx: Ctx): void {
     if (pos[1] < RINGOUT_Y) { onBlast?.(ctx, p, 'bottom', [pos[0], RINGOUT_Y + 0.1, pos[2]]); continue; }
     if (!rt.grounded && rt.vy < 0) {
       // Chute pendant son propre tour avec des sauts en réserve : on laisse le temps du double saut.
-      const ownTurn = ctx.state.active === p && (ctx.state.phase === 'move' || ctx.state.phase === 'aim');
-      const minBelow = ownTurn && rt.jumpsUsed < MAX_JUMPS_PER_TURN ? LEDGE_OWN_TURN_MIN_BELOW : LEDGE_MIN_BELOW;
+      // Chute en contrôle avec un saut en réserve : on s'accroche plus bas, le temps de tenter le double saut.
+      const minBelow = ctx.state.phase === 'fight' && rt.jumpsUsed < MAX_JUMPS_PER_TURN ? LEDGE_OWN_TURN_MIN_BELOW : LEDGE_MIN_BELOW;
       const ledge = ledgeCandidate(ctx, pos, true, minBelow);
       if (ledge) grabLedge(ctx, p, ledge);
     }
