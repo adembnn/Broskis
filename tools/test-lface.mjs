@@ -9,6 +9,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 
 const OUT = 'captures/lface';
+// LFACE_GPU=1 : vraie carte graphique (ANGLE d3d11) en mode sans fenêtre, sinon rendu logiciel.
+const LANCEMENT = process.env.LFACE_GPU ? ['--use-angle=d3d11', '--ignore-gpu-blocklist', '--enable-gpu-rasterization'] : ['--ignore-gpu-blocklist', '--enable-webgl', '--use-angle=default'];
 mkdirSync(OUT, { recursive: true });
 
 function chargerEnv() {
@@ -65,7 +67,7 @@ async function testerEnJeu(dossier, port) {
     const f = join(dossier, `visage-fictif-${i}.jpg`);
     return `data:image/jpeg;base64,${readFileSync(f).toString('base64')}`;
   });
-  const browser = await chromium.launch({ args: ['--ignore-gpu-blocklist', '--enable-webgl', '--use-angle=default'] });
+  const browser = await chromium.launch({ args: LANCEMENT });
   const page = await browser.newPage({ viewport: { width: 1600, height: 900 } });
   const erreurs = [];
   page.on('console', (m) => { if (m.type() === 'error') erreurs.push(m.text().slice(0, 300)); });
@@ -144,7 +146,12 @@ async function testerParcours(dossier, port) {
     console.log(`Vite lancé (PID ${serveur.pid}) sur ${url}`);
     for (let i = 0; i < 60 && !(await up(url)); i++) await new Promise((r) => setTimeout(r, 500));
   }
-  const browser = await chromium.launch({ args: ['--ignore-gpu-blocklist', '--enable-webgl', '--use-angle=default'] });
+  // Chauffe du module serveur (en dev, sa 1re compilation coûte jusqu'à 36 s mesurées) : le jeu le fait aussi à
+  // l'ouverture de l'écran de choix, mais le test enchaîne les clics plus vite qu'un joueur.
+  const tc = Date.now();
+  await fetch(`${url}/api/scan-fighter`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }).catch(() => {});
+  console.log(`chauffe du module api/scan-fighter : ${Date.now() - tc} ms`);
+  const browser = await chromium.launch({ args: LANCEMENT });
   const page = await browser.newPage({ viewport: { width: 1600, height: 900 } });
   const erreurs = [];
   page.on('console', (m) => { if (m.type() === 'error' && !/Sprite|matrixWorld|Failed to load/.test(m.text())) erreurs.push(m.text().slice(0, 200)); });
@@ -172,6 +179,7 @@ async function testerParcours(dossier, port) {
     console.log(`photo → perso prêt : P1 ${t.pret1 - t.photo1} ms, P2 ${t.pret2 - t.photo2} ms (P2 a pris sa photo ${t.photo2 - t.photo1} ms après P1)`);
     await page.fill('.fighter-panel.p1 input.name-input', 'Tom');
     await page.fill('.fighter-panel.p2 input.name-input', 'Jade');
+    await page.waitForTimeout(6000); // vitrine 3D : modèles, grosses têtes, entrée « cheer »
     await page.screenshot({ path: join(OUT, 'parcours-2-prets.png') });
     await page.click('.ready-bar', { force: true });
     // Écrans suivants (arsenal, map, présentation) : on valide jusqu'au match.
