@@ -18,6 +18,7 @@ export const PIRATE = {
   shipLarge: '/assets/packs/pirate/ship-pirate-large.glb',
   shipMedium: '/assets/packs/pirate/ship-pirate-medium.glb',
   shipGhost: '/assets/packs/pirate/ship-ghost.glb',
+  mast: '/assets/packs/pirate/mast.glb',
   cannon: '/assets/packs/pirate/cannon.glb',
   barrel: '/assets/packs/pirate/barrel.glb',
   crate: '/assets/packs/pirate/crate.glb',

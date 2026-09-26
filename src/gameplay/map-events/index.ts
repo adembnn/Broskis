@@ -35,6 +35,7 @@ function applyEffect(ctx: Ctx, e: PlayerEffect) {
   // Rend la main au contrôleur quand le perso est reposé sur un sol ; s'il tombe dans le vide, c'est
   // la règle de sortie (ring-out, lot LSMASH) qui s'en charge.
   let waited = 0;
+  const minWait = Math.max(SETTLE_MIN_S, e.kind === 'push' ? e.hold ?? 0 : 0);
   const poll = () => {
     waited += SETTLE_POLL_S;
     const b = findBody(ctx, e.player);
@@ -45,11 +46,11 @@ function applyEffect(ctx: Ctx, e: PlayerEffect) {
     const v = b.linvel();
     const own = b.numColliders() > 0 ? b.collider(0) : undefined;
     const onGround = raycastDown(ctx, [pos[0], pos[1] + 0.1, pos[2]], 0.45, own) != null;
-    if (waited >= SETTLE_MIN_S && onGround && Math.hypot(v.x, v.y, v.z) < 1.2) {
+    if (waited >= minWait && onGround && Math.hypot(v.x, v.y, v.z) < 1.2) {
       restoreKinematicFromDynamic(ctx, e.player);
       return;
     }
-    if (waited < SETTLE_MAX_S || !onGround) ctx.loop.later(SETTLE_POLL_S, poll);
+    if (waited < Math.max(SETTLE_MAX_S, minWait + 1) || !onGround) ctx.loop.later(SETTLE_POLL_S, poll);
     else restoreKinematicFromDynamic(ctx, e.player);
   };
   ctx.loop.later(SETTLE_POLL_S, poll);

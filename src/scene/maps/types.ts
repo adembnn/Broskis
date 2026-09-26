@@ -13,8 +13,8 @@ export type PropKind =
   | 'cannon';    // coup -> tire un boulet le long d'un axe peint au sol
 
 export type PropBuild =
-  | { kind: 'model'; url: string; node?: string }
-  | { kind: 'procedural'; shape: 'toaster' | 'rollingPin' | 'rock' | 'slab' | 'giantFallback'; color?: string; size?: Vec3 };
+  | { kind: 'model'; url: string; node?: string; hide?: string[] }
+  | { kind: 'procedural'; shape: 'toaster' | 'rollingPin' | 'rock' | 'slab' | 'deck' | 'hull' | 'giantFallback'; color?: string; size?: Vec3 };
 
 /** Dimensions en unités LOCALES de l'asset, multipliées par `scale` du PropSpec. StaticCollider : unités monde. */
 export type ColliderSpec =

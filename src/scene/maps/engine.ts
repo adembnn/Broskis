@@ -41,7 +41,7 @@ const v3 = (v: Vec3): Vector3Like => ({ x: v[0], y: v[1], z: v[2] });
 
 /** Effet sur un joueur, appliqué côté gameplay par src/gameplay/map-events (poussée physique ou chute). */
 export type PlayerEffect =
-  | { kind: 'push'; player: PlayerId; vel: Vec3 }
+  | { kind: 'push'; player: PlayerId; vel: Vec3; /** secondes minimum avant de rendre la main (pont qui gîte) */ hold?: number }
   | { kind: 'drop'; player: PlayerId };
 let effectHandler: ((e: PlayerEffect) => void) | null = null;
 export function onPlayerEffect(fn: (e: PlayerEffect) => void) { effectHandler = fn; }
@@ -133,6 +133,80 @@ function rockGeometry(size: Vec3, seed = 7): THREE.BufferGeometry {
   return geo;
 }
 
+/** Planches (4 m x 2 m par tuile de texture, rangées de 0,5 m, joints décalés), couleur du pont de la map. */
+const plankCache = new Map<string, THREE.CanvasTexture>();
+function plankTexture(color: string): THREE.CanvasTexture {
+  const cached = plankCache.get(color);
+  if (cached) return cached;
+  const W = 512, H = 256, rows = 4;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const c = canvas.getContext('2d')!;
+  const base = new THREE.Color(color);
+  const rnd = seeded(5);
+  const rowH = H / rows;
+  for (let r = 0; r < rows; r++) {
+    let x = -rnd() * W * 0.5;
+    while (x < W) {
+      const len = W * (0.35 + rnd() * 0.3);
+      const k = 0.9 + rnd() * 0.18;
+      c.fillStyle = `#${base.clone().multiplyScalar(k).getHexString()}`;
+      c.fillRect(x, r * rowH, len, rowH);
+      c.fillStyle = `#${base.clone().multiplyScalar(0.55).getHexString()}`;
+      c.fillRect(x + len - 2, r * rowH, 3, rowH); // joint
+      x += len;
+    }
+    c.fillStyle = `#${base.clone().multiplyScalar(0.5).getHexString()}`;
+    c.fillRect(0, r * rowH, W, 3); // rainure
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(1 / 4, 1 / 2);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  plankCache.set(color, tex);
+  return tex;
+}
+
+/** Coque de navire (loft entre le contour du pont et une quille plus étroite), dessus à y = 0, proue vers +X. */
+function hullGeometry(len: number, depth: number, width: number): THREE.BufferGeometry {
+  const N = 20;
+  const halfW = width / 2;
+  const ring = (bottom: boolean): THREE.Vector3[] => {
+    const side = (sign: number) => {
+      const pts: THREE.Vector3[] = [];
+      for (let i = 0; i <= N; i++) {
+        const t = sign > 0 ? i / N : 1 - i / N;
+        const bow = t > 0.74 ? Math.sqrt(Math.max(0, 1 - ((t - 0.74) / 0.26) ** 2)) : 1;
+        const stern = t < 0.05 ? 0.86 + 0.14 * (t / 0.05) : 1;
+        const x = (-len / 2 + t * len) * (bottom ? 0.84 : 1);
+        const w = halfW * bow * stern * (bottom ? 0.3 : 1) * sign;
+        const y = bottom ? -depth + depth * 0.35 * (2 * t - 1) ** 2 : 0;
+        pts.push(new THREE.Vector3(x, y, w));
+      }
+      return pts;
+    };
+    return [...side(1), ...side(-1).slice(1, -1)];
+  };
+  const top = ring(false);
+  const bot = ring(true);
+  const pos: number[] = [];
+  const tri = (a: THREE.Vector3, b: THREE.Vector3, c: THREE.Vector3) => pos.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
+  const M = top.length;
+  for (let i = 0; i < M; i++) {
+    const j = (i + 1) % M;
+    tri(top[i]!, bot[i]!, top[j]!);
+    tri(top[j]!, bot[i]!, bot[j]!);
+  }
+  const keel = new THREE.Vector3(0, -depth, 0);
+  for (let i = 0; i < M; i++) tri(bot[i]!, keel, bot[(i + 1) % M]!);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.computeVertexNormals();
+  return geo;
+}
+
 function buildProcedural(build: Extract<PropBuild, { kind: 'procedural' }>, mp: MapPalette, grade: Grade): THREE.Object3D {
   const g = new THREE.Group();
   const size = build.size ?? [1, 1, 1];
@@ -158,6 +232,25 @@ function buildProcedural(build: Extract<PropBuild, { kind: 'procedural' }>, mp: 
       const geo = new THREE.ExtrudeGeometry(shape, { depth: sy - bevel * 2, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel * 0.6, bevelSegments: 1 });
       geo.rotateX(Math.PI / 2).translate(0, -bevel, 0);
       g.add(new THREE.Mesh(geo, flatMat(build.color ?? mp.sol, grade, 0.7)));
+      break;
+    }
+    case 'deck': {
+      // Pont : dalle chanfreinée + texture de planches (UV en mètres, cf. plankTexture).
+      const slab = buildProcedural({ kind: 'procedural', shape: 'slab', size, color: build.color }, mp, grade);
+      const mesh = slab.children[0] as THREE.Mesh;
+      const base = mesh.material as THREE.MeshStandardMaterial;
+      const mat = base.clone();
+      mat.color.set('#ffffff');
+      mat.map = plankTexture(build.color ?? mp.sol);
+      mat.flatShading = false;
+      mesh.material = mat;
+      g.add(slab);
+      break;
+    }
+    case 'hull': {
+      const m = new THREE.Mesh(hullGeometry(size[0], size[1], size[2]), flatMat(build.color ?? mp.matiere, grade, 0.85).clone());
+      (m.material as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
+      g.add(m);
       break;
     }
     case 'toaster': {
@@ -195,8 +288,10 @@ function buildProcedural(build: Extract<PropBuild, { kind: 'procedural' }>, mp: 
 
 async function buildVisual(build: PropBuild, map: LoadedMap, grade: Grade, shadows: boolean): Promise<THREE.Object3D> {
   let obj: THREE.Object3D | null;
-  if (build.kind === 'model') obj = await instantiate(build.url, build.node, grade, shadows);
-  else obj = buildProcedural(build, map.mapPalette, grade);
+  if (build.kind === 'model') {
+    obj = await instantiate(build.url, build.node, grade, shadows);
+    for (const name of build.hide ?? []) { const n = obj?.getObjectByName(name); if (n) n.visible = false; }
+  } else obj = buildProcedural(build, map.mapPalette, grade);
   if (!obj) obj = buildProcedural({ kind: 'procedural', shape: 'giantFallback' }, map.mapPalette, grade);
   obj.traverse((o) => {
     const m = o as THREE.Mesh;
@@ -347,7 +442,7 @@ async function buildGroundVisuals(map: LoadedMap) {
     const parent = map.def.id === 'galion' ? map.deckGroup : map.group;
     const obj = await addPart(map, parent, { build: piece.build, offset: piece.pos, yaw: piece.yaw, scale: piece.scale }, map.backGrade, true);
     obj.name = piece.id;
-    if (piece.collider || piece.id.startsWith('plateau')) excludeFromOcclusion(obj);
+    if (piece.id.startsWith('plateau')) excludeFromOcclusion(obj); // le sol ne s'efface jamais ; un mât, si
   }
 }
 
@@ -370,11 +465,11 @@ async function buildPropVisuals(map: LoadedMap) {
     prop.holder.add(obj);
     if (prop.kind === 'cannon' && prop.spec.cannonAxis && prop.spec.cannonRange) {
       const len = prop.spec.cannonRange;
-      const stripe = hazardRect(0, 0, 0.7, len, 0.035);
+      const stripe = hazardRect(0, 0, 0.4, len, 0.035);
       // Axe peint dans le repère du canon : le holder porte déjà son orientation (yaw).
       stripe.position.set(0, 0, len / 2 + 1.2);
       stripe.material = hazardMaterial();
-      (stripe.material as THREE.MeshBasicMaterial).opacity = 0.55;
+      (stripe.material as THREE.MeshBasicMaterial).opacity = 0.4;
       prop.holder.add(stripe);
     }
   }
@@ -470,29 +565,41 @@ async function fireCatapult(ctx: Ctx, map: LoadedMap, target: THREE.Vector3): Pr
 // ---------------------------------------------------------------------------
 // Galion : mer découpée autour de la coque (rondes d'écume), gîte du pont.
 // ---------------------------------------------------------------------------
+const seaTime = { value: 0 };
 function buildSea(map: LoadedMap) {
   const tk = galionTokens();
-  const mat = flatMat(tk.mer.ecume, map.backGrade, 0.9);
-  tk.mer.couronnes.forEach((r, i) => {
-    const shape = new THREE.Shape();
-    const teeth = 14 + i * 4;
-    for (let k = 0; k <= teeth * 2; k++) {
-      const a = (k / (teeth * 2)) * Math.PI * 2;
-      const rr = r + (k % 2 === 0 ? 1.1 : 0);
-      if (k === 0) shape.moveTo(Math.cos(a) * rr, Math.sin(a) * rr); else shape.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
-    }
-    const hole = new THREE.Path();
-    for (let k = 0; k <= 32; k++) {
-      const a = (k / 32) * Math.PI * 2;
-      if (k === 0) hole.moveTo(Math.cos(a) * (r - 1.2), Math.sin(a) * (r - 1.2)); else hole.lineTo(Math.cos(a) * (r - 1.2), Math.sin(a) * (r - 1.2));
-    }
-    shape.holes.push(hole);
-    const mesh = new THREE.Mesh(new THREE.ShapeGeometry(shape, 24).rotateX(-Math.PI / 2), mat);
-    mesh.position.y = map.def.seaY ?? -6;
-    map.group.add(mesh);
-    excludeFromOcclusion(mesh);
-    map.sea.push(mesh);
-  });
+  const geo = new THREE.PlaneGeometry(320, 320, 90, 90).rotateX(-Math.PI / 2);
+  const mat = new THREE.MeshStandardMaterial({ color: tk.palette.accent, roughness: 0.4, metalness: 0, flatShading: true });
+  const amp = tk.mer.houle * 4; // houle de tempête (m)
+  const foam = new THREE.Color(tk.mer.ecume);
+  mat.onBeforeCompile = (shader) => {
+    shader.uniforms.uTime = seaTime;
+    shader.uniforms.uFoam = { value: foam };
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', `#include <common>
+uniform float uTime;
+varying float vWave;`)
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
+        {
+          vec3 p = position;
+          float h = sin(p.x * 0.16 + uTime * 1.1) * 0.9 + sin(p.z * 0.21 - uTime * 0.8) * 0.7 + sin((p.x + p.z) * 0.09 + uTime * 0.55) * 0.8;
+          vWave = h / 2.4;
+          transformed.y += h * ${amp.toFixed(3)} * 0.45;
+        }`);
+    // Crêtes d'écume : plus la vague est haute, plus elle blanchit.
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', `#include <common>
+uniform vec3 uFoam;
+varying float vWave;`)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+  diffuseColor.rgb = mix(diffuseColor.rgb, uFoam, smoothstep(0.62, 1.0, vWave) * 0.8);`);
+  };
+  const sea = new THREE.Mesh(geo, mat);
+  sea.position.y = map.def.seaY ?? -3;
+  sea.receiveShadow = true;
+  map.group.add(sea);
+  excludeFromOcclusion(sea);
+  map.sea.push(sea);
 }
 
 // ---------------------------------------------------------------------------
@@ -743,8 +850,9 @@ async function waveTilt(ctx: Ctx, map: LoadedMap) {
     map.tilt = peak * Math.sin(k * Math.PI);
     if (!pushed && k > 0.12) {
       pushed = true;
-      // Le pont penche vers la caméra (+Z) : tout le monde glisse vers le bord avant.
-      for (const p of ctx.state.players) effect({ kind: 'push', player: p.id, vel: [0, 2.2, 5.2] });
+      // Le pont penche vers la caméra (+Z) : tout le monde glisse d'environ 1,5 m vers le bord avant ;
+      // seul qui est resté sur la bande qui clignotait passe par-dessus bord.
+      for (const p of ctx.state.players) effect({ kind: 'push', player: p.id, vel: [0, 1.5, 2.9], hold: dur * 0.9 });
     }
   });
   map.tilt = 0;
@@ -948,11 +1056,7 @@ function tick(ctx: Ctx, dt: number) {
       const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), map.tilt);
       map.deckBody.setNextKinematicRotation({ x: q.x, y: q.y, z: q.z, w: q.w });
     }
-    const tk = galionTokens();
-    map.sea.forEach((m, i) => {
-      m.rotation.y = ctx.loop.time * (tk.mer.vitesses[i] ?? 0.03);
-      m.position.y = (map.def.seaY ?? -6) + Math.sin(ctx.loop.time * 0.8 + i * 2) * tk.mer.houle;
-    });
+    seaTime.value = ctx.loop.time;
   }
   void dt;
 }
