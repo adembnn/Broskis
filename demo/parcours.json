@@ -1,6 +1,14 @@
 [
-  { "nom": "ouverture", "attente": 4000 },
-  { "nom": "premiere-action", "hook": "action", "arg": "exemple d'action normale", "attente": 2500 },
-  { "nom": "moment-jury", "hook": "action", "arg": "une pluie de baguettes de pain", "attente": 4000 },
-  { "nom": "climax", "hook": "forcerVictoire", "attente": 3000 }
+  { "nom": "graine-fixe", "hook": "setSeed", "arg": 260926, "attente": 300 },
+  { "nom": "lancement-match", "hook": "startMatch", "attente": 3000 },
+  { "nom": "scan-objet-scene", "hook": "scan", "arg": "coffee_mug", "attente": 3000 },
+  { "nom": "presentation-arme", "hook": "pickWeapon", "arg": 0, "attente": 2500 },
+  { "nom": "avance-vers-caisse", "hook": "move", "arg": 4, "attente": 1200 },
+  { "nom": "saut", "hook": "jump", "attente": 800 },
+  { "nom": "attrape-caisse-snap", "hook": "grabCrate", "attente": 800 },
+  { "nom": "scan-objet-jury", "hook": "scan", "arg": "jury_object", "attente": 3000 },
+  { "nom": "vise-et-tire", "hook": "fire", "arg": 80, "attente": 1500 },
+  { "nom": "parade-adverse", "hook": "parry", "arg": 90, "attente": 1000 },
+  { "nom": "ko-ralenti", "hook": "forcerVictoire", "arg": 0, "attente": 3500 },
+  { "nom": "ecran-fin", "attente": 2000 }
 ]
