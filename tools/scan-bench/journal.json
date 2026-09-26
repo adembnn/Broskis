@@ -19,6 +19,26 @@
         "montre": 5.68
       },
       "reprise": true
+    },
+    {
+      "n": 2,
+      "horodatage": "2026-09-26_16h37",
+      "changement": "main à jour : physique LSCAN, consigne sticker « objet seul » de LSCAN, taille et épaisseur selon la physique (LATK1)",
+      "moyenne": 6.85,
+      "injouables": 5,
+      "notes": {
+        "tasse-verre": 6.8,
+        "chaise-bureau": 7.6,
+        "feutre-velleda": 6.72,
+        "telephone": 7,
+        "mocassin": 6.6,
+        "tabouret-rotin": 5.8,
+        "pendule-newton": 5.82,
+        "lampe-champignon": 7,
+        "roi-echecs": 7.2,
+        "montre": 8
+      },
+      "reprise": false
     }
   ]
 }
