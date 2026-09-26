@@ -62,7 +62,9 @@ function teindre(mat: THREE.Material, look: Teinte) {
       uRecTo: { value: new THREE.Vector3(0, 1, 1) }, uTint: { value: new THREE.Color(1, 1, 1) }, uTintK: { value: new THREE.Vector3(0, 0, 0) },
       uShimmer: { value: new THREE.Color(0, 0, 0) },
     };
-    mat.onBeforeCompile = (shader) => onBeforeCompileTeinte(shader, mat);
+    // On garde le shader déjà posé par fighters/loader.ts (lot LLOOK : liseré de lumière, émissif d'équipe).
+    const avant = mat.onBeforeCompile;
+    mat.onBeforeCompile = (shader, r) => { avant.call(mat, shader, r); onBeforeCompileTeinte(shader, mat); };
     mat.needsUpdate = true;
   }
   const u = mat.userData.u;
@@ -73,18 +75,16 @@ function teindre(mat: THREE.Material, look: Teinte) {
   u.uTintK.value.y = look.desat ?? 0;
 }
 
-// --- Corps : tenue de la photo, couleur d'équipe gardée sur la cape ---
+// --- Corps : tenue de la photo, couleur d'équipe gardée par l'émissif du lot LLOOK ---
 
-/** Buste (`*_Body`) et bras à la couleur principale de la tenue, jambes à la secondaire. La couleur d'équipe
- * (posée sur le buste par fighters/loader.ts) passe sur la cape : P1 / P2 restent lisibles. */
+/** Buste (`*_Body`) et bras à la couleur principale de la tenue, jambes à la secondaire. La lueur d'équipe P1 / P2
+ * (shader de fighters/loader.ts, lot LLOOK) est gardée : la teinte s'ajoute à ce shader au lieu de le remplacer. */
 function recolorerCorps(root: THREE.Object3D, look: FighterLook): void {
   const meshes: THREE.Mesh[] = [];
   root.traverse((o) => {
     // Jamais les coques de contour (matériau partagé par tous les persos : l'encre deviendrait colorée).
     if ((o as THREE.Mesh).isMesh && !o.userData.isOutline && !Array.isArray((o as THREE.Mesh).material)) meshes.push(o as THREE.Mesh);
   });
-  const buste = meshes.find((m) => /_Body$/.test(m.name));
-  const equipe = (buste?.material as THREE.MeshStandardMaterial | undefined)?.color?.clone();
   for (const mesh of meshes) {
     const mat = mesh.material as THREE.MeshStandardMaterial;
     const n = mesh.name;
@@ -93,7 +93,6 @@ function recolorerCorps(root: THREE.Object3D, look: FighterLook): void {
       teindre(mat, { tint: look.primary, tintK: 0.85 });
     } else if (/_Arm/.test(n)) teindre(mat, { tint: look.primary, tintK: 0.55 });
     else if (/_Leg/.test(n)) teindre(mat, { tint: look.secondary, tintK: 0.75 });
-    else if (/_Cape$/.test(n) && equipe) teindre(mat, { tint: equipe, tintK: 0.9 });
   }
 }
 
@@ -138,7 +137,8 @@ function detourer(img: HTMLImageElement): Detoure {
   const d = im.data;
   const n = w * h;
   const magenta = (i: number) => { const r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2]; return r > 150 && b > 150 && g < 110 && Math.abs(r - b) < 90; };
-  const blanc = (i: number) => { const r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2]; return Math.min(r, g, b) > 185 && Math.max(r, g, b) - Math.min(r, g, b) < 45; };
+  // Blanc du bord, ou mélange blanc / magenta (liseré anticrénelé et bruit JPEG), jamais le trait d'encre sombre.
+  const blanc = (i: number) => { const r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2]; return (Math.min(r, g, b) > 185 && Math.max(r, g, b) - Math.min(r, g, b) < 45) || (r > 170 && b > 170 && g > 80); };
   const fond = new Uint8Array(n); // 1 = magenta, 2 = bord blanc
   const file = new Int32Array(n);
   const remplir = (accepte: (i: number) => boolean, marque: number, depart: number[]) => {
