@@ -3,6 +3,7 @@
 // de particules vivantes (setDrawRange + swap-remove). Couleurs passées par l'appelant (weapon.palette ou
 // tokens.js) : ce module ne choisit aucune couleur lui-même.
 import * as THREE from 'three';
+import { particules } from '../../core/quality';
 
 const PARTICLE_VERT = /* glsl */`
 attribute vec3 aColor;
@@ -129,7 +130,7 @@ export class ParticleBurstSystem {
       size = [0.15, 0.35], gravity = 6, drag = 3, direction = null, spread = 1,
     } = o;
     const colors = Array.isArray(color) ? color : [color];
-    const emit = Math.min(count, this.max - this.alive);
+    const emit = Math.min(Math.ceil(count * particules()), this.max - this.alive); // perf : ÷ 2 en palier bas (LPERF)
     for (let k = 0; k < emit; k++) {
       const i = this.alive++;
       const i3 = i * 3;
