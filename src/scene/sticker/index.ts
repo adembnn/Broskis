@@ -12,6 +12,7 @@
 import * as THREE from 'three';
 import { createToonMaterial, addOutline } from '../../../reference/bagarre-de-taverne/toon-kit.js';
 import type { Category } from '../../core/types';
+import { geometrieCoussin, type Coussin } from './gonflage';
 
 export interface StickerOptions {
   /** Épaisseur du carton (unités monde). Défaut 0,06 (plan/lots/LS-sticker-3d.md). */
@@ -25,6 +26,11 @@ export interface StickerOptions {
   border?: number;
   /** Hauteur totale visée pour le sticker (le plus grand des deux axes est mis à l'échelle sur cette valeur). */
   height?: number;
+  /**
+   * Faces bombées selon la distance au bord (lot LBENCH, voir gonflage.ts). Par défaut : oui, sauf si `depth`
+   * est imposé (la tête du perso photo garde son carton plat). L'épaisseur maximale reste EPAISSEUR_TOTALE.
+   */
+  gonflage?: boolean;
 }
 
 const MAGENTA_KEY = { r: 255, g: 0, b: 255 };
@@ -40,6 +46,18 @@ const MAX_CONTOUR_POINTS = 400;
  *  on travaille sur une version réduite pour tenir le budget de ~50 ms (plan/lots/LS-sticker-3d.md),
  *  la texture, elle, reste en pleine résolution. */
 const ANALYSIS_MAX_DIM = 384;
+/** Trous intérieurs gardés ouverts (lot LBENCH) : au-dessus de 0,4 % de l'aire de l'objet et de 40 px d'analyse. */
+const HOLE_MIN_FRAC = 0.004;
+const HOLE_MIN_PX = 40;
+const MAX_HOLES = 16;
+/** Sommets max par trou (le contour extérieur garde MAX_CONTOUR_POINTS). */
+const MAX_HOLE_POINTS = 120;
+
+/** Épaisseur au plus épais d'un sticker de hauteur 1 : src/scene/weapons/visual.ts (TEMPLATE_DEPTH) compte dessus
+ *  pour caler l'épaisseur sur la profondeur réelle de l'objet. */
+const EPAISSEUR_TOTALE = 0.082;
+/** Part de cette épaisseur donnée au bombé des deux faces ; le reste est le carton du bord (lot LBENCH). */
+const PART_BOMBE = 0.75;
 
 /** Palette carton par défaut, utilisée si aucune palette d'arme n'est fournie. */
 const CARDBOARD_TRANCHE = '#c9a36a';
@@ -96,8 +114,52 @@ export function chromaKey(img: HTMLImageElement | HTMLCanvasElement): HTMLCanvas
     }
   }
 
+  despillBord(data, canvas.width, canvas.height);
   ctx.putImageData(imageData, 0, 0);
   return canvas;
+}
+
+/** Largeur (px) de la bande de bord où le magenta est entièrement retiré. */
+const BANDE_DESPILL = 3;
+
+/**
+ * Lot LBENCH : sur un objet sombre, le contour noir mélangé au magenta donne un liseré violet foncé (juge Gemini sur
+ * le mocassin d'Adem) que le despill doux ci-dessus laisse passer. Sur une bande de BANDE_DESPILL px le long du
+ * fond retiré, on retire TOUT l'excès de magenta (rouge et bleu ramenés au vert) ; l'intérieur de l'objet ne
+ * change pas. Bande obtenue par dilatation séparable du fond (deux passes 1D).
+ */
+function despillBord(data: Uint8ClampedArray, w: number, h: number): void {
+  const fond = new Uint8Array(w * h);
+  for (let i = 0; i < w * h; i++) fond[i] = data[i * 4 + 3] < 128 ? 1 : 0;
+  const lignes = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) {
+    let dernier = -1e9;
+    for (let x = 0; x < w; x++) { if (fond[y * w + x]) dernier = x; if (x - dernier <= BANDE_DESPILL) lignes[y * w + x] = 1; }
+    dernier = 1e9;
+    for (let x = w - 1; x >= 0; x--) { if (fond[y * w + x]) dernier = x; if (dernier - x <= BANDE_DESPILL) lignes[y * w + x] = 1; }
+  }
+  for (let x = 0; x < w; x++) {
+    let dernier = -1e9;
+    for (let y = 0; y < h; y++) {
+      if (lignes[y * w + x]) dernier = y;
+      const i = y * w + x;
+      if (!fond[i] && y - dernier <= BANDE_DESPILL) retirerMagenta(data, i * 4);
+    }
+    dernier = 1e9;
+    for (let y = h - 1; y >= 0; y--) {
+      if (lignes[y * w + x]) dernier = y;
+      const i = y * w + x;
+      if (!fond[i] && dernier - y <= BANDE_DESPILL) retirerMagenta(data, i * 4);
+    }
+  }
+}
+
+function retirerMagenta(data: Uint8ClampedArray, i: number): void {
+  const exces = Math.min(data[i], data[i + 2]) - data[i + 1];
+  if (exces > 0) {
+    data[i] -= exces;
+    data[i + 2] -= exces;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -111,7 +173,7 @@ export function chromaKey(img: HTMLImageElement | HTMLCanvasElement): HTMLCanvas
  * observées dans les coins de `duck-grenade.jpg` (plan/lots/LS-sticker-3d.md, constats).
  * Coût : deux passages BFS sur les pixels, une seule fois par sticker (budget ~50 ms, voir lot).
  */
-function keepLargestComponentAndFillHoles(canvas: HTMLCanvasElement): void {
+function keepLargestComponentAndFillHoles(canvas: HTMLCanvasElement): number[][] {
   const { width, height } = canvas;
   const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
   const imageData = ctx.getImageData(0, 0, width, height);
@@ -203,12 +265,31 @@ function keepLargestComponentAndFillHoles(canvas: HTMLCanvasElement): void {
       }
     }
   }
-  // Fond non atteint depuis le bord = trou intérieur → on le rend opaque.
-  for (let i = 0; i < n; i++) {
-    if (isBgNow(i) && !reachable[i]) data[i * 4 + 3] = 255;
+  // Fond non atteint depuis le bord = trou intérieur. Lot LBENCH : seuls les PETITS trous (bruit JPEG) sont
+  // bouchés ; un grand trou (entre les pieds d'un tabouret, dans le cadre d'un pendule, dans un bracelet) reste
+  // ouvert, sinon l'extrusion en fait un bloc plein (juge Gemini sur les objets d'Adem).
+  const holes: number[][] = [];
+  const seen = new Uint8Array(n);
+  const minHole = Math.max(HOLE_MIN_PX, bestSize * HOLE_MIN_FRAC);
+  for (let start = 0; start < n; start++) {
+    if (!isBgNow(start) || reachable[start] || seen[start]) continue;
+    const pixels: number[] = [start];
+    seen[start] = 1;
+    for (let k = 0; k < pixels.length; k++) {
+      const idx = pixels[k];
+      const x = idx % width;
+      const y = (idx / width) | 0;
+      const neighbors = [x > 0 ? idx - 1 : -1, x < width - 1 ? idx + 1 : -1, y > 0 ? idx - width : -1, y < height - 1 ? idx + width : -1];
+      for (const nb of neighbors) {
+        if (nb >= 0 && isBgNow(nb) && !reachable[nb] && !seen[nb]) { seen[nb] = 1; pixels.push(nb); }
+      }
+    }
+    if (pixels.length < minHole || holes.length >= MAX_HOLES) for (const i of pixels) data[i * 4 + 3] = 255;
+    else holes.push(pixels);
   }
 
   ctx.putImageData(imageData, 0, 0);
+  return holes;
 }
 
 // ---------------------------------------------------------------------------
@@ -225,11 +306,17 @@ function traceContour(canvas: HTMLCanvasElement): Point[] {
   const { width, height } = canvas;
   const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
   const alpha = ctx.getImageData(0, 0, width, height).data;
-  const at = (x: number, y: number): number => {
-    if (x < 0 || y < 0 || x >= width || y >= height) return 0;
-    return alpha[(y * width + x) * 4 + 3] > 127 ? 1 : 0;
-  };
+  return traceMask((x, y) => (x < 0 || y < 0 || x >= width || y >= height ? 0 : alpha[(y * width + x) * 4 + 3] > 127 ? 1 : 0), width, height);
+}
 
+/** Contour d'un trou (liste de pixels d'analyse) : même suivi de bord, sur le trou vu comme une forme. */
+function traceHole(pixels: number[], width: number, height: number): Point[] {
+  const inHole = new Uint8Array(width * height);
+  for (const i of pixels) inHole[i] = 1;
+  return traceMask((x, y) => (x < 0 || y < 0 || x >= width || y >= height ? 0 : inHole[y * width + x]), width, height);
+}
+
+function traceMask(at: (x: number, y: number) => number, width: number, height: number): Point[] {
   // Point de départ : premier pixel opaque en balayant ligne par ligne.
   let start: Point | null = null;
   outer: for (let y = 0; y < height; y++) {
@@ -380,9 +467,12 @@ export async function makeSticker(
   src: string | HTMLImageElement,
   opts: StickerOptions = {},
 ): Promise<THREE.Group> {
-  const depth = opts.depth ?? 0.06;
-  const borderFrac = opts.border ?? 0;
   const targetHeight = opts.height ?? 1;
+  const gonfle = opts.gonflage ?? opts.depth === undefined;
+  // Gonflé : carton du bord = 25 % de l'épaisseur (biseaux compris : profondeur × 1,8), bombé = 75 % en deux faces.
+  const depth = opts.depth ?? (gonfle ? (targetHeight * EPAISSEUR_TOTALE * (1 - PART_BOMBE)) / 1.8 : 0.06);
+  const bombe = gonfle ? (targetHeight * EPAISSEUR_TOTALE * PART_BOMBE) / 2 : 0;
+  const borderFrac = opts.border ?? 0;
 
   const img = typeof src === 'string' ? await loadImage(src) : src;
   const keyed = chromaKey(img);
@@ -391,7 +481,7 @@ export async function makeSticker(
   // précision d'un contour à 384 px suffit largement une fois simplifié à ~400 sommets.
   const analysisScale = Math.min(1, ANALYSIS_MAX_DIM / Math.max(keyed.width, keyed.height));
   const analysisCanvas = downscale(keyed, analysisScale);
-  keepLargestComponentAndFillHoles(analysisCanvas);
+  const holesSmall = keepLargestComponentAndFillHoles(analysisCanvas);
   const rawContourSmall = traceContour(analysisCanvas);
   const group = new THREE.Group();
 
@@ -430,6 +520,20 @@ export async function makeSticker(
   shapePoints.forEach((p, i) => (i === 0 ? shape.moveTo(p.x, p.y) : shape.lineTo(p.x, p.y)));
   shape.closePath();
 
+  // Lot LBENCH : les grands trous (entre des pieds, dans un cadre ou une anse) sont découpés dans le volume.
+  // ExtrudeGeometry remet chaque trou dans le bon sens (contour extérieur CCW, voir plus haut).
+  for (const pixels of holesSmall) {
+    const raw = traceHole(pixels, analysisCanvas.width, analysisCanvas.height);
+    if (raw.length < 8) continue;
+    const pts = simplifyToBudget(raw.map((p) => ({ x: p.x / analysisScale, y: p.y / analysisScale })), MAX_HOLE_POINTS)
+      .map((p) => ({ x: (p.x - minX - pxWidth / 2) * scale, y: (pxHeight / 2 - (p.y - minY)) * scale }));
+    if (pts.length < 3) continue;
+    const hole = new THREE.Path();
+    pts.forEach((p, i) => (i === 0 ? hole.moveTo(p.x, p.y) : hole.lineTo(p.x, p.y)));
+    hole.closePath();
+    shape.holes.push(hole);
+  }
+
   const bevelThickness = Math.min(depth * 0.4, 0.012);
   const geometry = new THREE.ExtrudeGeometry(shape, {
     depth,
@@ -439,8 +543,12 @@ export async function makeSticker(
     bevelSegments: 1,
     curveSegments: 6,
   });
-  geometry.center();
-  applyFrontUVs(geometry, { minX, minY, pxWidth, pxHeight, scale, imgWidth: keyed.width, imgHeight: keyed.height });
+  // Comme geometry.center(), mais on garde la translation : UV et coussins du gonflage s'y calent.
+  geometry.computeBoundingBox();
+  const decalage = geometry.boundingBox!.getCenter(new THREE.Vector3()).negate();
+  geometry.translate(decalage.x, decalage.y, decalage.z);
+  applyFrontUVs(geometry, { minX, minY, pxWidth, pxHeight, scale, imgWidth: keyed.width, imgHeight: keyed.height, dx: decalage.x, dy: decalage.y });
+  const dist = distanceAuBord(analysisCanvas);
 
   const texture = new THREE.CanvasTexture(keyed);
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -451,14 +559,28 @@ export async function makeSticker(
   // que de complexifier davantage la détection de sens.
   const frontMaterial = createToonMaterial(0xffffff, { map: texture, transparent: true, steps: 3 });
   frontMaterial.side = THREE.DoubleSide;
-  const edgeMaterial = new THREE.MeshStandardMaterial({ color: CARDBOARD_TRANCHE, roughness: 0.9 });
-  // Groupes de matériaux : ExtrudeGeometry range face avant/arrière puis les côtés (biseau inclus).
-  // On applique la texture sur les deux faces plates, le carton sur la tranche.
-  const materials = [frontMaterial, edgeMaterial];
-  geometry.groups.forEach((g, idx) => {
-    // Les deux premiers groupes (index 0, 1 selon curveSegments) sont face avant/arrière.
-    g.materialIndex = idx < 2 ? 0 : 1;
-  });
+  // Groupes de ExtrudeGeometry : 0 = les deux faces plates (texture), 1 = la tranche, biseaux compris.
+  // Lot LBENCH : la tranche prend la couleur dominante de l'objet. Avant, elle recevait la projection du contour
+  // dessiné (encre sombre) : dès que l'épaisseur suit la physique (jusqu'à 65 % de la largeur), l'objet devenait
+  // un bloc noir (juge Gemini : « tranche 3D noire opaque »).
+  const couleurCorps = couleurTranche(keyed, analysisCanvas, analysisScale, dist);
+  const edgeMaterial = createToonMaterial(couleurCorps, { steps: 3 });
+  // Dos uni (retour d'Adem, 16h55 : « on doit lire UN seul objet sous tous les angles ») : la silhouette à la
+  // couleur de l'objet, au lieu de l'image en miroir (qui dédoublait l'objet).
+  const dosTexture = new THREE.CanvasTexture(texteDos(keyed, couleurCorps));
+  dosTexture.colorSpace = THREE.SRGBColorSpace;
+  const dosMaterial = createToonMaterial(0xffffff, { map: dosTexture, transparent: true, steps: 3 });
+  dosMaterial.side = THREE.DoubleSide;
+  const materials = [frontMaterial, edgeMaterial, dosMaterial];
+  // Le groupe 0 d'ExtrudeGeometry contient les deux faces : d'abord l'arrière (z négatif), puis l'avant, à parts
+  // égales. On le coupe en deux pour donner au dos son propre matériau.
+  const faces = geometry.groups.find((g) => g.materialIndex === 0);
+  if (faces) {
+    const moitie = faces.count / 2;
+    geometry.addGroup(faces.start, moitie, 2);
+    faces.start += moitie;
+    faces.count = moitie;
+  }
 
   const mesh = new THREE.Mesh(geometry, materials);
   addOutline(mesh, 0.012, OUTLINE_INK);
@@ -479,8 +601,94 @@ export async function makeSticker(
   }
 
   group.add(mesh);
-  group.userData.sticker = { pxWidth, pxHeight, contourPoints: contour.length };
+
+  // Gonflage (lot LBENCH) : un coussin bombé sur chaque face, découpé par l'alpha de la texture (alphaTest).
+  if (bombe > 0) {
+    const coussin: Coussin = {
+      dist, aw: analysisCanvas.width, ah: analysisCanvas.height, analysisScale,
+      minX, minY, pxWidth, pxHeight, scale, imgWidth: keyed.width, imgHeight: keyed.height,
+      decalage, zFace: geometry.boundingBox!.max.z + decalage.z, amplitude: bombe,
+    };
+    const matAvant = createToonMaterial(0xffffff, { map: texture, steps: 3 });
+    matAvant.alphaTest = 0.5;
+    const matDos = createToonMaterial(0xffffff, { map: dosTexture, steps: 3 });
+    matDos.alphaTest = 0.5;
+    group.add(new THREE.Mesh(geometrieCoussin(coussin, 1), matAvant), new THREE.Mesh(geometrieCoussin(coussin, -1), matDos));
+  }
+
+  group.userData.sticker = { pxWidth, pxHeight, contourPoints: contour.length, holes: shape.holes.length, bombe };
   return group;
+}
+
+/**
+ * Distance (px d'analyse) de chaque pixel de l'objet au fond le plus proche : chanfrein 1 / √2 en deux passes.
+ * Le dehors de l'image compte comme du fond.
+ */
+function distanceAuBord(canvas: HTMLCanvasElement): Float32Array {
+  const { width: w, height: h } = canvas;
+  const alpha = canvas.getContext('2d', { willReadFrequently: true })!.getImageData(0, 0, w, h).data;
+  const d = new Float32Array(w * h);
+  for (let i = 0; i < w * h; i++) d[i] = alpha[i * 4 + 3] > 127 ? 1e9 : 0;
+  const at = (x: number, y: number) => (x < 0 || y < 0 || x >= w || y >= h ? 0 : d[y * w + x]);
+  const D = Math.SQRT2;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = y * w + x;
+    if (d[i]) d[i] = Math.min(d[i], at(x - 1, y) + 1, at(x, y - 1) + 1, at(x - 1, y - 1) + D, at(x + 1, y - 1) + D);
+  }
+  for (let y = h - 1; y >= 0; y--) for (let x = w - 1; x >= 0; x--) {
+    const i = y * w + x;
+    if (d[i]) d[i] = Math.min(d[i], at(x + 1, y) + 1, at(x, y + 1) + 1, at(x + 1, y + 1) + D, at(x - 1, y + 1) + D);
+  }
+  return d;
+}
+
+/**
+ * Couleur dominante du CORPS de l'objet (loin du bord, donc hors contour d'encre et bord blanc du sticker),
+ * un peu assombrie : c'est la couleur de la tranche. Histogramme sur 4 bits par canal.
+ */
+function couleurTranche(keyed: HTMLCanvasElement, analysis: HTMLCanvasElement, analysisScale: number, dist: Float32Array): THREE.Color {
+  const { width: aw, height: ah } = analysis;
+  // Loin du bord (3 % de l'image) ; un objet tout fin (feutre, pieds) n'a pas de tel pixel : on se rapproche.
+  let seuil = Math.max(3, 0.03 * Math.max(aw, ah));
+  let loin = 0;
+  for (let i = 0; i < dist.length; i += 4) if (dist[i] >= seuil) loin++;
+  if (loin < 40) seuil = 2;
+  const src = keyed.getContext('2d', { willReadFrequently: true })!.getImageData(0, 0, keyed.width, keyed.height).data;
+  const compte = new Map<number, { n: number; r: number; g: number; b: number }>();
+  for (let y = 0; y < ah; y += 2) for (let x = 0; x < aw; x += 2) {
+    if (dist[y * aw + x] < seuil) continue;
+    const sx = Math.min(keyed.width - 1, Math.round(x / analysisScale));
+    const sy = Math.min(keyed.height - 1, Math.round(y / analysisScale));
+    const i = (sy * keyed.width + sx) * 4;
+    if (src[i + 3] < 200) continue;
+    const cle = ((src[i] >> 4) << 8) | ((src[i + 1] >> 4) << 4) | (src[i + 2] >> 4);
+    const c = compte.get(cle) ?? { n: 0, r: 0, g: 0, b: 0 };
+    c.n++; c.r += src[i]; c.g += src[i + 1]; c.b += src[i + 2];
+    compte.set(cle, c);
+  }
+  let meilleur: { n: number; r: number; g: number; b: number } | null = null;
+  for (const c of compte.values()) if (!meilleur || c.n > meilleur.n) meilleur = c;
+  if (!meilleur) return new THREE.Color(CARDBOARD_TRANCHE);
+  const couleur = new THREE.Color().setRGB(meilleur.r / meilleur.n / 255, meilleur.g / meilleur.n / 255, meilleur.b / meilleur.n / 255, THREE.SRGBColorSpace);
+  return couleur.multiplyScalar(ASSOMBRI_TRANCHE);
+}
+
+/** Tranche et dos : couleur dominante de l'objet assombrie de 15 % (retour d'Adem). */
+const ASSOMBRI_TRANCHE = 0.85;
+/**
+ * Texture du dos : la silhouette de l'objet (alpha du détourage) toute à la couleur de l'objet. Sans liseré : de
+ * trois-quarts, un liseré blanc au dos dépassait derrière celui de la face (« double silhouette », juge du banc).
+ */
+function texteDos(keyed: HTMLCanvasElement, couleur: THREE.Color): HTMLCanvasElement {
+  const dos = document.createElement('canvas');
+  dos.width = keyed.width;
+  dos.height = keyed.height;
+  const ctx = dos.getContext('2d')!;
+  ctx.drawImage(keyed, 0, 0);
+  ctx.globalCompositeOperation = 'source-in';
+  ctx.fillStyle = `#${couleur.getHexString()}`; // sRGB
+  ctx.fillRect(0, 0, dos.width, dos.height);
+  return dos;
 }
 
 /** Copie `canvas` à l'échelle `scale` (≤ 1). Renvoie le même canvas si `scale` vaut 1. */
@@ -507,6 +715,8 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 interface UvMapping {
   minX: number; minY: number; pxWidth: number; pxHeight: number; scale: number;
   imgWidth: number; imgHeight: number;
+  /** Translation déjà appliquée à la géométrie (centrage), retirée avant de retrouver les pixels. */
+  dx?: number; dy?: number;
 }
 
 /**
@@ -519,8 +729,8 @@ function applyFrontUVs(geometry: THREE.ExtrudeGeometry, m: UvMapping): void {
   const uv = geometry.attributes.uv as THREE.BufferAttribute;
   const position = geometry.attributes.position as THREE.BufferAttribute;
   for (let i = 0; i < position.count; i++) {
-    const x = position.getX(i);
-    const y = position.getY(i);
+    const x = position.getX(i) - (m.dx ?? 0);
+    const y = position.getY(i) - (m.dy ?? 0);
     // Inverse la transformation shapePoints (voir makeSticker) pour retrouver les pixels
     // d'origine, puis normalise par la taille réelle du canvas source (pas par la boîte du
     // contour) : c'est ça qui donne des UV alignés sur la bonne portion de la texture.
