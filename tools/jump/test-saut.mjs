@@ -123,7 +123,7 @@ try {
 
   // Archipel : l'anneau extérieur tombe sous les pieds -> on tombe avec (pas de « surf » sur la dalle).
   {
-    await fresh('archipel', [7.4, 0.05, 0]);
+    await fresh('archipel', [12, 0.05, 0]); // anneau extérieur (6 anneaux depuis LMAP3)
     const before = await state();
     await page.evaluate(() => window.ctx.bus.emit('map:event', { mapId: 'archipel', kind: 'ring' }));
     const tg = await page.evaluate(() => window.ctx.loop.time);
