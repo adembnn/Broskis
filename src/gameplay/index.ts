@@ -22,11 +22,11 @@ export const install: Install = (ctx) => {
   installDebugColliders(ctx);
   installStocks();
   installBro(ctx);
-  installControls();
+  installControls(ctx);
   installCrate(ctx);
   installHooks(ctx);
   installSelftest(ctx);
-  installAI(ctx); // bot au tour par tour : inactif en temps réel (il sera refait)
+  installAI(ctx); // bot temps réel (RTBOT) : joue P2 en mode vs IA, par les entrées
 
   ctx.loop.addSystem('gameplay-input', (dt) => {
     stepMatchClock(ctx, dt);
