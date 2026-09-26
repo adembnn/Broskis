@@ -2,21 +2,34 @@
 
 Ce dossier transforme Claude Code en petit studio : des **skills** (fiches de savoir-faire que Claude lit tout seul quand le sujet arrive), des **agents** (des Claude spécialisés qui n'ont pas écrit le code et le jugent sans indulgence) et des **hooks** (automatismes qui se déclenchent seuls).
 
-## Installer (10 min, ce soir, sur chaque PC)
-0. Il faut un projet de jeu Vite à la racine du dépôt. Deux façons :
-   - base vierge : `npm create vite@latest . -- --template vanilla` (ou `vanilla-ts` pour TypeScript), puis `npm i three` ;
-   - base du pack threejs-game-skills (TypeScript, plus complète) : demander à Claude « démarre le projet avec la base du pack threejs-game-skills », APRÈS l'installation.
-   Dans les deux cas, une seule personne le fait, pousse, et l'autre récupère (`git pull`).
-1. Copier tout le contenu de ce dossier (y compris le dossier caché `.claude`) à la racine du projet du jeu.
+## Installer sur le 1er PC (10 min, ce soir)
+0. Le projet de jeu Vite existe déjà à la racine du dépôt (`package.json`, `tsconfig.json`) : **le dépôt actuel EST la base**, rien à créer. N'utilise JAMAIS le script `create_threejs_game.py` du pack threejs-game-skills (même archivé dans `reference/`) : il écrase `package.json` et `tsconfig.json`, donc le projet existant.
+1. Copier tout le contenu de ce dossier (y compris le dossier caché `.claude`) à la racine du projet du jeu, si ce n'est pas déjà fait.
 2. PowerShell dans ce dossier : `powershell -ExecutionPolicy Bypass -File .\tools\installer.ps1`
 3. Lancer `claude`. Accepter la « confiance du dossier » (sinon les automatismes ne tournent pas).
 4. Test : demander « lance l'agent inspecteur-harnais ». Il doit rendre une note et une liste.
 
+## Installer sur un 2e PC (5 min)
+Le 1er PC a déjà créé le projet et poussé. Ici, pas besoin de l'installeur (réservé au 1er PC) :
+1. Cloner le dépôt : `git clone <url>` (ou `git pull` si déjà cloné).
+2. `npm ci` (installe exactement les paquets déjà verrouillés — plus rapide et plus sûr que `npm i`).
+3. `npx playwright install chromium` (le navigateur piloté par les captures ne s'installe pas avec `npm ci`).
+4. `git config --global user.name "Prénom"` et `git config --global user.email "mail"`, si pas déjà fait ailleurs (sinon les commits automatiques échouent).
+5. Copier `.env.example` en `.env` et remplir les clés API (fichier jamais commité).
+6. Lancer `claude`, accepter la « confiance du dossier ».
+
 ## Ce qui tourne tout seul
 - Git doit connaître votre nom (l'installeur le demande), sinon aucune sauvegarde automatique.
 - **Au démarrage** : Claude reçoit l'heure et le temps restant avant le gel de 18h.
-- **Avant chaque commande** : blocage des gestes dangereux (push forcé, lecture ou commit de la clé API).
-- **À chaque fin de réponse** (si du code a changé) : le jeu est compilé. S'il est cassé, Claude doit réparer avant de s'arrêter. S'il marche, un commit est fait automatiquement (une sauvegarde datée).
+- **À chaque message envoyé** : rappel court d'une ligne (heure, temps avant le gel de 18h, opt-in, démo).
+- **Avant chaque commande** : blocage des gestes dangereux (push forcé, suppressions massives, lecture ou commit de la clé API).
+- **À chaque fin de réponse** (si du code a changé) : le jeu est compilé. S'il est cassé, Claude doit réparer avant de s'arrêter (une seule relance ; si ça reste cassé, un message le dit à l'humain). S'il marche, un commit est fait automatiquement (une sauvegarde datée).
+
+## Rituel de synchro (à la main, au moins toutes les heures)
+Les sauvegardes automatiques ne font qu'un commit EN LOCAL. Personne ne pousse à ta place :
+1. `git pull --no-rebase`
+2. `git push`
+Sinon le travail de l'équipe reste bloqué sur une seule machine.
 
 ## Les agents — quand les appeler
 Écrire simplement : « lance l'agent X », ou taper `@` puis le nom. Plusieurs d'un coup : « lance playtesteur et critique-aaa en parallèle ».
@@ -32,9 +45,10 @@ Ce dossier transforme Claude Code en petit studio : des **skills** (fiches de sa
 | `jury-simule` | toutes les 2 h | à quelle seconde le jury décroche |
 | `coupeur` | toutes les 2 h ou en cas d'hésitation | ce qu'on coupe, les 3 prochaines tâches |
 | `inspecteur-harnais` | ce soir, et si on modifie `.claude/` | défauts du harnais lui-même |
+| `relecteur` | pour vérifier qu'un diff respecte son lot (`plan/lots/*.md`) et `CLAUDE.md` | conforme / à réparer / à arbitrer, preuve fichier:ligne (ne modifie rien) |
 
 ## Les skills (Claude les charge seul, on peut aussi les citer)
-`anti-slop` · `direction-artistique` · `rendu-premium` · `game-feel` · `moments-wow` · `demo-2min` · `ia-en-jeu` · `son` · `discipline-code` (+ le pack Three.js externe installé par le script).
+`anti-slop` · `direction-artistique` · `rendu-premium` · `game-feel` · `moments-wow` · `demo-2min` · `ia-en-jeu` · `son` · `discipline-code` · `threejs-debug-profiler` · `threejs-game-ui-designer` (les 2 seuls du pack Three.js externe encore actifs ; le reste du pack est archivé, en lecture seule, dans `reference/threejs-game-skills/`).
 
 ## Commandes utiles
 - `npm run verifier` : compile + captures + erreurs + images/seconde.

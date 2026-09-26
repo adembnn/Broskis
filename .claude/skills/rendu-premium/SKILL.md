@@ -5,7 +5,7 @@ description: Recettes chiffrées pour qu'une scène Three.js paraisse premium et
 
 # Rendu premium Three.js
 
-Ordre obligatoire : **formes → matériaux → lumière → effets.** Le bloom ne rend pas beau un cube (source : pack threejs-game-skills de majidmanzarpour, à consulter pour les détails).
+Ordre obligatoire : **formes → matériaux → lumière → effets.** Le bloom ne rend pas beau un cube (source : pack threejs-game-skills de majidmanzarpour, archivé dans `reference/threejs-game-skills/` — à consulter pour les détails).
 
 ## 1. Couleurs à l'écran
 - `renderer.outputColorSpace = THREE.SRGBColorSpace`.

@@ -1,6 +1,11 @@
 // Hook « SessionStart » : donne à Claude l'heure, le temps restant avant le gel et l'état git.
 import { execSync } from 'node:child_process';
-const dir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+import { readFileSync } from 'node:fs';
+let input = {};
+try { input = JSON.parse(readFileSync(0, 'utf8') || '{}'); } catch {}
+// Le JSON reçu par le hook contient le `cwd` réel de la session (utile dans un worktree, où
+// CLAUDE_PROJECT_DIR peut pointer ailleurs) : on le préfère quand il est présent.
+const dir = input.cwd || process.env.CLAUDE_PROJECT_DIR || process.cwd();
 const now = new Date();
 const JOUR = '2026-09-26'; // date du hackathon
 const jourJ = now.toLocaleDateString('sv-SE') === JOUR; // format AAAA-MM-JJ, heure locale

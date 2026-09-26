@@ -5,7 +5,7 @@ description: Table chiffrée de « juice » (retours visuels, sonores et caméra
 
 # Game feel
 
-Game feel = la sensation que l'action « claque ». Références : « Juice it or lose it » (Jonasson & Purho, 2012), « The Art of Screenshake » (Jan Willem Nijman), game-feel.md du pack threejs-game-skills.
+Game feel = la sensation que l'action « claque ». Références : « Juice it or lose it » (Jonasson & Purho, 2012), « The Art of Screenshake » (Jan Willem Nijman), `reference/threejs-game-skills/threejs-gameplay-systems/references/game-feel.md` (pack threejs-game-skills, archivé).
 
 ## Règle
 Toute action a **au moins 3 retours** : caméra, image, son, interface.

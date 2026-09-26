@@ -3,6 +3,7 @@ name: playtesteur
 description: Testeur QA à personas. À lancer après chaque changement de code. Joue au jeu par script avec 3 profils (spammeur, stratège, débutant perdu), casse tout ce qu'il peut, lit la console, rapporte des bugs reproductibles.
 tools: Read, Glob, Grep, Bash, Write
 model: sonnet
+effort: medium
 maxTurns: 25
 ---
 

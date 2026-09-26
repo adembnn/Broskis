@@ -31,9 +31,15 @@ Toutes les 2 h : `jury-simule` + `coupeur`. Au démarrage et quand c'est « bien
 - `window.gameState` (état du jeu en JSON) et `window.gameHooks` (fonctions pour piloter le jeu par script) sont OBLIGATOIRES : les agents testent par là, pas en devinant des clics.
 - `?demo=1` dans l'URL = mode démo : graine aléatoire fixe, IA en cache si le réseau tombe.
 - Découpage pour éviter les conflits : personne A → `src/ia/`, `src/gameplay/`, `src/ui/` · personne B → `src/scene/`, `src/art/`, `src/audio/`. Le fichier d'entrée (`src/main.*`) ne fait qu'assembler.
-- Pack externe threejs-game-skills (installé par `tools/installer.ps1`) : sa base de projet TypeScript est autorisée pour DÉMARRER le jeu, une seule fois, au début. Ensuite, on ne change plus de fondations. S'il expose déjà ses propres fonctions de test, les brancher aussi sur `window.gameHooks`.
+- Pack externe threejs-game-skills : le dépôt actuel EST déjà la base du jeu (`package.json`, `tsconfig.json` présents). Son script `create_threejs_game.py` est **interdit** : il écrase `package.json` et `tsconfig.json`, donc le projet existant. Ne jamais le lancer, même « juste pour voir ». Ce qui reste utile du pack est archivé en lecture seule dans `reference/threejs-game-skills/` ; seuls `threejs-debug-profiler` et `threejs-game-ui-designer` restent des skills actifs dans `.claude/skills/`.
 - Modèles fournis : `demo/SCRIPT.md` (script de démo) et `src/art/tokens.js` (tokens à remplir par le directeur artistique).
 - Une seule personne installe les paquets npm, pour éviter les conflits sur `package-lock.json`.
+
+## Quel skill pour quelle tâche
+- Scène (3D, lumière, matériaux, post-traitement) → skill `rendu-premium`.
+- Action jouable (impact, retour, caméra) → skills `game-feel` + `son`.
+- IA (Gemini, animateur, délais) → skill `ia-en-jeu`.
+- Git (commits, branches, conflits) → skill `discipline-code`.
 
 ## Horaire
 10h30 concept figé + direction artistique choisie · 12h00 script de démo · 15h00 boucle jouable belle · 18h00 **GEL des fonctionnalités** · 18h–19h polish seulement · 19h opt-in + vidéo de secours · 19h30 répétition chronométrée.
