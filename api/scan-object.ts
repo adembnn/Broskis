@@ -162,6 +162,8 @@ function finalize(raw: Record<string, unknown>, forcedCategory?: Category) {
     palette: clampPalette(raw.palette),
     lines: clampLines(raw.lines),
     physics,
+    /** Proposition brute de Gemini, avant arbitrage : pour le labo (public/scan-lab.html), ignorée par le jeu. */
+    geminiPhysics: raw.physics ?? null,
   };
   // Seul le nom de l'objet est vérifié : un nom d'arme ou une blague (« basically a banana gun ») ne doivent
   // pas transformer une banane en arme de secours (faux positif vu en relisant le code, lot LSCAN).
