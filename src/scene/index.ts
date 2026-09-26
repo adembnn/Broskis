@@ -9,6 +9,7 @@ import { installFx } from './fx';
 import { installMovementRing } from './movementRing';
 import { installEnvironment } from './render/environment';
 import { installPostFx } from './render/postfx';
+import { installParryFx } from './parry-fx';
 import type { Install } from '../core/types';
 
 export const install: Install = (ctx) => {
@@ -19,4 +20,5 @@ export const install: Install = (ctx) => {
   installAimHelpers(ctx);
   installMovementRing(ctx);
   installFx(ctx);
+  installParryFx(ctx);
 };

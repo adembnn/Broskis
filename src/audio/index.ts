@@ -6,6 +6,7 @@ import { installCommentary } from './commentary';
 import { AudioEngine } from './engine';
 import { installMusic } from './music';
 import { installSfx } from './sfx';
+import { installParryCues } from './parry-cues';
 
 export const install: Install = (ctx) => {
   const engine = new AudioEngine(ctx.rng);
@@ -19,6 +20,7 @@ export const install: Install = (ctx) => {
   installSfx(ctx.bus, engine);
   const music = installMusic(ctx.bus, engine, () => ctx.state);
   const commentary = installCommentary(ctx.bus, engine, music);
+  installParryCues(ctx.bus, engine);
 
   window.addEventListener('keydown', (e) => {
     if (e.key !== 'm' && e.key !== 'M') return;
