@@ -1,6 +1,8 @@
 # BROSKIS : plan de travail partagé
 
-> Snap any real object: it becomes your weapon. Turn-based 3D cartoon duels on crumbling maps, called live by an AI ring announcer.
+> Snap any real object: it becomes your weapon. Real-time 3D cartoon duels, split screen, on crumbling maps, called live by an AI ring announcer.
+
+**Pivot 15h25 : le jeu est passé du tour par tour au temps réel 1v1 en écran scindé. `plan/PIVOT-TEMPS-REEL.md` fait foi** ; ce fichier le résume sans le recopier.
 
 Hackathon « {Tech: Europe} AI Gaming Hack » (Voodoo × Google DeepMind), samedi 26/09.
 - **18h00** : gel des fonctionnalités.
@@ -24,53 +26,39 @@ Installer le 2e PC (Titouan) :
 5. crée `.env` (demande les clés à Adem, jamais par écrit public) ;
 6. `claude` dans le dossier, et accepte la confiance du dossier.
 
-## Le jeu en 30 secondes
-- **Parcours** :
-  1. PLAY.
-  2. Choix du perso : 4 prédéfinis, ou photo d'une personne.
-  3. Arsenal de 3 armes, prédéfinies ou photographiées (webcam, import).
-  4. **Présentation des armes** : chaque arme sur une carte, présentée à voix haute par l'animateur (comme la pesée d'un match de boxe).
-  5. Choix de la map.
-  6. Duel à 2 sur le même PC.
-  7. KO au ralenti, « Damage Report », revanche.
-- **Tour (20 s maximum)** :
-  1. Bandeau « P2 — YOUR TURN! » pendant 1 s. La caméra est déjà derrière le joueur actif (vue 3e personne, épaule).
-  2. **Déplacement** : 6 m (anneau au sol qui se vide) + 1 saut (qui coûte 1,5 m).
-  3. **Arme** 1/2/3 → visée à la souris (trajectoire en pointillés, cercle d'impact, flèche de recul) → charge → lâcher.
-  4. **Bascule vers le défenseur (validée par Adem)** :
-     - au lâcher, la caméra tourne en arc (environ 0,7 s) jusqu'à la vue épaule du **défenseur**, en gardant le projectile dans le cadre ;
-     - le projectile vole au ralenti ×0,25 **pendant la bascule seulement**, puis à vitesse constante ;
-     - le coup arrive **vers la caméra** du défenseur.
-  5. **Parade** du défenseur (J1 Espace, J2 Entrée) : l'anneau n'apparaît qu'après la bascule.
-  6. Impact, décor qui réagit, réplique de l'animateur. Le défenseur devient l'attaquant suivant, **sans nouvelle bascule** : une seule rotation par tour.
-  - SHIELD, ou tour sans projectile : pas de bascule de défense, la caméra passe au joueur suivant.
-  - Contre l'IA, quand l'humain attaque : caméra de suivi, impact vu de côté.
-- **4 raisons de bouger** :
-  - **Caisse Snap** : tous les 2 à 3 tours, annoncée par son ombre ; l'atteindre donne 10 s pour scanner un objet en plein combat ;
-  - **angle** : pousser l'autre vers le vide ;
-  - **couvert et portée** : le blaster est arrêté par les murs, la grenade passe par-dessus ;
-  - **fuir** le danger annoncé.
-- **Victoire** :
-  - 100 PV (80 à 120 selon le perso) ;
-  - le recul grandit quand les PV baissent (façon Smash) ;
-  - sortir de la map = KO ;
-  - mort subite au tour 7 : l'arène rétrécit, un objet scanné géant tombe du ciel.
-- **Armes** (4 catégories) :
+## Le jeu en 30 secondes (temps réel, détails : `plan/PIVOT-TEMPS-REEL.md`)
+- **Parcours** : PLAY → photo d'une personne ou perso prédéfini (LFACE : grosse tête au visage du joueur) → arsenal de 3 armes, prédéfinies ou photographiées (LSCAN) → présentation des armes par l'animateur (pesée) → choix de la map → `READY?` 3-2-1 `GO!` → combat → `GAME!` au ralenti → écran de fin, revanche.
+- **Écran scindé vertical** : P1 à gauche, P2 à droite, un seul rendu, 120 appels de dessin par vue au maximum. **Chaque vue reste toujours sur son joueur** (règle d'Adem) : caméra troisième personne verrouillée derrière lui, axe joueur → adversaire, les 2 persos dans le cadre. Contre l'IA (RTBOT) : plein écran.
+- **Contrôles** (visée automatique verrouillée, pas de souris) : P1 ZQSD, ESPACE saut ×2, F tir (maintenir = charger), G bloquer/parer, 1-2-3 armes · P2 flèches, MAJ DROITE, L, K, 8-9-0. Manettes acceptées.
+- **Combat** : course à 6,5 m/s, double saut, bords ouverts, rattrapage au bord. Chaque arme recharge en secondes après usage (BLASTER 1,2 s, GRENADE 3 s, THROWABLE 4 s, SHIELD 8 s). **Blocage** maintenu : dégâts ÷ 3, recul ÷ 2. **Parade parfaite** : bloquer moins de 150 ms avant l'impact, repérée par un anneau qui se referme autour du projectile (400 ms) ; renvoi, ralenti, « PERFECT! ».
+- **Victoire façon Smash** : dégâts en %, éjection qui grandit avec le %, 2 vies (1 en démo), sortie de l'arène = vie perdue. Mort subite à 3:00 (les 2 à 150 %).
+- **Caisse Snap** toutes les 35 s : la toucher donne instantanément une arme bonus (objet déjà scanné ou du cache), sans pause. **Dangers de map** sur minuterie (20 à 30 s, annoncés 3 s avant).
+- **Abandonné** : tours, bascule de caméra vers le défenseur, budget de déplacement, feintes / NICE, IA au tour par tour.
+- **Armes** (4 catégories, stats et traits inchangés) :
 
-| Catégorie | Comportement | Stats (a / b / c) | Anim KayKit |
-|---|---|---|---|
-| BLASTER | rafale droite, arrêtée par les murs | power / shots / accuracy | `cast`, `raise` |
-| GRENADE | cloche, rebond, zone | power / radius / bounce | `throw` |
-| THROWABLE | lancer lourd, fort recul, renvoyable | power / speed / knockback | `throw` |
-| SHIELD | pose un mur-sticker (couvert), renvoie sur parade parfaite | guard / size / reflect | `block` |
+| Catégorie | Comportement en temps réel | Stats (a / b / c) |
+|---|---|---|
+| BLASTER | rafale de 3 tirs droit sur l'adversaire (avance selon sa vitesse), arrêtée par les murs | power / shots / accuracy |
+| GRENADE | cloche calculée jusqu'à l'adversaire, rebond, zone | power / radius / bounce |
+| THROWABLE | lancer tendu, fort recul | power / speed / knockback |
+| SHIELD | mur-sticker de 5 s posé entre soi et l'adversaire | guard / size / reflect |
 
-- **Stats et traits** : un budget de 10 points (chaque stat de 1 à 6) + 1 trait parmi `bouncy`, `sticky`, `explosive`, `heavy`, `healing`, `split`, `slippery`, `loud`.
-- **Arsenal** : 3 armes ; une arme utilisée recharge 1 tour.
-- **Parade** : Parfaite ≤ 90 ms (0 dégât, renvoi), Bonne ≤ 220 ms (moitié), Ratée. Les repères visuels, combos et difficulté seront précisés, en attente de validation par Adem.
-- **Maps**, dans l'ordre de construction :
-  1. **Archipel qui s'effrite** : dalles hexagonales qui tombent, tonneaux, catapulte, l'anneau extérieur tombe tous les 2 tours ;
-  2. **Galion dans la tempête** : canon, barils, vergue, le pont gîte tous les 3 tours ;
-  3. **Cuisine géante** : minuscules sur un plan de travail, grille-pain tremplin, rouleau, évier = sortie, éponge géante.
+- **Stats et traits** : budget de 10 points (chaque stat de 1 à 6) + 1 trait parmi `bouncy`, `sticky`, `explosive`, `heavy`, `healing`, `split`, `slippery`, `loud`.
+- **Maps** : Archipel qui s'effrite, Galion dans la tempête, Cuisine géante ; plateaux de 26 à 28 m, plateformes flottantes, couverts à hauteur de torse (LMAP3, LSKY, LDECOR).
+
+## Lots en cours (d'après `plan/SUIVI.md`, 16h)
+| Lot | Sujet | Chemins principaux |
+|---|---|---|
+| RTCORE | cœur temps réel (déplacement, recharges, blocage, parade, caisse) | `src/gameplay/**` |
+| RTVIEW | écran scindé + caméras verrouillées | `src/core/ctx.ts`, `src/scene/camera/**`, `src/scene/render/**` |
+| RTBOT | adversaire IA temps réel + Gemini stratège | voir `plan/lots/RTBOT-ia-temps-reel.md` |
+| LUX | HUD scindé, Settings, guidage débutant | `src/ui/**` |
+| LATK1 · LATK2 | objets en main / en vol / à l'impact · animations d'attaque et de défense | `src/scene/weapons/**` · `src/scene/fighters/**`, `src/scene/animation/**` |
+| LFACE · LSCAN | photo → combattant (grosse tête) · photo → arme | `src/ia/fighter/**`, `src/scene/fighter-custom/**` · `src/ia/**`, `src/scene/sticker/**` |
+| LMAP3 · LSKY · LJUMP | arènes agrandies + assets · panoramas 360° · constantes de saut | `src/scene/maps/**` · `gameplay/tuning.ts` (saut) |
+| LPERF · LLOAD | fluidité (paliers de qualité) · zéro attente | — · `src/core/preload.ts`, `src/ui/loading/**` |
+| LFIX2 · LDA2 · LSMASH-FX · LBK2 · LAB · LAN | caméra/parcours · style · effets Smash · voix · labo `?lab=1` · animation (Gemini) | voir leurs lots |
+| LD | démo, vidéo de secours, bande-annonce (après 18h) | `demo/**` |
 
 ## Règles d'or (voir aussi `CLAUDE.md`)
 - **Tout le texte du jeu est en anglais.** Le code et les documents peuvent être en français.
@@ -89,7 +77,8 @@ type PlayerId = 0 | 1;
 type Category = 'blaster' | 'grenade' | 'throwable' | 'shield';
 type Trait = 'bouncy'|'sticky'|'explosive'|'heavy'|'healing'|'split'|'slippery'|'loud';
 type MapId = 'archipel' | 'galion' | 'cuisine';
-type Phase = 'title'|'fighter-select'|'arsenal'|'reveal'|'map-select'|'turn-intro'|'move'|'aim'|'resolve'|'snap-time'|'ko'|'end';
+type Phase = 'title'|'fighter-select'|'arsenal'|'reveal'|'map-select'|'countdown'|'fight'|'ko'|'end'
+  |'turn-intro'|'move'|'aim'|'resolve'|'snap-time'; // phases de tour : encore dans le type, plus utilisées en match
 interface Weapon { id; object; name; category; why; stats:{a,b,c}; trait; palette:[string,string];
   stickerUrl?; lines:{intro,hit,miss,parried}; source:'preset'|'scan'|'cache'; cooldown }
 interface FighterDef { id; name; model:'barbarian'|'knight'|'mage'|'rogue_hooded'|'skeleton_mage'|'skeleton_warrior'|'custom';
@@ -100,7 +89,7 @@ interface Ctx { bus; state; three:{scene,camera,renderer}; loop; physics; rng; d
 type Install = (ctx: Ctx) => void | Promise<void>;   // chaque dossier exporte install() depuis son index.ts
 ```
 
-Événements du bus (`src/core/events.ts`, noms figés) :
+Événements du bus (`src/core/events.ts`, noms figés). **Temps réel** : `turn:start`, `turn:end`, `move:update`, `parry:window` ne sont plus émis ; `camera:cue` `turn-swing` n'existe plus en match. Ajoutés : `block {player, on}`, `weapon:ready {player, index}`, `countdown {n}`, `match:banner {kind:'ready'|'go'|'game'}`, `stock:lost`, `respawn`. `parry:result` est émis quand un projectile touche un joueur qui bloque.
 
 | Événement | Données |
 |---|---|
@@ -127,24 +116,25 @@ type Install = (ctx: Ctx) => void | Promise<void>;   // chaque dossier exporte i
 
 Tests par script (obligatoires pour les agents du harnais) :
 - `window.gameState` : l'état en JSON.
-- `window.gameHooks` : `startMatch(opts)`, `move(dx,dz)`, `jump()`, `pickWeapon(i)`, `aim(yaw,pitch)`, `fire(power)`, `parry(offsetMs)`, `grabCrate()`, `scan(objectKey)`, `skipCamera()`, `forcerVictoire(p?)`, `setSeed(n)`, `action(text)`.
-- `?demo=1` : graine fixe, IA lue depuis `public/demo-cache/`, régie F1 à F5, F9 panique.
+- `window.gameHooks` (temps réel, `src/core/types.ts`) : `startMatch({ split: true, map, stocks, vsAI })`, `input(player, action, down)` (actions `up` `down` `left` `right` `jump` `weapon1` `weapon2` `weapon3` `fire` `parry` ; même chemin que le clavier), `setSeed(n)`, `forcerVictoire(p?)`, `scanObjectFromUrl(url, opts?)`, `scanFighterFromUrl(url, player)`, `grabCrate()`, `scan(objectKey)`. Hérités du tour par tour, agissent sur P1 seulement : `move`, `jump`, `pickWeapon`, `fire`, `parry` (bloque pour P2) ; `aim` ne fait plus rien.
+- `tools/capture.mjs --parcours` appelle chaque hook avec **un seul** argument : pour `input`, passer par le champ `attendre` (voir `demo/parcours.json`).
+- `?demo=1` : graine fixe, IA lue depuis `public/demo-cache/`, 1 vie par joueur, régie F1 à F5 + F9 (événement `demo:cue` ; aujourd'hui seule F4 est branchée : P2 passe à 150 %).
 
 ## Pipeline IA (lot LI)
 - **Scan d'objet** : photo réduite à 768 px, envoyée à deux services en parallèle :
   - `api/scan-object` : Gemini Flash vision, sortie JSON (catégorie, stats, trait, répliques) en environ 1 s ;
   - `api/sticker` : Nano Banana 2 Lite, dessin cartoon sur fond `#FF00FF`, environ 4 s ;
   - le navigateur détoure puis extrude le sticker en 3D (lot LS).
-- **Animateur** : répliques générées **et vocalisées (Gradium) pendant la présentation des armes**. En direct, seulement pour les moments rares.
+- **Animateur** : répliques générées **et vocalisées (Gemini TTS, voix Fenrir ; repli Gradium) pendant la présentation des armes** ; en combat, banque de répliques pré-enregistrées (LBK, LVOX) et Gemini pour les moments rares (arme de la Caisse Snap). Combattants : voix Gradium, clonée par joueur (LW2).
 - **Perso photo** (lot LP) : attributs Gemini, puis corps KayKit recoloré, puis visage sticker Nano Banana. Les vedettes en vraie 3D sont préparées à l'avance (lot LP2).
 
 ## Horaire
 | Heure | Jalon |
 |---|---|
 | 12h30 | L0 poussé : tout le monde peut démarrer |
-| 15h00 | boucle jouable et belle sur l'Archipel |
-| 16h30 | Galion |
-| 17h30 | Cuisine + vague 2 (adversaire IA, Scandex, voix clonée) |
+| 15h25 | **pivot temps réel** (`plan/PIVOT-TEMPS-REEL.md`) |
+| 16h30 | combat temps réel jouable en écran scindé sur l'Archipel |
+| 17h30 | photo → perso et photo → arme de bout en bout, bot temps réel, 3 maps |
 | 18h00 | **GEL** : polish seulement |
 | 19h00 | opt-in + vidéo |
 | 19h30 | répétition chronométrée |

@@ -4,6 +4,7 @@
 import type { Ctx, PlayerId, Vec3, Weapon } from '../core/types';
 import { damagePct, launchSpeed, launchVector, NO_MODS, type ShotMods } from './formulas';
 import { predictLaunch, startLaunch, stepLaunches } from './launch';
+import { physicsFeel } from './physics-feel';
 import { getRuntime } from './runtime';
 import { isInvulnerable } from './stocks';
 import { CRIT_CHANCE_V2, CRIT_MULT_V2, TRAIT_TUNING } from './tuning';
@@ -66,10 +67,12 @@ export function applyHit(ctx: Ctx, opts: ApplyHitOptions): void {
     getRuntime().players[opts.target].slipperyUntilMs = performance.now() + TRAIT_TUNING.slippery.slideMs;
   }
 
+  // Masse, matière et taille réelles de l'objet : pour que visuels (LATK1) et son suivent la physique.
+  const feel = physicsFeel(opts.weapon);
   ctx.bus.emit('hit', {
     target: opts.target, attacker: opts.attacker, weapon: opts.weapon,
     damage, knockback: launch, crit, pos: opts.impactPos,
-    pct: target.pct, launch, willKo,
+    pct: target.pct, launch, willKo, mass: feel.massKg, material: feel.material, size: [...feel.sizeM],
   });
   if (speed > 0.5) startLaunch(ctx, opts.target, launch, opts.attacker);
 }
