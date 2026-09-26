@@ -41,9 +41,9 @@ const KEY: Record<GameState['difficulty'], DifficultyLevel> = { easy: 'Facile', 
 
 const TABLE: Record<DifficultyLevel, Omit<BotLevel, 'level' | 'parrySigmaMs'>> = {
   Facile: { reactionMs: 450, defendRate: 0.3, blockShare: 0.6, perfectTry: 0.1, aggression: 0.3, hesitationS: 1.2, precision: 0.15, edgeMargin: 1.2, recovery: 0.6, idlePerTenS: 2.5, strafe: 0.3, stance: 'defensive' },
-  Moyen: { reactionMs: 300, defendRate: 0.6, blockShare: 0.65, perfectTry: 0.3, aggression: 0.55, hesitationS: 0.35, precision: 0.55, edgeMargin: 1.8, recovery: 0.85, idlePerTenS: 0.8, strafe: 0.75, stance: 'aggressive' },
-  Difficile: { reactionMs: 200, defendRate: 0.75, blockShare: 0.7, perfectTry: 0.5, aggression: 0.75, hesitationS: 0.2, precision: 0.8, edgeMargin: 2.2, recovery: 1, idlePerTenS: 0.2, strafe: 0.85, stance: 'aggressive' },
-  Hardcore: { reactionMs: 130, defendRate: 0.9, blockShare: 0.75, perfectTry: 0.7, aggression: 0.9, hesitationS: 0.12, precision: 0.95, edgeMargin: 2.5, recovery: 1, idlePerTenS: 0, strafe: 0.9, stance: 'aggressive' },
+  Moyen: { reactionMs: 300, defendRate: 0.7, blockShare: 0.65, perfectTry: 0.4, aggression: 0.6, hesitationS: 0.35, precision: 0.55, edgeMargin: 1.8, recovery: 0.85, idlePerTenS: 0.5, strafe: 0.85, stance: 'aggressive' },
+  Difficile: { reactionMs: 200, defendRate: 0.8, blockShare: 0.7, perfectTry: 0.55, aggression: 0.75, hesitationS: 0.2, precision: 0.8, edgeMargin: 2.2, recovery: 1, idlePerTenS: 0.2, strafe: 0.9, stance: 'aggressive' },
+  Hardcore: { reactionMs: 130, defendRate: 0.9, blockShare: 0.75, perfectTry: 0.7, aggression: 0.9, hesitationS: 0.12, precision: 0.95, edgeMargin: 2.5, recovery: 1, idlePerTenS: 0, strafe: 0.95, stance: 'aggressive' },
 };
 
 export function botLevel(difficulty: GameState['difficulty']): BotLevel {

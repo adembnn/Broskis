@@ -73,6 +73,7 @@ export class RealtimeBot {
   private edgeMe = 6;
   private edgeFoe = 6;
   private edgeCheckAt = 0;
+  private lastTarget: Vec3 = [0, 0, 0];
   /** Depuis quand la ligne de tir est bouchée (couvert) : on contourne. */
   private noLosSince = -1;
 
@@ -364,6 +365,7 @@ export class RealtimeBot {
     if (cd > safeR) target = [center[0] + (cdx / cd) * safeR, target[1], center[2] + (cdz / cd) * safeR];
     // Arène non ronde (Cuisine : 18 × 11 m) : on vérifie le sol autour du point visé, sinon on le ramène vers le centre.
     target = this.safeTarget(target, center, arena.top, L.edgeMargin + 1 + me.pct / 80);
+    this.lastTarget = target;
     const tx = target[0] - me.pos[0], tz = target[2] - me.pos[2];
     const tl = Math.hypot(tx, tz);
     const perp: [number, number] = [-fromFoe[1] * this.strafe, fromFoe[0] * this.strafe];
@@ -493,6 +495,7 @@ export class RealtimeBot {
     return {
       level: this.level.level, stance: this.stance, preferred: this.preferred, stats: { ...this.stats },
       edgeMe: +this.edgeMe.toFixed(1), edgeFoe: +this.edgeFoe.toFixed(1), threats: this.threats.size,
+      move: this.moveDir.map((v) => +v.toFixed(2)), target: this.lastTarget.map((v) => +v.toFixed(1)),
     };
   }
 
