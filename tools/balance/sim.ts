@@ -103,7 +103,8 @@ function summarize(label: string, results: MatchResult[]) {
     turnsMedian: q(turns, 0.5), turnsMean: +mean(turns).toFixed(1), turnsP10: q(turns, 0.1), turnsP90: q(turns, 0.9),
     in8to12: +(turns.filter((t) => t >= 8 && t <= 12).length / results.length).toFixed(3),
     koMeanPct: +mean(koPct).toFixed(1), koMedianPct: q(koPct, 0.5), koMinPct: Math.min(...koPct),
-    koUnder40: kos.filter((k) => k.pct < 40).length, koShareSd: +(kos.filter((k) => k.sd).length / Math.max(1, kos.length)).toFixed(3),
+    koUnder40: kos.filter((k) => k.pct < 40).length, koUnder40NoSuper: kos.filter((k) => k.pct < 40 && !k.super).length,
+    kosTotal: kos.length, koShareSd: +(kos.filter((k) => k.sd).length / Math.max(1, kos.length)).toFixed(3),
     koMeanPctBeforeSd: +mean(beforeSd).toFixed(1),
     koBySuper: +(kos.filter((k) => k.super).length / Math.max(1, kos.length)).toFixed(3),
     p1Wins: +(results.filter((r) => r.winner === 0).length / results.length).toFixed(3),
@@ -151,8 +152,8 @@ function run() {
   const S = [summarize('Armes aléatoires, 2 vies, parade moyenne', rand), summarize('Arsenal par défaut, 2 vies', presets),
     summarize('Arsenal par défaut, 1 vie (?demo=1)', demo), summarize('Deux débutants (Novice), arsenal par défaut, 2 vies', novices)];
   let md = `# Rapport d'équilibrage — règles v2 (LSMASH)\n\n${N} matchs aléatoires + ${N / 2} par scénario. Cibles : 8 à 12 tours (2 vies), éjection moyenne 90 à 140 %, aucune sous 40 %.\n\n`;
-  md += '| Scénario | Tours médian (p10–p90) | Part 8–12 | Éjection moy. % (avant mort subite) | Min % | Sous 40 % | Éjections en mort subite | Victoires J1 | BRO SMASH / match (1er au tour) | Rattrapages / match | % par coup |\n|---|---|---|---|---|---|---|---|---|---|---|\n';
-  for (const r of S) md += `| ${r.label} | ${r.turnsMedian} (${r.turnsP10}–${r.turnsP90}) | ${pc(r.in8to12)} | ${r.koMeanPct} (${r.koMeanPctBeforeSd}) | ${r.koMinPct} | ${r.koUnder40} | ${pc(r.koShareSd)} | ${pc(r.p1Wins)} | ${r.supersPerMatch} (${r.firstSuperTurnMedian}) | ${r.ledgeGrabsPerMatch} | ${r.pctPerHit} |\n`;
+  md += '| Scénario | Tours médian (p10–p90) | Part 8–12 | Éjection moy. % (avant mort subite) | Min % | Sous 40 % (hors BRO SMASH) / éjections | Éjections en mort subite | Victoires J1 | BRO SMASH / match (1er au tour) | Rattrapages / match | % par coup |\n|---|---|---|---|---|---|---|---|---|---|---|\n';
+  for (const r of S) md += `| ${r.label} | ${r.turnsMedian} (${r.turnsP10}–${r.turnsP90}) | ${pc(r.in8to12)} | ${r.koMeanPct} (${r.koMeanPctBeforeSd}) | ${r.koMinPct} | ${r.koUnder40} (${r.koUnder40NoSuper}) / ${r.kosTotal} | ${pc(r.koShareSd)} | ${pc(r.p1Wins)} | ${r.supersPerMatch} (${r.firstSuperTurnMedian}) | ${r.ledgeGrabsPerMatch} | ${r.pctPerHit} |\n`;
   md += `\nExpert contre débutant : ${pc(expWins / 1000)} de victoires.\n\nVictoires par catégorie de l'arme n°1 : ${CATEGORIES.map((c) => `${c} ${pc(catWins[c][0] / Math.max(1, catWins[c][1]))}`).join(', ')}.\n`;
   const dir = path.join(process.cwd(), 'captures', 'balance');
   fs.mkdirSync(dir, { recursive: true });

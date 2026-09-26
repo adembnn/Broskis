@@ -182,10 +182,12 @@ export function installEnvironment(ctx: Ctx): EnvironmentHandles {
     
     // Toggle specific elements
     sky.visible = mapId === 'archipel' || mapId === 'galion';
-    islandsGroup.visible = mapId === 'archipel';
-    sea.visible = mapId === 'galion';
+    // Les fonds (îles, mer, cuisine floue) sont faits par les maps, LDECOR et LSKY : ces doublons de LDA2 restent
+    // cachés (la 2e mer créait des blocs noirs au premier plan du Galion, le cylindre masquait le fond de la Cuisine).
+    islandsGroup.visible = false;
+    sea.visible = false;
     rain.visible = mapId === 'galion';
-    kitchenBg.visible = mapId === 'cuisine';
+    kitchenBg.visible = false;
 
     if (sky.visible) {
       const uniforms = sky.material.uniforms;

@@ -55,18 +55,21 @@ PAL = {
     'grass': hx('#6F8A3C'), 'grass_l': hx('#93AC4C'), 'grass_d': hx('#4E6A2E'), 'grass_y': hx('#A9A653'),
     'leaf': hx('#55743A'), 'leaf_l': hx('#7F9C45'), 'bark': hx('#5B4436'),
     'stone': hx('#CDBFA2'), 'stone_l': hx('#E9DFC6'), 'stone_d': hx('#A89A80'), 'moss': hx('#9BA273'),
-    'earth': hx('#6E5442'), 'earth_d': hx('#584235'),
-    'rock_a': hx('#8C7B70'), 'rock_b': hx('#66564E'), 'rock_deep': hx('#41384A'), 'ledge': hx('#463B3E'),
+    'earth': hx('#634938'), 'earth_d': hx('#4A372C'),
+    'rock_a': hx('#9D8C7F'), 'rock_b': hx('#6E5E56'), 'rock_deep': hx('#453B4D'), 'ledge': hx('#3F3538'),
     # bois (galion) : planches délavées, bord blanchi par le sel, coque sombre
     'plank': hx('#A58C6C'), 'plank_l': hx('#BFA682'), 'plank_d': hx('#8A7155'), 'gap': hx('#3E2E24'),
     'beam': hx('#D2BE98'), 'beam_d': hx('#B09A76'), 'hull': hx('#5A4535'), 'hull_d': hx('#3F3029'),
-    'iron': hx('#3B3A3C'),
+    'iron': hx('#3B3A3C'), 'paint': hx('#4A6B63'),
+    # couverts de la cuisine : tasse en faïence à bande terre cuite, café, sucre
+    'mug': hx('#EEE6D8'), 'mug_d': hx('#C9BFAF'), 'mug_band': hx('#C46A48'), 'coffee': hx('#3A2418'),
+    'crema': hx('#8A5A38'), 'sugar': hx('#F3F0EA'), 'sugar_d': hx('#C9CCD2'),
     # cuisine : carreaux crème, joints, chant de hêtre clair, caisson
     'tile': hx('#E6DED0'), 'tile_b': hx('#9DB3B0'), 'grout': hx('#7E766B'),
     'beech': hx('#C9A77C'), 'beech_l': hx('#DEC29A'), 'beech_d': hx('#A5825B'), 'cabinet': hx('#7F9790'),
     'cabinet_d': hx('#586A66'), 'chrome': hx('#CBD0CF'), 'chrome_d': hx('#8C9392'),
     # fonds et nuages
-    'cloud': hx('#FFF4E6'), 'cloud_d': hx('#C9B4BE'),
+    'cloud': hx('#FFF6EA'), 'cloud_d': hx('#B8A6BD'),
 }
 
 
@@ -85,6 +88,9 @@ def smooth01(x):
 # --------------------------------------------------------------------------------------------------
 
 
+RNG = random.Random(4242)  # aléa global déterministe (facettes de roche)
+
+
 class MB:
     def __init__(self):
         self.verts = []
@@ -100,16 +106,30 @@ class MB:
     def ring(self, pts):
         return [self.v(p) for p in pts]
 
-    def bridge(self, a, b, zone, tone=0.0, smooth=False, closed=True, up=False):
+    def f_away(self, idx, zone, ref, tone=0.0, smooth=False):
+        """Ajoute une face orientée pour que sa normale s'éloigne du point `ref` (formes balayées : anses, tubes)."""
+        pts = [self.verts[i] for i in idx]
+        n = Vector((0.0, 0.0, 0.0))
+        for k in range(len(pts)):
+            a, b = pts[k], pts[(k + 1) % len(pts)]
+            n += Vector(((a.y - b.y) * (a.z + b.z), (a.z - b.z) * (a.x + b.x), (a.x - b.x) * (a.y + b.y)))
+        c = sum(pts, Vector((0.0, 0.0, 0.0))) / len(pts)
+        if n.dot(c - Vector(ref)) < 0:
+            idx = tuple(reversed(idx))
+        self.f(idx, zone, tone, smooth)
+
+    def bridge(self, a, b, zone, tone=0.0, smooth=False, closed=True, up=False, jitter=0.0):
         """Relie deux anneaux (même nombre de points, sens trigo vu du dessus). a = anneau précédent du profil.
-        Par défaut le profil va vers l'extérieur ou vers le bas ; up=True quand il monte (colonnes, feuillages)."""
+        Par défaut le profil va vers l'extérieur ou vers le bas ; up=True quand il monte (colonnes, feuillages).
+        jitter : ajoute au ton une part aléatoire par face (partie décimale) pour une roche « peinte » facette par facette."""
         n = len(a)
         for i in range(n if closed else n - 1):
             j = (i + 1) % n
+            t = tone + (RNG.random() * jitter if jitter else 0.0)
             if up:
-                self.f((a[i], a[j], b[j], b[i]), zone, tone, smooth)
+                self.f((a[i], a[j], b[j], b[i]), zone, t, smooth)
             else:
-                self.f((a[i], b[i], b[j], a[j]), zone, tone, smooth)
+                self.f((a[i], b[i], b[j], a[j]), zone, t, smooth)
 
     def fan(self, center, ring_idx, zone, tone=0.0, down=False, smooth=False):
         n = len(ring_idx)
@@ -457,11 +477,12 @@ def bbox(mb):
 def rock_color(tone, p, n, depth):
     """Roche en strates : deux tons alternés, assombrie et refroidie vers la pointe."""
     k = int(tone)
+    facette = tone - k  # 0..1 par face : variation « peinte » facette par facette
     base = PAL['rock_a'] if k % 2 == 0 else PAL['rock_b']
     grain = noise.noise(Vector((p.x * 0.9, p.y * 0.9, p.z * 0.9 + 7.0)))
-    base = base * (1.0 + 0.07 * grain)
+    base = base * (1.0 + 0.07 * grain + 0.16 * (facette - 0.5))
     t = smooth01(-p.z / max(depth, 0.1))
-    c = mix(base, PAL['rock_deep'], t * 0.85)
+    c = mix(base, PAL['rock_deep'], t * 0.8)
     # faces tournées vers le haut (petits replats) : un peu plus claires, comme de la poussière
     if n.z > 0.35:
         c = mix(c, PAL['stone_d'], 0.25)
@@ -502,11 +523,17 @@ def island_colorfn(a, b, depth, top='grass'):
             return PAL['earth_d']
         if zone == 'ledge':
             return mix(PAL['ledge'], PAL['rock_deep'], smooth01(-p.z / depth))
+        if zone == 'lip':  # lèvre claire en haut de chaque strate : c'est elle qui dessine les couches
+            c = mix(PAL['rock_a'], PAL['stone_d'], 0.4) * (1.0 + 0.06 * noise.noise(p * 0.8))
+            return mix(c, PAL['rock_deep'], smooth01(-p.z / depth) * 0.55)
         # --- bois de pont (galion)
         if zone == 'plank':
             grain = noise.noise(Vector((p.x * 0.35, p.y * 4.0, tone * 3.0)))
-            c = mix(PAL['plank'], PAL['plank_l'] if tone > 0 else PAL['plank_d'], abs(tone) * 0.5)
+            c = mix(PAL['plank'], PAL['plank_l'] if tone > 0 else PAL['plank_d'], abs(tone) * 0.8)
             return c * (1.0 + 0.07 * grain)
+        if zone in ('paint_teal', 'paint_cream'):  # peinture délavée par le sel : mêlée au bois du pont
+            base = PAL['paint'] if zone == 'paint_teal' else PAL['beam']
+            return mix(base, PAL['plank'], 0.3) * (1.0 + 0.06 * noise.noise(Vector((p.x * 0.9, p.y * 0.9, 4.0))))
         if zone == 'gap':
             return PAL['gap']
         if zone in ('beam_top', 'beam_chamfer', 'beam_side'):
@@ -516,8 +543,8 @@ def island_colorfn(a, b, depth, top='grass'):
             elif zone == 'beam_side':
                 c = mix(c, PAL['beam_d'], 0.55)
             return c * (1.0 + 0.05 * noise.noise(Vector((p.x * 0.5, p.y * 0.5, p.z * 6.0))))
-        if zone == 'hull_band':
-            return mix(PAL['plank_d'], PAL['hull'], 0.35)
+        if zone == 'hull_band':  # préceinte peinte vert-de-mer (tokens.maps.galion.palette.accent #3A5752, éclaircie)
+            return PAL['paint'] * (1.0 + 0.05 * noise.noise(Vector((p.x * 0.6, p.y * 0.6, 2.0))))
         if zone == 'hull':
             c = PAL['hull'] if int(tone) % 2 == 0 else mix(PAL['hull'], PAL['plank_d'], 0.3)
             c = c * (1.0 + 0.06 * noise.noise(Vector((p.x * 0.3, p.y * 0.3, p.z * 2.0 + 5.0))))
@@ -551,6 +578,17 @@ def island_colorfn(a, b, depth, top='grass'):
             return PAL['cabinet_d'] * 0.55
         if zone in ('chrome', 'chrome_d'):
             return PAL['chrome'] if zone == 'chrome' else PAL['chrome_d']
+        if zone == 'mug':  # faïence émaillée, un peu plus sombre vers le pied
+            return mix(PAL['mug'], PAL['mug_d'], smooth01(1.0 - p.z / 1.3) * 0.35 + (0.25 if n.z < -0.3 else 0.0))
+        if zone == 'mug_band':
+            return PAL['mug_band']
+        if zone == 'coffee':
+            r = math.hypot(p.x, p.y)
+            return mix(PAL['coffee'], PAL['crema'], smooth01((r - 0.45) / 0.2) * 0.6)
+        if zone in ('sugar_top', 'sugar_side', 'sugar_edge'):
+            grain = noise.noise(p * 6.0)
+            c = PAL['sugar'] * (1.0 + 0.05 * grain)
+            return c if zone != 'sugar_side' else mix(c, PAL['sugar_d'], 0.35)
         return rock_color(tone, p, n, depth)
     return fn
 
@@ -595,6 +633,8 @@ def floating_island(name, outline, segs, depth, strata, rim=None, top_rings=(0.4
     P, N = outline.sample(segs)
     W = rim['width'] if rim else 0.0
     band, main, ledge_zone = BODY[body]
+    if ledge_in < 0 and body == 'rock':
+        ledge_zone = 'lip'  # strates en bols empilés : la lèvre de chaque couche regarde vers le haut
     if top == 'grass':
         c = mb.v((0, 0, 0))
         rings = [mb.ring(ring_pts(P, N, s, 0, 0)) for s in top_rings]
@@ -639,7 +679,7 @@ def floating_island(name, outline, segs, depth, strata, rim=None, top_rings=(0.4
         last = k == len(norm) - 1
         zf = seed * 10 + k * 1.7
         bottom = mb.ring(ring_pts(P, N, S, d, z, jr=jr, jz=jz, seed=seed + k, zfield=zf))
-        mb.bridge(prev, bottom, main, tone=k)
+        mb.bridge(prev, bottom, main, tone=k, jitter=0.99 if body == 'rock' else 0.0)
         prev = bottom
         if not last:
             S2, d2 = norm[k + 1][0], norm[k + 1][1]
@@ -655,7 +695,7 @@ def floating_island(name, outline, segs, depth, strata, rim=None, top_rings=(0.4
         style = rim.get('style', 'stone')
         rng = random.Random(int(seed * 1000))
         g = rim.get('gap', 0.035)
-        for u0, u1 in rim_spans(outline, rim['len'], rim.get('angle', 14.0)):
+        for u0, u1 in rim_spans(outline, rim['len'], rim.get('angle', 30.0)):
             u0, u1 = u0 + g / 2, u1 - g / 2
             p0, n0 = outline.at(u0)
             p1, n1 = outline.at(u1)
@@ -682,7 +722,7 @@ def hanger(mb, x, y, z0, r, length, seed, tone=3, segs=7):
         top.append(mb.v((x + math.cos(t) * rr, y + math.sin(t) * rr, z0)))
         mid.append(mb.v((x + math.cos(t + 0.35) * rr * 0.55, y + math.sin(t + 0.35) * rr * 0.55, z0 - length * 0.48)))
     tip = mb.v((x + r * 0.15, y - r * 0.1, z0 - length))
-    mb.bridge(top, mid, 'rock', tone)
+    mb.bridge(top, mid, 'rock', tone, jitter=0.99)
     mb.fan(tip, mid, 'rock', tone, down=True)
 
 
@@ -734,24 +774,26 @@ def tree(mb, x, y, h, r, seed=0.0):
 
 
 def build_plateau_pierre():
-    a, b = 9.5, 7.5
+    a, b = 13.0, 10.5  # pivot temps réel : arène de 26 x 21 m pour courir
     ol = Outline(superellipse(a, b, 2.6))
-    depth = 6.6
-    strata = [(1.0, 0.22, -1.25), (0.9, 0.62, -2.3), (0.74, 0.9, -3.3), (0.55, 1.0, -4.3), (0.34, 0.8, -5.35)]
+    depth = 8.0
+    # strates en bols empilés : chaque couche s'effile, la suivante repart 0,4 m plus à l'extérieur (lèvre claire)
+    strata = [(1.0, 0.65, -1.4), (0.93, 1.0, -2.7), (0.8, 1.15, -3.95), (0.6, 1.15, -5.2), (0.37, 0.95, -6.5)]
     mb = floating_island('plateau_pierre', ol, 48, depth, strata,
-                         rim={'width': 0.75, 'len': 1.3, 'top': 0.05, 'bot': -0.3, 'chamfer': 0.07},
-                         top_rings=(0.4, 0.6, 0.78), tip=(0.4, -0.6), seed=1.3, earth=0.28)
+                         rim={'width': 0.8, 'len': 1.55, 'top': 0.05, 'bot': -0.3, 'chamfer': 0.07},
+                         top_rings=(0.35, 0.6, 0.8), tip=(0.5, -0.7), seed=1.3, earth=0.3, jr=0.45,
+                         ledge_in=-0.4, ledge_frac=0.0, ledge_h=0.1)
     # cercle de duel : un anneau de dalles usées affleurant l'herbe au centre (le « ring » de l'animateur)
-    n_dalles, r0, r1 = 22, 2.35, 2.9
+    n_dalles, r0, r1 = 26, 3.0, 3.65
     for k in range(n_dalles):
         t0 = 2 * math.pi * (k + 0.04) / n_dalles
         t1 = 2 * math.pi * (k + 0.96) / n_dalles
         cs = [Vector((math.cos(t0) * r0, math.sin(t0) * r0)), Vector((math.cos(t0) * r1, math.sin(t0) * r1)),
               Vector((math.cos(t1) * r1, math.sin(t1) * r1)), Vector((math.cos(t1) * r0, math.sin(t1) * r0))]
         mb.box(cs, -0.05, 0.012, 0.0, STONE_ZONES, -0.55 + 0.25 * math.sin(k * 2.3))
-    hanger(mb, 0.52 * a, 0.15 * b, -2.9, 1.1, 2.5, 0.4)
-    hanger(mb, -0.5 * a, -0.2 * b, -2.9, 1.2, 3.0, 1.9)
-    hanger(mb, 0.1 * a, 0.45 * b, -2.6, 0.9, 2.1, 3.1)
+    hanger(mb, 0.52 * a, 0.15 * b, -3.5, 1.4, 3.0, 0.4)
+    hanger(mb, -0.5 * a, -0.2 * b, -3.5, 1.5, 3.6, 1.9)
+    hanger(mb, 0.1 * a, 0.45 * b, -3.1, 1.1, 2.5, 3.1)
     meta = {'role': 'plateau', 'variante': 'herbe et pierre', 'map': 'archipel',
             'surface': {'forme': 'superellipse', 'demiX': a, 'demiZ': b, 'exposant': 2.6, 'y': 0.0,
                         'liseré': 0.75, 'contour': contour_three(ol)},
@@ -765,11 +807,11 @@ def build_plateforme(size):
     a, b = dims
     ol = Outline(rounded_rect(a, b, 0.8))  # rayon > rentrée max (0,68 m) : pas de boucle dans les coins
     depth = {'S': 0.95, 'M': 1.05, 'L': 1.15}[size]
-    strata = [(1.0, 0.16, -0.62), (0.62, 0.3, -0.86)]
+    strata = [(1.0, 0.38, -0.6), (0.66, 0.3, -0.86)]  # 2 strates en bols : lèvre claire sous le liseré
     mb = floating_island('plateforme_pierre_' + size, ol, 32 if size != 'S' else 28, depth, strata,
                          rim={'width': 0.4, 'len': 0.8, 'top': 0.04, 'bot': -0.22, 'chamfer': 0.05},
                          top_rings=(0.25,), tip=(0.1, 0.0), seed={'S': 2.1, 'M': 3.4, 'L': 4.7}[size],
-                         jr=0.1, jz=0.05, earth=0.26, overhang=0.04)
+                         jr=0.1, jz=0.05, earth=0.26, overhang=0.04, ledge_in=-0.22, ledge_frac=0.0, ledge_h=0.06)
     meta = {'role': 'plateforme', 'variante': 'herbe et pierre', 'map': 'archipel',
             'surface': {'forme': 'rectangle arrondi', 'demiX': a, 'demiZ': b, 'y': 0.0, 'contour': contour_three(ol, 20)},
             'collider': {'type': 'box traversable par le dessous (one-way)', 'conseil': f'box hx {a - 0.05:.2f} hy 0.15 hz {b - 0.05:.2f} centrée y=-0.15'},
@@ -801,9 +843,10 @@ def build_ile_lointaine(variant):
     a, b = (3.2, 2.4) if variant == 'A' else (2.2, 1.8)
     ol = Outline(superellipse(a, b, 2.3))
     depth = 4.2 if variant == 'A' else 3.2
-    strata = [(0.95, 0.25, -1.0), (0.7, 0.5, -2.0), (0.4, 0.4, -3.0)]
+    strata = [(0.95, 0.45, -1.0), (0.72, 0.62, -2.0), (0.42, 0.45, -3.0)]
     mb = floating_island('ile_lointaine_' + variant, ol, 18, depth, strata, rim=None, top_rings=(0.6,),
-                         tip=(0.2, -0.1), seed=5.5 if variant == 'A' else 6.6, jr=0.35, jz=0.15, earth=0.3)
+                         tip=(0.2, -0.1), seed=5.5 if variant == 'A' else 6.6, jr=0.3, jz=0.15, earth=0.3,
+                         ledge_in=-0.26, ledge_frac=0.0, ledge_h=0.08)
     # ruine : colonne entière + colonne brisée + arbre (A) ; arbre et tronçon de colonne (B)
     if variant == 'A':
         column(mb, -1.1, 0.3, 0.26, 2.3, tone=0.3)
@@ -821,17 +864,36 @@ def build_ile_lointaine(variant):
 PLAT_DIMS = {'S': (1.6, 1.0), 'M': (2.3, 1.2), 'L': (3.1, 1.4)}  # demi-longueur X, demi-largeur Z (m)
 
 
+def compass_rose(mb, r_long, r_short, r_in, z, segs=32):
+    """Rose des vents peinte (délavée) au centre du pont : 8 pointes à deux tons + un anneau. Le « ring » du galion."""
+    half = math.pi / 8
+    for k in range(8):
+        th = k * math.pi / 4
+        R = r_long if k % 2 == 0 else r_short
+        c = mb.v((0.0, 0.0, z))
+        tip = mb.v((math.cos(th) * R, math.sin(th) * R, z))
+        bl = mb.v((math.cos(th - half) * r_in, math.sin(th - half) * r_in, z))
+        br = mb.v((math.cos(th + half) * r_in, math.sin(th + half) * r_in, z))
+        mb.f((c, bl, tip), 'paint_teal' if k % 2 == 0 else 'paint_cream', 0.0)
+        mb.f((c, tip, br), 'paint_cream' if k % 2 == 0 else 'paint_teal', 0.0)
+    r0, r1 = r_short + 0.35, r_short + 0.62
+    inner = mb.ring([Vector((math.cos(2 * math.pi * i / segs) * r0, math.sin(2 * math.pi * i / segs) * r0, z)) for i in range(segs)])
+    outer = mb.ring([Vector((math.cos(2 * math.pi * i / segs) * r1, math.sin(2 * math.pi * i / segs) * r1, z)) for i in range(segs)])
+    mb.bridge(inner, outer, 'paint_teal')
+
+
 def build_plateau_pont():
     """Galion : pont ovale en lames délavées, liseré de poutres blanchies par le sel, coque à clins sous le pont."""
-    a, b = 9.5, 6.6
+    a, b = 13.5, 10.0  # pivot temps réel : 27 x 20 m
     ol = Outline(superellipse(a, b, 2.2))
-    depth = 4.3
-    strata = [(1.0, 1.0, 0.1, -0.85), (0.98, 0.9, 0.16, -1.6), (0.93, 0.74, 0.2, -2.35), (0.84, 0.54, 0.2, -3.05),
-              (0.7, 0.3, 0.15, -3.7)]
+    depth = 5.2
+    strata = [(1.0, 1.0, 0.1, -1.0), (0.98, 0.9, 0.18, -1.9), (0.93, 0.74, 0.22, -2.8), (0.84, 0.54, 0.22, -3.65),
+              (0.7, 0.3, 0.16, -4.45)]
     mb = floating_island('plateau_pont', ol, 52, depth, strata, top='planks', body='hull',
-                         rim={'width': 0.5, 'len': 1.6, 'top': 0.07, 'bot': -0.24, 'chamfer': 0.05, 'style': 'beam', 'gap': 0.03},
+                         rim={'width': 0.55, 'len': 1.9, 'top': 0.07, 'bot': -0.24, 'chamfer': 0.05, 'style': 'beam', 'gap': 0.03},
                          tip=(0.0, 0.0), seed=2.7, jr=0.02, jz=0.0, earth=0.32, ledge_in=0.07, ledge_frac=0.0,
                          ledge_h=0.07, chamfer_in=0.1, top_kw={'width': 0.5, 'gap': 0.04})
+    compass_rose(mb, 3.6, 2.1, 0.55, 0.012)
     meta = {'role': 'plateau', 'variante': 'planches de pont', 'map': 'galion',
             'surface': {'forme': 'superellipse', 'demiX': a, 'demiZ': b, 'exposant': 2.2, 'y': 0.0, 'liseré': 0.5,
                         'contour': contour_three(ol)},
@@ -848,12 +910,12 @@ def handles(mb, outline, d_face, z, spacing, half_len=0.6, proud=0.16, h=0.075, 
         t = Vector((-nrm.y, nrm.x))
         cs = [p - nrm * (d_face + 0.02) - t * half_len, p - nrm * (d_face - proud) - t * half_len,
               p - nrm * (d_face - proud) + t * half_len, p - nrm * (d_face + 0.02) + t * half_len]
-        mb.box(cs, z - h, z + h, 0.03, ('chrome', 'chrome', 'chrome_d'), 0.0, bottom=True)
+        mb.box(cs, z - h, z + h, 0.03, ('chrome', 'chrome', 'chrome_d'), 0.0)
 
 
 def build_plateau_cuisine():
     """Cuisine géante : îlot de cuisine, carreaux géants en damier, chant de hêtre clair, tiroirs et poignées."""
-    a, b = 9.5, 7.0
+    a, b = 13.0, 10.5  # pivot temps réel : 26 x 21 m
     ol = Outline(rounded_rect(a, b, 1.4))
     depth = 4.9
     strata = [(1.0, 0.3, -1.65), (1.0, 0.3, -3.25), (1.0, 0.3, -4.8)]
@@ -861,8 +923,7 @@ def build_plateau_cuisine():
                          rim={'width': 0.45, 'len': 3.2, 'angle': 15.0, 'top': 0.035, 'bot': -0.14, 'chamfer': 0.12, 'style': 'beech', 'gap': 0.012},
                          tip=(0.0, 0.0), seed=3.9, jr=0.0, jz=0.0, earth=0.42, ledge_in=0.07, ledge_frac=0.0,
                          ledge_h=0.12, chamfer_in=0.3, overhang=0.02, top_kw={'size': 1.5, 'grout': 0.08})
-    handles(mb, ol, 0.3, -1.1, 3.4)
-    handles(mb, ol, 0.3, -2.45, 3.4, phase=0.5)
+    handles(mb, ol, 0.3, -1.1, 4.2)  # une seule rangée de poignées (tiroirs), les portes dessous restent lisses
     meta = {'role': 'plateau', 'variante': 'plan de travail carrelé', 'map': 'cuisine',
             'surface': {'forme': 'rectangle arrondi', 'demiX': a, 'demiZ': b, 'rayonCoins': 1.4, 'y': 0.0, 'liseré': 0.45,
                         'contour': contour_three(ol)},
@@ -952,10 +1013,11 @@ def build_socle_hex(k):
     ol = Outline(hexagon(apo, 0.9))
     depth = 2.2 + 1.1 * k
     f = depth / 6.6
-    strata = [(1.0, 0.25, -1.0 * f - 0.3), (0.88, 0.5, -2.2 * f), (0.7, 0.7, -3.4 * f), (0.48, 0.7, -4.5 * f),
-              (0.28, 0.5, -5.4 * f)]
+    strata = [(1.0, 0.55, -1.0 * f - 0.3), (0.9, 0.8, -2.2 * f), (0.74, 0.95, -3.4 * f), (0.52, 0.9, -4.5 * f),
+              (0.3, 0.6, -5.4 * f)]
     mb = floating_island('socle_hex_%d' % k, ol, 36 + 4 * k, depth, strata, rim=None, top_rings=(0.5,),
-                         tip=(0.2, -0.3), seed=7.0 + k, jr=0.3, jz=0.12, earth=0.3)
+                         tip=(0.2, -0.3), seed=7.0 + k, jr=0.3, jz=0.12, earth=0.3,
+                         ledge_in=-0.3, ledge_frac=0.0, ledge_h=0.08)
     if k >= 3:
         hanger(mb, 0.45 * apo, 0.2 * apo, -2.0 * f - 0.4, 0.8, 2.0, 0.3)
         hanger(mb, -0.4 * apo, -0.25 * apo, -2.0 * f - 0.4, 0.9, 2.4, 1.3)
@@ -1076,7 +1138,7 @@ def build_nuage(variant):
              if variant == 'A' else
              [(-1.3, 0.0, 0.1, 0.95), (0.0, 0.1, 0.45, 1.25), (1.35, -0.1, 0.15, 0.95), (0.6, 0.5, 0.0, 0.8)])
     for (x, y, z, r) in blobs:
-        sq = rng.uniform(0.75, 0.85)
+        sq = rng.uniform(0.6, 0.7)
         idx = []
         for p in V:
             zz = z + p.z * r * sq
@@ -1099,10 +1161,10 @@ def build_rocher(size):
     b = a * 0.8
     ol = Outline(superellipse(a, b, 2.2))
     depth = a * 1.7
-    strata = [(0.95, 0.12 * a, -0.35 * depth), (0.72, 0.15 * a, -0.62 * depth), (0.4, 0.12 * a, -0.85 * depth)]
+    strata = [(0.95, 0.24 * a, -0.35 * depth), (0.72, 0.26 * a, -0.62 * depth), (0.4, 0.16 * a, -0.85 * depth)]
     mb = floating_island('rocher_' + size, ol, 12 if size == 'S' else 16, depth, strata, rim=None, top_rings=(0.55,),
                          tip=(0.1 * a, -0.1 * a), seed={'S': 8.1, 'M': 8.6, 'L': 9.2}[size], jr=0.18 * a, jz=0.06 * a,
-                         earth=0.18 * a, ledge_in=0.08 * a)
+                         earth=0.18 * a, ledge_in=-0.14 * a, ledge_frac=0.0, ledge_h=0.05 * a)
     meta = {'role': 'fond', 'variante': 'rocher flottant ' + size, 'map': 'archipel',
             'collider': {'type': 'aucun'},
             'usage': 'Rocher flottant de décor, hors du plateau (5 à 25 m), léger mouvement de flottaison conseillé.'}
@@ -1122,6 +1184,160 @@ def build_bord_bois():
     return mb, island_colorfn(1, 1, 1), {'rays': 16, 'dist': 0.4, 'ground': 3.0}, meta
 
 
+def rot2(cx, cy, rot, pts):
+    c, s = math.cos(rot), math.sin(rot)
+    return [Vector((cx + x * c - y * s, cy + x * s + y * c)) for x, y in pts]
+
+
+def crate_at(mb, cx, cy, rot=0.0, s=0.55, H=1.1, fr=0.13):
+    """Caisse à cadre clair et panneaux sombres, posée au sol, centre (cx, cy), rotation rot."""
+    inner = s - 0.03
+    mb.box(rot2(cx, cy, rot, [(-inner, -inner), (inner, -inner), (inner, inner), (-inner, inner)]), 0.0, H - 0.02, 0.02,
+           ('plank', 'plank', 'plank'), -0.6)
+    for (x, y) in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
+        px, py = x * (s - fr / 2), y * (s - fr / 2)
+        mb.box(rot2(cx, cy, rot, [(px - fr / 2, py - fr / 2), (px + fr / 2, py - fr / 2), (px + fr / 2, py + fr / 2), (px - fr / 2, py + fr / 2)]),
+               0.0, H, 0.025, RIM['beam'], 0.2)
+    t = s - 0.012
+    for z0, z1 in ((0.0, fr), (H - fr, H)):
+        for (ax, ay, bx, by) in ((-t, -t, t, -t + fr), (t - fr, -t, t, t), (-t, t - fr, t, t), (-t, -t, -t + fr, t)):
+            mb.box(rot2(cx, cy, rot, [(ax, ay), (bx, ay), (bx, by), (ax, by)]), z0, z1 + 0.005, 0.02, RIM['beam'], -0.2)
+
+
+def build_muret_bas():
+    """Couvert à hauteur de torse (1,3 m) : muret droit de 3 m en pierres de taille, chaperon clair qui dépasse."""
+    mb = MB()
+    rng = random.Random(53)
+    L, D = 3.0, 0.7
+    for ci, (z0, z1) in enumerate(((0.0, 0.42), (0.42, 0.84))):
+        x = -L / 2 - (0.0 if ci % 2 == 0 else 0.4)
+        while x < L / 2 - 0.05:
+            ln = rng.uniform(0.7, 1.0)
+            x0, x1 = max(x, -L / 2) + 0.018, min(x + ln, L / 2) - 0.018
+            if x1 - x0 > 0.2:
+                mb.box([Vector((x0, -D / 2)), Vector((x1, -D / 2)), Vector((x1, D / 2)), Vector((x0, D / 2))],
+                       z0 - (0.05 if ci == 0 else 0.0), z1, 0.045, RIM['stone'], rng.uniform(-0.8, 0.4))
+            x += ln
+    x = -L / 2 - 0.06
+    while x < L / 2 + 0.06:
+        ln = rng.uniform(0.9, 1.25)
+        x0, x1 = max(x, -L / 2 - 0.06) + 0.015, min(x + ln, L / 2 + 0.06) - 0.015
+        if x1 - x0 > 0.2:
+            mb.box([Vector((x0, -D / 2 - 0.06)), Vector((x1, -D / 2 - 0.06)), Vector((x1, D / 2 + 0.06)), Vector((x0, D / 2 + 0.06))],
+                   0.84, 1.3 + rng.uniform(-0.02, 0.02), 0.07, RIM['stone'], rng.uniform(0.3, 0.8))
+        x += ln
+    meta = {'role': 'couvert', 'variante': 'muret bas (torse)', 'map': 'archipel',
+            'ancre': 'centre de la base, au sol (y=0)',
+            'collider': {'type': 'box', 'conseil': 'box hx 1.56 hy 0.65 hz 0.41 centrée y=0.65'},
+            'usage': 'Couvert à hauteur de torse (1,3 m) pour jouer la ligne de tir : on se cache accroupi derrière, on tire par-dessus en sautant.'}
+    return mb, island_colorfn(1, 1, 1), {'rays': 24, 'dist': 0.6, 'ground': 4.0}, meta
+
+
+def build_rocher_couvert():
+    """Couvert : gros rocher facetté (2,3 x 1,4 x 1,6 m), coiffe d'herbe, posé au sol."""
+    mb = MB()
+    V, F = icosphere()
+    rng = random.Random(71)
+    sx, sy, sz, cz = 1.2, 0.85, 0.9, 0.58
+    idx = []
+    for p in V:
+        k = 1.0 + 0.16 * noise.noise(Vector((p.x * 1.7 + 3.0, p.y * 1.7, p.z * 1.7)))
+        q = Vector((p.x * sx * k, p.y * sy * k, cz + p.z * sz * k))
+        q.z = max(q.z, -0.06)
+        idx.append(mb.v(q))
+    for a, b, c in F:
+        pa, pb, pc = mb.verts[idx[a]], mb.verts[idx[b]], mb.verts[idx[c]]
+        n = (pb - pa).cross(pc - pa).normalized()
+        zone = 'grass' if n.z > 0.62 and (pa.z + pb.z + pc.z) / 3 > 0.95 else 'rock'
+        mb.f((idx[a], idx[b], idx[c]), zone, rng.random() * 0.99)  # strate 0 : la roche claire du haut des falaises
+    meta = {'role': 'couvert', 'variante': 'rocher (torse)', 'map': 'archipel',
+            'ancre': 'centre de la base, au sol (y=0)',
+            'collider': {'type': 'box', 'conseil': 'box hx 1.05 hy 0.68 hz 0.72 centrée y=0.68 (ou cylindre r 0.9)'},
+            'usage': 'Couvert naturel à hauteur de torse (1,4 m), même roche que le dessous du plateau.'}
+    return mb, island_colorfn(1.2, 1.2, 2.5), {'rays': 20, 'dist': 0.6, 'ground': 4.0}, meta
+
+
+def build_caisses_pile():
+    """Couvert (galion) : deux caisses et un tonneau groupés, 1,1 m de haut, 2,6 m de large."""
+    mb = MB()
+    crate_at(mb, -0.62, 0.0, 0.08)
+    crate_at(mb, 0.55, 0.12, -0.12)
+    segs = 14
+    cx, cy = 0.2, -0.95
+    prof = [(0.0, 0.40), (0.14, 0.44), (0.55, 0.49), (0.96, 0.44), (1.1, 0.40)]
+    rings = [[mb.v((cx + math.cos(2 * math.pi * i / segs) * r, cy + math.sin(2 * math.pi * i / segs) * r, z)) for i in range(segs)] for z, r in prof]
+    for r0, r1 in zip(rings, rings[1:]):
+        for i in range(segs):
+            j = (i + 1) % segs
+            mb.f((r0[i], r0[j], r1[j], r1[i]), 'plank', 0.5 if i % 2 == 0 else -0.4, smooth=True)
+    for z in (0.2, 0.9):
+        lo = [mb.v((cx + math.cos(2 * math.pi * i / segs) * 0.49, cy + math.sin(2 * math.pi * i / segs) * 0.49, z - 0.05)) for i in range(segs)]
+        hi = [mb.v((cx + math.cos(2 * math.pi * i / segs) * 0.49, cy + math.sin(2 * math.pi * i / segs) * 0.49, z + 0.05)) for i in range(segs)]
+        mb.bridge(lo, hi, 'iron', up=True, smooth=True)
+    lid = [mb.v((cx + math.cos(2 * math.pi * i / segs) * 0.35, cy + math.sin(2 * math.pi * i / segs) * 0.35, 1.06)) for i in range(segs)]
+    mb.bridge(rings[-1], lid, 'beam_side', up=True)
+    mb.fan(mb.v((cx, cy, 1.06)), lid, 'plank', 0.2)
+    meta = {'role': 'couvert', 'variante': 'pile de caisses (torse)', 'map': 'galion',
+            'ancre': 'centre de la base, au sol (y=0)',
+            'collider': {'type': 'box', 'conseil': 'box hx 1.2 hy 0.55 hz 0.75 centrée y=0.55 (x décalé 0, z +0.2)'},
+            'usage': 'Couvert du pont : 2 caisses + 1 tonneau, un seul appel de dessin.'}
+    return mb, island_colorfn(1, 1, 1), {'rays': 20, 'dist': 0.45, 'ground': 4.0}, meta
+
+
+def build_tasse():
+    """Couvert (cuisine) : tasse à café géante, 1,3 m de haut, bande terre cuite, café et crème dedans, anse ronde."""
+    mb = MB()
+    segs = 22
+    prof = [(0.72, 0.0, 'mug'), (0.8, 0.09, 'mug'), (0.8, 0.8, 'mug'), (0.8, 0.98, 'mug_band'), (0.8, 1.22, 'mug'),
+            (0.77, 1.3, 'mug'), (0.68, 1.3, 'mug'), (0.68, 1.16, 'mug')]
+    rings = []
+    for r, z, _ in prof:
+        rings.append([mb.v((math.cos(2 * math.pi * i / segs) * r, math.sin(2 * math.pi * i / segs) * r, z)) for i in range(segs)])
+    for k in range(len(rings) - 1):
+        zone = prof[k + 1][2] if prof[k + 1][2] == 'mug_band' else 'mug'
+        a, b = rings[k], rings[k + 1]
+        for i in range(segs):
+            j = (i + 1) % segs
+            c = (mb.verts[a[i]] + mb.verts[b[j]]) / 2
+            # extérieur et bord : normale vers l'extérieur/le haut ; paroi intérieure (k = 6) : normale vers l'axe
+            ref = (c.x * 1.6, c.y * 1.6, c.z) if k == 6 else (0.0, 0.0, 0.65)
+            mb.f_away((a[i], a[j], b[j], b[i]), zone, ref, smooth=k in (1, 2, 3, 4))
+    mb.fan(mb.v((0, 0, 1.16)), rings[-1], 'coffee')
+    mb.fan(mb.v((0, 0, 0.0)), rings[0], 'mug', down=True)
+    # anse : tube balayé sur un demi-cercle, côté +X, dont les bouts rentrent dans le corps
+    C, R, rt = Vector((0.74, 0.0, 0.66)), 0.4, 0.085
+    arcs = []
+    steps = 9
+    for s in range(steps + 1):
+        th = -math.pi / 2 * 0.95 + math.pi * 0.95 * s / steps
+        u = Vector((math.cos(th), 0.0, math.sin(th)))
+        p = C + u * R
+        v = Vector((0.0, 1.0, 0.0))
+        arcs.append(([mb.v(p + (u * math.cos(2 * math.pi * k / 6) + v * math.sin(2 * math.pi * k / 6)) * rt) for k in range(6)], p))
+    for (a, pa), (b, pb) in zip(arcs, arcs[1:]):
+        mid = (pa + pb) / 2
+        for k in range(6):
+            j = (k + 1) % 6
+            mb.f_away((a[k], a[j], b[j], b[k]), 'mug', mid, smooth=True)
+    meta = {'role': 'couvert', 'variante': 'tasse géante (torse)', 'map': 'cuisine',
+            'ancre': 'centre de la base, au sol (y=0)',
+            'collider': {'type': 'cylindre', 'conseil': 'cylinder radius 0.8 halfHeight 0.65 centré y=0.65'},
+            'usage': "Couvert de la cuisine géante (1,3 m) ; l'auréole de café des tokens (maps.cuisine.cafe) peut marquer sa place."}
+    return mb, island_colorfn(1, 1, 1), {'rays': 20, 'dist': 0.5, 'ground': 4.0}, meta
+
+
+def build_sucre():
+    """Couvert (cuisine) : morceau de sucre géant de 1,2 m, arêtes adoucies."""
+    mb = MB()
+    s = 0.6
+    mb.box([Vector((-s, -s)), Vector((s, -s)), Vector((s, s)), Vector((-s, s))], 0.0, 1.2, 0.1, ('sugar_top', 'sugar_edge', 'sugar_side'), 0.0)
+    meta = {'role': 'couvert', 'variante': 'sucre géant (torse)', 'map': 'cuisine',
+            'ancre': 'centre de la base, au sol (y=0)',
+            'collider': {'type': 'box', 'conseil': 'box hx 0.6 hy 0.6 hz 0.6 centrée y=0.6'},
+            'usage': 'Couvert cubique de la cuisine (1,2 m), lisible de loin, peut être « knockable ».'}
+    return mb, island_colorfn(1, 1, 1), {'rays': 16, 'dist': 0.5, 'ground': 3.0}, meta
+
+
 PIECES = {
     'plateau_pierre': build_plateau_pierre,
     'plateau_pont': build_plateau_pont,
@@ -1138,11 +1354,18 @@ PIECES = {
     'socle_hex_2': lambda: build_socle_hex(2),
     'socle_hex_3': lambda: build_socle_hex(3),
     'socle_hex_4': lambda: build_socle_hex(4),
+    'socle_hex_5': lambda: build_socle_hex(5),
+    'socle_hex_6': lambda: build_socle_hex(6),
     'bord_pierre': build_bord_pierre,
     'bord_bois': build_bord_bois,
     'muret_ruine': build_muret,
+    'muret_bas': build_muret_bas,
+    'rocher_couvert': build_rocher_couvert,
     'caisse': build_caisse,
+    'caisses_pile': build_caisses_pile,
     'tonneau': build_tonneau,
+    'tasse': build_tasse,
+    'sucre': build_sucre,
     'ile_lointaine_A': lambda: build_ile_lointaine('A'),
     'ile_lointaine_B': lambda: build_ile_lointaine('B'),
     'rocher_S': lambda: build_rocher('S'),

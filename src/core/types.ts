@@ -17,8 +17,11 @@ export const TRAITS: readonly Trait[] = ['bouncy', 'sticky', 'explosive', 'heavy
 export type MapId = 'archipel' | 'galion' | 'cuisine';
 export const MAPS: readonly MapId[] = ['archipel', 'galion', 'cuisine'];
 
+/** Temps réel (plan/PIVOT-TEMPS-REEL.md) : un match = `countdown` (READY? 3-2-1 GO!) → `fight` → `ko` → `end`.
+ * Les phases de tour (`turn-intro`, `move`, `aim`, `resolve`, `snap-time`) ne sont plus utilisées en match. */
 export type Phase =
   | 'title' | 'fighter-select' | 'arsenal' | 'reveal' | 'map-select'
+  | 'countdown' | 'fight'
   | 'turn-intro' | 'move' | 'aim' | 'resolve' | 'snap-time' | 'ko' | 'end';
 
 export type ModelId = 'barbarian' | 'knight' | 'mage' | 'rogue_hooded' | 'skeleton_mage' | 'skeleton_warrior' | 'custom';
@@ -88,6 +91,12 @@ export interface PlayerState {
   pct: number;
   stocks: number;
   onLedge: boolean;
+  /** Temps réel (lot RTCORE) : recharge restante de chaque arme (s, 0 = prête), charge du tir maintenu (0..1),
+   * blocage maintenu, orientation (rad, autour de y ; 0 = vers +z). */
+  cooldowns: number[];
+  charge: number;
+  blocking: boolean;
+  yaw: number;
 }
 
 export interface CrateState { pos: Vec3; landsInTurns: number; landed: boolean }
@@ -100,7 +109,10 @@ export interface GameState {
   mapId: MapId;
   seed: number;
   suddenDeath: boolean;
+  /** Temps réel : secondes avant la mort subite (3:00 au départ). */
   timerLeft: number;
+  /** Écran scindé (2 humains) ; false contre l'IA (plein écran pour l'humain). */
+  split: boolean;
   crate: CrateState | null;
   winner: PlayerId | null;
   lastEvent: string | null;
@@ -109,15 +121,48 @@ export interface GameState {
   difficulty: 'easy' | 'medium' | 'hard' | 'hardcore';
 }
 
+/** 'split' : P1 à gauche, P2 à droite · 'solo' : une seule vue plein écran (vs IA, menus). */
+export type ViewMode = 'solo' | 'split';
+
+/** Une vue de l'écran (lot RTVIEW) : un rectangle du canvas et la caméra de son joueur. */
+export interface View {
+  player: PlayerId;
+  camera: THREE.PerspectiveCamera;
+  /** Rectangle en pixels CSS, origine en haut à gauche du canvas. */
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  /** false : vue non dessinée (en solo, seule la vue du joueur suivi l'est). */
+  visible: boolean;
+}
+
 export interface Three {
   scene: THREE.Scene;
+  /** Caméra de P1 (compatibilité) ; en écran scindé, chaque vue a la sienne : `cameras`. */
   camera: THREE.PerspectiveCamera;
+  /** Une caméra par joueur (lot RTVIEW) : [P1, P2]. Placées chaque image par src/scene/camera. */
+  cameras: [THREE.PerspectiveCamera, THREE.PerspectiveCamera];
   renderer: THREE.WebGLRenderer;
   canvas: HTMLCanvasElement;
   /** Couche HTML au-dessus du canvas pour l'interface (lot LU). */
   uiRoot: HTMLElement;
-  /** Fonction de rendu appelée en fin de frame ; le lot LA peut la remplacer (post-traitement). */
+  /** Fonction de rendu appelée en fin de frame ; le lot LA peut la remplacer (post-traitement). Dessine toutes les vues. */
   render: () => void;
+  /** Mode d'affichage courant (lot RTVIEW). Changer avec setViewMode. */
+  viewMode: ViewMode;
+  /** Joueur suivi par la vue unique en mode solo. */
+  soloPlayer: PlayerId;
+  setViewMode(mode: ViewMode, soloPlayer?: PlayerId): void;
+  /** Vue d'un joueur : où placer son HUD et ses effets, avec quelle caméra projeter. */
+  viewOf(player: PlayerId): View;
+  /** Vues dessinées cette image, de gauche à droite (1 en solo, 2 en scindé). */
+  views(): View[];
+  /** Appelé juste avant de dessiner chaque vue (occlusion par vue, effets réservés à une vue…). */
+  onBeforeView(fn: (view: View) => void): void;
+  /** Direction avant horizontale de la caméra du joueur (y = 0, normée) : repère du déplacement relatif.
+   * Droite = [-f[2], 0, f[0]]. */
+  forwardOf(player: PlayerId): Vec3;
 }
 
 export interface StartMatchOptions {
@@ -129,7 +174,12 @@ export interface StartMatchOptions {
   /** Nombre de vies (règles v2) : 2 par défaut, 1 en démo. */
   stocks?: number;
   difficulty?: 'easy' | 'medium' | 'hard' | 'hardcore';
+  /** Écran scindé (lot RTVIEW) : vrai par défaut à 2 humains, faux contre l'IA. */
+  split?: boolean;
 }
+
+/** Actions de jeu d'un joueur (mêmes noms que src/core/input.ts). */
+export type InputAction = 'up' | 'down' | 'left' | 'right' | 'jump' | 'weapon1' | 'weapon2' | 'weapon3' | 'fire' | 'parry';
 
 /** Pilotage du jeu par script (agents du harnais, régie de démo). Chaque lot remplace les fonctions qui le concernent. */
 export interface GameHooks {
@@ -150,8 +200,14 @@ export interface GameHooks {
   forcerVictoire(player?: PlayerId): void;
   setSeed(n: number): void;
   action(text: string): void;
+  /** Temps réel : simule une touche (enfoncée / relâchée) d'un joueur, comme le clavier ou la manette. */
+  input?(player: PlayerId, action: InputAction, down: boolean): void;
   animCamera?(player: PlayerId, shot: 'side' | 'front' | 'threeQuarter'): void;
   animPlay?(player: PlayerId, action: 'idle' | 'walk' | 'run' | 'jump' | 'throw' | 'blaster' | 'shield' | 'hitFront' | 'hitBack' | 'ko' | 'teeter' | 'parry'): void;
+  /** Lot LSCAN-PERSO : pont de test headless vers le pipeline photo -> combattant (src/ia/fighter). Charge
+   *  l'image à `url` (data URL ou chemin servi, ex. /tmp-test/face.png), la fait scanner par Gemini, et pose
+   *  le résultat dans state.players[player].fighter — prêt pour un hooks.startMatch() qui suit. */
+  scanFighterFromUrl?(url: string, player: PlayerId): void;
 }
 
 export interface AnimSample {

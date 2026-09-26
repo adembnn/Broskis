@@ -19,7 +19,9 @@ import { mountTitle } from './screenTitle';
 import { installSnapTime } from './snapTime';
 import { installStickers, preloadPresetStickers } from './sticker2d';
 import { injectGoogleFonts, injectStyles } from './theme';
-import { installTutorial } from './tutorial';
+import { installSettingsKey, openSettings } from './settings';
+import { preloadFighters } from '../core/preload';
+import { coverMatchStart } from './loading';
 
 type Difficulty = NonNullable<StartMatchOptions['difficulty']>;
 
@@ -43,7 +45,7 @@ export const install: Install = (ctx) => {
   root.append(hud.root, screenLayer);
   ctx.three.uiRoot.append(root);
   installSnapTime(ctx, screenLayer);
-  installTutorial(ctx, hud.root);
+  installSettingsKey(ctx, screenLayer); // ÉCHAP en match : pause + Settings → Controls
   installStickers(ctx); // stickers arrivés en route → recopiés sur les armes du match
   void presetsReady.then(preloadPresetStickers);
   void preloadPortraits(FIGHTER_PRESETS);
@@ -83,26 +85,30 @@ export const install: Install = (ctx) => {
 
   function startMatch(opts: StartMatchOptions): void {
     const weapons = opts.weapons && ([freshWeapons(opts.weapons[0]), freshWeapons(opts.weapons[1])] as [Weapon[], Weapon[]]);
-    ctx.hooks.startMatch({ ...opts, weapons });
+    // Temps réel (plan/PIVOT-TEMPS-REEL.md) : deux humains = écran scindé ; contre l'IA, plein écran.
+    const full: StartMatchOptions & { split?: boolean } = { ...opts, weapons, split: !opts.vsAI };
+    // LLOAD : rideau P1/P2 pendant que la map se construit et que les shaders compilent (src/ui/loading/match.ts).
+    void coverMatchStart(ctx, () => ctx.hooks.startMatch(full), opts.map);
   }
 
   async function toTitle(): Promise<void> {
     if (ctx.state.phase !== 'title') ctx.bus.emit('phase:change', { from: ctx.state.phase, to: 'title' });
-    const titleOpts = await mountTitle(screenLayer);
+    const titleOpts = await mountTitle(screenLayer, () => openSettings(ctx, screenLayer));
     settings = { vsAI: !!titleOpts?.vsAI, difficulty: titleOpts?.difficulty ?? settings.difficulty };
 
     ctx.bus.emit('phase:change', { from: ctx.state.phase, to: 'fighter-select' });
     const fighters = await runFighterSelect(screenLayer, settings.vsAI);
+    preloadFighters(fighters); // LLOAD : leurs modèles 3D se chargent pendant l'arsenal
 
     ctx.bus.emit('phase:change', { from: 'fighter-select', to: 'arsenal' });
-    const arsenal = await runArsenal(screenLayer);
+    const arsenal = await runArsenal(screenLayer, settings.vsAI);
 
     ctx.bus.emit('phase:change', { from: 'arsenal', to: 'reveal' });
     await runReveal(ctx, screenLayer, arsenal);
 
     ctx.bus.emit('phase:change', { from: 'reveal', to: 'map-select' });
     const map = await runMapSelect(screenLayer);
-    clear(screenLayer);
+    // LLOAD : l'écran de map reste affiché jusqu'à ce que le rideau le couvre ; match:start le vide ensuite.
     startMatch({ fighters, weapons: arsenal.weapons, map, vsAI: settings.vsAI, difficulty: settings.difficulty });
   }
 

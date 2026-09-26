@@ -1,0 +1,73 @@
+# Recherche — game design et game feel du 1v1 temps réel à projectiles
+
+Pivot lu dans `plan/PIVOT-TEMPS-REEL.md`. Remplace la table du skill `game-feel` (tour par tour) par une table temps réel. Sources citées à chaque ligne quand un ordre de grandeur existe ; sinon marqué « estimation raisonnable » (à valider en playtest).
+
+## 1. Table chiffrée de game feel temps réel
+
+Principe de base : au moment de l'impact, le jeu **gèle quelques images** (hitstop/hitlag) avant de reprendre — cela « vend » la collision et laisse l'œil confirmer le coup avant le recul ([SmashWiki, Hitlag](https://www.ssbwiki.com/Hitlag) ; [CritPoints, Hitstop/Hitlag](https://critpoints.net/2017/05/17/hitstophitfreezehitlaghitpausehitshit/)). Le screenshake suit une courbe de « trauma » qui décroît dans le temps plutôt qu'un secouement fixe ([Jan Willem Nijman, « The Art of Screenshake », Vlambeer](https://www.youtube.com/watch?v=SkgkIXZ_13Y)) — c'est déjà la règle du skill `game-feel` (« trauma², décroissance 1,4/s »), on la garde.
+
+| Événement | Hitstop | Secousse (trauma, amplitude/durée, par vue) | FOV punch | Particules | Son (couches) | Ralenti | Vibration manette |
+|---|---|---|---|---|---|---|---|
+| **Tir (blaster/throwable, relâché)** | 0 ms | 0 | 0 | traînée courte + flash à la bouche | départ (claquement sec) + whoosh air | non | pulse courte 60 ms, faible |
+| **Charge (maintien 0,3–1 s)** | 0 ms | trauma 0,05 en boucle, monte avec la charge | +2° progressif | particules qui s'accumulent à l'arme (référence directe : charge-up telegraph, [Gamedeveloper, « Enemy Attacks and Telegraphing »](https://www.gamedeveloper.com/design/enemy-attacks-and-telegraphing)) | son montant type « aspirateur inversé » (source ci-dessus) | non | montée progressive |
+| **Impact léger (coup non chargé, touche l'adversaire)** | 40–60 ms (repère fighting game classique, cf. multiplicateurs de hitlag Smash x0,2–1,5 selon le perso, [SmashWiki](https://www.ssbwiki.com/Hitlag)) | trauma 0,3, décroissance 1,4/s, vue de la cible uniquement | +4° cible | flash 1 image + étincelles dans l'axe du tir | impact sec + petit cri/grunt | non | pulse 80 ms |
+| **Impact fort (charge pleine ou combo)** | 80–100 ms (au-dessus de l'impact léger, cohérent avec les hitlag « lourds » Smash) | trauma 0,6 | +8° (repris du skill `game-feel` existant) | gerbe de particules + débris de décor | impact grave + résonance courte | oui, 250–300 ms à ×0,3 (cf. parade parfaite ci-dessous, même grammaire visuelle) | pulse forte 150 ms |
+| **Blocage (dégâts ÷3)** | 20 ms | trauma 0,15, vue du bloqueur | 0 | étincelles absorbées vers le bouclier | son mat/étouffé | non | pulse faible |
+| **Parade parfaite (fenêtre 150 ms définie dans le pivot)** | 60 ms + freeze visuel « PERFECT! » | trauma 0,4, les deux vues | +6° un instant | onde de choc circulaire au point d'impact (repère métallique aigu déjà dans `game-feel`) | son métallique aigu distinct + voix animateur courte | oui, ×0,3 pendant 0,3 s (déjà spécifié dans le pivot — on le garde tel quel) | double-pulse net |
+| **Éjection (knockback qui grandit avec le %)** | 0 après le hitstop initial | secousse proportionnelle au % de dégâts (à la Smash : plus le % est haut, plus l'écran vibre — [SmashWiki Hitstun](https://www.ssbwiki.com/Hitstun)) | FOV qui s'élargit avec la vitesse d'éjection (jusqu'à +12°) | traînée de particules dans la trajectoire | whoosh qui s'éloigne (Doppler simple) | non (le ralenti est réservé au KO) | pulse qui suit l'accélération |
+| **KO / perte de vie** | 250 ms (repris du skill existant) | trauma 0,5 sur toutes les vues + zoom caméra sur l'éjecté (« effet Smash » déjà prévu au §Caméra du pivot) | flash blanc court | explosion de particules + confettis de l'objet-arme qui a fait le KO | musique qui coupe 0,2 s puis sting + annonce animateur | oui, 400–500 ms | forte, 300 ms |
+| **Saut** | 0 | 0 | -2° (légère ouverture qui donne de l'air) | poussière au sol au décollage | son d'impulsion + air | non | pulse très faible |
+| **Double saut** | 0 | 0 | -2° puis retour | traînée courte sous les pieds | son plus aigu que le 1er saut (variation de hauteur, cf. règle `game-feel` ±5 %) | non | pulse très faible |
+| **Atterrissage** | 15 ms (estimation raisonnable, sous le seuil « fort » pour ne pas casser le rythme du déplacement) | trauma 0,1 si chute normale, 0,3 si chute depuis une hauteur (cassure de map) | 0 | poussière + squash vertical du perso | thud sourd | non | pulse courte |
+| **Ramassage caisse Snap (nouvelle arme instantanée)** | 0 | trauma 0,2, un seul pulse | +5° un instant | halo lumineux qui explose en particules à la couleur de l'arme | jingle court et unique (signature sonore de la caisse) | léger 100 ms pour laisser voir l'icône de l'arme | pulse identifiable, différente des autres |
+
+Fenêtre de réactivité entrée→réaction visible : **< 100 ms** même sans réponse IA (règle déjà dans `game-feel`, cohérente avec le budget de la fenêtre de parade de 150 ms du pivot — l'input doit paraître plus rapide que la fenêtre qu'il doit battre).
+
+## 2. 15 règles de game design — 1v1 lock-on à projectiles, lisible en 3 s
+
+1. **Télégraphie = 2 canaux minimum** (visuel + sonore) pour chaque tir adverse, jamais un seul ([Gamedeveloper, telegraphing](https://www.gamedeveloper.com/design/enemy-attacks-and-telegraphing)). L'anneau `projectile:incoming` à 400 ms du pivot est bon ; ajouter systématiquement un son directionnel qui monte.
+2. **Le temps de réaction humain n'est pas instantané** — laisser une marge après la perception, pas seulement après l'apparition du danger (même source). 400 ms d'anneau + son est cohérent avec des fenêtres de parade « justes mais possibles ».
+3. **Fenêtre de parade courte = highlight, pas obligation** : Street Fighter 6 a resserré le Perfect Parry à **2 frames** (~33 ms) contre 10 frames en SF3 pour le rendre spectaculaire et rare ([EventHubs](https://www.eventhubs.com/news/2023/jul/03/desk-perfect-parries-supers-sf6/), [SuperCombo Wiki](https://wiki.supercombo.gg/w/Street_Fighter_6/Game_Data)). Les 150 ms du pivot sont bien plus larges — volontairement, car le lock-on remplace déjà la difficulté de viser ; ne pas resserrer sous 120 ms pour rester jouable en démo devant un jury novice.
+4. **Le blocage simple doit rester la valeur sûre** (÷3 dégâts, comme prévu) : sans lui, les joueurs paniquent au lieu d'apprendre le timing de la parade.
+5. **Cooldowns visibles en permanence** (icône d'arme qui se remplit) — un cooldown invisible casse la lisibilité en 3 s exigée par le jury Voodoo.
+6. **Cooldowns différenciés = rythme différencié** : blaster rapide (1,2 s) pousse au harcèlement, shield lent (8 s) force un choix tactique — le pivot a déjà cette diversité, la garder strictement (ne pas équilibrer tout à la même vitesse).
+7. **Anti-spam par coût, pas par interdiction** : le tir chargé (0,3–1 s) immobilise et expose, donc le spam de tir faible reste possible mais peu payant — c'est la bonne mécanique de zoning (cf. Towerfall/Nidhogg : chaque tir a un coût de repositionnement).
+8. **Le lock-on retire la visée, pas le placement** : le skill doit se jouer sur la distance, l'esquive latérale et le timing du blocage — jamais sur un aim manuel (cf. Power Stone / Dragon Ball Sparking! Zero, déjà cités comme référence dans le pivot).
+9. **Zoning vertical avec le saut/double saut** : le double saut doit permettre d'éviter un tir tendu sans sortir de l'arène — sinon la caméra verrouillée sur l'adversaire perd son intérêt.
+10. **Comeback mechanic intégrée** : la mort subite à 150 % à 3:00 (déjà dans le pivot) est un bon filet de sécurité pour un match de démo qui traînerait ; garder aussi la caisse Snap comme reset tactique aléatoire.
+11. **Durée idéale d'un round de démo : 60–90 s.** Un match de démo doit se conclure avant que le jury décroche — aligné sur les retours JAM classiques où un combat de démo tient dans une seule minute de tension visible.
+12. **Rendre le KO plus lent que le combat** (ralenti 400–500 ms au KO) pour marquer une respiration claire entre les rounds — sans quoi 2 vies passent inaperçues.
+13. **Jamais deux dangers de map + un cooldown d'arme qui tombent en même temps en début de match** : introduire les dangers de map après les 15–20 premières secondes pour laisser le jury comprendre le combat de base d'abord (« compris en 3 s » = priorité au design de base, pas aux systèmes).
+14. **Un seul signal pour chaque trait d'arme** (bouncy/sticky/explosive/slippery) — une couleur, une traînée ou un son propre à chaque trait, jamais combinés, pour rester lisible en écran scindé à taille réduite.
+15. **La caméra ne doit jamais perdre l'adversaire du cadre** (déjà une contrainte du pivot) : c'est la règle n°1 de tout jeu à lock-on, sans quoi le joueur perd la lecture du danger entrant — vérifier notamment lors des éjections/knockback qui peuvent sortir l'adversaire du cadre un instant.
+
+## 3. 10 idées créatives spécifiques à Broskis (< 1 h chacune)
+
+1. **Réplique de l'animateur qui nomme l'objet réel** au moment du KO (« Terrassé par... une brosse à dents ! ») — déjà dans l'esprit du concept, juste vérifier que le nom de l'objet scanné est bien passé au prompt de l'animateur.
+2. **Le trait de l'arme génère un mini-événement de décor** : `bouncy` fait rebondir le projectile une fois sur un mur avant de disparaître (spectaculaire, lisible), `sticky` laisse une marque qui reste visible 3 s, `explosive` fait trembler la caméra des deux vues même hors cible, `slippery` fait glisser légèrement le joueur touché. Chacun ~15 min de code, gros effet visuel.
+3. **Caisse Snap qui montre un aperçu flouté de l'objet-arme avant qu'elle touche le sol** (silhouette qui tourne) — crée une attente/tension avant même l'action, sans coût IA supplémentaire.
+4. **L'animateur commente la fenêtre de parade ratée avec un son comique distinct** (« Oooooh, presque ! ») — renforce le retour même sur un échec, un des piliers du game feel.
+5. **Un défaut de map qui casse pendant un KO** (un pan de décor tombe exactement pendant le ralenti du KO) — combine deux effets déjà prévus (dangers de map + ralenti KO) pour un seul moment mémorable, sans code neuf.
+6. **Le bouclier qui prend la forme de l'objet scanné** (silhouette Nano Banana en transparence) plutôt qu'un mur générique — réutilise un asset déjà généré, gain visuel fort pour un coût quasi nul.
+7. **Un « highlight replay » de 2 s au ralenti après chaque parade parfaite**, rejoué automatiquement une fois avant de reprendre le combat — les jeux de combat à parade (Sekiro, SF6) vendent leur moment fort par un cadrage dédié ; ici, réutiliser juste la caméra existante avec un zoom ponctuel.
+8. **Son unique et signature par catégorie d'arme scannée** (blaster = mécanique/électronique, grenade = organique/mat, throwable = bois/impact, shield = métal/verre) pour que l'oreille seule identifie l'arme utilisée — test du skill `game-feel » (« fermer les yeux, l'oreille comprend-elle ? »).
+9. ~~Les deux vues zooment vers le centre au KO~~ — **REJETÉ par Adem (15h21)** : chaque vue reste toujours sur son joueur, aucune bascule ni mouvement de caméra partagé. À la place : le KO se dramatise par le ralenti, la bannière GAME! en surimpression commune (HUD, pas caméra) et le zoom KO dans la seule vue concernée, sans quitter son joueur.
+10. **Le nom de l'objet réel apparaît dans le HUD à côté de l'icône d'arme** (pas juste « Blaster » mais « Blaster — Brosse à dents ») en permanence pendant le combat, pas seulement au KO — rappel constant, gratuit, que « n'importe quel objet devient une arme », l'argument central du pitch.
+
+## 4. Grille d'évaluation mesurable (agents playtesteur, auditeur-juice, equilibreur)
+
+Toutes les mesures doivent être extraites via `window.gameState` (lecture d'état) et `window.gameHooks` (script d'entrées), jamais en devinant des clics, conformément à `CLAUDE.md`.
+
+| Critère | Note /10 — seuils | Comment mesurer par script |
+|---|---|---|
+| **Lisibilité de la télégraphie** | 10 si le délai entre l'événement `projectile:incoming` et l'impact est ≥ 350 ms dans 100 % des tirs ; 0 si un seul cas < 250 ms est observé | Écouter l'événement `projectile:incoming` puis `hit` sur 50 tirs simulés via `gameHooks.input`, calculer le delta en ms |
+| **Fenêtre de parade jouable** | 10 si un bot qui appuie systématiquement 100 ms avant l'impact perçu réussit ≥ 70 % des parades ; 0 si < 30 % | Script qui déclenche `input(player,'block',true)` à t-100ms de chaque `projectile:incoming`, compter les `parry:result` |
+| **Réactivité entrée→retour visuel** | 10 si < 100 ms mesuré sur tir, saut, blocage ; 0 si un seul cas > 150 ms | Timestamp de l'appel `gameHooks.input` vs. premier événement visuel/son associé dans le log d'événements |
+| **Équilibre des 4 armes** | 10 si le taux de victoire de chaque catégorie (blaster/grenade/throwable/shield) reste entre 40 % et 60 % sur 100 matches simulés ; refus sous 80/100 au global (seuil déjà fixé pour l'agent equilibreur) | Boucle `forcerVictoire`/simulation headless sur `gameHooks.startMatch`, agréger `gameState.winner` par arme |
+| **Durée de round** | 10 si la médiane sur 20 matches simulés est entre 60 et 90 s ; 0 si > 150 s ou < 30 s | Chronométrer entre l'événement `countdown{n:0}` et `match:banner` (fin) |
+| **Densité de retours par action** | 10 si chaque type d'événement (`hit`, `parry:result`, `stock:lost`, `weapon:ready`) déclenche au moins 3 retours (caméra/image/son) mesurés dans le code de rendu ; sinon note = nombre de retours présents | Grep statique du code de juice (`src/art/juice.js`) + vérification qu'un handler existe pour chaque type d'événement listé |
+| **Lock-on jamais perdu** | 10 si l'adversaire reste dans le frustum caméra ≥ 98 % du temps sur 20 matches ; refus sous 90 % | Échantillonner `gameState.cameras[i].targetInFrame` (ou calcul de frustum) à chaque frame simulée |
+| **Comeback / mort subite** | 10 si un match mené à 0–100 % de retard peut encore se retourner dans au moins 1 simulation sur 20 après activation de la mort subite ; 0 si jamais | Simuler des matches déséquilibrés jusqu'à 3:00, vérifier `gameState.pct` des deux joueurs après bascule à 150 % |
+| **Absence de bug bloquant (playtesteur)** | 10 si 0 erreur console sur 3 profils (spammeur, stratège, débutant) x 10 min ; refus sous 8 (au moins 1 crash/erreur console) | Lire la console via le harnais de test, compter les erreurs JS pendant les scripts des 3 personas |
+
+Seuil global de refus : identique aux règles du projet — **sous 7 avant 15h, sous 8 ensuite** (`CLAUDE.md`), avec un cas particulier plus strict pour l'équilibrage (**sous 80/100** ou toute alerte rouge, déjà la règle de l'agent equilibreur).
