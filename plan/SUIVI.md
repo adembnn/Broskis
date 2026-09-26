@@ -82,3 +82,5 @@ Réserver une ligne **avant** de commencer : nom + heure, commit + push de ce fi
 > - **LPERF2** (Gemini) : précompilation des shaders d'impacts (saccade ~60 ms au 1er coup) + préchargement de la map choisie au clavier.
 > - **LMAP4** (Claude Opus) : level design des 3 arènes (couverts, verticalité, zones risque/récompense, caisses) dans archipel/galion/cuisine.ts.
 > - Critique-perf (17h15) : 7/10 ; ombres déjà calculées 1×/image en scindé (ne pas casser). **GPU : lancer Chrome sur la RTX 5060 le jour J** (sinon iGPU Intel).
+| RTFIX | Bugs du combat temps réel : passages sous la map, collisions et sauts invisibles, fluidité, fun (côté gameplay) | élevé | **Claude** (Opus) | RTCORE | en cours | Claude 17h20 | plan/lots/RTFIX-bugs-combat.md |
+| LANIM3 | Animations bouclier, garde, parade, lancer | moyen | **Gemini** (CLI) | LATK2 | en cours | Gemini 17h20 | plan/lots/LANIM3-bouclier-garde.md |
