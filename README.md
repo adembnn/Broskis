@@ -2,7 +2,7 @@
   <img src="docs/screens/title.png" alt="BROSKIS title screen" width="820">
 </p>
 
-<h1 align="center">BROSKIS</h1>
+<h1 align="center">BROSKIS (Laptop ONLY)</h1>
 
 <p align="center">
   <b>Snap any real object. It becomes your weapon.</b><br>
