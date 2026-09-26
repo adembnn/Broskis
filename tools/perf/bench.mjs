@@ -9,7 +9,8 @@
 //   --shot        : capture d'écran en fin de match (tools/perf/out/<map>-<gpu>-<q>.png).
 //   --profile     : profil CPU (échantillonneur Chrome) pendant le match, top des fonctions les plus coûteuses.
 //   --toggle      : essais A/B à chaud (nobloom = rendu direct sans post-traitement, noshadow = ombres figées,
-//                   pr1 = ratio de pixels 1, unelumiere = une seule pile de lumières au lieu de deux).
+//                   pr1 = ratio de pixels 1, unelumiere = une seule pile de lumières au lieu de deux,
+//                   split / splitombres2 = maquette d'écran scindé, ombres une fois / une fois par vue).
 // Sans --url, lance son propre Vite sur --port (5300-5399) et n'arrête QUE ce processus-là à la fin.
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
@@ -79,9 +80,28 @@ const INSTRUMENTS = () => {
 };
 
 // Pilote en page : joue les deux joueurs (marche vers l'autre, saute, tire sur lui, pare une fois sur deux).
+// Temps réel (gameHooks.input, plan/PIVOT-TEMPS-REEL.md) : touches maintenues comme un joueur, les 2 en même temps.
 const PILOTE = () => {
   const h = window.gameHooks;
   const c = window.ctx;
+  if (typeof h.input === 'function') {
+    let t = 0;
+    const appui = (p, a, bas) => { try { h.input(p, a, bas); } catch { /* action inconnue */ } };
+    window.__pilote = setInterval(() => {
+      if (c.state.winner != null) return;
+      t++;
+      for (const p of [0, 1]) {
+        const i = (t + p * 5) % 10; // les 2 joueurs décalés
+        appui(p, 'up', i < 6);
+        appui(p, p ? 'right' : 'left', i >= 6);
+        appui(p, 'jump', i === 3);
+        appui(p, 'fire', i < 2); // maintenir 0,4 s = charge, puis lâcher
+        appui(p, 'parry', i === 5 || i === 6);
+        if (t % 25 === p * 7) { const w = `weapon${1 + ((t / 25) | 0) % 3}`; appui(p, w, true); setTimeout(() => appui(p, w, false), 100); }
+      }
+    }, 200);
+    return;
+  }
   let tour = -1; let pas = 0; let tire = false;
   c.bus.on('projectile:incoming', ({ etaMs }) => {
     setTimeout(() => { try { h.parry(Math.random() < 0.5 ? 40 : 400); } catch { /* rien */ } }, Math.max(0, etaMs - 30));
@@ -182,7 +202,7 @@ for (const map of MAPS) {
   });
   // Essais A/B sur le post-traitement (serveur de dev seulement) : on attrape l'EffectComposer du jeu en
   // remplaçant sa méthode render sur le prototype (même URL de module = même classe).
-  if (TOGGLES.some((t) => ['bloomoff', 'msaa0', 'crt1', 'crt075', 'crt05'].includes(t))) {
+  if (TOGGLES.some((t) => ['bloomoff', 'msaa0', 'crt1', 'crt075', 'crt05', 'split', 'splitombres2'].includes(t))) {
     await page.evaluate(async (toggles) => {
       const url = performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('postprocessing_EffectComposer'));
       const { EffectComposer } = await import(url);
@@ -196,6 +216,36 @@ for (const map of MAPS) {
       if (toggles.includes('crt1')) cp.setPixelRatio(1);
       if (toggles.includes('crt075')) cp.setPixelRatio(0.75);
       if (toggles.includes('crt05')) cp.setPixelRatio(0.5);
+      // Maquette d'écran scindé (plan/PIVOT-TEMPS-REEL.md) pour chiffrer son coût avant le lot RTVIEW : les
+      // 2 vues sont dessinées dans la cible du post-traitement (viewport + scissor), bloom et sortie une fois.
+      // split = ombres calculées une fois par image ; splitombres2 = ombres recalculées pour chaque vue.
+      if (toggles.includes('split') || toggles.includes('splitombres2')) {
+        const c = window.ctx; const r = c.three.renderer; const cam1 = c.three.camera;
+        const cam2 = cam1.clone();
+        const rp = cp.passes[0];
+        const unique = toggles.includes('split');
+        if (unique) r.shadowMap.autoUpdate = false;
+        rp.render = function (renderer, _w, readBuffer) {
+          const rt = readBuffer; const W = rt.width; const H = rt.height;
+          // Caméra 2 : symétrique de la 1re par rapport au milieu des 2 persos (derrière l'autre joueur).
+          const a = c.state.players[0].pos; const b = c.state.players[1].pos;
+          const mx = (a[0] + b[0]) / 2; const mz = (a[2] + b[2]) / 2;
+          cam2.position.set(2 * mx - cam1.position.x, cam1.position.y, 2 * mz - cam1.position.z);
+          cam2.lookAt(mx, 1, mz);
+          if (unique) r.shadowMap.needsUpdate = true;
+          renderer.setRenderTarget(rt);
+          renderer.clear();
+          const asp = cam1.aspect;
+          for (const [i, cam] of [[0, cam1], [1, cam2]]) {
+            rt.viewport.set(i * W / 2, 0, W / 2, H); rt.scissor.set(i * W / 2, 0, W / 2, H); rt.scissorTest = true;
+            cam.aspect = W / 2 / H; cam.updateProjectionMatrix();
+            renderer.setRenderTarget(rt);
+            renderer.render(c.three.scene, cam);
+          }
+          rt.viewport.set(0, 0, W, H); rt.scissor.set(0, 0, W, H); rt.scissorTest = false;
+          cam1.aspect = asp; cam1.updateProjectionMatrix();
+        };
+      }
     }, TOGGLES);
   }
   await page.evaluate(COMPTEUR_RENDU, TOGGLES);
@@ -204,9 +254,9 @@ for (const map of MAPS) {
   await page.evaluate((m) => {
     window.__perf.rec = true;
     window.__t0 = performance.now();
-    window.gameHooks.startMatch({ map: m, seed: 1234 });
+    window.gameHooks.startMatch({ map: m, seed: 1234, split: true }); // split : écran scindé du temps réel
   }, map);
-  const tMove = await page.waitForFunction(() => window.ctx.state.phase === 'move' && performance.now() - window.__t0, null, { timeout: 30000 })
+  const tMove = await page.waitForFunction(() => ['move', 'fight'].includes(window.ctx.state.phase) && performance.now() - window.__t0, null, { timeout: 30000 })
     .then((h) => h.jsonValue()).catch(() => null);
   chargement.premierTourMs = tMove == null ? null : Math.round(tMove);
   chargement.mapStableMs = await page.evaluate((m) => new Promise((res) => {
