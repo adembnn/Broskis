@@ -68,8 +68,8 @@ const page = await browser.newPage({ viewport: { width: 960, height: 540 } });
 const errors = [];
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 page.on('pageerror', (e) => errors.push(e.message));
-await page.goto(`${URL_BASE}/?demo=1&animtest=1`, { waitUntil: 'load' });
-await page.waitForFunction(() => !!window.gameHooks, null, { timeout: 20000 });
+await page.goto(`${URL_BASE}/?demo=1&animtest=1`, { waitUntil: 'load', timeout: 90000 });
+await page.waitForFunction(() => !!window.gameHooks, null, { timeout: 90000 });
 
 // Outils injectés dans la page.
 await page.evaluate(() => {
@@ -166,7 +166,8 @@ await page.evaluate(() => {
       switch (action) {
         case 'charge': {
           const w = this.weaponOf(actor, arg);
-          ps.selected = Math.max(0, ps.weapons.indexOf(w));
+          if (!ps.weapons.includes(w)) ps.weapons[ps.selected] = w; // arme recopiée : c'est elle que le perso tient
+          ps.selected = ps.weapons.indexOf(w);
           const t0 = this.clock;
           F.lab.charge[actor] = 0.05;
           const self = this;
@@ -321,7 +322,7 @@ for (const sc of SCENARIOS) {
     console.log(`${label} : ${frames.length} images`);
   }
 }
-if (recap.length) await planche('recap', recap);
+if (recap.length) await planche(VIEWS.length === 1 && VIEWS[0] !== '34' ? `recap-${VIEWS[0]}` : 'recap', recap);
 if (notesVideo.length) writeFileSync(`${OUT_VIDEO}/notes.json`, JSON.stringify(notesVideo, null, 2));
 if (errors.length) console.log(`Erreurs console (${errors.length}) : ${[...new Set(errors)].slice(0, 5).join(' | ')}`);
 await browser.close();
