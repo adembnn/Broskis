@@ -496,7 +496,8 @@ async function measureMatch(page, match, idx) {
         // 2) Tir long : cible un peu au-delà des points d'apparition, rendue intouchable → portée réelle, rebonds,
         //    éclats, giclée au sol (l'objet traverse la cible et finit sa course dans le décor).
         if (!r.shield) {
-          const far = L / 2 + 1.5;
+          // Objet rebondissant : cible à 7 m, pour qu'il retombe SUR l'arène (au-delà, il tombe dans le vide sans rebondir).
+          const far = (r.weapon?.physics?.bounciness ?? 0) > 0.3 ? 3.5 : L / 2 + 1.5;
           await page.evaluate(({ a, b, s, t }) => { const T = window.__e2eTools; T.place(s, a); T.place(t, b); T.reset(s); T.untouchable(t, 6); }, { a: at(-far * sign), b: at(far * sign), s: shooter, t: target });
           await sleep(250);
           const n1 = await evCount(page);
