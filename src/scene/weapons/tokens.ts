@@ -5,7 +5,9 @@ export const WEAPON_FX = {
   // Objet en main pendant la charge (sa taille est la taille réelle, voir `physique`).
   main: { tremble: 0.035, lueur: 0.45, pop: 160 },
   // Physique réelle → rendu : taille lisible bornée (m), tours/s ≈ tours / √masse, bornés.
-  physique: { tailleMin: 0.35, tailleMax: 1.6, tours: 1.6, toursMin: 0.35, toursMax: 4.5, tailleMaxApproche: 1.9 },
+  physique: { tailleMin: 0.5, tailleMax: 1.6, tours: 1.6, toursMin: 0.35, toursMax: 4.5, tailleMaxApproche: 1.9 },
+  // Épaisseur du sticker (banc LBENCH) : ×3 au plus, au plus 25 % de la largeur ; tranche jamais plus sombre que ça.
+  epaisseur: { max: 3, largeur: 0.25, clarteMin: 0.24 },
   // Objet en vol : grossissement à l'approche du défenseur, taille des copies (split), tache d'encre au sol.
   vol: { approche: 1.4, fragment: 0.62, ombre: 1.1 },
   meche: { freqMin: 3, freqMax: 16 },
