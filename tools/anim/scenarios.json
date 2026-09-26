@@ -1,0 +1,176 @@
+[
+  {
+    "name": "idle",
+    "player": 0,
+    "camera": "front",
+    "captureMs": 3000,
+    "intervalMs": 66,
+    "steps": [
+      { "hook": "startMatch", "args": [{ "seed": 1234 }], "waitMs": 150 },
+      { "hook": "animPlay", "args": [0, "idle"], "waitMs": 0 }
+    ]
+  },
+  {
+    "name": "walk",
+    "player": 0,
+    "camera": "side",
+    "captureMs": 1600,
+    "intervalMs": 66,
+    "steps": [
+      { "hook": "startMatch", "args": [{ "seed": 1234 }], "waitMs": 150 },
+      { "hook": "move", "args": [0.4, 0], "waitMs": 0 },
+      { "hook": "animPlay", "args": [0, "walk"], "waitMs": 0 }
+    ]
+  },
+  {
+    "name": "run",
+    "player": 0,
+    "camera": "side",
+    "captureMs": 1600,
+    "intervalMs": 66,
+    "steps": [
+      { "hook": "startMatch", "args": [{ "seed": 1234 }], "waitMs": 150 },
+      { "hook": "move", "args": [1, 0], "waitMs": 0 },
+      { "hook": "animPlay", "args": [0, "run"], "waitMs": 0 }
+    ]
+  },
+  {
+    "name": "jump",
+    "player": 0,
+    "camera": "threeQuarter",
+    "captureMs": 1800,
+    "intervalMs": 66,
+    "steps": [
+      { "hook": "startMatch", "args": [{ "seed": 1234 }], "waitMs": 150 },
+      { "hook": "animPlay", "args": [0, "jump"], "waitMs": 0 },
+      { "hook": "jump", "args": [], "waitMs": 0 }
+    ]
+  },
+  {
+    "name": "throw-grenade",
+    "player": 0,
+    "camera": "threeQuarter",
+    "captureMs": 1600,
+    "intervalMs": 66,
+    "steps": [
+      { "hook": "startMatch", "args": [{ "seed": 1234 }], "waitMs": 150 },
+      { "hook": "pickWeapon", "args": [0], "waitMs": 80 },
+      { "hook": "aim", "args": [10, -5], "waitMs": 80 },
+      { "hook": "animPlay", "args": [0, "throw"], "waitMs": 0 },
+      { "hook": "fire", "args": [1], "waitMs": 0 }
+    ]
+  },
+  {
+    "name": "throwable",
+    "player": 0,
+    "camera": "threeQuarter",
+    "captureMs": 1600,
+    "intervalMs": 66,
+    "steps": [
+      { "hook": "startMatch", "args": [{ "seed": 1234 }], "waitMs": 150 },
+      { "hook": "pickWeapon", "args": [1], "waitMs": 80 },
+      { "hook": "aim", "args": [-10, -5], "waitMs": 80 },
+      { "hook": "animPlay", "args": [0, "throw"], "waitMs": 0 },
+      { "hook": "fire", "args": [1], "waitMs": 0 }
+    ]
+  },
+  {
+    "name": "blaster",
+    "player": 0,
+    "camera": "threeQuarter",
+    "captureMs": 1600,
+    "intervalMs": 66,
+    "steps": [
+      { "hook": "startMatch", "args": [{ "seed": 1234 }], "waitMs": 150 },
+      { "hook": "pickWeapon", "args": [2], "waitMs": 80 },
+      { "hook": "aim", "args": [0, 0], "waitMs": 80 },
+      { "hook": "animPlay", "args": [0, "blaster"], "waitMs": 0 },
+      { "hook": "fire", "args": [1], "waitMs": 150 },
+      { "hook": "fire", "args": [1], "waitMs": 150 },
+      { "hook": "fire", "args": [1], "waitMs": 0 }
+    ]
+  },
+  {
+    "name": "shield",
+    "player": 0,
+    "camera": "front",
+    "captureMs": 1400,
+    "intervalMs": 66,
+    "steps": [
+      { "hook": "startMatch", "args": [{ "seed": 1234 }], "waitMs": 150 },
+      { "hook": "pickWeapon", "args": [3], "waitMs": 80 },
+      { "hook": "animPlay", "args": [0, "shield"], "waitMs": 0 }
+    ]
+  },
+  {
+    "name": "hit-front",
+    "player": 1,
+    "camera": "front",
+    "captureMs": 1200,
+    "intervalMs": 66,
+    "steps": [
+      { "hook": "startMatch", "args": [{ "seed": 1234 }], "waitMs": 150 },
+      { "hook": "animPlay", "args": [1, "hitFront"], "waitMs": 0 }
+    ]
+  },
+  {
+    "name": "hit-back",
+    "player": 1,
+    "camera": "front",
+    "captureMs": 1200,
+    "intervalMs": 66,
+    "steps": [
+      { "hook": "startMatch", "args": [{ "seed": 1234 }], "waitMs": 150 },
+      { "hook": "animPlay", "args": [1, "hitBack"], "waitMs": 0 }
+    ]
+  },
+  {
+    "name": "ko",
+    "player": 1,
+    "camera": "threeQuarter",
+    "captureMs": 2200,
+    "intervalMs": 66,
+    "steps": [
+      { "hook": "startMatch", "args": [{ "seed": 1234 }], "waitMs": 150 },
+      { "hook": "animPlay", "args": [1, "ko"], "waitMs": 0 }
+    ]
+  },
+  {
+    "name": "teeter",
+    "player": 0,
+    "camera": "side",
+    "captureMs": 1600,
+    "intervalMs": 66,
+    "note": "Au bord du vide : bras en moulinet, déséquilibre façon Smash (voir plan/lots/LAN-animation.md).",
+    "steps": [
+      { "hook": "startMatch", "args": [{ "seed": 1234 }], "waitMs": 150 },
+      { "hook": "animPlay", "args": [0, "teeter"], "waitMs": 0 }
+    ]
+  },
+  {
+    "name": "parry",
+    "player": 1,
+    "camera": "front",
+    "captureMs": 1200,
+    "intervalMs": 66,
+    "steps": [
+      { "hook": "startMatch", "args": [{ "seed": 1234 }], "waitMs": 150 },
+      { "hook": "animPlay", "args": [1, "parry"], "waitMs": 0 },
+      { "hook": "parry", "args": [], "waitMs": 0 }
+    ]
+  },
+  {
+    "name": "defense-swing",
+    "player": 1,
+    "camera": null,
+    "captureMs": 2500,
+    "intervalMs": 70,
+    "note": "Spéc mise à jour (commit 96570b5, validée par Adem) : au lâcher, la vraie caméra du jeu bascule en arc (~0,7 s) vers la vue épaule du défenseur via camera:cue {shot:'turn-swing', target: défenseur}, avec un ralenti ×0,25 pendant la seule bascule (bus 'slowmo'), puis le coup arrive vers la caméra du défenseur. On ne force ni animCamera ni animPlay ici : c'est le comportement réel (caméra + corps) qu'on capture et qu'on juge, du lâcher (fire) jusqu'à l'impact.",
+    "steps": [
+      { "hook": "startMatch", "args": [{ "seed": 1234 }], "waitMs": 200 },
+      { "hook": "pickWeapon", "args": [0], "waitMs": 80 },
+      { "hook": "aim", "args": [0, 0], "waitMs": 80 },
+      { "hook": "fire", "args": [1], "waitMs": 0 }
+    ]
+  }
+]

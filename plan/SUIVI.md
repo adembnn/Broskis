@@ -18,7 +18,7 @@ Réserver une ligne **avant** de commencer : nom + heure, commit + push de ce fi
 | LP2 | Vedettes 3D préparées (sans Tripo : MCP Blender + Rodin gratuit) | faible | PC d'Adem (Gemini) | MCP Blender | à prendre | | |
 | LD | Démo, vidéo, bande-annonce | faible | **Titouan** (+ Adem) | — | en cours | Titouan (Claude, sous-agent) 12h46 → 13h20 | Points 1 à 4 du lot faits : `demo/SCRIPT.md` + `demo/OBJETS.md` (8 objets) + `demo/parcours.json` (vrais hooks `GameHooks`) ; 3/4 images dans `art/references/` téléchargées (licences vérifiées), la 4e (carte cartoon) documentée dans `LISEZMOI.txt` faute d'accès direct. Reste le point 5 (vidéo/bande-annonce, à partir de 18h) une fois le jeu jouable — normal que ce ne soit pas fait maintenant. |
 | LK | Parade avancée (validée par Adem) | moyen | Adem (Gemini) | LG, LA, LU, LV | à prendre | | Spéc complète : plan/lots/LK-parade.md |
-| LE | Banc d'évaluation des animations (`npm run anim`) | moyen | Claude (sous-agent Sonnet) | — | en cours | Claude 12h35 | Évaluation = Claude (règle d'Adem) |
+| LE | Banc d'évaluation des animations (`npm run anim`) | moyen | Claude (sous-agent Sonnet) | — | fait | Claude 12h35 | Fusionné. `npm run anim` : 14 scénarios, score 0 tant que LAN manque (normal). Positions en mètres. |
 | LAN | Animation vivante façon Smash | élevé | **Gemini** (CLI) | LA | à prendre | | Spéc : plan/lots/LAN-animation.md ; évaluée par `animateur-exigeant` + juge vidéo Gemini |
 | LX | Adversaire IA (vague 2) | moyen | Adem | LG | à prendre | | |
 | LW | Scandex + voix clonée (vague 2) | faible | partagé | LI, LU | à prendre | | |
