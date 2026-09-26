@@ -1,0 +1,24 @@
+{
+  "name": "voodoo-hack",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "verifier": "npm run build && node tools/capture.mjs",
+    "captures": "node tools/capture.mjs --parcours --demo",
+    "video": "node tools/capture.mjs --parcours --demo --video",
+    "planche": "node tools/planche.mjs"
+  },
+  "devDependencies": {
+    "@types/three": "^0.186.0",
+    "playwright": "^1.63.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0"
+  },
+  "dependencies": {
+    "three": "^0.186.1"
+  }
+}
