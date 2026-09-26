@@ -1,0 +1,11 @@
+# Fins de ligne LF partout (les agents Gemini écrivent en CRLF sous Windows, ce qui provoquait des conflits de fusion).
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.glb binary
+*.bin binary
+*.wav binary
+*.mp3 binary
+*.ogg binary
