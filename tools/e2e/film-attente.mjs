@@ -5,9 +5,8 @@
 // Rapport : reports/e2e/attente-<horodatage>/index.html (+ images de chaque bande, resultat.json).
 import { spawn, execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, unlinkSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { chromium } from 'playwright';
 
 const args = process.argv.slice(2);
@@ -189,8 +188,9 @@ try {
   for (const [nom, film] of Object.entries(films)) {
     const vues = (film ?? []).filter((f) => f.fichier);
     if (!vues.length) continue;
-    const dossier = pathToFileURL(resolve(OUT)).href;
-    await planche.setContent(`<html><body style="margin:0;background:#f6f3ee;font:12px system-ui"><div style="display:grid;grid-template-columns:repeat(8,180px);gap:4px;padding:4px">${vues.map((f) => `<div><img src="${dossier}/${f.fichier}" style="width:180px;display:block;border:2px solid ${f.affiche ? '#1f8a4c' : '#e2dcd2'}"><div>${f.t} s${f.affiche ? ' ✓' : ''}${f.bouton === 'actif' ? ' ▶' : ''}</div></div>`).join('')}</div></body></html>`);
+    // Images en data URL : une page about:blank n'a pas le droit de lire des fichiers locaux.
+    const src = (f) => `data:image/jpeg;base64,${readFileSync(join(OUT, f.fichier)).toString('base64')}`;
+    await planche.setContent(`<html><body style="margin:0;background:#f6f3ee;font:12px system-ui"><div style="display:grid;grid-template-columns:repeat(8,180px);gap:4px;padding:4px">${vues.map((f) => `<div><img src="${src(f)}" style="width:180px;display:block;border:2px solid ${f.affiche ? '#1f8a4c' : '#e2dcd2'}"><div>${f.t} s${f.affiche ? ' ✓' : ''}${f.bouton === 'actif' ? ' ▶' : ''}</div></div>`).join('')}</div></body></html>`);
     await planche.waitForLoadState('load');
     await planche.screenshot({ path: join(OUT, `bande-${nom}.jpg`), type: 'jpeg', quality: 70, fullPage: true });
     for (const f of vues) { try { unlinkSync(join(OUT, f.fichier)); } catch { /* déjà effacée */ } }
