@@ -16,7 +16,9 @@ import { mountTitle } from './screenTitle';
 import { installScandexCollector } from './scandex/store';
 import { installSnapTime } from './snapTime';
 import { injectGoogleFonts, injectStyles } from './theme';
-import { installParryHud } from './parry-hud';
+import { FIGHTER_PRESETS, presetsReady } from './presets';
+import { preloadPortraits } from './portraits';
+import { installStickers, preloadPresetStickers } from './sticker2d';
 
 interface Picks {
   fighters: [FighterDef, FighterDef];
@@ -55,7 +57,9 @@ export const install: Install = (ctx) => {
   root.append(hud.root, screenLayer);
   ctx.three.uiRoot.append(root);
   installSnapTime(ctx, screenLayer);
-  installParryHud(ctx, hud.root);
+  installStickers(ctx); // stickers arrivés en route → recopiés sur les armes du match
+  void presetsReady.then(preloadPresetStickers);
+  void preloadPortraits(FIGHTER_PRESETS);
   installScandexCollector(ctx); // Lot LW (Scandex) : enregistre chaque scan:result dans localStorage.
 
   ctx.bus.on('match:start', () => clear(screenLayer));
