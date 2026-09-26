@@ -4,6 +4,7 @@
 import type { FighterDef, PlayerId } from '../core/types';
 import { promptVoiceClone } from '../ia/voice';
 import { SCAN_ISSUE_TEXT, prechaufferScanFighter, scanFighterReport, type FighterScanIssue } from '../ia/fighter';
+import { getRuntimeCtx } from '../ia/runtime';
 import { mountCapture } from './capture';
 import { button, clear, el, menuScreen } from './dom';
 import { mountForge } from './forge';
@@ -270,11 +271,21 @@ export function runFighterSelect(screenLayer: HTMLElement, vsAI = false): Promis
   grid.append(snap);
   render();
 
+  // Lot LE2E : portrait arrivé après le délai (réseau lent) → le message d'échec disparaît, encart et vitrine le montrent.
+  const offPortrait = getRuntimeCtx()?.bus.on('fighter:portrait', ({ fighterId }) => {
+    const p = ([0, 1] as PlayerId[]).find((k) => picks[k]?.id === fighterId);
+    if (p == null || !root.isConnected) return;
+    scanIssues[p] = null;
+    vitrineIds = '';
+    render();
+  });
+
   return new Promise((resolve) => {
     ready.addEventListener('click', () => {
       if (!picks[0] || !picks[1] || picks.some(enCuisson)) return;
       vitrine?.dispose();
       vitrine = null;
+      offPortrait?.();
       resolve([picks[0], picks[1]]);
     });
   });
