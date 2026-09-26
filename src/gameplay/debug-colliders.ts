@@ -82,7 +82,8 @@ export function installDebugColliders(ctx: Ctx): void {
           const h = anyC.halfHeight();
           scale = [r, h * 2, r];
         } else {
-          // Fallback to AABB
+          // Fallback to AABB (absent de cette version de rapier3d-compat pour certaines formes : on ignore)
+          if (typeof anyC.computeAabb !== 'function') return;
           const aabb = anyC.computeAabb();
           scale = [aabb.max.x - aabb.min.x, aabb.max.y - aabb.min.y, aabb.max.z - aabb.min.z];
         }
@@ -94,6 +95,7 @@ export function installDebugColliders(ctx: Ctx): void {
       }
       
       if (shapeType !== 1 && shapeType !== 0 && shapeType !== 8) {
+         if (typeof anyC.computeAabb !== 'function') return;
          const aabb = anyC.computeAabb();
          m.position.set((aabb.min.x + aabb.max.x)/2, (aabb.min.y + aabb.max.y)/2, (aabb.min.z + aabb.max.z)/2);
          m.quaternion.identity();
