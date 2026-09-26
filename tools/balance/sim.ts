@@ -1,326 +1,164 @@
+// Simulateur d'équilibrage, règles v2 façon Smash (lot LSMASH) : %, vies, éjection, rattrapage, mort subite,
+// BRO SMASH. Même formules que le jeu (src/gameplay/formulas.ts via src/gameplay/rules.ts).
+// Usage : node tools/balance/sim.ts [--full]   → captures/balance/rapport.md + rapport.json
+// Cibles (plan/lots/LSMASH-regles-v2.md) : match à 2 vies en 8 à 12 tours, éjection moyenne entre 90 et 140 %,
+// aucune éjection sous 40 %.
 import * as fs from 'fs';
 import * as path from 'path';
-import { createRng } from '../../src/core/rng.ts';
+import { createRng, type Rng } from '../../src/core/rng.ts';
 import { CATEGORIES, TRAITS } from '../../src/core/types.ts';
-import type { Category, Trait, Weapon, WeaponStats, FighterDef, PlayerId } from '../../src/core/types';
-import { type SimState, type SimPlayer, type SimAction, applyRuleEngine, MAX_HEAL_PER_MATCH, MAX_DAMAGE_PER_HIT, MAX_PROJECTILES_PER_TURN } from '../../src/gameplay/rules.ts';
-import { defaultFighters, defaultArsenal, TURN_BANNER_S } from '../../src/gameplay/tuning.ts';
+import type { Category, PlayerId, Weapon } from '../../src/core/types.ts';
+import { createSimState, playTurn, startTurn, type SimAction, type SimState, type SimPlayer } from '../../src/gameplay/rules.ts';
+import { defaultArsenal } from '../../src/gameplay/tuning.ts';
+import { launchBase } from '../../src/gameplay/formulas.ts';
 
-function generateArchetypes(): Weapon[] {
-  const weapons: Weapon[] = [];
-  let idCounter = 0;
-  for (const cat of CATEGORIES) {
-    for (const trait of TRAITS) {
-      for (let a = 1; a <= 6; a++) {
-        for (let b = 1; b <= 6; b++) {
-          const c = 10 - a - b;
-          if (c >= 1 && c <= 6) {
-            weapons.push({
-              id: `arch-${idCounter++}`,
-              object: 'sim_object',
-              name: `${cat}-${trait}-${a}${b}${c}`,
-              category: cat,
-              why: 'simulated',
-              stats: { a, b, c },
-              trait,
-              palette: ['#000', '#fff'],
-              lines: { intro: '', hit: '', miss: '', parried: '' },
-              source: 'preset',
-              cooldown: 0
-            });
-          }
-        }
-      }
-    }
+function archetypes(): Weapon[] {
+  const out: Weapon[] = [];
+  let id = 0;
+  for (const category of CATEGORIES) for (const trait of TRAITS) for (let a = 1; a <= 6; a++) for (let b = 1; b <= 6; b++) {
+    const c = 10 - a - b;
+    if (c < 1 || c > 6) continue;
+    out.push({
+      id: `arch-${id++}`, object: 'sim', name: `${category}-${trait}-${a}${b}${c}`, category, why: '', stats: { a, b, c }, trait,
+      palette: ['#000', '#fff'], lines: { intro: '', hit: '', miss: '', parried: '' }, source: 'preset', cooldown: 0,
+    });
   }
-  return weapons;
+  return out;
 }
 
-type BotType = 'Random' | 'Glouton' | 'Pousseur' | 'Tortue' | 'Expert';
+type Bot = 'Random' | 'Glouton' | 'Pousseur' | 'Tortue' | 'Expert';
 type ParryProfile = 'Novice' | 'Moyen' | 'Expert';
+const BOTS: Bot[] = ['Random', 'Glouton', 'Pousseur', 'Tortue', 'Expert'];
 
-function getParryTiming(profile: ParryProfile, rng: any): { timingMs?: number, hasInput?: boolean } {
-  // Box-Muller transform for normal distribution
+function gauss(rng: Rng): number {
   const u1 = Math.max(1e-10, rng());
-  const u2 = rng();
-  const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
-
-  if (profile === 'Novice') {
-    if (rng() < 0.10) return { hasInput: false }; // 10% no input
-    return { timingMs: 30 + z0 * 140, hasInput: true };
-  } else if (profile === 'Moyen') {
-    if (rng() < 0.05) return { hasInput: false }; // assuming 5%
-    return { timingMs: z0 * 90, hasInput: true };
-  } else {
-    if (rng() < 0.02) return { hasInput: false }; // assuming 2%
-    return { timingMs: z0 * 50, hasInput: true };
-  }
+  return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * rng());
 }
 
-function botDecide(state: SimState, botType: BotType, profile: ParryProfile, rng: any): SimAction {
-  const p = state.players[state.active];
-  const weaponsReady = p.weapons.map((w, i) => ({w, i})).filter(x => p.cooldowns[x.i] === 0);
-  
-  let action: SimAction;
+function parryFor(profile: ParryProfile, rng: Rng) {
+  return () => {
+    if (profile === 'Novice') return rng() < 0.15 ? { hasInput: false } : { hasInput: true, timingMs: 30 + gauss(rng) * 150 };
+    if (profile === 'Moyen') return rng() < 0.05 ? { hasInput: false } : { hasInput: true, timingMs: gauss(rng) * 90 };
+    return rng() < 0.02 ? { hasInput: false } : { hasInput: true, timingMs: gauss(rng) * 50 };
+  };
+}
 
-  if (botType === 'Random' || weaponsReady.length === 0) {
-    if (weaponsReady.length === 0 || rng() < 0.2) {
-      action = { type: 'move', strategy: rng() < 0.5 ? 'cover' : 'push' };
-    } else {
-      action = { type: 'attack', weaponIdx: rng.pick(weaponsReady).i, aimQuality: rng() };
+function ready(p: SimPlayer): number[] {
+  return p.weapons.map((_, i) => i).filter((i) => p.cooldowns[i] <= 0);
+}
+
+function decide(s: SimState, bot: Bot, defProfile: ParryProfile, rng: Rng): SimAction {
+  const me = s.players[s.active];
+  const r = ready(me);
+  const offensive = r.filter((i) => me.weapons[i].category !== 'shield');
+  const pick = (score: (w: Weapon) => number) => (offensive.length ? offensive : r).slice().sort((a, b) => score(me.weapons[b]) - score(me.weapons[a]))[0] ?? 0;
+  const parry = parryFor(defProfile, rng);
+  const edge = s.radius - Math.hypot(me.x, me.z);
+  switch (bot) {
+    case 'Random':
+      return { move: 'random', weaponIdx: r.length ? rng.pick(r) : 0, charge: 0.2 + rng() * 0.8, aim: 0.6, nice: rng() < 0.1, parry };
+    case 'Glouton':
+      return { move: 'stay', weaponIdx: pick((w) => w.stats.a), charge: 0.9, aim: 0.9, nice: rng() < 0.2, parry };
+    case 'Pousseur':
+      return { move: 'flank', weaponIdx: pick((w) => launchBase(w, 1)), charge: 1, aim: 0.85, nice: rng() < 0.2, parry };
+    case 'Tortue': {
+      const shield = r.find((i) => me.weapons[i].category === 'shield');
+      return { move: 'center', weaponIdx: shield ?? pick((w) => w.stats.a), charge: 0.6, aim: 0.8, nice: rng() < 0.1, parry };
     }
-  } else if (botType === 'Glouton') {
-    // Pick weapon with max power stat
-    const best = weaponsReady.sort((a, b) => b.w.stats.a - a.w.stats.a)[0];
-    action = { type: 'attack', weaponIdx: best.i, aimQuality: 0.9 };
-  } else if (botType === 'Pousseur') {
-    const best = weaponsReady.sort((a, b) => b.w.stats.b - a.w.stats.b)[0]; // b or c depending on what knocks back more (throwable a=power, c=knockback maybe?)
-    if (rng() < 0.3) action = { type: 'move', strategy: 'push' };
-    else action = { type: 'attack', weaponIdx: best.i, aimQuality: 0.8 };
-  } else if (botType === 'Tortue') {
-    const shields = weaponsReady.filter(x => x.w.category === 'shield');
-    if (shields.length > 0) action = { type: 'attack', weaponIdx: shields[0].i, aimQuality: 0.8 };
-    else action = { type: 'move', strategy: 'cover' };
-  } else { // Expert
-    const best = weaponsReady.sort((a, b) => b.w.stats.a - a.w.stats.a)[0];
-    action = { type: 'attack', weaponIdx: best.i, aimQuality: 1.0 };
+    default:
+      return { move: edge < 3 && me.pct > 60 ? 'center' : 'flank', weaponIdx: pick((w) => w.stats.a + launchBase(w, 1) * 4), charge: 0.95, aim: 1, nice: rng() < 0.5, parry };
   }
-
-  const timing = getParryTiming(profile, rng);
-  if (action.type === 'attack') {
-    action.parryTimingMs = timing.timingMs;
-    action.parryHasInput = timing.hasInput;
-  }
-  return action;
 }
 
-interface MatchResult {
-  winnerId: PlayerId;
-  winnerHp: number;
-  loserHp: number;
-  turns: number;
-  ringout: boolean;
-  comeback: boolean;
-  suddenDeath: boolean;
-}
+interface MatchResult { winner: PlayerId; turns: number; kos: SimState['kos']; supers: number; firstSuper: number | null; ledges: number; hits: number; pct: number }
 
-function playMatch(
-  seed: number, 
-  p0Args: { bot: BotType, profile: ParryProfile, hp: number, weapons: Weapon[] },
-  p1Args: { bot: BotType, profile: ParryProfile, hp: number, weapons: Weapon[] }
-): MatchResult {
+function playMatch(seed: number, stocks: number, bots: [Bot, Bot], profiles: [ParryProfile, ParryProfile], weapons: [Weapon[], Weapon[]], power: [number, number] = [5, 5], hpMax: [number, number] = [100, 100]): MatchResult {
   const rng = createRng(seed);
-  
-  let state: SimState = {
-    turn: 1,
-    active: 0,
-    winner: null,
-    suddenDeath: false,
-    players: [
-      {
-        id: 0, hp: p0Args.hp, hpMax: p0Args.hp, power: 5,
-        weapons: p0Args.weapons, cooldowns: [0,0,0],
-        distanceToOpponent: 10, distanceToEdge: 15, hasCover: false, healedThisMatch: 0, parryStreak: 0
-      },
-      {
-        id: 1, hp: p1Args.hp, hpMax: p1Args.hp, power: 5,
-        weapons: p1Args.weapons, cooldowns: [0,0,0],
-        distanceToOpponent: 10, distanceToEdge: 15, hasCover: false, healedThisMatch: 0, parryStreak: 0
-      }
-    ]
-  };
-
-  let maxDeficit = [0, 0];
-
-  while (state.winner === null && state.turn < 50) {
-    const activeIdx = state.active;
-    const currentHpDiff = state.players[activeIdx].hp - state.players[activeIdx===0?1:0].hp;
-    if (currentHpDiff < -maxDeficit[activeIdx]) maxDeficit[activeIdx] = -currentHpDiff;
-
-    const args = activeIdx === 0 ? p0Args : p1Args;
-    const defArgs = activeIdx === 0 ? p1Args : p0Args;
-
-    // To properly sim parry timing, we use the defender's profile
-    const action = botDecide(state, args.bot, defArgs.profile, rng); 
-
-    state = applyRuleEngine(state, action, rng);
+  const mk = (i: 0 | 1) => ({
+    pct: 0, stocks, hpMax: hpMax[i], power: power[i], weapons: weapons[i].map((w) => ({ ...w })), cooldowns: [0, 0, 0],
+    parryStreak: 0, bro: 0, superReady: false, invulnUntilTurn: 0, onLedge: false,
+  });
+  const s = createSimState(mk(0), mk(1));
+  while (s.winner == null && s.turn < 60) {
+    const def: PlayerId = s.active === 0 ? 1 : 0;
+    startTurn(s);
+    playTurn(s, decide(s, bots[s.active], profiles[def], rng), rng);
   }
+  const winner = s.winner ?? (s.players[0].stocks > s.players[1].stocks ? 0 : s.players[1].stocks > s.players[0].stocks ? 1 : s.players[0].pct <= s.players[1].pct ? 0 : 1);
+  return { winner, turns: s.turn, kos: s.kos, supers: s.supersFired, firstSuper: s.firstSuperTurn, ledges: s.ledgeGrabs, hits: s.hitsLanded, pct: s.pctDealt };
+}
 
-  const winnerId = state.winner ?? (state.players[0].hp > state.players[1].hp ? 0 : 1);
-  const loserId = winnerId === 0 ? 1 : 0;
-  const winnerHp = state.players[winnerId].hp;
-  const loserHp = state.players[loserId].hp;
-  const ringout = state.players[loserId].distanceToEdge <= 0;
-  
+const q = (arr: number[], p: number) => { const a = [...arr].sort((x, y) => x - y); return a.length ? a[Math.min(a.length - 1, Math.floor(p * a.length))] : NaN; };
+const mean = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / Math.max(1, arr.length);
+const pc = (x: number) => `${(x * 100).toFixed(1)} %`;
+
+function summarize(label: string, results: MatchResult[]) {
+  const turns = results.map((r) => r.turns);
+  const kos = results.flatMap((r) => r.kos);
+  const koPct = kos.map((k) => k.pct);
+  const beforeSd = kos.filter((k) => !k.sd).map((k) => k.pct);
   return {
-    winnerId,
-    winnerHp,
-    loserHp,
-    turns: state.turn,
-    ringout,
-    comeback: maxDeficit[winnerId] >= 30,
-    suddenDeath: state.suddenDeath
+    label,
+    matches: results.length,
+    turnsMedian: q(turns, 0.5), turnsMean: +mean(turns).toFixed(1), turnsP10: q(turns, 0.1), turnsP90: q(turns, 0.9),
+    in8to12: +(turns.filter((t) => t >= 8 && t <= 12).length / results.length).toFixed(3),
+    koMeanPct: +mean(koPct).toFixed(1), koMedianPct: q(koPct, 0.5), koMinPct: Math.min(...koPct),
+    koUnder40: kos.filter((k) => k.pct < 40).length, koShareSd: +(kos.filter((k) => k.sd).length / Math.max(1, kos.length)).toFixed(3),
+    koMeanPctBeforeSd: +mean(beforeSd).toFixed(1),
+    koBySuper: +(kos.filter((k) => k.super).length / Math.max(1, kos.length)).toFixed(3),
+    p1Wins: +(results.filter((r) => r.winner === 0).length / results.length).toFixed(3),
+    supersPerMatch: +mean(results.map((r) => r.supers)).toFixed(2),
+    firstSuperTurnMedian: q(results.map((r) => r.firstSuper).filter((x): x is number => x != null), 0.5),
+    ledgeGrabsPerMatch: +mean(results.map((r) => r.ledges)).toFixed(2),
+    pctPerHit: +(mean(results.map((r) => r.pct)) / Math.max(1, mean(results.map((r) => r.hits)))).toFixed(1),
   };
 }
 
-async function run() {
-  const args = process.argv.slice(2);
-  const isFull = args.includes('--full');
-  const isReplay = args.includes('--replay');
-  const maxMatches = isFull ? 110000 : 10000;
-
-  const archetypes = generateArchetypes();
-  const baseRng = createRng(42);
-  
-  const results: MatchResult[] = [];
-  const catWins: Record<Category, number> = { blaster: 0, grenade: 0, throwable: 0, shield: 0 };
-  const catMatches: Record<Category, number> = { blaster: 0, grenade: 0, throwable: 0, shield: 0 };
-  const catMatrix: Record<string, Record<string, { wins: number, total: number }>> = {};
-
-  for(const c1 of CATEGORIES) {
-    catMatrix[c1] = {};
-    for(const c2 of CATEGORIES) {
-      catMatrix[c1][c2] = { wins: 0, total: 0 };
+function run() {
+  const full = process.argv.includes('--full');
+  const N = full ? 40000 : 6000;
+  const arch = archetypes();
+  const base = createRng(42);
+  const rand: MatchResult[] = [];
+  const presets: MatchResult[] = [];
+  const demo: MatchResult[] = [];
+  const catWins: Record<Category, [number, number]> = { blaster: [0, 0], grenade: [0, 0], throwable: [0, 0], shield: [0, 0] };
+  for (let i = 0; i < N; i++) {
+    const w: [Weapon[], Weapon[]] = [[base.pick(arch), base.pick(arch), base.pick(arch)], [base.pick(arch), base.pick(arch), base.pick(arch)]];
+    const res = playMatch(base.int(0, 1e9), 2, [base.pick(BOTS), base.pick(BOTS)], ['Moyen', 'Moyen'], w);
+    rand.push(res);
+    for (const p of [0, 1] as const) {
+      const cat = w[p][0].category;
+      catWins[cat][1] += 1;
+      if (res.winner === p) catWins[cat][0] += 1;
     }
   }
-
-  console.log(`Starting ${isFull ? 'FULL' : 'QUICK'} run (${maxMatches} matches)...`);
-
-  const bots: BotType[] = ['Random', 'Glouton', 'Pousseur', 'Tortue', 'Expert'];
-  let firstPlayerWins = 0;
-  let ringouts = 0;
-  let comebacks = 0;
-  let suddenDeaths = 0;
-  let koTurns: number[] = [];
-  let oneShotKos = 0;
-
-  for (let i = 0; i < maxMatches; i++) {
-    const seed = baseRng.int(0, 9999999);
-    const p0Weapons = [baseRng.pick(archetypes), baseRng.pick(archetypes), baseRng.pick(archetypes)];
-    const p1Weapons = [baseRng.pick(archetypes), baseRng.pick(archetypes), baseRng.pick(archetypes)];
-    
-    const p0Cat = p0Weapons[0].category; // abstracting primary
-    const p1Cat = p1Weapons[0].category;
-
-    const res = playMatch(seed, 
-      { bot: baseRng.pick(bots), profile: 'Moyen', hp: 100, weapons: p0Weapons },
-      { bot: baseRng.pick(bots), profile: 'Moyen', hp: 100, weapons: p1Weapons }
-    );
-    if (i === 0) console.log('DEBUG Match 0:', res);
-
-    results.push(res);
-    koTurns.push(res.turns);
-
-    if (res.winnerId === 0) {
-      firstPlayerWins++;
-      catWins[p0Cat]++;
-      catMatrix[p0Cat][p1Cat].wins++;
-    } else {
-      catWins[p1Cat]++;
-      catMatrix[p1Cat][p0Cat].wins++;
-    }
-    
-    catMatches[p0Cat]++;
-    catMatches[p1Cat]++;
-    catMatrix[p0Cat][p1Cat].total++;
-    catMatrix[p1Cat][p0Cat].total++;
-
-    if (res.ringout) ringouts++;
-    if (res.comeback) comebacks++;
-    if (res.suddenDeath) suddenDeaths++;
-    if (res.turns <= 1 && (res.loserHp >= 50 || res.winnerHp >= 50)) oneShotKos++;
+  const prof: ParryProfile[] = ['Novice', 'Moyen', 'Expert'];
+  for (let i = 0; i < N / 2; i++) {
+    const pr: [ParryProfile, ParryProfile] = [base.pick(prof), base.pick(prof)];
+    presets.push(playMatch(base.int(0, 1e9), 2, [base.pick(BOTS), base.pick(BOTS)], pr, [defaultArsenal(), defaultArsenal()]));
+    demo.push(playMatch(base.int(0, 1e9), 1, [base.pick(BOTS), base.pick(BOTS)], pr, [defaultArsenal(), defaultArsenal()]));
   }
-
-  koTurns.sort((a,b) => a-b);
-  const medianTurn = koTurns[Math.floor(koTurns.length / 2)];
-  const earlyKos = koTurns.filter(t => t < 3).length / koTurns.length;
-
-  const firstPlayerAdv = firstPlayerWins / maxMatches;
-  const ringoutRate = ringouts / maxMatches;
-  const comebackRate = comebacks / maxMatches;
-  const sdRate = suddenDeaths / maxMatches;
-
-  let redAlert = false;
-  let report = `# Rapport d'équilibrage\n\n`;
-
-  report += `## Métriques Globales\n`;
-  report += `- Avantage P1: ${(firstPlayerAdv*100).toFixed(1)}% (Cible: 47-53%)\n`;
-  if (firstPlayerAdv > 0.56) redAlert = true;
-
-  report += `- KO Médian: Tour ${medianTurn} (Cible: 5 ou 6)\n`;
-  report += `- KO avant Tour 3: ${(earlyKos*100).toFixed(1)}% (Cible: < 5%)\n`;
-  report += `- Mort Subite: ${(sdRate*100).toFixed(1)}% (Cible: ≤ 25%)\n`;
-  
-  if (oneShotKos > 0) {
-    report += `- ALERTE: ${oneShotKos} KO en un coup à ≥ 50 PV détectés.\n`;
-    redAlert = true;
-  }
-
-  report += `- KO par sortie de ring: ${(ringoutRate*100).toFixed(1)}% (Cible: 35-60%)\n`;
-  if (ringoutRate < 0.20 || ringoutRate > 0.75) redAlert = true;
-
-  report += `- Retours (mené de 30 PV): ${(comebackRate*100).toFixed(1)}% (Cible: 20-35%)\n`;
-  if (comebackRate < 0.10) redAlert = true;
-
-  report += `\n## Matrice des Catégories (Ligne bat Colonne %)\n`;
-  report += `| | BLASTER | GRENADE | THROWABLE | SHIELD |\n|---|---|---|---|---|\n`;
-  for (const c1 of CATEGORIES) {
-    let row = `| ${c1} |`;
-    for (const c2 of CATEGORIES) {
-      if (c1 === c2) row += ` — |`;
-      else {
-        const rate = catMatrix[c1][c2].total > 0 ? catMatrix[c1][c2].wins / catMatrix[c1][c2].total : 0.5;
-        row += ` ${(rate*100).toFixed(1)}% |`;
-      }
-    }
-    report += row + `\n`;
-  }
-
-  // Expert vs Novice test
+  // Débutants qui se ratent (parade Novice des deux côtés), arsenal par défaut : le cas de la démo en public.
+  const novices: MatchResult[] = [];
+  for (let i = 0; i < N / 2; i++) novices.push(playMatch(base.int(0, 1e9), 2, ['Random', 'Random'], ['Novice', 'Novice'], [defaultArsenal(), defaultArsenal()]));
   let expWins = 0;
-  for(let i=0; i<1000; i++) {
-    const seed = baseRng.int(0, 9999999);
-    const weapons = [baseRng.pick(archetypes), baseRng.pick(archetypes), baseRng.pick(archetypes)];
-    const res = playMatch(seed,
-      { bot: 'Expert', profile: 'Expert', hp: 100, weapons },
-      { bot: 'Random', profile: 'Novice', hp: 100, weapons }
-    );
-    if (res.winnerId === 0) expWins++;
-  }
-  const expRate = expWins / 1000;
-  report += `\n## Test de Compétence\n`;
-  report += `- Expert vs Novice: ${(expRate*100).toFixed(1)}% (Cible: 75-90%)\n`;
-  if (expRate < 0.65 || expRate > 0.95) redAlert = true;
-
-  // Réglages proposés
-  report += `\n## Réglages Proposés\n`;
-  report += `1. Ajuster KNOCKBACK_BASE si ringoutRate est hors-cible.\n`;
-  report += `2. Ajuster DAMAGE_PER_POWER si medianTurn est incorrect.\n`;
-  report += `3. Modifier PARRY_WINDOWS si expert/novice n'est pas bon.\n`;
-
-  const captureDir = path.join(process.cwd(), 'captures', 'balance');
-  if (!fs.existsSync(captureDir)) {
-    fs.mkdirSync(captureDir, { recursive: true });
+  for (let i = 0; i < 1000; i++) {
+    const w = [base.pick(arch), base.pick(arch), base.pick(arch)];
+    if (playMatch(base.int(0, 1e9), 2, ['Expert', 'Random'], ['Expert', 'Novice'], [w, w]).winner === 0) expWins++;
   }
 
-  fs.writeFileSync(path.join(captureDir, 'rapport.md'), report, 'utf8');
-  fs.writeFileSync(path.join(captureDir, 'rapport.json'), JSON.stringify({
-    firstPlayerAdv,
-    medianTurn,
-    earlyKos,
-    sdRate,
-    ringoutRate,
-    comebackRate,
-    expRate,
-    redAlert
-  }, null, 2), 'utf8');
-
-  console.log(report);
-
-  if (redAlert) {
-    console.error("ALERTE ROUGE : Certaines métriques sont hors limites critiques.");
-    process.exit(1);
-  }
+  const S = [summarize('Armes aléatoires, 2 vies, parade moyenne', rand), summarize('Arsenal par défaut, 2 vies', presets),
+    summarize('Arsenal par défaut, 1 vie (?demo=1)', demo), summarize('Deux débutants (Novice), arsenal par défaut, 2 vies', novices)];
+  let md = `# Rapport d'équilibrage — règles v2 (LSMASH)\n\n${N} matchs aléatoires + ${N / 2} par scénario. Cibles : 8 à 12 tours (2 vies), éjection moyenne 90 à 140 %, aucune sous 40 %.\n\n`;
+  md += '| Scénario | Tours médian (p10–p90) | Part 8–12 | Éjection moy. % (avant mort subite) | Min % | Sous 40 % | Éjections en mort subite | Victoires J1 | BRO SMASH / match (1er au tour) | Rattrapages / match | % par coup |\n|---|---|---|---|---|---|---|---|---|---|---|\n';
+  for (const r of S) md += `| ${r.label} | ${r.turnsMedian} (${r.turnsP10}–${r.turnsP90}) | ${pc(r.in8to12)} | ${r.koMeanPct} (${r.koMeanPctBeforeSd}) | ${r.koMinPct} | ${r.koUnder40} | ${pc(r.koShareSd)} | ${pc(r.p1Wins)} | ${r.supersPerMatch} (${r.firstSuperTurnMedian}) | ${r.ledgeGrabsPerMatch} | ${r.pctPerHit} |\n`;
+  md += `\nExpert contre débutant : ${pc(expWins / 1000)} de victoires.\n\nVictoires par catégorie de l'arme n°1 : ${CATEGORIES.map((c) => `${c} ${pc(catWins[c][0] / Math.max(1, catWins[c][1]))}`).join(', ')}.\n`;
+  const dir = path.join(process.cwd(), 'captures', 'balance');
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'rapport.md'), md, 'utf8');
+  fs.writeFileSync(path.join(dir, 'rapport.json'), JSON.stringify({ scenarios: S, expertVsNovice: expWins / 1000 }, null, 2), 'utf8');
+  console.log(md);
 }
 
-run().catch(console.error);
+run();

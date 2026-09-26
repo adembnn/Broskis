@@ -1,658 +1,694 @@
-// Moteur commun des maps (lot LM, plan/lots/LM-maps.md §Moteur commun).
-// Charge une définition de map (types.ts), pose les colliders Rapier (fixes pour les tuiles/le sol,
-// dynamiques une fois "réveillés" pour les props), écoute les tirs pour déclencher le décor, gère les
-// 3 zones de KO/vide, place les joueurs, exécute les événements périodiques + la mort subite, et habille
-// chaque map avec la direction « Vinyle » (tokens.maps.<id> : ciel, brouillard, lumières, teinte du décor).
+// Moteur commun des maps (lots LM puis LMAP2). Charge une MapDef (types.ts) en deux temps :
+//  1. la PHYSIQUE, en synchrone dès `match:start` (sinon le sol de secours du gameplay se crée à la place
+//     de l'arène et ferme le vide : c'était le « mur invisible » des arènes fermées) ;
+//  2. les VISUELS, en asynchrone (modèles glTF, décor lointain instancié).
+// Il gère aussi les plateformes traversables (one-way), le danger périodique de chaque map (annoncé par
+// une zone d'alerte qui clignote), les accessoires déclenchés par les tirs et la mort subite.
+// Lumières, ciel, brouillard et post-traitement : PAS ici (src/scene/render/**, lot LDA2).
+import { dressing } from './dressing';
 import * as THREE from 'three';
 import type RAPIER from '@dimforge/rapier3d-compat';
-import type { Category, Ctx, MapId, PlayerId, Vec3, Weapon } from '../../core/types';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import type { Ctx, MapId, PlayerId, Vec3 } from '../../core/types';
+import { excludeFromOcclusion } from '../registry';
 import { buildArchipelDef } from './archipel';
 import { buildCuisineDef } from './cuisine';
 import { buildGalionDef } from './galion';
-import { instantiate, instantiateNode, localBounds } from './loader';
-import { flatToon, hazardDecal, outlineTree, type Grade } from './toon';
-import {
-  archipelTokens, cuisineTokens, galionTokens, LOCAL_TOKENS, palette, rendu,
-  type ArchipelTokens, type CuisineTokens, type GalionTokens, type MapPalette,
-} from './tokens';
+import { HEX_R } from './hex';
+import { shipOutline } from './outline';
+import { instantiate } from './loader';
+import { flatMat, hazardMaterial, hazardRect, worldStripeUVs, type Grade } from './materials';
+import { archipelTokens, cuisineTokens, galionTokens, LOCAL_TOKENS, palette, rendu, type MapPalette } from './tokens';
 import type {
-  ColliderSpec, GroundPiece, MapDef, PropBuild, PropKind, PropSpec, StaticCollider, TileSpec,
+  BackdropSpec, ColliderSpec, MapDef, OneWaySpec, PropBuild, PropKind, PropSpec, VisualPart,
 } from './types';
 
 // ---------------------------------------------------------------------------
-// Réglages du moteur (algorithmes, pas des valeurs visuelles -> pas dans les tokens).
+// Réglages du moteur (algorithmes, pas des valeurs visuelles).
 // ---------------------------------------------------------------------------
 const MAX_TRIGGERS_PER_SHOT = 3;
-const RAY_STEP = 0.05;       // s, pas d'échantillonnage de la trajectoire simulée
-const RAY_MAX_TIME = 3;      // s, résolution "3 s maximum" du lot
+const RAY_STEP = 0.05;
+const RAY_MAX_TIME = 3;
 const GRAVITY = 9.81;
+/** One-way : marge autour de l'empreinte, seuil d'entrée « au-dessus » et hystérésis de sortie (m). */
+const ONEWAY_MARGIN = 0.75;
+const ONEWAY_ENTER = 0.02;
+const ONEWAY_EXIT = 0.35;
+/** Clignotement des zones d'alerte (Hz) et plancher d'opacité. */
+const BLINK_HZ = 2.5;
+const BLINK_MIN = 0.25;
 
 type Vector3Like = { x: number; y: number; z: number };
 const v3 = (v: Vec3): Vector3Like => ({ x: v[0], y: v[1], z: v[2] });
 
-interface TileRuntime {
-  index: number;
-  islandId: string;
-  ring: number;
-  crumble?: { hitsRequired: number; requireCategory?: Category };
-  hits: number;
-  dead: boolean;
-  fallen: boolean;
-  body: RAPIER.RigidBody;
-  colliderHandle: number;
-  topY: number;
-  pos: Vec3;
-}
+/** Effet sur un joueur, appliqué côté gameplay par src/gameplay/map-events (poussée physique ou chute). */
+export type PlayerEffect =
+  | { kind: 'push'; player: PlayerId; vel: Vec3; /** secondes minimum avant de rendre la main (pont qui gîte) */ hold?: number }
+  | { kind: 'drop'; player: PlayerId };
+let effectHandler: ((e: PlayerEffect) => void) | null = null;
+export function onPlayerEffect(fn: (e: PlayerEffect) => void) { effectHandler = fn; }
+function effect(e: PlayerEffect) { effectHandler?.(e); }
+
+interface TileRuntime { index: number; ring: number; fallen: boolean; body: RAPIER.RigidBody; colliderHandle: number; pos: Vec3 }
 
 interface PropRuntime {
   id: string;
   spec: PropSpec;
   kind: PropKind;
-  mesh: THREE.Object3D;
+  holder: THREE.Group;
   body: RAPIER.RigidBody;
   colliderHandle: number;
   worldPos: THREE.Vector3;
   dead: boolean;
-  hits: number;
   cooldownUntil: number;
   launchIdx: number;
-  animT: number;
-  animPhase: 'idle' | 'active';
-  restYaw: number;
 }
+
+interface OneWayRuntime { spec: OneWaySpec; collider: RAPIER.Collider; above: [boolean, boolean] }
 
 interface Transient { mesh: THREE.Object3D; body: RAPIER.RigidBody; expiresAt: number }
 
 interface LoadedMap {
   def: MapDef;
   group: THREE.Group;
-  center: THREE.Vector3;
+  /** Groupe qui gîte (galion) : pont + accessoires posés dessus. */
+  deckGroup: THREE.Group;
+  deckBody: RAPIER.RigidBody | null;
   mapPalette: MapPalette;
-  grade: Grade;
+  backGrade: Grade;
   tileMesh: THREE.InstancedMesh | null;
   tiles: TileRuntime[];
   props: Map<string, PropRuntime>;
-  triggerByCollider: Map<number, { kind: 'tile' | 'prop'; id: string }>;
+  triggerByCollider: Map<number, string>;
   groundColliders: Set<number>;
+  platforms: OneWayRuntime[];
   transient: Transient[];
-  ringLevel: number;          // prochain anneau (archipel) à faire tomber ; <1 = plus rien à faire tomber
-  hazardDecals: Map<number, THREE.Mesh>; // tuile -> rayures d'alerte (permanent pour les fêlées, temporaire pour l'anneau)
-  crows: THREE.Group[];
-  lights: THREE.Light[];
-  practical?: { light: THREE.PointLight; base: number; vacillement: number };
-  tiltCurrent: number;        // gîte du galion en cours (radians)
-  camRollApplied: number;     // ce que CE système a ajouté à camera.rotation.z (pour un retrait propre)
-  waveRings: THREE.Mesh[];
-  announceWave: THREE.Mesh | null;
-  lightningNextAt: number;
-  lightningLight: THREE.PointLight | null;
-  projectileInFlightUntil: number;
-  spongeMesh: THREE.Group | null;
-  spongeShadow: THREE.Mesh | null;
-  spongeAnim: { t: number; dur: number; from: THREE.Vector3; to: THREE.Vector3 } | null;
-  suddenDeathActive: boolean;
-  safeRadius: number;
+  ringLevel: number;
+  hazard: THREE.Mesh | null;
+  tilt: number;
+  catapult: { root: THREE.Object3D; turret: THREE.Object3D | null; arm: THREE.Object3D | null } | null;
+  sponge: THREE.Object3D | null;
+  spongeBand: { z: number; dir: 1 | -1 } | null;
+  sea: THREE.Mesh[];
   pendingDropXZ: [number, number] | null;
-  safeRing: THREE.Mesh | null;
-  killed: Set<PlayerId>;
 }
 
 let current: LoadedMap | null = null;
 let ctxRef: Ctx | null = null;
 
-// ---------------------------------------------------------------------------
-// Ciel, brouillard, lumières — lus depuis tokens.maps.<id> (direction « Vinyle »).
-// ---------------------------------------------------------------------------
-function buildSkyDome(haut: string, horizon: string, bas: string): THREE.Mesh {
-  const geo = new THREE.SphereGeometry(220, 20, 14);
-  const pos = geo.getAttribute('position');
-  const colors = new Float32Array(pos.count * 3);
-  const cHaut = new THREE.Color(haut), cHor = new THREE.Color(horizon), cBas = new THREE.Color(bas);
-  const c = new THREE.Color();
-  for (let i = 0; i < pos.count; i++) {
-    const y = pos.getY(i) / 220; // -1..1
-    if (y >= 0) c.copy(cHor).lerp(cHaut, THREE.MathUtils.smoothstep(y, 0, 1));
-    else c.copy(cHor).lerp(cBas, THREE.MathUtils.smoothstep(-y, 0, 1));
-    colors[i * 3] = c.r; colors[i * 3 + 1] = c.g; colors[i * 3 + 2] = c.b;
-  }
-  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-  const mat = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false });
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.renderOrder = -10;
-  mesh.userData.noOutline = true;
-  return mesh;
-}
-
-interface CommonTokens {
-  ciel: { haut: string; horizon: string; bas: string };
-  brouillard: { couleur: string; debut: number; fin: number };
-  hemi: { ciel: string; sol: string; intensite: number };
-  principale: ArchipelTokens['principale'] | CuisineTokens['principale'];
-  pratique: { couleur: string; intensite: number; portee: number; decroissance: number; vacillement: number };
-  palette: MapPalette;
-  decor: { saturation: number; teinte: string };
-}
-
-function tokensFor(mapId: MapId): CommonTokens {
+function tokensFor(mapId: MapId) {
   if (mapId === 'galion') return galionTokens();
   if (mapId === 'cuisine') return cuisineTokens();
   return archipelTokens();
 }
 
-function buildLights(ctx: Ctx, map: LoadedMap, tk: CommonTokens) {
-  const hemi = new THREE.HemisphereLight(tk.hemi.ciel, tk.hemi.sol, tk.hemi.intensite);
-  map.group.add(hemi);
-  map.lights.push(hemi);
-
-  const p = tk.principale;
-  let key: THREE.Light;
-  if (p.type === 'spot') {
-    const spot = new THREE.SpotLight(p.couleur, p.intensite, 0, p.angle, p.penombre, p.decroissance);
-    spot.position.set(p.position[0], p.position[1], p.position[2]);
-    spot.target.position.set(0, 0, 0);
-    spot.castShadow = true;
-    spot.shadow.mapSize.set(1024, 1024);
-    map.group.add(spot, spot.target);
-    key = spot;
-  } else {
-    const dir = new THREE.DirectionalLight(p.couleur, p.intensite);
-    dir.position.set(p.position[0], p.position[1], p.position[2]);
-    dir.target.position.set(0, 0, 0);
-    dir.castShadow = true;
-    dir.shadow.mapSize.set(1024, 1024);
-    const camSize = 26; // couvre les 3 maps (archipel ~13, galion ~7, cuisine ~21 de demi-largeur)
-    Object.assign(dir.shadow.camera, { left: -camSize, right: camSize, top: camSize, bottom: -camSize, near: 1, far: 80 });
-    map.group.add(dir, dir.target);
-    key = dir;
-  }
-  map.lights.push(key);
-
-  const pt = new THREE.PointLight(tk.pratique.couleur, tk.pratique.intensite, tk.pratique.portee, tk.pratique.decroissance);
-  pt.position.set(0, 2.4, 0);
-  map.group.add(pt);
-  map.practical = { light: pt, base: tk.pratique.intensite, vacillement: tk.pratique.vacillement };
-  map.lights.push(pt);
-
-  ctx.three.scene.fog = new THREE.Fog(tk.brouillard.couleur, tk.brouillard.debut, tk.brouillard.fin);
-  ctx.three.scene.background = new THREE.Color(tk.brouillard.couleur);
-  const dome = buildSkyDome(tk.ciel.haut, tk.ciel.horizon, tk.ciel.bas);
-  map.group.add(dome);
-}
-
-// ---------------------------------------------------------------------------
-// Construction procédurale (aucun modèle correspondant dans les packs disponibles).
-// Couleurs = la palette de LA map courante (jamais de teinte inventée hors tokens).
-// ---------------------------------------------------------------------------
-function darkenHex(hex: string, factor: number): string {
-  return `#${new THREE.Color(hex).multiplyScalar(factor).getHexString()}`;
-}
-
-function buildProcedural(shape: Exclude<PropBuild, { kind: 'model' }>['shape'], mp: MapPalette, grade: Grade, override?: string): THREE.Group {
-  const g = new THREE.Group();
-  const main = flatToon(override ?? mp.accent, grade);
-  const dark = flatToon(darkenHex(mp.matiere, 0.6), grade);
-  const hot = flatToon(palette.danger, {}); // jamais désaturé : c'est un signal, pas du décor
-  switch (shape) {
-    case 'catapult': {
-      const base = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.4, 1.6), dark);
-      base.position.y = 0.2;
-      const arm = new THREE.Mesh(new THREE.BoxGeometry(0.22, 1.8, 0.22), main);
-      arm.position.set(0, 0.9, 0);
-      arm.rotation.x = -0.5;
-      const cup = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 6), dark);
-      cup.position.set(0, 1.7, -0.75);
-      g.add(base, arm, cup);
-      break;
-    }
-    case 'toaster': {
-      const body = new THREE.Mesh(new THREE.BoxGeometry(2.6, 2, 1.8), flatToon(mp.matiere, grade));
-      body.position.y = 1;
-      const lever = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.5, 0.2), hot);
-      lever.position.set(1.1, 1.9, 0.7);
-      g.add(body, lever);
-      break;
-    }
-    case 'rollingPin': {
-      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 3.2, 12), main);
-      const handleGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.6, 8);
-      const h1 = new THREE.Mesh(handleGeo, dark); h1.position.y = 1.9;
-      const h2 = new THREE.Mesh(handleGeo, dark); h2.position.y = -1.9;
-      g.add(body, h1, h2);
-      break;
-    }
-    case 'axisStripe': {
-      const plane = hazardDecal(1, 1);
-      g.add(plane);
-      break;
-    }
-    case 'giantFallback': {
-      const rock = new THREE.Mesh(new THREE.IcosahedronGeometry(1, 0), flatToon(override ?? mp.matiere, grade));
-      g.add(rock);
-      break;
-    }
-  }
-  return g;
-}
-
-async function buildVisual(build: PropBuild, mp: MapPalette, grade: Grade): Promise<THREE.Object3D> {
-  if (build.kind === 'model') {
-    const obj = build.node ? await instantiateNode(build.url, build.node, grade) : await instantiate(build.url, grade);
-    return obj ?? buildProcedural('giantFallback', mp, grade);
-  }
-  return buildProcedural(build.shape, mp, grade, build.color);
-}
-
-function firstMesh(obj: THREE.Object3D): THREE.Mesh | null {
-  let found: THREE.Mesh | null = null;
-  obj.traverse((o) => { if (!found && (o as THREE.Mesh).isMesh) found = o as THREE.Mesh; });
-  return found;
-}
-
-// ---------------------------------------------------------------------------
-// Colliders
-// ---------------------------------------------------------------------------
-function colliderDesc(RAPIER_NS: typeof RAPIER, spec: ColliderSpec, scale: number): RAPIER.ColliderDesc {
-  const off = spec.offset;
-  const desc = spec.type === 'box'
-    ? RAPIER_NS.ColliderDesc.cuboid(spec.hx * scale, spec.hy * scale, spec.hz * scale)
-    : RAPIER_NS.ColliderDesc.cylinder(spec.halfHeight * scale, spec.radius * scale);
-  if (off) desc.setTranslation(off[0] * scale, off[1] * scale, off[2] * scale);
-  if (spec.type === 'cylinder' && spec.rollAxisZ) {
-    // Couché : bascule le collider de 90° autour de Z, EXACTEMENT comme le mesh (`lieOnSide` sur le
-    // PropSpec fait `obj.rotation.z = PI/2`) — sinon le collider et le visuel roulent sur des axes
-    // différents. À yaw 0, l'axe long devient X, ce qui correspond à la formule de roulis de wakeProp().
-    const half = Math.SQRT1_2;
-    desc.setRotation({ x: 0, y: 0, z: half, w: half });
-  }
-  return desc;
-}
-
-function makeFixedBody(ctx: Ctx, pos: Vec3, yawRad = 0): RAPIER.RigidBody {
-  const RAPIER_NS = ctx.physics.RAPIER;
-  const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yawRad);
-  const desc = RAPIER_NS.RigidBodyDesc.fixed().setTranslation(pos[0], pos[1], pos[2]).setRotation({ x: q.x, y: q.y, z: q.z, w: q.w });
-  return ctx.physics.world.createRigidBody(desc);
-}
-
-// ---------------------------------------------------------------------------
-// Chargement d'une map
-// ---------------------------------------------------------------------------
 function pickBuilder(mapId: MapId): () => MapDef {
   if (mapId === 'galion') return buildGalionDef;
   if (mapId === 'cuisine') return buildCuisineDef;
   return buildArchipelDef;
 }
 
-function unloadMap(ctx: Ctx) {
-  if (!current) return;
-  const world = ctx.physics.world;
-  for (const t of current.tiles) world.removeRigidBody(t.body);
-  for (const p of current.props.values()) world.removeRigidBody(p.body);
-  for (const tr of current.transient) world.removeRigidBody(tr.body);
-  ctx.three.scene.remove(current.group);
-  ctx.three.scene.fog = null;
-  current = null;
-}
-
-async function buildTiles(ctx: Ctx, map: LoadedMap, def: MapDef) {
-  if (!def.tiles.length || !def.tileModel || !def.tileHalfExtents) return;
-  const template = await buildVisual(def.tileModel, map.mapPalette, map.grade);
-  const mesh = firstMesh(template);
-  if (!mesh) return;
-  const im = new THREE.InstancedMesh(mesh.geometry, mesh.material as THREE.Material, def.tiles.length);
-  im.castShadow = false;
-  im.receiveShadow = true;
-  const m4 = new THREE.Matrix4();
-  const [hx, hy, hz] = def.tileHalfExtents;
-  def.tiles.forEach((tile: TileSpec, i: number) => {
-    m4.makeTranslation(tile.pos[0], tile.pos[1], tile.pos[2]);
-    im.setMatrixAt(i, m4);
-    const body = makeFixedBody(ctx, tile.pos);
-    const desc = ctx.physics.RAPIER.ColliderDesc.cuboid(hx, hy, hz).setTranslation(0, -hy, 0).setFriction(0.9);
-    const collider = ctx.physics.world.createCollider(desc, body);
-    const rt: TileRuntime = {
-      index: i, islandId: tile.islandId, ring: tile.ring, crumble: tile.crumble, hits: 0,
-      dead: false, fallen: false, body, colliderHandle: collider.handle, topY: tile.pos[1], pos: tile.pos,
-    };
-    map.tiles.push(rt);
-    map.groundColliders.add(collider.handle);
-    if (tile.crumble) {
-      map.triggerByCollider.set(collider.handle, { kind: 'tile', id: `tile:${i}` });
-      const decal = hazardDecal(hx * 1.9, hz * 1.9);
-      decal.position.set(tile.pos[0], tile.pos[1] + 0.02, tile.pos[2]);
-      map.group.add(decal);
-      map.hazardDecals.set(i, decal);
-    }
-  });
-  map.group.add(im);
-  map.tileMesh = im;
-}
-
-async function buildGround(ctx: Ctx, map: LoadedMap, pieces: GroundPiece[]) {
-  for (const piece of pieces) {
-    const obj = await buildVisual(piece.build, map.mapPalette, map.grade);
-    obj.position.set(piece.pos[0], piece.pos[1], piece.pos[2]);
-    if (piece.yaw) obj.rotation.y = piece.yaw;
-    if (piece.scale) obj.scale.setScalar(piece.scale);
-    if (piece.outline) outlineTree(obj);
-    map.group.add(obj);
-    if (piece.collider) {
-      const body = makeFixedBody(ctx, piece.pos, piece.yaw ?? 0);
-      const desc = colliderDesc(ctx.physics.RAPIER, piece.collider, piece.scale ?? 1);
-      const collider = ctx.physics.world.createCollider(desc, body);
-      map.groundColliders.add(collider.handle);
-    }
-  }
-}
-
-function buildStatic(ctx: Ctx, map: LoadedMap, colliders: StaticCollider[]) {
-  for (const sc of colliders) {
-    const body = makeFixedBody(ctx, sc.pos);
-    const desc = colliderDesc(ctx.physics.RAPIER, sc.collider, 1);
-    const collider = ctx.physics.world.createCollider(desc, body);
-    map.groundColliders.add(collider.handle);
-  }
-}
-
-async function buildProps(ctx: Ctx, map: LoadedMap, specs: PropSpec[]) {
-  for (const spec of specs) {
-    const obj = await buildVisual(spec.build, map.mapPalette, map.grade);
-    obj.position.set(spec.pos[0], spec.pos[1], spec.pos[2]);
-    const yaw = spec.yaw ?? 0;
-    obj.rotation.y = yaw;
-    if (spec.lieOnSide) obj.rotation.z = Math.PI / 2;
-    if (spec.scale) obj.scale.setScalar(spec.scale);
-    if (spec.kind !== 'decor') outlineTree(obj);
-    if (spec.kind === 'cannon' && spec.cannonAxis && spec.cannonRange) {
-      const dir = new THREE.Vector3(spec.cannonAxis[0], 0, spec.cannonAxis[2]).normalize();
-      const stripe = hazardDecal(0.6, spec.cannonRange);
-      stripe.position.set(dir.x * spec.cannonRange * 0.5, 0.02, dir.z * spec.cannonRange * 0.5);
-      stripe.rotation.y = Math.atan2(dir.x, dir.z);
-      obj.add(stripe);
-    }
-    map.group.add(obj);
-    const isSensor = spec.kind === 'launcher' || spec.kind === 'sweeper';
-    const body = makeFixedBody(ctx, spec.pos, yaw);
-    const desc = colliderDesc(ctx.physics.RAPIER, spec.collider, spec.scale ?? 1);
-    if (isSensor) desc.setSensor(true);
-    const collider = ctx.physics.world.createCollider(desc, body);
-    const rt: PropRuntime = {
-      id: spec.id, spec, kind: spec.kind, mesh: obj, body, colliderHandle: collider.handle,
-      worldPos: new THREE.Vector3(spec.pos[0], spec.pos[1], spec.pos[2]), dead: false, hits: 0,
-      cooldownUntil: 0, launchIdx: 0, animT: 0, animPhase: 'idle', restYaw: yaw,
-    };
-    map.props.set(spec.id, rt);
-    map.triggerByCollider.set(collider.handle, { kind: 'prop', id: spec.id });
-    if (spec.kind !== 'decor') map.groundColliders.add(collider.handle);
-  }
-}
-
 // ---------------------------------------------------------------------------
-// Archipel : corbeaux d'encre + îles lointaines en silhouette (sans contour, dans la brume).
+// Pièces procédurales (en attendant le kit d'arène LKIT) : couleurs = palette de LA map (tokens).
 // ---------------------------------------------------------------------------
-function buildCrowSilhouette(color: string): THREE.Group {
-  const g = new THREE.Group();
-  const mat = flatToon(color, {});
-  const body = new THREE.Mesh(new THREE.SphereGeometry(0.16, 6, 5), mat);
-  body.scale.set(1, 0.7, 1.6);
-  const wingGeo = new THREE.ConeGeometry(0.22, 0.05, 3);
-  const wL = new THREE.Mesh(wingGeo, mat); wL.rotation.z = Math.PI / 2; wL.position.set(-0.22, 0.02, 0);
-  const wR = new THREE.Mesh(wingGeo, mat); wR.rotation.z = -Math.PI / 2; wR.position.set(0.22, 0.02, 0);
-  g.add(body, wL, wR);
-  g.traverse((o) => { (o as THREE.Mesh).isMesh && ((o as THREE.Mesh).userData.noOutline = true); });
-  return g;
+/** Petit hasard déterministe (les visuels ne consomment jamais le hasard du gameplay). */
+function seeded(seed: number) {
+  let s = seed >>> 0 || 1;
+  return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
 }
 
-function buildCrows(map: LoadedMap, tk: ArchipelTokens) {
-  const outer = map.tiles.filter((t) => t.ring === map.ringLevel);
-  const n = Math.min(tk.corbeaux.nombre, outer.length || tk.corbeaux.nombre);
-  for (let i = 0; i < n; i++) {
-    // Répartis sur l'anneau entier (les deux grandes îles), pas juste les premières tuiles trouvées.
-    const t = outer[Math.floor((i / n) * outer.length)];
-    const crow = buildCrowSilhouette(tk.corbeaux.couleur);
-    const [x, y, z] = t ? t.pos : [0, 0, 0];
-    crow.position.set(x + (Math.random() - 0.5) * 0.6, y + 0.18, z + (Math.random() - 0.5) * 0.6);
-    crow.rotation.y = Math.random() * Math.PI * 2;
-    map.group.add(crow);
-    map.crows.push(crow);
+/** Dessous rocheux d'une île flottante : cône à 7 pans, bosselé, sommet à y = 0. size = [rayon haut, hauteur, rayon bas]. */
+function rockGeometry(size: Vec3, seed = 7): THREE.BufferGeometry {
+  const [rTop, h, rBot] = size;
+  const geo = new THREE.CylinderGeometry(rTop, rBot, h, 7, 3).translate(0, -h / 2, 0);
+  const pos = geo.getAttribute('position');
+  const rnd = seeded(seed);
+  for (let i = 0; i < pos.count; i++) {
+    const y = pos.getY(i);
+    if (y > -0.01) continue; // le bord du haut reste net (il épouse le plateau)
+    const k = 0.82 + rnd() * 0.36;
+    pos.setX(i, pos.getX(i) * k);
+    pos.setZ(i, pos.getZ(i) * k);
+    pos.setY(i, y + (rnd() - 0.5) * h * 0.08);
   }
-}
-
-async function flyCrows(ctx: Ctx, map: LoadedMap, envolMs: number) {
-  const crows = map.crows.splice(0, map.crows.length);
-  if (!crows.length) return;
-  const dur = envolMs / 1000;
-  await ctx.loop.tween(dur, (k) => {
-    for (const c of crows) {
-      c.position.y += 0.06;
-      c.position.x += Math.sin(k * 6 + c.id) * 0.02;
-      c.position.z -= 0.05;
-      c.scale.setScalar(Math.max(0, 1 - k));
-    }
-  });
-  for (const c of crows) c.removeFromParent();
-}
-
-function buildDistantIslands(map: LoadedMap, tk: ArchipelTokens) {
-  const mat = flatToon(tk.palette.matiere, {});
-  const { debut, fin } = tk.brouillard;
-  for (let i = 0; i < 6; i++) {
-    const a = (i / 6) * Math.PI * 2 + 0.3;
-    const r = debut + (fin - debut) * (0.45 + Math.random() * 0.35); // dans la brume, jamais noyées ni nettes
-    const m = new THREE.Mesh(new THREE.ConeGeometry(3 + Math.random() * 2, 2 + Math.random(), 6), mat);
-    m.position.set(Math.cos(a) * r, -1.5, Math.sin(a) * r);
-    m.userData.noOutline = true;
-    map.group.add(m);
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Galion : mer de théâtre (3 couronnes découpées), vague d'annonce, éclairs, voiles ferlées.
-// ---------------------------------------------------------------------------
-function ringCrownGeometry(radius: number): THREE.BufferGeometry {
-  const shape = new THREE.Shape();
-  const teeth = 10;
-  for (let i = 0; i <= teeth * 2; i++) {
-    const a = (i / (teeth * 2)) * Math.PI * 2;
-    const r = radius + (i % 2 === 0 ? 1.2 : 0);
-    const x = Math.cos(a) * r, y = Math.sin(a) * r;
-    if (i === 0) shape.moveTo(x, y); else shape.lineTo(x, y);
-  }
-  const hole = new THREE.Path();
-  for (let i = 0; i <= 24; i++) {
-    const a = (i / 24) * Math.PI * 2;
-    const x = Math.cos(a) * (radius - 1.4), y = Math.sin(a) * (radius - 1.4);
-    if (i === 0) hole.moveTo(x, y); else hole.lineTo(x, y);
-  }
-  shape.holes.push(hole);
-  const geo = new THREE.ShapeGeometry(shape, 24);
-  geo.rotateX(-Math.PI / 2);
+  geo.computeVertexNormals();
   return geo;
 }
 
-function buildWaveRings(map: LoadedMap, tk: GalionTokens) {
-  const mat = flatToon(tk.mer.ecume, {});
-  tk.mer.couronnes.forEach((r) => {
-    const mesh = new THREE.Mesh(ringCrownGeometry(r), mat);
-    mesh.position.y = -0.3;
-    mesh.userData.noOutline = true;
-    map.group.add(mesh);
-    map.waveRings.push(mesh);
-  });
-}
-
-function updateWaveRings(map: LoadedMap, tk: GalionTokens, t: number) {
-  map.waveRings.forEach((mesh, i) => {
-    const speed = tk.mer.vitesses[i] ?? 0.03;
-    mesh.rotation.y = t * speed;
-    // La gîte incline "la mer" (pas la coque, dont le collider reste fixe) : même angle que la caméra.
-    mesh.rotation.z = map.tiltCurrent;
-    mesh.position.y = -0.3 + Math.sin(t * 0.8 + i * 2) * tk.mer.houle * 0.3;
-  });
-}
-
-async function animateAnnounceWave(ctx: Ctx, map: LoadedMap, tk: GalionTokens) {
-  const shape = new THREE.Shape();
-  shape.moveTo(-4, 0);
-  shape.quadraticCurveTo(0, tk.vague.hauteur * 0.7, 4, 0);
-  shape.lineTo(4, -1); shape.lineTo(-4, -1); shape.closePath();
-  const geo = new THREE.ShapeGeometry(shape, 16);
-  const mesh = new THREE.Mesh(geo, flatToon(tk.mer.ecume, {}));
-  mesh.userData.noOutline = true;
-  mesh.position.set(0, 0, -14);
-  map.group.add(mesh);
-  await ctx.loop.tween(1.6, (k) => {
-    const s = Math.sin(k * Math.PI);
-    mesh.scale.setScalar(0.4 + s * 0.8);
-    mesh.position.z = -14 + k * 10;
-    (mesh.material as THREE.Material).opacity = s;
-  });
-  mesh.removeFromParent();
-}
-
-function furlSails(hull: THREE.Object3D) {
-  for (const name of ['sail-a', 'sail-b']) {
-    const n = hull.getObjectByName(name);
-    if (n) n.visible = false;
+/** Planches (4 m x 2 m par tuile de texture, rangées de 0,5 m, joints décalés), couleur du pont de la map. */
+const plankCache = new Map<string, THREE.CanvasTexture>();
+function plankTexture(color: string): THREE.CanvasTexture {
+  const cached = plankCache.get(color);
+  if (cached) return cached;
+  const W = 512, H = 256, rows = 4;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const c = canvas.getContext('2d')!;
+  const base = new THREE.Color(color);
+  const rnd = seeded(5);
+  const rowH = H / rows;
+  for (let r = 0; r < rows; r++) {
+    let x = -rnd() * W * 0.5;
+    while (x < W) {
+      const len = W * (0.35 + rnd() * 0.3);
+      const k = 0.9 + rnd() * 0.18;
+      c.fillStyle = `#${base.clone().multiplyScalar(k).getHexString()}`;
+      c.fillRect(x, r * rowH, len, rowH);
+      c.fillStyle = `#${base.clone().multiplyScalar(0.55).getHexString()}`;
+      c.fillRect(x + len - 2, r * rowH, 3, rowH); // joint
+      x += len;
+    }
+    c.fillStyle = `#${base.clone().multiplyScalar(0.5).getHexString()}`;
+    c.fillRect(0, r * rowH, W, 3); // rainure
   }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(1 / 4, 1 / 2);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  plankCache.set(color, tex);
+  return tex;
 }
 
-function updateLightning(ctx: Ctx, map: LoadedMap, tk: GalionTokens, dt: number) {
-  if (!map.lightningLight) return;
-  // Décroissance calée sur `eclair.duree` (ms) : l'éclair s'éteint à peu près dans ce temps-là.
-  map.lightningLight.intensity *= Math.max(0, 1 - dt / (tk.eclair.duree / 1000));
-  const blocked = ctx.state.phase === 'aim' || ctx.loop.time < map.projectileInFlightUntil;
-  if (blocked || ctx.loop.time < map.lightningNextAt) return;
-  const [minMs, maxMs] = tk.eclair.intervalle;
-  map.lightningNextAt = ctx.loop.time + (minMs + Math.random() * (maxMs - minMs)) / 1000;
-  map.lightningLight.color.set(tk.eclair.fond);
-  const peak = (map.practical?.base ?? 4) * tk.eclair.facteur;
-  map.lightningLight.intensity = peak;
-  // `flashs` éclairs rapprochés (simplifié : re-déclenchements espacés de `duree`, pas de minuterie dédiée).
-  for (let i = 1; i < tk.eclair.flashs; i++) {
-    ctx.loop.later((tk.eclair.duree / 1000) * i * 1.6, () => { if (map.lightningLight) map.lightningLight.intensity = peak; });
+/** Coque de navire : loft entre le contour du pont (shipOutline) et une quille plus étroite, dessus à y = 0. */
+function hullGeometry(len: number, depth: number, width: number): THREE.BufferGeometry {
+  const topPts = shipOutline(len, width);
+  const top = topPts.map(([x, z]) => new THREE.Vector3(x, 0, z));
+  const bot = topPts.map(([x, z]) => {
+    const t = (x + len / 2) / len;
+    return new THREE.Vector3(x * 0.84, -depth + depth * 0.35 * (2 * t - 1) ** 2, z * 0.3);
+  });
+  const pos: number[] = [];
+  const tri = (a: THREE.Vector3, b: THREE.Vector3, c: THREE.Vector3) => pos.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
+  const M = top.length;
+  for (let i = 0; i < M; i++) {
+    const j = (i + 1) % M;
+    tri(top[i]!, bot[i]!, top[j]!);
+    tri(top[j]!, bot[i]!, bot[j]!);
   }
+  const keel = new THREE.Vector3(0, -depth, 0);
+  for (let i = 0; i < M; i++) tri(bot[i]!, keel, bot[(i + 1) % M]!);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.computeVertexNormals();
+  return geo;
+}
+
+/** Plateau extrudé depuis un contour XZ (dessus à y = 0, chanfrein), texture de planches en mètres. */
+function outlineSlab(outline: [number, number][], thickness: number, color: string, grade: Grade): THREE.Mesh {
+  const shape = new THREE.Shape(outline.map(([x, z]) => new THREE.Vector2(x, z)));
+  const bevel = Math.min(0.1, thickness * 0.3);
+  const geo = new THREE.ExtrudeGeometry(shape, { depth: thickness - bevel * 2, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel * 0.6, bevelSegments: 1 });
+  geo.rotateX(Math.PI / 2).translate(0, -bevel, 0);
+  const mat = flatMat(color, grade, 0.7).clone();
+  mat.color.set('#ffffff');
+  mat.map = plankTexture(color);
+  mat.flatShading = false;
+  return new THREE.Mesh(geo, mat);
+}
+
+function buildProcedural(build: Extract<PropBuild, { kind: 'procedural' }>, mp: MapPalette, grade: Grade): THREE.Object3D {
+  const g = new THREE.Group();
+  const size = build.size ?? [1, 1, 1];
+  switch (build.shape) {
+    case 'rock': {
+      const m = new THREE.Mesh(rockGeometry(size, Math.round(size[0] * 97 + size[1] * 13)), flatMat(build.color ?? mp.matiere, grade, 0.95));
+      g.add(m);
+      break;
+    }
+    case 'slab': {
+      // Dalle à bords chanfreinés, dessus à y = 0.
+      const [sx, sy, sz] = size;
+      const bevel = Math.min(0.12, sy * 0.3);
+      const shape = new THREE.Shape();
+      shape.moveTo(-sx / 2 + bevel, -sz / 2);
+      shape.lineTo(sx / 2 - bevel, -sz / 2);
+      shape.lineTo(sx / 2, -sz / 2 + bevel);
+      shape.lineTo(sx / 2, sz / 2 - bevel);
+      shape.lineTo(sx / 2 - bevel, sz / 2);
+      shape.lineTo(-sx / 2 + bevel, sz / 2);
+      shape.lineTo(-sx / 2, sz / 2 - bevel);
+      shape.lineTo(-sx / 2, -sz / 2 + bevel);
+      const geo = new THREE.ExtrudeGeometry(shape, { depth: sy - bevel * 2, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel * 0.6, bevelSegments: 1 });
+      geo.rotateX(Math.PI / 2).translate(0, -bevel, 0);
+      g.add(new THREE.Mesh(geo, flatMat(build.color ?? mp.sol, grade, 0.7)));
+      break;
+    }
+    case 'deck': {
+      // Pont : dalle chanfreinée + texture de planches (UV en mètres, cf. plankTexture).
+      const slab = buildProcedural({ kind: 'procedural', shape: 'slab', size, color: build.color }, mp, grade);
+      const mesh = slab.children[0] as THREE.Mesh;
+      const base = mesh.material as THREE.MeshStandardMaterial;
+      const mat = base.clone();
+      mat.color.set('#ffffff');
+      mat.map = plankTexture(build.color ?? mp.sol);
+      mat.flatShading = false;
+      mesh.material = mat;
+      g.add(slab);
+      break;
+    }
+    case 'shipDeck': {
+      g.add(outlineSlab(shipOutline(size[0], size[2]), size[1], build.color ?? mp.sol, grade));
+      break;
+    }
+    case 'hull': {
+      const m = new THREE.Mesh(hullGeometry(size[0], size[1], size[2]), flatMat(build.color ?? mp.matiere, grade, 0.85).clone());
+      (m.material as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
+      g.add(m);
+      break;
+    }
+    case 'toaster': {
+      const [sx, sy, sz] = size;
+      const body = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), flatMat(build.color ?? mp.matiere, grade, 0.35));
+      body.position.y = sy / 2;
+      const slotMat = flatMat(rendu.contour.encre, {}, 0.9);
+      for (const dx of [-sx * 0.22, sx * 0.22]) {
+        const slot = new THREE.Mesh(new THREE.BoxGeometry(sx * 0.3, 0.06, sz * 0.62), slotMat);
+        slot.position.set(dx, sy + 0.01, 0);
+        g.add(slot);
+      }
+      const lever = new THREE.Mesh(new THREE.BoxGeometry(sx * 0.1, sy * 0.12, sz * 0.2), flatMat(palette.danger, {}, 0.5));
+      lever.position.set(sx / 2 + sx * 0.05, sy * 0.75, 0);
+      g.add(body, lever);
+      break;
+    }
+    case 'rollingPin': {
+      const [r, len] = size;
+      const main = flatMat(build.color ?? mp.accent, grade, 0.6);
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 16), main);
+      const handleGeo = new THREE.CylinderGeometry(r * 0.45, r * 0.45, len * 0.2, 10);
+      const h1 = new THREE.Mesh(handleGeo, flatMat(mp.matiere, grade)); h1.position.y = len * 0.6;
+      const h2 = new THREE.Mesh(handleGeo, flatMat(mp.matiere, grade)); h2.position.y = -len * 0.6;
+      g.add(body, h1, h2);
+      break;
+    }
+    case 'giantFallback': {
+      g.add(new THREE.Mesh(new THREE.IcosahedronGeometry(size[0], 0), flatMat(build.color ?? mp.matiere, grade)));
+      break;
+    }
+  }
+  return g;
+}
+
+async function buildVisual(build: PropBuild, map: LoadedMap, grade: Grade, shadows: boolean): Promise<THREE.Object3D> {
+  let obj: THREE.Object3D | null;
+  if (build.kind === 'model') {
+    obj = await instantiate(build.url, build.node, grade, shadows);
+    for (const name of build.hide ?? []) { const n = obj?.getObjectByName(name); if (n) n.visible = false; }
+  } else obj = buildProcedural(build, map.mapPalette, grade);
+  if (!obj) obj = buildProcedural({ kind: 'procedural', shape: 'giantFallback' }, map.mapPalette, grade);
+  obj.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if (m.isMesh) { m.castShadow = shadows; m.receiveShadow = true; }
+  });
+  return obj;
+}
+
+function applyScale(obj: THREE.Object3D, s: number | Vec3 | undefined) {
+  if (s == null) return;
+  if (typeof s === 'number') obj.scale.setScalar(s);
+  else obj.scale.set(s[0], s[1], s[2]);
+}
+
+async function addPart(map: LoadedMap, parent: THREE.Object3D, part: VisualPart, grade: Grade, shadows = true) {
+  const obj = await buildVisual(part.build, map, grade, shadows);
+  obj.position.set(part.offset[0], part.offset[1], part.offset[2]);
+  if (part.yaw) obj.rotation.y = part.yaw;
+  applyScale(obj, part.scale);
+  parent.add(obj);
+  return obj;
 }
 
 // ---------------------------------------------------------------------------
-// Cuisine : auréole de café (cercle d'encre au sol) + tasse géante fumante en fond.
+// Physique (synchrone)
 // ---------------------------------------------------------------------------
-function buildCoffeeRing(map: LoadedMap, tk: CuisineTokens) {
-  const geo = new THREE.RingGeometry(Math.max(0.1, tk.cafe.rayon - tk.cafe.epaisseur), tk.cafe.rayon, 40).rotateX(-Math.PI / 2);
-  const mat = new THREE.MeshBasicMaterial({ color: tk.cafe.couleur, transparent: true, opacity: tk.cafe.opacite, depthWrite: false });
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.position.y = 0.015;
-  mesh.userData.noOutline = true;
-  map.group.add(mesh);
+function colliderDesc(R: typeof RAPIER, spec: ColliderSpec, scale: number): RAPIER.ColliderDesc {
+  const off = spec.offset;
+  if (spec.type === 'convex') {
+    const pts: number[] = [];
+    for (const [x, z] of spec.outline) pts.push(x * scale, 0, z * scale, x * scale, -spec.depth * scale, z * scale);
+    const d = R.ColliderDesc.convexHull(new Float32Array(pts)) ?? R.ColliderDesc.cuboid(1, spec.depth / 2, 1);
+    if (off) d.setTranslation(off[0] * scale, off[1] * scale, off[2] * scale);
+    return d;
+  }
+  const desc = spec.type === 'box'
+    ? R.ColliderDesc.cuboid(spec.hx * scale, spec.hy * scale, spec.hz * scale)
+    : R.ColliderDesc.cylinder(spec.halfHeight * scale, spec.radius * scale);
+  if (off) desc.setTranslation(off[0] * scale, off[1] * scale, off[2] * scale);
+  if (spec.type === 'cylinder' && spec.rollAxisZ) desc.setRotation({ x: 0, y: 0, z: Math.SQRT1_2, w: Math.SQRT1_2 });
+  return desc;
 }
 
-function buildSteamingCup(map: LoadedMap, tk: CuisineTokens) {
-  const mat = flatToon(tk.palette.matiere, {});
-  const cup = new THREE.Mesh(new THREE.CylinderGeometry(3, 2.4, 4, 16), mat);
-  cup.position.set(-40, 2, -30);
-  cup.userData.noOutline = true;
-  map.group.add(cup);
-  const steamMat = flatToon(palette.matiere, {});
-  (steamMat as THREE.MeshToonMaterial & { transparent: boolean; opacity: number }).transparent = true;
-  (steamMat as THREE.MeshToonMaterial & { transparent: boolean; opacity: number }).opacity = 0.35;
-  for (let i = 0; i < 3; i++) {
-    const wisp = new THREE.Mesh(new THREE.SphereGeometry(0.9 - i * 0.15, 6, 5), steamMat);
-    wisp.position.set(-40, 5 + i * 1.4, -30);
-    wisp.userData.noOutline = true;
-    wisp.userData.steamPhase = i * 1.4;
-    map.group.add(wisp);
-    map.crows.push(wisp as unknown as THREE.Group); // réutilise la liste d'animables "flottants" (voir tick)
+function makeBody(ctx: Ctx, pos: Vec3, yaw = 0, kinematic = false): RAPIER.RigidBody {
+  const R = ctx.physics.RAPIER;
+  const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+  const desc = (kinematic ? R.RigidBodyDesc.kinematicPositionBased() : R.RigidBodyDesc.fixed())
+    .setTranslation(pos[0], pos[1], pos[2]).setRotation({ x: q.x, y: q.y, z: q.z, w: q.w });
+  return ctx.physics.world.createRigidBody(desc);
+}
+
+/** Prisme hexagonal (pointy-top, rayon circonscrit r) : collider exact des dalles, sans rebord invisible. */
+function hexPrismDesc(R: typeof RAPIER, r: number, height: number): RAPIER.ColliderDesc {
+  const pts: number[] = [];
+  for (let i = 0; i < 6; i++) {
+    const a = (Math.PI / 3) * i + Math.PI / 6;
+    const x = Math.cos(a) * r, z = Math.sin(a) * r;
+    pts.push(x, 0, z, x, -height, z);
+  }
+  return R.ColliderDesc.convexHull(new Float32Array(pts)) ?? R.ColliderDesc.cylinder(height / 2, r).setTranslation(0, -height / 2, 0);
+}
+
+function buildPhysics(ctx: Ctx, map: LoadedMap) {
+  const { def } = map;
+  const R = ctx.physics.RAPIER;
+  const world = ctx.physics.world;
+
+  if (def.tiles.length && def.tileHalfExtents) {
+    const [hx, hy, hz] = def.tileHalfExtents;
+    def.tiles.forEach((tile, i) => {
+      const body = makeBody(ctx, tile.pos);
+      const desc = def.tileShape === 'hex' ? hexPrismDesc(R, hz, hy * 2) : R.ColliderDesc.cuboid(hx, hy, hz).setTranslation(0, -hy, 0);
+      const collider = world.createCollider(desc.setFriction(0.9), body);
+      map.tiles.push({ index: i, ring: tile.ring, fallen: false, body, colliderHandle: collider.handle, pos: tile.pos });
+      map.groundColliders.add(collider.handle);
+    });
+  }
+
+  for (const piece of def.ground) {
+    if (!piece.collider) continue;
+    const scale = typeof piece.scale === 'number' ? piece.scale : 1;
+    const collider = world.createCollider(colliderDesc(R, piece.collider, scale), makeBody(ctx, piece.pos, piece.yaw ?? 0));
+    map.groundColliders.add(collider.handle);
+  }
+
+  for (const sc of def.extraColliders) {
+    const body = makeBody(ctx, sc.pos, 0, sc.id === 'deck');
+    if (sc.id === 'deck') map.deckBody = body;
+    const collider = world.createCollider(colliderDesc(R, sc.collider, 1).setFriction(0.8), body);
+    map.groundColliders.add(collider.handle);
+  }
+
+  for (const pf of def.platforms) {
+    const desc = R.RigidBodyDesc.fixed().setTranslation(pf.top[0], pf.top[1] - pf.thickness / 2, pf.top[2])
+      .setUserData({ kind: 'oneway', oneWay: true, topY: pf.top[1], id: pf.id });
+    const body = world.createRigidBody(desc);
+    const collider = world.createCollider(R.ColliderDesc.cuboid(pf.halfX, pf.thickness / 2, pf.halfZ).setFriction(0.9), body);
+    collider.setEnabled(false); // personne dessus au départ : les tirs et les sauts passent au travers
+    map.platforms.push({ spec: pf, collider, above: [false, false] });
+    map.groundColliders.add(collider.handle);
+  }
+
+  for (const spec of def.props) {
+    const body = makeBody(ctx, spec.pos, spec.yaw ?? 0);
+    const desc = colliderDesc(R, spec.collider, spec.scale ?? 1);
+    if (spec.kind === 'launcher') desc.setSensor(true);
+    const collider = world.createCollider(desc, body);
+    const holder = new THREE.Group();
+    holder.position.set(spec.pos[0], spec.pos[1], spec.pos[2]);
+    holder.rotation.y = spec.yaw ?? 0;
+    (def.id === 'galion' ? map.deckGroup : map.group).add(holder);
+    map.props.set(spec.id, {
+      id: spec.id, spec, kind: spec.kind, holder, body, colliderHandle: collider.handle,
+      worldPos: new THREE.Vector3(spec.pos[0], spec.pos[1], spec.pos[2]), dead: false, cooldownUntil: 0, launchIdx: 0,
+    });
+    map.triggerByCollider.set(collider.handle, spec.id);
+    if (spec.kind !== 'launcher') map.groundColliders.add(collider.handle);
   }
 }
 
-// ---------------------------------------------------------------------------
-// Réveil / comportements (tirs, contacts)
-// ---------------------------------------------------------------------------
-function wakeTile(ctx: Ctx, map: LoadedMap, t: TileRuntime) {
-  if (t.fallen) return;
-  t.fallen = true;
-  t.body.setBodyType(ctx.physics.RAPIER.RigidBodyType.Dynamic, true);
-  t.body.setLinvel({ x: (Math.random() - 0.5) * 1.5, y: -1, z: (Math.random() - 0.5) * 1.5 }, true);
-  t.body.setAngvel({ x: (Math.random() - 0.5) * 3, y: (Math.random() - 0.5) * 2, z: (Math.random() - 0.5) * 3 }, true);
-  map.groundColliders.delete(t.colliderHandle);
-  const decal = map.hazardDecals.get(t.index);
-  if (decal) { decal.removeFromParent(); map.hazardDecals.delete(t.index); }
-}
-
-function wakeProp(ctx: Ctx, prop: PropRuntime, opts: { impulse: number; dir?: THREE.Vector3; up?: number; rolling?: boolean }) {
-  prop.body.setBodyType(ctx.physics.RAPIER.RigidBodyType.Dynamic, true);
-  const dir = opts.dir ?? new THREE.Vector3(Math.random() - 0.5, 0, Math.random() - 0.5).normalize();
-  prop.body.setLinvel({ x: dir.x * opts.impulse, y: opts.up ?? 3, z: dir.z * opts.impulse }, true);
-  if (opts.rolling) {
-    const axis = new THREE.Vector3(Math.cos(prop.restYaw), 0, -Math.sin(prop.restYaw));
-    prop.body.setAngvel({ x: axis.x * opts.impulse * 2, y: 0, z: axis.z * opts.impulse * 2 }, true);
-  } else {
-    prop.body.setAngvel({ x: (Math.random() - 0.5) * 4, y: (Math.random() - 0.5) * 4, z: (Math.random() - 0.5) * 4 }, true);
-  }
-}
-
-function nearestPlayer(ctx: Ctx, pos: THREE.Vector3, radius: number): PlayerId | null {
-  let best: PlayerId | null = null;
-  let bestD = radius;
-  for (const p of ctx.state.players) {
-    const d = Math.hypot(p.pos[0] - pos.x, p.pos[2] - pos.z);
-    if (d <= bestD) { bestD = d; best = p.id; }
-  }
-  return best;
-}
-
-async function animateLaunch(ctx: Ctx, playerId: PlayerId, target: Vec3, duration: number, arc: number) {
-  const player = ctx.state.players[playerId];
-  const from: Vec3 = [...player.pos];
-  await ctx.loop.tween(duration, (k) => {
-    const ease = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
-    player.pos = [
-      from[0] + (target[0] - from[0]) * ease,
-      from[1] + (target[1] - from[1]) * ease + Math.sin(k * Math.PI) * arc,
-      from[2] + (target[2] - from[2]) * ease,
-    ];
+/** Le sol de secours du gameplay (fallback-ground.ts) n'a plus lieu d'être dès qu'une vraie map existe. */
+function removeFallbackGround(ctx: Ctx) {
+  const doomed: RAPIER.RigidBody[] = [];
+  ctx.physics.world.forEachRigidBody((b) => {
+    if ((b.userData as { kind?: string } | undefined)?.kind === 'fallback-ground') doomed.push(b);
   });
+  for (const b of doomed) ctx.physics.world.removeRigidBody(b);
 }
 
-function triggerLauncher(ctx: Ctx, prop: PropRuntime, playerHint?: PlayerId) {
-  if (ctx.loop.time < prop.cooldownUntil) return;
-  const pid = playerHint ?? nearestPlayer(ctx, prop.worldPos, prop.spec.triggerRadius ?? 1.2);
-  if (pid == null) return;
-  const dur = prop.spec.launchDuration ?? 0.6;
-  prop.cooldownUntil = ctx.loop.time + dur + 0.4;
-  const targets = prop.spec.launchTargets ?? [];
-  if (!targets.length) return;
-  const target = targets[prop.launchIdx % targets.length]!;
-  prop.launchIdx += 1;
-  void animateLaunch(ctx, pid, target, dur, prop.spec.launchArcHeight ?? 2.5);
-  ctx.bus.emit('prop:triggered', { propId: prop.id, kind: 'launcher' });
+// ---------------------------------------------------------------------------
+// Visuels (asynchrone)
+// ---------------------------------------------------------------------------
+async function buildTileVisuals(map: LoadedMap) {
+  const { def } = map;
+  if (!def.tiles.length || !def.tileModel) return;
+  const template = await buildVisual(def.tileModel, map, map.backGrade, false);
+  let mesh: THREE.Mesh | null = null;
+  template.traverse((o) => { if (!mesh && (o as THREE.Mesh).isMesh) mesh = o as THREE.Mesh; });
+  if (!mesh) return;
+  const src = mesh as THREE.Mesh;
+  const im = new THREE.InstancedMesh(src.geometry, src.material as THREE.Material, def.tiles.length);
+  im.castShadow = false;
+  im.receiveShadow = true;
+  const m4 = new THREE.Matrix4();
+  def.tiles.forEach((tile, i) => { m4.makeTranslation(tile.pos[0], tile.pos[1], tile.pos[2]); im.setMatrixAt(i, m4); });
+  im.computeBoundingSphere();
+  im.name = 'map-tiles';
+  map.group.add(im);
+  map.tileMesh = im;
+  excludeFromOcclusion(im);
 }
 
-function spawnCannonBall(ctx: Ctx, map: LoadedMap, prop: PropRuntime) {
-  const axis = prop.spec.cannonAxis ?? [0, 0, 1];
-  const dir = new THREE.Vector3(axis[0], axis[1], axis[2]).normalize();
-  const speed = 22;
-  const start = prop.worldPos.clone().addScaledVector(dir, 1.4).add(new THREE.Vector3(0, 0.6, 0));
-  const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), flatToon(rendu.contour.encre, {}));
-  mesh.castShadow = true;
-  map.group.add(mesh);
-  const RAPIER_NS = ctx.physics.RAPIER;
-  const desc = RAPIER_NS.RigidBodyDesc.dynamic().setTranslation(start.x, start.y, start.z)
-    .setLinvel(dir.x * speed, dir.y * speed, dir.z * speed).setCcdEnabled(true);
-  const body = ctx.physics.world.createRigidBody(desc);
-  ctx.physics.world.createCollider(RAPIER_NS.ColliderDesc.ball(0.22).setDensity(3), body);
-  map.transient.push({ mesh, body, expiresAt: ctx.loop.time + 3 });
+async function buildGroundVisuals(map: LoadedMap) {
+  for (const piece of map.def.ground) {
+    const parent = map.def.id === 'galion' ? map.deckGroup : map.group;
+    const grade = piece.tint ? { saturation: map.backGrade.saturation, tint: map.mapPalette[piece.tint] } : map.backGrade;
+    const obj = await addPart(map, parent, { build: piece.build, offset: piece.pos, yaw: piece.yaw, scale: piece.scale }, grade, true);
+    obj.name = piece.id;
+    if (piece.id.startsWith('plateau')) excludeFromOcclusion(obj); // le sol ne s'efface jamais ; un mât, si
+  }
 }
 
-function triggerProp(ctx: Ctx, map: LoadedMap, prop: PropRuntime, weapon?: Weapon) {
-  if (prop.dead) return;
-  if (prop.kind === 'cannon') map.projectileInFlightUntil = ctx.loop.time + 1.4;
+async function buildPlatformVisuals(map: LoadedMap) {
+  for (const pf of map.def.platforms) {
+    const root = new THREE.Group();
+    root.name = `oneway-${pf.id}`;
+    root.position.set(pf.top[0], pf.top[1], pf.top[2]);
+    map.group.add(root);
+    excludeFromOcclusion(root);
+    for (const part of pf.parts) await addPart(map, root, part, map.backGrade, true);
+  }
+}
+
+async function buildPropVisuals(map: LoadedMap) {
+  for (const prop of map.props.values()) {
+    const obj = await buildVisual(prop.spec.build, map, {}, true);
+    if (prop.spec.lieOnSide) obj.rotation.z = Math.PI / 2;
+    if (prop.spec.scale) obj.scale.setScalar(prop.spec.scale);
+    prop.holder.add(obj);
+    if (prop.kind === 'cannon' && prop.spec.cannonAxis && prop.spec.cannonRange) {
+      const len = prop.spec.cannonRange;
+      const stripe = hazardRect(0, 0, 0.4, len, 0.035);
+      // Axe peint dans le repère du canon : le holder porte déjà son orientation (yaw).
+      stripe.position.set(0, 0, len / 2 + 1.2);
+      stripe.material = hazardMaterial();
+      (stripe.material as THREE.MeshBasicMaterial).opacity = 0.4;
+      prop.holder.add(stripe);
+    }
+  }
+}
+
+/** Décor lointain : un InstancedMesh par mesh du modèle (1 appel de dessin par pièce, quel que soit le nombre). */
+async function buildBackdrop(map: LoadedMap, spec: BackdropSpec) {
+  const template = await buildVisual(spec.build, map, spec.graded === false ? {} : map.backGrade, false);
+  template.updateMatrixWorld(true);
+  const meshes: THREE.Mesh[] = [];
+  template.traverse((o) => { if ((o as THREE.Mesh).isMesh) meshes.push(o as THREE.Mesh); });
+  const inst = new THREE.Matrix4();
+  const q = new THREE.Quaternion();
+  const s = new THREE.Vector3();
+  const p = new THREE.Vector3();
+  for (const mesh of meshes) {
+    const im = new THREE.InstancedMesh(mesh.geometry, mesh.material as THREE.Material, spec.items.length);
+    spec.items.forEach((it, i) => {
+      q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), it.yaw ?? 0);
+      if (typeof it.scale === 'number') s.setScalar(it.scale); else if (it.scale) s.set(it.scale[0], it.scale[1], it.scale[2]); else s.setScalar(1);
+      p.set(it.pos[0], it.pos[1], it.pos[2]);
+      inst.compose(p, q, s).multiply(mesh.matrixWorld);
+      im.setMatrixAt(i, inst);
+    });
+    im.castShadow = false;
+    im.receiveShadow = false;
+    im.computeBoundingSphere();
+    map.group.add(im);
+    excludeFromOcclusion(im);
+  }
+}
+
+async function buildVisuals(ctx: Ctx, map: LoadedMap) {
+  await buildTileVisuals(map);
+  await buildGroundVisuals(map);
+  await buildPlatformVisuals(map);
+  await buildPropVisuals(map);
+  for (const b of [...map.def.backdrop, ...dressing(map.def.id)]) await buildBackdrop(map, b); // + habillage LDECOR
+  if (map.def.id === 'archipel') await buildCatapult(map);
+  else if (map.def.id === 'galion') buildSea(map);
+  else if (map.def.id === 'cuisine') buildSponge(map);
+  void ctx;
+}
+
+// ---------------------------------------------------------------------------
+// Archipel : la catapulte, hors du plateau, tire sur l'anneau condamné.
+// ---------------------------------------------------------------------------
+async function buildCatapult(map: LoadedMap) {
+  const spot = map.def.catapult;
+  if (!spot) return;
+  const root = await buildVisual(spot.build, map, map.backGrade, false);
+  root.position.set(spot.pos[0], spot.pos[1], spot.pos[2]);
+  root.rotation.y = spot.yaw ?? 0;
+  applyScale(root, spot.scale);
+  map.group.add(root);
+  excludeFromOcclusion(root);
+  map.catapult = {
+    root,
+    turret: root.getObjectByName('catapult_turret_blue') ?? null,
+    arm: root.getObjectByName('catapult_arm_blue') ?? null,
+  };
+}
+
+function aimCatapultAt(map: LoadedMap, target: THREE.Vector3) {
+  const c = map.catapult;
+  if (!c) return;
+  const from = c.root.getWorldPosition(new THREE.Vector3());
+  const yaw = Math.atan2(target.x - from.x, target.z - from.z);
+  c.root.rotation.y = yaw;
+}
+
+async function fireCatapult(ctx: Ctx, map: LoadedMap, target: THREE.Vector3): Promise<void> {
+  const c = map.catapult;
+  const from = c ? c.root.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 9, 0)) : target.clone().add(new THREE.Vector3(-20, 18, -25));
+  const arm = c?.arm;
+  if (arm) void ctx.loop.tween(0.25, (k) => { arm.rotation.x = -k * 1.4; }).then(() => ctx.loop.tween(0.8, (k) => { arm.rotation.x = -1.4 * (1 - k); }));
+  const boulder = await buildVisual(map.def.catapultAmmo ?? { kind: 'procedural', shape: 'giantFallback', size: [0.9, 0, 0] }, map, {}, true);
+  applyScale(boulder, map.def.catapultAmmo ? 7 : 1);
+  map.group.add(boulder);
+  const dur = 1.05;
+  const peak = 7;
+  await ctx.loop.tween(dur, (k) => {
+    boulder.position.set(
+      from.x + (target.x - from.x) * k,
+      from.y + (target.y - from.y) * k + Math.sin(k * Math.PI) * peak,
+      from.z + (target.z - from.z) * k,
+    );
+    boulder.rotation.x += 0.2;
+  });
+  boulder.removeFromParent();
+}
+
+// ---------------------------------------------------------------------------
+// Galion : mer découpée autour de la coque (rondes d'écume), gîte du pont.
+// ---------------------------------------------------------------------------
+const seaTime = { value: 0 };
+function buildSea(map: LoadedMap) {
+  const tk = galionTokens();
+  const geo = new THREE.PlaneGeometry(320, 320, 90, 90).rotateX(-Math.PI / 2);
+  const mat = new THREE.MeshStandardMaterial({ color: tk.palette.accent, roughness: 0.4, metalness: 0, flatShading: true });
+  const amp = tk.mer.houle * 4; // houle de tempête (m)
+  const foam = new THREE.Color(tk.mer.ecume);
+  mat.onBeforeCompile = (shader) => {
+    shader.uniforms.uTime = seaTime;
+    shader.uniforms.uFoam = { value: foam };
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', `#include <common>
+uniform float uTime;
+varying float vWave;`)
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
+        {
+          vec3 p = position;
+          float h = sin(p.x * 0.16 + uTime * 1.1) * 0.9 + sin(p.z * 0.21 - uTime * 0.8) * 0.7 + sin((p.x + p.z) * 0.09 + uTime * 0.55) * 0.8;
+          vWave = h / 2.4;
+          transformed.y += h * ${amp.toFixed(3)} * 0.45;
+        }`);
+    // Crêtes d'écume : plus la vague est haute, plus elle blanchit.
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', `#include <common>
+uniform vec3 uFoam;
+varying float vWave;`)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+  diffuseColor.rgb = mix(diffuseColor.rgb, uFoam, smoothstep(0.62, 1.0, vWave) * 0.8);`);
+  };
+  const sea = new THREE.Mesh(geo, mat);
+  sea.position.y = map.def.seaY ?? -3;
+  sea.receiveShadow = true;
+  map.group.add(sea);
+  excludeFromOcclusion(sea);
+  map.sea.push(sea);
+}
+
+// ---------------------------------------------------------------------------
+// Cuisine : éponge géante qui balaie une bande annoncée.
+// ---------------------------------------------------------------------------
+function buildSponge(map: LoadedMap) {
+  const tk = cuisineTokens();
+  const g = new THREE.Group();
+  const foam = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.3, 3.2), flatMat(tk.palette.accent, {}, 0.95));
+  foam.position.y = 0.65;
+  const scrub = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.45, 3.2), flatMat(darken(tk.palette.accent, 0.55), {}, 0.9));
+  scrub.position.y = 1.52;
+  g.add(foam, scrub);
+  g.visible = false;
+  map.group.add(g);
+  map.sponge = g;
+}
+
+function darken(hex: string, f: number): string {
+  return `#${new THREE.Color(hex).multiplyScalar(f).getHexString()}`;
+}
+
+// ---------------------------------------------------------------------------
+// Zones d'alerte (préavis d'un tour complet) : fusionnées en une géométrie, elles clignotent.
+// ---------------------------------------------------------------------------
+function setHazard(map: LoadedMap, mesh: THREE.Mesh | null) {
+  if (map.hazard) { map.hazard.removeFromParent(); map.hazard.geometry.dispose(); }
+  map.hazard = mesh;
+  if (mesh) { map.group.add(mesh); excludeFromOcclusion(mesh); }
+}
+
+function ringHazard(map: LoadedMap, ring: number): THREE.Mesh | null {
+  const geos: THREE.BufferGeometry[] = [];
+  for (const t of map.tiles) {
+    if (t.fallen || t.ring !== ring) continue;
+    const g = new THREE.CircleGeometry(HEX_R * 0.97, 6).rotateX(-Math.PI / 2).rotateY(Math.PI / 6);
+    g.translate(t.pos[0], t.pos[1] + 0.03, t.pos[2]);
+    geos.push(g.toNonIndexed());
+  }
+  if (!geos.length) return null;
+  const merged = mergeGeometries(geos);
+  if (!merged) return null;
+  worldStripeUVs(merged);
+  const mesh = new THREE.Mesh(merged, hazardMaterial());
+  mesh.renderOrder = 2;
+  return mesh;
+}
+
+function updateHazardBlink(ctx: Ctx, map: LoadedMap) {
+  if (!map.hazard) return;
+  const k = 0.5 + 0.5 * Math.sin(ctx.loop.realTime * Math.PI * 2 * BLINK_HZ);
+  (map.hazard.material as THREE.MeshBasicMaterial).opacity = BLINK_MIN + (0.9 - BLINK_MIN) * k;
+}
+
+// ---------------------------------------------------------------------------
+// Tirs : trajectoire simulée -> accessoires déclenchés (au plus 3 par tir).
+// ---------------------------------------------------------------------------
+function triggerProp(ctx: Ctx, map: LoadedMap, prop: PropRuntime) {
+  if (prop.dead || ctx.loop.time < prop.cooldownUntil) return;
+  const R = ctx.physics.RAPIER;
   switch (prop.kind) {
     case 'explosive': {
       prop.dead = true;
       map.groundColliders.delete(prop.colliderHandle);
-      const dir = new THREE.Vector3(prop.mesh.position.x - map.center.x, 0, prop.mesh.position.z - map.center.z);
-      wakeProp(ctx, prop, { impulse: prop.spec.impulse ?? 8, dir: dir.lengthSq() > 0 ? dir.normalize() : undefined, up: 5 });
+      prop.body.setBodyType(R.RigidBodyType.Dynamic, true);
+      prop.body.setLinvel({ x: 0, y: 7, z: 0 }, true);
+      prop.body.setAngvel({ x: 3, y: 1, z: 2 }, true);
+      const r = prop.spec.blastRadius ?? 3;
+      for (const p of ctx.state.players) {
+        const dx = p.pos[0] - prop.worldPos.x, dz = p.pos[2] - prop.worldPos.z;
+        const d = Math.hypot(dx, dz);
+        if (d > r) continue;
+        const f = (prop.spec.impulse ?? 8) * (1 - (d / r) * 0.5);
+        const n = d > 0.01 ? [dx / d, dz / d] : [1, 0];
+        effect({ kind: 'push', player: p.id, vel: [n[0]! * f, 4.5, n[1]! * f] });
+      }
       ctx.bus.emit('slowmo', { factor: 0.4, ms: 90 });
       ctx.bus.emit('prop:triggered', { propId: prop.id, kind: 'explosive' });
       break;
@@ -660,65 +696,49 @@ function triggerProp(ctx: Ctx, map: LoadedMap, prop: PropRuntime, weapon?: Weapo
     case 'knockable': {
       prop.dead = true;
       map.groundColliders.delete(prop.colliderHandle);
-      wakeProp(ctx, prop, { impulse: prop.spec.impulse ?? 5, up: prop.spec.lieOnSide ? 0.5 : 2.5, rolling: prop.spec.lieOnSide });
+      prop.body.setBodyType(R.RigidBodyType.Dynamic, true);
+      const a = Math.random() * Math.PI * 2;
+      const f = prop.spec.impulse ?? 5;
+      prop.body.setLinvel({ x: Math.cos(a) * f, y: prop.spec.lieOnSide ? 0.5 : 2.5, z: Math.sin(a) * f }, true);
       ctx.bus.emit('prop:triggered', { propId: prop.id, kind: 'knockable' });
       break;
     }
-    case 'sweeper': {
-      if (ctx.loop.time < prop.cooldownUntil) return;
-      prop.cooldownUntil = ctx.loop.time + (prop.spec.sweepDuration ?? 1) * 2 + 1.2;
-      prop.animT = 0;
-      prop.animPhase = 'active';
-      ctx.bus.emit('prop:triggered', { propId: prop.id, kind: 'sweeper' });
-      break;
-    }
     case 'cannon': {
-      if (ctx.loop.time < prop.cooldownUntil) return;
-      prop.cooldownUntil = ctx.loop.time + 1.4;
-      spawnCannonBall(ctx, map, prop);
+      prop.cooldownUntil = ctx.loop.time + 1.6;
+      fireCannon(ctx, map, prop);
       ctx.bus.emit('prop:triggered', { propId: prop.id, kind: 'cannon' });
       break;
     }
-    case 'launcher': {
-      triggerLauncher(ctx, prop);
-      break;
-    }
-    case 'decor': break;
+    default: break;
   }
-  void weapon;
 }
 
-function triggerTile(ctx: Ctx, map: LoadedMap, t: TileRuntime, weapon?: Weapon) {
-  if (t.fallen || !t.crumble) return;
-  if (t.crumble.requireCategory && weapon?.category !== t.crumble.requireCategory) return;
-  t.hits += 1;
-  if (t.hits < t.crumble.hitsRequired) {
-    ctx.bus.emit('prop:triggered', { propId: `tile:${t.index}`, kind: 'crumble' });
-    return;
+function fireCannon(ctx: Ctx, map: LoadedMap, prop: PropRuntime) {
+  const axis = prop.spec.cannonAxis ?? [1, 0, 0];
+  const dir = new THREE.Vector3(axis[0], 0, axis[2]).normalize();
+  const speed = 22;
+  const start = prop.worldPos.clone().addScaledVector(dir, 1.4).add(new THREE.Vector3(0, 0.7, 0));
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 10), flatMat(rendu.contour.encre, {}, 0.4));
+  mesh.castShadow = true;
+  map.group.add(mesh);
+  const R = ctx.physics.RAPIER;
+  const body = ctx.physics.world.createRigidBody(R.RigidBodyDesc.dynamic().setTranslation(start.x, start.y, start.z)
+    .setLinvel(dir.x * speed, 0.5, dir.z * speed).setCcdEnabled(true).setGravityScale(0.15));
+  ctx.physics.world.createCollider(R.ColliderDesc.ball(0.28).setDensity(3), body);
+  map.transient.push({ mesh, body, expiresAt: ctx.loop.time + 2.5 });
+  // Le boulet balaie son axe peint : qui s'y trouve est projeté dans le sens du tir.
+  const range = prop.spec.cannonRange ?? 14;
+  for (const p of ctx.state.players) {
+    const rel = new THREE.Vector3(p.pos[0] - start.x, 0, p.pos[2] - start.z);
+    const along = rel.dot(dir);
+    const side = rel.clone().addScaledVector(dir, -along).length();
+    if (along < 0 || along > range || side > 1.3) continue;
+    ctx.loop.later(along / speed, () => effect({ kind: 'push', player: p.id, vel: [dir.x * 10, 4, dir.z * 10] }));
   }
-  wakeTile(ctx, map, t);
-  ctx.bus.emit('prop:triggered', { propId: `tile:${t.index}`, kind: 'crumble' });
 }
 
-// ---------------------------------------------------------------------------
-// Écoute des tirs : raycasts le long de la trajectoire simulée (au plus 3 objets réveillés / tir).
-// ---------------------------------------------------------------------------
-function resolveTargetByHandle(map: LoadedMap, handle: number): { tile?: TileRuntime; prop?: PropRuntime } | null {
-  const t = map.tiles.find((x) => x.colliderHandle === handle);
-  if (t) return { tile: t };
-  const ref = map.triggerByCollider.get(handle);
-  if (ref?.kind === 'prop') { const p = map.props.get(ref.id); return p ? { prop: p } : null; }
-  return null;
-}
-
-function fireAt(ctx: Ctx, map: LoadedMap, target: { tile?: TileRuntime; prop?: PropRuntime }, weapon?: Weapon) {
-  if (target.prop) triggerProp(ctx, map, target.prop, weapon);
-  else if (target.tile) triggerTile(ctx, map, target.tile, weapon);
-}
-
-function simulateProjectile(ctx: Ctx, map: LoadedMap, weapon: Weapon, from: Vec3, vel: Vec3) {
-  map.projectileInFlightUntil = ctx.loop.time + RAY_MAX_TIME;
-  const RAPIER_NS = ctx.physics.RAPIER;
+function simulateProjectile(ctx: Ctx, map: LoadedMap, from: Vec3, vel: Vec3) {
+  const R = ctx.physics.RAPIER;
   const world = ctx.physics.world;
   const pos = v3(from);
   const v = v3(vel);
@@ -730,17 +750,12 @@ function simulateProjectile(ctx: Ctx, map: LoadedMap, weapon: Weapon, from: Vec3
     const dx = next.x - pos.x, dy = next.y - pos.y, dz = next.z - pos.z;
     const dist = Math.hypot(dx, dy, dz);
     if (dist > 1e-5) {
-      const dir = { x: dx / dist, y: dy / dist, z: dz / dist };
-      const ray = new RAPIER_NS.Ray(pos, dir);
-      const hit = world.castRay(ray, dist, true, undefined, undefined, undefined, undefined,
-        (c) => map.triggerByCollider.has(c.handle));
+      const ray = new R.Ray(pos, { x: dx / dist, y: dy / dist, z: dz / dist });
+      const hit = world.castRay(ray, dist, true, undefined, undefined, undefined, undefined, (c) => map.triggerByCollider.has(c.handle));
       if (hit) {
-        const ref = map.triggerByCollider.get(hit.collider.handle);
-        if (ref && !already.has(ref.id)) {
-          already.add(ref.id);
-          const target = resolveTargetByHandle(map, hit.collider.handle);
-          if (target) { fireAt(ctx, map, target, weapon); triggered++; }
-        }
+        const id = map.triggerByCollider.get(hit.collider.handle);
+        const prop = id ? map.props.get(id) : undefined;
+        if (id && prop && !already.has(id)) { already.add(id); triggerProp(ctx, map, prop); triggered++; }
       }
     }
     pos.x = next.x; pos.y = next.y; pos.z = next.z;
@@ -748,235 +763,245 @@ function simulateProjectile(ctx: Ctx, map: LoadedMap, weapon: Weapon, from: Vec3
   }
 }
 
-function proximityTrigger(ctx: Ctx, map: LoadedMap, pos: Vec3, weapon?: Weapon) {
-  let triggered = 0;
+function proximityTrigger(ctx: Ctx, map: LoadedMap, pos: Vec3) {
+  let n = 0;
   for (const prop of map.props.values()) {
-    if (triggered >= MAX_TRIGGERS_PER_SHOT) break;
-    if (prop.dead || prop.kind === 'decor') continue;
+    if (n >= MAX_TRIGGERS_PER_SHOT) break;
+    if (prop.dead || prop.kind === 'decor' || prop.kind === 'launcher') continue;
     const r = prop.spec.triggerRadius ?? 1.5;
     const dx = prop.worldPos.x - pos[0], dz = prop.worldPos.z - pos[2];
-    if (dx * dx + dz * dz <= r * r) { triggerProp(ctx, map, prop, weapon); triggered++; }
-  }
-  // Éclat de zone (grenade) sur une dalle fêlée proche, même sans tir direct dessus.
-  for (const t of map.tiles) {
-    if (triggered >= MAX_TRIGGERS_PER_SHOT) break;
-    if (t.fallen || !t.crumble) continue;
-    const dx = t.pos[0] - pos[0], dz = t.pos[2] - pos[2];
-    if (dx * dx + dz * dz <= 2.5 * 2.5) { triggerTile(ctx, map, t, weapon); triggered++; }
+    if (dx * dx + dz * dz <= r * r) { triggerProp(ctx, map, prop); n++; }
   }
 }
 
 // ---------------------------------------------------------------------------
-// Événements périodiques (map:warn / map:event) + mort subite
+// Dangers périodiques (map:warn -> un tour complet -> map:event) + mort subite
 // ---------------------------------------------------------------------------
+function outerRingTarget(map: LoadedMap, ring: number): THREE.Vector3 {
+  // Point d'impact : la dalle de l'anneau la plus proche de la catapulte (on la voit arriver).
+  const c = map.catapult?.root.position ?? new THREE.Vector3(0, 0, -30);
+  let best: TileRuntime | null = null;
+  let bestD = Infinity;
+  for (const t of map.tiles) {
+    if (t.fallen || t.ring !== ring) continue;
+    const d = Math.hypot(t.pos[0] - c.x, t.pos[2] - c.z);
+    if (d < bestD) { bestD = d; best = t; }
+  }
+  return best ? new THREE.Vector3(best.pos[0], best.pos[1], best.pos[2]) : new THREE.Vector3();
+}
+
 function handleWarn(ctx: Ctx, map: LoadedMap, kind: string) {
-  if (kind === 'ring' && map.tileMesh) {
-    const [hx, , hz] = map.def.tileHalfExtents ?? [1, 0.5, 1.1547];
-    map.tiles.forEach((t) => {
-      if (t.fallen || t.ring !== map.ringLevel || map.hazardDecals.has(t.index)) return;
-      const decal = hazardDecal(hx * 1.9, hz * 1.9);
-      decal.position.set(t.pos[0], t.pos[1] + 0.02, t.pos[2]);
-      map.group.add(decal);
-      map.hazardDecals.set(t.index, decal);
-    });
-    if (map.crows.length) void flyCrows(ctx, map, archipelTokens().corbeaux.envol);
-  } else if (kind === 'sponge' && map.spongeShadow) {
-    const mat = map.spongeShadow.material as THREE.MeshToonMaterial;
-    mat.opacity = 0.55;
-    map.spongeAnim = { t: 0, dur: 1.1, from: new THREE.Vector3(-18, 0, 0), to: new THREE.Vector3(18, 0, 0) };
+  if (kind === 'ring') {
+    if (map.ringLevel < (map.def.minRing ?? 1)) return;
+    setHazard(map, ringHazard(map, map.ringLevel));
+    aimCatapultAt(map, outerRingTarget(map, map.ringLevel));
   } else if (kind === 'wave') {
-    void animateAnnounceWave(ctx, map, galionTokens());
+    const b = map.def.waveBand;
+    if (b) setHazard(map, hazardRect(b.center[0], b.center[2], b.size[0], b.size[1]));
+  } else if (kind === 'sponge') {
+    const b = map.def.spongeBand;
+    if (!b) return;
+    const idx = map.spongeBand ? (map.spongeBand.z === b.zs[0] ? 1 : 0) : 0;
+    map.spongeBand = { z: b.zs[idx] ?? 0, dir: idx === 0 ? 1 : -1 };
+    setHazard(map, hazardRect(b.centerX, map.spongeBand.z, b.length, b.width));
   } else if (kind === 'suddendeath-drop') {
-    spawnSuddenDeathShadow(ctx, map);
+    spawnDropShadow(ctx, map);
   }
 }
 
 function handleEvent(ctx: Ctx, map: LoadedMap, kind: string) {
-  if (kind === 'ring') {
-    const level = map.ringLevel;
-    map.tiles.filter((t) => !t.fallen && t.ring === level).forEach((t) => wakeTile(ctx, map, t));
-    map.ringLevel = Math.max(0, level - 1);
-    ctx.bus.emit('slowmo', { factor: 0.5, ms: 200 });
-  } else if (kind === 'wave') {
-    void animateWave(ctx, map);
-  } else if (kind === 'sponge') {
-    void animateSponge(ctx, map);
-  } else if (kind === 'suddendeath') {
-    map.suddenDeathActive = true;
-    buildSafeRing(map);
-  } else if (kind === 'suddendeath-shrink') {
-    map.safeRadius = Math.max(4, map.safeRadius - 3);
-    if (map.safeRing) map.safeRing.scale.setScalar(map.safeRadius);
-  } else if (kind === 'suddendeath-drop') {
-    if (map.pendingDropXZ) void dropAt(ctx, map, map.pendingDropXZ[0], map.pendingDropXZ[1]);
-  }
+  if (kind === 'ring') void ringFall(ctx, map);
+  else if (kind === 'wave') void waveTilt(ctx, map);
+  else if (kind === 'sponge') void spongeSweep(ctx, map);
+  else if (kind === 'suddendeath-drop' && map.pendingDropXZ) void dropAt(ctx, map, map.pendingDropXZ[0], map.pendingDropXZ[1]);
 }
 
-async function animateWave(ctx: Ctx, map: LoadedMap) {
-  const tk = galionTokens();
+/** Joueurs dont le sol vient de disparaître : ils tombent (effet « drop » côté gameplay). */
+function dropPlayersOverVoid(map: LoadedMap) {
+  if (!ctxRef) return;
+  for (const p of ctxRef.state.players) {
+    if (p.pos[1] > -0.5 && isOverVoid(p.pos)) effect({ kind: 'drop', player: p.id });
+  }
+  void map;
+}
+
+async function ringFall(ctx: Ctx, map: LoadedMap) {
+  const ring = map.ringLevel;
+  if (ring < (map.def.minRing ?? 1)) return;
+  const target = outerRingTarget(map, ring);
+  await fireCatapult(ctx, map, target);
+  if (current !== map) return;
+  setHazard(map, null);
+  ctx.bus.emit('slowmo', { factor: 0.5, ms: 220 });
+  ctx.bus.emit('prop:triggered', { propId: 'catapult', kind: 'ring' });
+  // Cascade depuis le point d'impact : les dalles tombent l'une après l'autre autour de l'anneau.
+  const doomed = map.tiles.filter((t) => !t.fallen && t.ring === ring)
+    .map((t) => ({ t, d: Math.hypot(t.pos[0] - target.x, t.pos[2] - target.z) }))
+    .sort((a, b) => a.d - b.d);
+  doomed.forEach(({ t }, i) => ctx.loop.later(i * 0.045, () => { if (current === map) wakeTile(ctx, map, t); }));
+  map.ringLevel = ring - 1;
+  ctx.loop.later(doomed.length * 0.045 + 0.05, () => { if (current === map) dropPlayersOverVoid(map); });
+}
+
+function wakeTile(ctx: Ctx, map: LoadedMap, t: TileRuntime) {
+  if (t.fallen) return;
+  t.fallen = true;
+  t.body.setBodyType(ctx.physics.RAPIER.RigidBodyType.Dynamic, true);
+  const out = Math.hypot(t.pos[0], t.pos[2]) || 1;
+  t.body.setLinvel({ x: (t.pos[0] / out) * 1.2, y: -0.5, z: (t.pos[2] / out) * 1.2 }, true);
+  t.body.setAngvel({ x: (Math.random() - 0.5) * 2.5, y: (Math.random() - 0.5) * 1.5, z: (Math.random() - 0.5) * 2.5 }, true);
+  map.groundColliders.delete(t.colliderHandle);
+}
+
+async function waveTilt(ctx: Ctx, map: LoadedMap) {
+  setHazard(map, null);
   const peak = THREE.MathUtils.degToRad(LOCAL_TOKENS.galion.tiltDeg);
   const dur = 2.6;
+  let pushed = false;
+  ctx.bus.emit('slowmo', { factor: 0.6, ms: 300 });
   await ctx.loop.tween(dur, (k) => {
-    const s = Math.sin(k * Math.PI);
-    map.tiltCurrent = peak * s;
-    for (const p of ctx.state.players) p.pos = [p.pos[0] + Math.sin(map.tiltCurrent) * 0.05, p.pos[1], p.pos[2]];
+    map.tilt = peak * Math.sin(k * Math.PI);
+    if (!pushed && k > 0.12) {
+      pushed = true;
+      // Le pont penche vers la caméra (+Z) : tout le monde glisse d'environ 1,5 m vers le bord avant ;
+      // seul qui est resté sur la bande qui clignotait passe par-dessus bord.
+      for (const p of ctx.state.players) effect({ kind: 'push', player: p.id, vel: [0, 1.5, 2.9], hold: dur * 0.9 });
+    }
   });
-  map.tiltCurrent = 0;
-  void tk;
+  map.tilt = 0;
 }
 
-async function animateSponge(ctx: Ctx, map: LoadedMap) {
-  if (!map.spongeMesh || !map.spongeAnim) return;
-  const anim = map.spongeAnim;
-  if (map.spongeShadow) (map.spongeShadow.material as THREE.MeshToonMaterial).opacity = 0;
-  await ctx.loop.tween(anim.dur, (k) => {
-    map.spongeMesh!.position.set(
-      anim.from.x + (anim.to.x - anim.from.x) * k,
-      2,
-      anim.from.z + (anim.to.z - anim.from.z) * k,
-    );
+async function spongeSweep(ctx: Ctx, map: LoadedMap) {
+  const b = map.def.spongeBand;
+  const band = map.spongeBand;
+  const sponge = map.sponge;
+  setHazard(map, null);
+  if (!b || !band || !sponge) return;
+  const half = b.length / 2 + 3;
+  const x0 = b.centerX - band.dir * half;
+  const x1 = b.centerX + band.dir * half;
+  sponge.visible = true;
+  const hit = new Set<PlayerId>();
+  await ctx.loop.tween(1.3, (k) => {
+    const x = x0 + (x1 - x0) * k;
+    sponge.position.set(x, 0, band.z);
     for (const p of ctx.state.players) {
-      const dx = p.pos[0] - map.spongeMesh!.position.x;
-      if (Math.abs(dx) < 3 && Math.abs(p.pos[2] - map.spongeMesh!.position.z) < 2.5) {
-        p.pos = [p.pos[0], p.pos[1], p.pos[2] + (p.pos[2] >= 0 ? 1 : -1) * 0.4];
+      if (hit.has(p.id)) continue;
+      if (Math.abs(p.pos[0] - x) < 1.6 && Math.abs(p.pos[2] - band.z) < b.width / 2 + 0.3 && p.pos[1] > -0.5) {
+        hit.add(p.id);
+        effect({ kind: 'push', player: p.id, vel: [band.dir * 9, 3.5, (p.pos[2] >= band.z ? 1 : -1) * 1.5] });
       }
     }
   });
-  map.spongeMesh.position.z = -60;
-  map.spongeAnim = null;
+  sponge.visible = false;
 }
 
-function buildSafeRing(map: LoadedMap) {
-  if (map.safeRing) return;
-  const geo = new THREE.RingGeometry(0.94, 1, 48).rotateX(-Math.PI / 2);
-  const mat = new THREE.MeshBasicMaterial({ color: palette.danger, transparent: true, opacity: 0.7, side: THREE.DoubleSide });
-  const ring = new THREE.Mesh(geo, mat);
-  ring.position.y = 0.05;
-  ring.scale.setScalar(map.safeRadius);
-  map.group.add(ring);
-  map.safeRing = ring;
-}
-
-function spawnSuddenDeathShadow(ctx: Ctx, map: LoadedMap) {
-  const angle = Math.random() * Math.PI * 2;
-  const r = Math.random() * map.safeRadius * 0.7;
-  const x = map.center.x + Math.cos(angle) * r;
-  const z = map.center.z + Math.sin(angle) * r;
+function spawnDropShadow(ctx: Ctx, map: LoadedMap) {
+  const r = map.def.arena.radius * 0.5 * Math.random();
+  const a = Math.random() * Math.PI * 2;
+  const x = map.def.arena.center[0] + Math.cos(a) * r;
+  const z = map.def.arena.center[2] + Math.sin(a) * r;
   map.pendingDropXZ = [x, z];
-  const shadow = new THREE.Mesh(new THREE.CircleGeometry(1.6, 20), flatToon(rendu.contour.encre, {}));
-  const mat = shadow.material as THREE.MeshToonMaterial;
-  mat.transparent = true; mat.opacity = rendu.ombres.tache;
-  shadow.rotation.x = -Math.PI / 2;
-  shadow.position.set(x, 0.03, z);
-  shadow.userData.noOutline = true;
+  const shadow = new THREE.Mesh(new THREE.CircleGeometry(1.8, 24).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({
+    color: rendu.contour.encre, transparent: true, opacity: rendu.ombres.tache, depthWrite: false,
+  }));
+  shadow.position.set(x, 0.04, z);
   map.group.add(shadow);
-  ctx.loop.later(1.6, () => shadow.removeFromParent());
-}
-
-function pickSuddenDeathSticker(ctx: Ctx): { url?: string; category: Category } {
-  for (const p of ctx.state.players) {
-    for (const w of p.weapons) if (w.stickerUrl) return { url: w.stickerUrl, category: w.category };
-  }
-  return { category: 'throwable' };
+  ctx.loop.later(1.7, () => shadow.removeFromParent());
 }
 
 async function dropAt(ctx: Ctx, map: LoadedMap, x: number, z: number) {
-  const { url } = pickSuddenDeathSticker(ctx);
+  let url: string | undefined;
+  for (const p of ctx.state.players) for (const w of p.weapons) if (!url && w.stickerUrl) url = w.stickerUrl;
   let obj: THREE.Object3D;
   if (url) {
     const mod = await import('../sticker');
     obj = await mod.makeSticker(url, { height: 3 });
   } else {
-    obj = buildProcedural('giantFallback', map.mapPalette, map.grade, map.mapPalette.matiere);
-    obj.scale.setScalar(1.6);
+    obj = buildProcedural({ kind: 'procedural', shape: 'giantFallback', size: [1.4, 0, 0] }, map.mapPalette, {});
   }
   obj.position.set(x, 14, z);
   map.group.add(obj);
-  const RAPIER_NS = ctx.physics.RAPIER;
-  const desc = RAPIER_NS.RigidBodyDesc.dynamic().setTranslation(x, 14, z).setCcdEnabled(true);
-  const body = ctx.physics.world.createRigidBody(desc);
-  ctx.physics.world.createCollider(RAPIER_NS.ColliderDesc.ball(1.4).setDensity(4), body);
+  const R = ctx.physics.RAPIER;
+  const body = ctx.physics.world.createRigidBody(R.RigidBodyDesc.dynamic().setTranslation(x, 14, z).setCcdEnabled(true));
+  ctx.physics.world.createCollider(R.ColliderDesc.ball(1.4).setDensity(4), body);
   map.transient.push({ mesh: obj, body, expiresAt: ctx.loop.time + 6 });
   await ctx.loop.wait(1.2);
+  for (const p of ctx.state.players) {
+    const dx = p.pos[0] - x, dz = p.pos[2] - z;
+    const d = Math.hypot(dx, dz);
+    if (d < 3.2) effect({ kind: 'push', player: p.id, vel: [(d > 0.01 ? dx / d : 1) * 8, 5, (d > 0.01 ? dz / d : 0) * 8] });
+  }
   ctx.bus.emit('prop:triggered', { propId: 'suddendeath-drop', kind: 'suddendeath-drop' });
   ctx.bus.emit('slowmo', { factor: 0.35, ms: 260 });
 }
 
-async function loadMap(ctx: Ctx, mapId: MapId) {
+// ---------------------------------------------------------------------------
+// Chargement / déchargement
+// ---------------------------------------------------------------------------
+function unloadMap(ctx: Ctx) {
+  if (!current) return;
+  const world = ctx.physics.world;
+  const bodies = new Set<RAPIER.RigidBody>();
+  for (const t of current.tiles) bodies.add(t.body);
+  for (const p of current.props.values()) bodies.add(p.body);
+  for (const tr of current.transient) bodies.add(tr.body);
+  for (const pf of current.platforms) { const b = pf.collider.parent(); if (b) bodies.add(b); }
+  world.forEachCollider((c) => { if (current!.groundColliders.has(c.handle)) { const b = c.parent(); if (b) bodies.add(b); } });
+  if (current.deckBody) bodies.add(current.deckBody);
+  for (const b of bodies) world.removeRigidBody(b);
+  ctx.three.scene.remove(current.group);
+  current = null;
+}
+
+function loadMap(ctx: Ctx, mapId: MapId) {
   unloadMap(ctx);
   const def = pickBuilder(mapId)();
   const tk = tokensFor(mapId);
   const group = new THREE.Group();
   group.name = `map-${mapId}`;
+  const deckGroup = new THREE.Group();
+  deckGroup.name = 'map-deck';
+  group.add(deckGroup);
   ctx.three.scene.add(group);
-
   const map: LoadedMap = {
-    def, group, center: new THREE.Vector3(0, 0, 0), mapPalette: tk.palette,
-    grade: { steps: rendu.paliers.decor, saturation: tk.decor.saturation, tint: tk.decor.teinte },
+    def, group, deckGroup, deckBody: null, mapPalette: tk.palette,
+    backGrade: { saturation: tk.decor.saturation, tint: tk.decor.teinte },
     tileMesh: null, tiles: [], props: new Map(), triggerByCollider: new Map(), groundColliders: new Set(),
-    transient: [], ringLevel: 2, hazardDecals: new Map(), crows: [], lights: [], tiltCurrent: 0, camRollApplied: 0,
-    waveRings: [], announceWave: null, lightningNextAt: ctx.loop.time + 9, lightningLight: null, projectileInFlightUntil: 0,
-    spongeMesh: null, spongeShadow: null, spongeAnim: null, suddenDeathActive: false, safeRadius: 30, safeRing: null,
-    pendingDropXZ: null, killed: new Set(),
+    platforms: [], transient: [], ringLevel: Math.max(0, ...def.tiles.map((t) => t.ring)), hazard: null, tilt: 0,
+    catapult: null, sponge: null, spongeBand: null, sea: [], pendingDropXZ: null,
   };
   current = map;
-
-  buildLights(ctx, map, tk);
-
-  if (mapId === 'archipel') {
-    map.ringLevel = Math.max(...def.tiles.map((t) => t.ring), 1);
-  }
-
-  await buildTiles(ctx, map, def);
-  await buildGround(ctx, map, def.ground);
-  buildStatic(ctx, map, def.extraColliders);
-  await buildProps(ctx, map, def.props);
-
-  if (mapId === 'archipel') {
-    buildCrows(map, tk as ArchipelTokens);
-    buildDistantIslands(map, tk as ArchipelTokens);
-  } else if (mapId === 'galion') {
-    buildWaveRings(map, tk as GalionTokens);
-    const hull = map.group.getObjectByName('ship-pirate-large') ?? map.group;
-    furlSails(hull);
-    map.lightningLight = new THREE.PointLight((tk as GalionTokens).eclair.fond, 0, 60);
-    map.lightningLight.position.set(0, 20, 0);
-    map.group.add(map.lightningLight);
-  } else if (mapId === 'cuisine') {
-    buildSpongeActor(map);
-    buildCoffeeRing(map, tk as CuisineTokens);
-    buildSteamingCup(map, tk as CuisineTokens);
-  }
-
-  const half = Math.max(...def.crateSpots.map((c) => Math.hypot(c[0], c[2])), 12);
-  map.safeRadius = half + 6;
-}
-
-function buildSpongeActor(map: LoadedMap) {
-  const sponge = buildProcedural('giantFallback', map.mapPalette, map.grade, map.mapPalette.accent);
-  sponge.scale.set(3, 1.2, 2);
-  sponge.position.set(0, 2, -60);
-  map.group.add(sponge);
-  map.spongeMesh = sponge;
-  // Ombre = toute la BANDE qui va être balayée (l'éponge traverse tout le plan de travail en X), pas un
-  // simple point : sinon "annoncée par son ombre" ne prévient que la moitié du danger.
-  const shadow = new THREE.Mesh(new THREE.PlaneGeometry(40, 5), flatToon(rendu.contour.encre, {}));
-  const mat = shadow.material as THREE.MeshToonMaterial;
-  mat.transparent = true;
-  mat.opacity = 0;
-  shadow.rotation.x = -Math.PI / 2;
-  shadow.position.set(0, 0.03, 0);
-  shadow.userData.noOutline = true;
-  map.group.add(shadow);
-  map.spongeShadow = shadow;
+  buildPhysics(ctx, map);        // 1. synchrone : le vide est ouvert dès le premier tour
+  removeFallbackGround(ctx);
+  ctx.loop.later(0.05, () => removeFallbackGround(ctx));
+  const spawns = getSpawnPoints();
+  if (spawns) { ctx.state.players[0].pos = [...spawns[0]]; ctx.state.players[1].pos = [...spawns[1]]; }
+  return buildVisuals(ctx, map); // 2. asynchrone
 }
 
 // ---------------------------------------------------------------------------
-// Boucle par image : synchronise les corps dynamiques, l'habillage vivant (lumière, mer, éclairs…).
+// Boucle par image
 // ---------------------------------------------------------------------------
 const m4 = new THREE.Matrix4();
 const quat = new THREE.Quaternion();
 const vec = new THREE.Vector3();
+const ONE = new THREE.Vector3(1, 1, 1);
+
+function updateOneWay(ctx: Ctx, map: LoadedMap) {
+  for (const pf of map.platforms) {
+    const { top, halfX, halfZ } = pf.spec;
+    let support = false;
+    for (const p of ctx.state.players) {
+      const [x, y, z] = p.pos;
+      const inside = Math.abs(x - top[0]) <= halfX + ONEWAY_MARGIN && Math.abs(z - top[2]) <= halfZ + ONEWAY_MARGIN;
+      const above = pf.above[p.id] ? y >= top[1] - ONEWAY_EXIT : y >= top[1] + ONEWAY_ENTER;
+      pf.above[p.id] = above;
+      if (inside && above) support = true;
+    }
+    if (pf.collider.isEnabled() !== support) pf.collider.setEnabled(support);
+  }
+}
 
 function tick(ctx: Ctx, dt: number) {
   const map = current;
@@ -990,7 +1015,7 @@ function tick(ctx: Ctx, dt: number) {
       const rot = t.body.rotation();
       vec.set(tr.x, tr.y, tr.z);
       quat.set(rot.x, rot.y, rot.z, rot.w);
-      m4.compose(vec, quat, new THREE.Vector3(1, 1, 1));
+      m4.compose(vec, quat, ONE);
       map.tileMesh.setMatrixAt(t.index, m4);
       dirty = true;
     }
@@ -1001,29 +1026,25 @@ function tick(ctx: Ctx, dt: number) {
     if (prop.body.isDynamic()) {
       const tr = prop.body.translation();
       const rot = prop.body.rotation();
-      prop.mesh.position.set(tr.x, tr.y, tr.z);
-      prop.mesh.quaternion.set(rot.x, rot.y, rot.z, rot.w);
+      prop.holder.position.set(tr.x, tr.y, tr.z);
+      prop.holder.quaternion.set(rot.x, rot.y, rot.z, rot.w);
       prop.worldPos.set(tr.x, tr.y, tr.z);
+      if (prop.holder.parent !== map.group) map.group.attach(prop.holder);
     }
-    if (prop.kind === 'launcher') {
-      const pid = nearestPlayer(ctx, prop.worldPos, prop.spec.triggerRadius ?? 1.2);
-      if (pid != null) triggerLauncher(ctx, prop, pid);
-    }
-    if (prop.kind === 'sweeper' && prop.animPhase === 'active') {
-      const dur = prop.spec.sweepDuration ?? 1;
-      prop.animT += dt;
-      const total = dur * 2;
-      const k = Math.min(1, prop.animT / total);
-      const swing = Math.sin(k * Math.PI) * THREE.MathUtils.degToRad(prop.spec.sweepDegrees ?? 120);
-      prop.mesh.rotation.y = prop.restYaw + swing;
+    if (prop.kind === 'launcher' && ctx.loop.time >= prop.cooldownUntil) {
       for (const p of ctx.state.players) {
-        const dx = p.pos[0] - prop.worldPos.x, dz = p.pos[2] - prop.worldPos.z;
-        const dist = Math.hypot(dx, dz);
-        if (dist < (prop.spec.triggerRadius ?? 1.8) + 2 && dist > 0.01) {
-          p.pos = [p.pos[0] + (dx / dist) * dt * 1.5, p.pos[1], p.pos[2] + (dz / dist) * dt * 1.5];
-        }
+        const d = Math.hypot(p.pos[0] - prop.worldPos.x, p.pos[2] - prop.worldPos.z);
+        if (d > (prop.spec.triggerRadius ?? 1.2) || Math.abs(p.pos[1] - prop.worldPos.y) > 1.2) continue;
+        const targets = prop.spec.launchTargets ?? [];
+        const target = targets[prop.launchIdx++ % Math.max(1, targets.length)] ?? [prop.worldPos.x, 0, prop.worldPos.z];
+        const T = prop.spec.launchDuration ?? 1.1;
+        // Vitesse balistique (gravité du monde Rapier) pour atterrir sur la cible en T secondes.
+        const vel: Vec3 = [(target[0] - p.pos[0]) / T, (target[1] - p.pos[1]) / T + 0.5 * GRAVITY * T, (target[2] - p.pos[2]) / T];
+        effect({ kind: 'push', player: p.id, vel });
+        prop.cooldownUntil = ctx.loop.time + T + 0.8;
+        ctx.bus.emit('prop:triggered', { propId: prop.id, kind: 'launcher' });
+        break;
       }
-      if (k >= 1) { prop.animPhase = 'idle'; prop.mesh.rotation.y = prop.restYaw; }
     }
   }
 
@@ -1038,38 +1059,23 @@ function tick(ctx: Ctx, dt: number) {
     }
   }
 
-  // flottants divers (fumée de la tasse géante, cuisine)
-  for (const c of map.crows) {
-    if ((c as unknown as THREE.Mesh).userData?.steamPhase !== undefined) {
-      const phase = (c as unknown as THREE.Mesh).userData.steamPhase as number;
-      c.position.y += Math.sin(ctx.loop.time * 0.6 + phase) * 0.002 + 0.003;
-    }
-  }
-
-  if (map.practical) {
-    const flick = 1 + (Math.sin(ctx.loop.time * 11) * 0.5 + Math.sin(ctx.loop.time * 23) * 0.5) * map.practical.vacillement;
-    map.practical.light.intensity = map.practical.base * flick;
-  }
+  updateOneWay(ctx, map);
+  updateHazardBlink(ctx, map);
 
   if (map.def.id === 'galion') {
-    updateWaveRings(map, galionTokens(), ctx.loop.time);
-    updateLightning(ctx, map, galionTokens(), dt);
-  }
-
-  const target = map.tiltCurrent;
-  ctx.three.camera.rotation.z += target - map.camRollApplied;
-  map.camRollApplied = target;
-
-  for (const p of ctx.state.players) {
-    if (p.pos[1] < map.def.voidY && !map.killed.has(p.id)) {
-      map.killed.add(p.id);
-      ctx.bus.emit('ringout', { player: p.id });
+    // Gîte : roulis autour de l'axe long (X), le pont descend côté caméra (+Z).
+    map.deckGroup.rotation.x = map.tilt;
+    if (map.deckBody) {
+      const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), map.tilt);
+      map.deckBody.setNextKinematicRotation({ x: q.x, y: q.y, z: q.z, w: q.w });
     }
+    seaTime.value = ctx.loop.time;
   }
+  void dt;
 }
 
 // ---------------------------------------------------------------------------
-// API publique du moteur (consommée par index.ts / api.ts / map-events)
+// API publique du moteur (index.ts / api.ts / map-events)
 // ---------------------------------------------------------------------------
 export function currentMapId(): MapId | null { return current?.def.id ?? null; }
 export function currentMapDef(): MapDef | null { return current?.def ?? null; }
@@ -1079,56 +1085,39 @@ export function getSpawnPoints(): [Vec3, Vec3] | null {
   return [current.def.spawns[0].pos, current.def.spawns[1].pos];
 }
 
-export function getCrateSpots(): Vec3[] {
-  return current?.def.crateSpots ?? [];
+export function getCrateSpots(): Vec3[] { return current?.def.crateSpots ?? []; }
+
+/** Centre, rayon et point de réapparition du plateau (cadrage, zones d'éjection, respawn). */
+export function getArenaBounds(): { center: Vec3; radius: number; respawn: Vec3; voidY: number } | null {
+  if (!current) return null;
+  return { center: current.def.arena.center, radius: current.def.arena.radius, respawn: current.def.respawn, voidY: current.def.voidY };
+}
+
+/** Vrai si ce collider est une plateforme traversable (corps : userData.oneWay, userData.topY). */
+export function isOneWayCollider(c: RAPIER.Collider): boolean {
+  return (c.parent()?.userData as { oneWay?: boolean } | undefined)?.oneWay === true;
 }
 
 export function isOverVoid(pos: Vec3): boolean {
   if (!current || !ctxRef) return true;
-  if (current.suddenDeathActive) {
-    const d = Math.hypot(pos[0] - current.center.x, pos[2] - current.center.z);
-    if (d > current.safeRadius) return true;
-  }
-  const RAPIER_NS = ctxRef.physics.RAPIER;
-  const ray = new RAPIER_NS.Ray({ x: pos[0], y: pos[1] + 0.5, z: pos[2] }, { x: 0, y: -1, z: 0 });
+  const R = ctxRef.physics.RAPIER;
   const map = current;
+  const ray = new R.Ray({ x: pos[0], y: pos[1] + 0.5, z: pos[2] }, { x: 0, y: -1, z: 0 });
   const hit = ctxRef.physics.world.castRay(ray, 6, true, undefined, undefined, undefined, undefined,
-    (c) => map.groundColliders.has(c.handle));
+    (c) => map.groundColliders.has(c.handle) && c.isEnabled());
   return !hit;
 }
 
 export async function install(ctx: Ctx): Promise<void> {
   ctxRef = ctx;
-  ctx.bus.on('match:start', ({ mapId }) => {
-    void loadMap(ctx, mapId).then(() => {
-      const spawns = getSpawnPoints();
-      if (spawns) { ctx.state.players[0].pos = spawns[0]; ctx.state.players[1].pos = spawns[1]; }
-    });
-  });
-  ctx.bus.on('projectile:spawn', ({ weapon, from, vel }) => {
-    if (current) simulateProjectile(ctx, current, weapon, from, vel);
-  });
-  ctx.bus.on('hit', ({ pos, weapon }) => {
-    if (current) proximityTrigger(ctx, current, pos, weapon);
-  });
-  ctx.bus.on('map:warn', ({ kind, mapId }) => {
-    if (current && current.def.id === mapId) handleWarn(ctx, current, kind);
-  });
-  ctx.bus.on('map:event', ({ kind, mapId }) => {
-    if (current && current.def.id === mapId) handleEvent(ctx, current, kind);
-  });
+  ctx.bus.on('match:start', ({ mapId }) => { void loadMap(ctx, mapId); });
+  ctx.bus.on('projectile:spawn', ({ from, vel }) => { if (current) simulateProjectile(ctx, current, from, vel); });
+  ctx.bus.on('hit', ({ pos }) => { if (current) proximityTrigger(ctx, current, pos); });
+  ctx.bus.on('map:warn', ({ kind, mapId }) => { if (current && current.def.id === mapId) handleWarn(ctx, current, kind); });
+  ctx.bus.on('map:event', ({ kind, mapId }) => { if (current && current.def.id === mapId) handleEvent(ctx, current, kind); });
   ctx.loop.addSystem('maps', (dt) => tick(ctx, dt), 200);
-
-  window.__mapTest = (mapId: MapId) => {
-    void loadMap(ctx, mapId).then(() => {
-      const spawns = getSpawnPoints();
-      if (spawns) { ctx.state.players[0].pos = spawns[0]; ctx.state.players[1].pos = spawns[1]; }
-      const b = localBounds(current!.group);
-      const size = Math.max(b.max.x - b.min.x, b.max.z - b.min.z, 10);
-      ctx.three.camera.position.set(0, size * 0.55, size * 0.8);
-      ctx.three.camera.lookAt(0, 0, 0);
-    });
-  };
+  window.__mapTest = (mapId: MapId) => { void loadMap(ctx, mapId); };
+  window.__mapFx = (e: PlayerEffect) => effect(e); // tests : poussée / chute scriptées
 }
 
-declare global { interface Window { __mapTest?: (mapId: MapId) => void } }
+declare global { interface Window { __mapTest?: (mapId: MapId) => void; __mapFx?: (e: PlayerEffect) => void } }
