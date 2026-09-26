@@ -28,27 +28,29 @@ const APIS = /\/api\/(scan-fighter|scan-object|sticker)$/;
 
 if (!VISAGES || !existsSync(join(VISAGES, 'visage-fictif-1.jpg'))) { console.error('--visages <dossier> requis (visage-fictif-1.jpg)'); process.exit(1); }
 
-/** Filme `zone` toutes les 0,5 s jusqu'à `fini()` ou `maxMs` ; chaque image : texte, images, canvas, bouton, empreinte. */
-async function filmer(page, nom, zone, bouton, estAffiche, maxMs) {
+/** Filme `zone` toutes les 0,5 s jusqu'à `fini()` ou `maxMs` ; chaque image : texte et images de l'encart `mesure`
+ *  (par défaut la zone), canvas de la zone, bouton de validation, empreinte de la capture. */
+async function filmer(page, nom, zone, bouton, estAffiche, maxMs, mesure = zone) {
   const images = [];
   const t0 = Date.now();
   for (let i = 0; Date.now() - t0 < maxMs; i++) {
     const tick = Date.now();
     const loc = page.locator(zone).first();
     const box = await loc.boundingBox().catch(() => null);
-    const etat = await page.evaluate(({ zone, bouton }) => {
+    const etat = await page.evaluate(({ zone, mesure, bouton }) => {
       const z = document.querySelector(zone);
+      const m = document.querySelector(mesure) ?? z;
       const vis = (e) => { const r = e.getBoundingClientRect(); const s = getComputedStyle(e); return r.width > 4 && r.height > 4 && s.visibility !== 'hidden' && Number(s.opacity) > 0.1; };
       const b = bouton ? [...document.querySelectorAll(bouton.sel)].find((e) => e.textContent.trim().match(new RegExp(bouton.texte, 'i'))) : null;
       return {
-        texte: (z?.innerText ?? '').replace(/\s+/g, ' ').trim().slice(0, 240),
-        imgs: z ? [...z.querySelectorAll('img')].filter((e) => e.complete && e.naturalWidth > 0 && vis(e)).length : 0,
+        texte: (m?.innerText ?? '').replace(/\s+/g, ' ').trim().slice(0, 240),
+        imgs: m ? [...m.querySelectorAll('img')].filter((e) => e.complete && e.naturalWidth > 0 && vis(e)).length : 0,
         canvas: z ? [...z.querySelectorAll('canvas')].filter(vis).length : 0,
         bouton: b ? (b.disabled ? 'bloqué' : 'actif') : 'absent',
         boutons: [...document.querySelectorAll('button')].filter(vis).map((e) => e.textContent.trim()).filter(Boolean).slice(0, 12),
         present: !!z,
       };
-    }, { zone, bouton });
+    }, { zone, mesure, bouton });
     etat.affiche = await estAffiche();
     etat.t = Math.round((tick - t0) / 100) / 10;
     let buf = null;
@@ -118,7 +120,8 @@ async function passage(page, base, reseau) {
   // P2 prend tout de suite un perso préréglé : « Ready » ne dépend plus que de la tête de P1.
   await page.locator('.fighter-grid .fighter-tile:not(.snap-tile)').first().click({ timeout: 5000 }).catch(() => {});
   const teteAffichee = () => page.evaluate(() => !!document.querySelector('.fighter-panel.p1 img.face, .fighter-panel.p1 .portrait-img.face, .fighter-panel.p1 canvas, .fighter-stage canvas'));
-  res.tete = await filmer(page, `${reseau}-tete`, '.fighters-card', { sel: '.ready-bar', texte: 'ready' }, teteAffichee, reseau === 'lent' ? 60000 : reseau === 'coupe' ? 15000 : 40000);
+  // Capture : toute la carte (encart + vitrine 3D) ; texte et images mesurés dans l'encart de P1 seulement.
+  res.tete = await filmer(page, `${reseau}-tete`, '.fighters-card', { sel: '.ready-bar', texte: 'ready' }, teteAffichee, reseau === 'lent' ? 60000 : reseau === 'coupe' ? 15000 : 40000, '.fighter-panel.p1');
   res.teteFin = await page.evaluate(() => ({
     ecran: document.querySelector('.fighters-card') ? 'persos' : 'autre',
     boutons: [...document.querySelectorAll('.fighters-card button')].map((e) => e.textContent.trim()).filter(Boolean),
