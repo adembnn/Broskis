@@ -45,7 +45,6 @@ export async function runReveal(ctx: Ctx, screenLayer: HTMLElement, arsenal: Ars
   const nextBtn = button('Announcer is warming up…', 'b-btn');
   const skipBtn = button('Skip presentation', 'b-btn small alt');
   nextBtn.disabled = true;
-  skipBtn.disabled = true;
   const footer = el('div', 'reveal-footer');
   footer.append(nextBtn, skipBtn);
   card.append(stage, subtitle, footer);
@@ -56,9 +55,16 @@ export async function runReveal(ctx: Ctx, screenLayer: HTMLElement, arsenal: Ars
     ...arsenal.weapons[1].map((weapon) => ({ player: 1 as PlayerId, weapon })),
   ];
 
-  await prepareCommentary(order.map((o) => o.weapon));
+  // L'animateur a 6 s pour se préparer ; passé ce délai (ou sur Skip), on continue avec ses répliques de
+  // secours. Le passage reste toujours possible : un appel IA lent ne doit jamais bloquer le parcours.
+  let skipped = false;
+  await Promise.race([
+    prepareCommentary(order.map((o) => o.weapon)).catch((e) => console.warn('[reveal] animateur indisponible', e)),
+    new Promise((r) => setTimeout(r, 6000)),
+    new Promise<void>((r) => skipBtn.addEventListener('click', () => { skipped = true; r(); }, { once: true })),
+  ]);
+  if (skipped) return;
   nextBtn.disabled = false;
-  skipBtn.disabled = false;
   nextBtn.textContent = 'Next';
 
   const offCommentary = ctx.bus.on('commentary:line', ({ text }) => {

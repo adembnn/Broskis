@@ -13,7 +13,7 @@ import { mkdirSync, writeFileSync, existsSync, readFileSync, readdirSync, unlink
 
 const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
-const URL_BASE = opt('--url', 'http://localhost:5173');
+const URL_BASE = opt('--url', 'http://localhost:5351');
 const URL_TEST = URL_BASE + (URL_BASE.includes('?') ? '&' : '?') + 'demo=1&animtest=1';
 const SANS_GEMINI = args.includes('--no-gemini');
 
@@ -32,7 +32,7 @@ async function up(u) { try { return (await fetch(u)).ok; } catch { return false;
 let server;
 if (!(await up(URL_BASE))) {
   console.log('Serveur absent : lancement de Vite…');
-  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--port', '5173', '--strictPort'], { stdio: 'ignore' });
+  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--port', '5351', '--strictPort'], { stdio: 'ignore' });
   for (let i = 0; i < 40 && !(await up(URL_BASE)); i++) await new Promise((r) => setTimeout(r, 500));
 }
 
@@ -255,6 +255,10 @@ async function jouerScenario(scenario) {
 
     await verifierContrat(page);
     await reinitialiserMetriques(page);
+
+    // Le banc doit démarrer le match sans menus
+    await appelerHook(page, 'startMatch', []);
+    await page.waitForTimeout(500);
 
     // Ordre imposé par le lot LE : reset des métriques, puis caméra, puis étapes.
     if (scenario.camera) await appelerHook(page, 'animCamera', [scenario.player, scenario.camera]);

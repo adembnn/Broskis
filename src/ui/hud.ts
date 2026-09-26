@@ -173,7 +173,15 @@ export function mountHud(ctx: Ctx): Hud {
     }),
     ctx.bus.on('ringout', ({ player }) => showCenterBanner(`P${player + 1} — RING OUT!`, 'ko', durees.ko)),
     ctx.bus.on('ko', ({ player }) => showCenterBanner(`P${player + 1} — K.O.!`, 'ko', durees.ko)),
-    ctx.bus.on('commentary:line', ({ text }) => commentary.show(text, commentaryNames())),
+    // Lot LVOX (une seule voix) : le sous-titre de la carte animateur doit toujours correspondre à ce qui
+    // est RÉELLEMENT entendu. `voice:line` est émis par src/audio/barks.ts (file unique) au moment où une
+    // réplique démarre pour de bon ; `commentary:line` ne garantit pas ça (peut être un texte jamais lu à
+    // voix haute) et n'est plus la bonne source. `speaker === 'announcer'` seulement : un bark de perso ou
+    // la provocation de l'IA (taunt-bubble) ne doivent pas s'afficher sur la carte de l'animateur.
+    ctx.bus.on('voice:line', ({ text, speaker }) => {
+      if (speaker !== 'announcer') return;
+      commentary.show(text, commentaryNames());
+    }),
   ];
 
   ctx.loop.addSystem(

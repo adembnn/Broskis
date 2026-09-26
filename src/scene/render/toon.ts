@@ -160,13 +160,9 @@ export interface VinylShells {
  */
 export function addVinylShells(mesh: THREE.Mesh): VinylShells {
   const e = rendu.contour.epaisseur;
-  const lisere = buildShell(mesh, e.lisere, rendu.contour.encre, true);
-  const vinyle = buildShell(mesh, e.vinyle, rendu.contour.vinyle, false);
-  const encre = buildShell(mesh, e.encre, rendu.contour.encre, true);
-  lisere.name = `${mesh.name || 'mesh'}__lisere`;
-  vinyle.name = `${mesh.name || 'mesh'}__vinyle`;
+  const encre = buildShell(mesh, e.lisere, rendu.contour.encre, true);
   encre.name = `${mesh.name || 'mesh'}__encre`;
-  return { lisere, vinyle, encre };
+  return { lisere: encre, vinyle: encre, encre };
 }
 
 /** Ordre de dessin (règle 2) : `rank` 0 = plus loin de la caméra, 1 = plus proche. */

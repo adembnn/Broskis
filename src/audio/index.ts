@@ -20,14 +20,17 @@ export const install: Install = (ctx) => {
 
   installSfx(ctx.bus, engine);
   const music = installMusic(ctx.bus, engine, () => ctx.state);
-  const commentary = installCommentary(ctx.bus, engine, music);
+  // Lot LVOX : installBarks AVANT installCommentary, qui ne fait plus que relayer commentary:line vers la
+  // file unique de barks.ts (barkPlayer doit déjà exister quand ce relais est sollicité).
   installBarks(ctx, engine, music);
+  installCommentary(ctx.bus);
   installParryCues(ctx.bus, engine);
 
   window.addEventListener('keydown', (e) => {
     if (e.key !== 'm' && e.key !== 'M') return;
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-    const muted = engine.toggleMuted();
-    commentary.setMuted(muted);
+    // Le mute est géré au niveau du bus de gain master (AudioEngine) : barks.ts vérifie déjà
+    // `engine.isMuted` avant chaque lecture, rien de plus à couper ici.
+    engine.toggleMuted();
   });
 };

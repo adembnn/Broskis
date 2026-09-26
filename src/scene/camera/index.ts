@@ -73,12 +73,18 @@ export function installCamera(ctx: Ctx): CameraDirector {
   ctx.three.canvas.addEventListener('pointerdown', () => director.skip());
   window.addEventListener('keydown', (e) => { if (!e.repeat) director.skip(); });
 
-  const focus = new THREE.Vector3();
+  const p0 = new THREE.Vector3();
+  const p1 = new THREE.Vector3();
   ctx.loop.addSystem('la-camera', (dt) => {
     director.update(dt);
     shake.apply(ctx.three.camera, dt);
-    focus.copy(director.look);
-    updateOcclusion(ctx.three.scene, ctx.three.camera, focus, dt);
+    
+    const s0 = ctx.state.players[0].pos;
+    const s1 = ctx.state.players[1].pos;
+    p0.set(s0[0], s0[1] + 1.2, s0[2]);
+    p1.set(s1[0], s1[1] + 1.2, s1[2]);
+    
+    updateOcclusion(ctx.three.scene, ctx.three.camera, [p0, p1], dt);
   }, 300);
 
   return director;
