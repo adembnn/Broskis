@@ -21,8 +21,11 @@ const FALLBACK_FIGHTER: FighterDef = {
   catchphrase: 'Who, me?'
 };
 
-/** Délai maximum côté joueur (plan/lots/LFACE) : au-delà, l'écran se débloque avec la tête de secours. */
-const SCAN_FIGHTER_TIMEOUT_MS = 25_000;
+/** Délai maximum côté joueur (demande d'Adem 17h15 : 12 s) : au-delà, l'écran se débloque avec la tête de secours et le
+ * vrai visage arrive ensuite en jeu (`fighter:portrait`). */
+const SCAN_FIGHTER_TIMEOUT_MS = 12_000;
+/** Photo envoyée à l'IA : 512 px au plus (le visage y est déjà recadré serré) ; plus léger, plus rapide. */
+const PHOTO_MAX_PX = 512;
 /** Lot LE2E : la requête du portrait n'est PAS abandonnée au délai d'écran (le serveur tente 2 modèles puis un repli,
  *  23 s chacun) ; un portrait tardif est posé sur le perso, même en plein match (`fighter:portrait`). */
 const PORTRAIT_REQUEST_MS = 75_000;
@@ -69,7 +72,7 @@ export const SCAN_ISSUE_TEXT: Record<Exclude<FighterScanIssue, null>, string> = 
   'no-face': "We couldn't find a face. Face the camera in good light and try again.",
   'no-portrait': "Your cartoon head didn't come out this time. Try again, or fight as is.",
   blocked: "That photo can't be used. Try another one.",
-  timeout: 'The AI took too long. Try again, or fight as is.',
+  timeout: 'Your head is still being drawn: it will pop in during the fight.',
 };
 
 const cache = new Map<string, Promise<FighterScanReport>>();
@@ -210,7 +213,7 @@ export async function decouperPlanche(url: string): Promise<{ front: string; bac
     out.width = Math.round(x1 - x0);
     out.height = Math.round(y1 - y0);
     out.getContext('2d')!.drawImage(img, x0, y0, x1 - x0, y1 - y0, 0, 0, out.width, out.height);
-    return out.toDataURL('image/png');
+    return out.toDataURL('image/jpeg', 0.92); // JPEG : 5 à 10 fois plus rapide à encoder, le détourage le tolère
   };
   return { front: recadrer(a), back: recadrer(b) };
 }
@@ -227,6 +230,8 @@ export async function appliquerPortrait(fighter: FighterDef, planche: string): P
 }
 
 let prechauffe = false;
+// Préchauffe dès le lancement du jeu (écran-titre), pas seulement à l'écran de choix.
+if (typeof window !== 'undefined') window.setTimeout(() => prechaufferScanFighter(), 1500);
 /** Charge le module serveur du scan avant la 1re photo (en dev, le 1er appel coûte jusqu'à 30 s de compilation). */
 export function prechaufferScanFighter(): void {
   if (prechauffe) return;
@@ -240,7 +245,7 @@ export async function scanFighterReport(image: Blob | string, opts: { onText?: (
   if (typeof image === 'string' && !isDataUrl(image)) return { fighter: FALLBACK_FIGHTER, issue: 'no-face', ms: { resize: 0, total: 0 } };
   try {
     const t0 = performance.now();
-    const { base64, mimeType } = await toResizedJpegBase64(image);
+    const { base64, mimeType } = await toResizedJpegBase64(image, PHOTO_MAX_PX);
     const resize = Math.round(performance.now() - t0);
     const cle = empreinte(base64);
     let p = cache.get(cle);
