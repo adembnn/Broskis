@@ -334,8 +334,37 @@ for (const map of MAPS) {
     await cdp.send('Profiler.setSamplingInterval', { interval: 500 });
     await cdp.send('Profiler.start');
   }
+  // --alloc : profil d'allocation (échantillonné, objets déjà ramassés compris) pendant le combat : qui crée
+  // des déchets à chaque image (pics du ramasse-miettes).
+  let cdpAlloc = null;
+  if (args.includes('--alloc')) {
+    cdpAlloc = await context.newCDPSession(page);
+    await cdpAlloc.send('HeapProfiler.enable');
+    await cdpAlloc.send('HeapProfiler.startSampling', { samplingInterval: 4096, includeObjectsCollectedByMajorGC: true, includeObjectsCollectedByMinorGC: true });
+  }
   await page.evaluate(PILOTE);
   await page.waitForTimeout(SECS * 1000);
+  let allocs = null;
+  if (cdpAlloc) {
+    const { profile } = await cdpAlloc.send('HeapProfiler.stopSampling');
+    const parFn = new Map();
+    const nom = (cf) => `${cf.functionName || '(anonyme)'} ${cf.url.replace(base, '').replace(/\?.*$/, '').split('/').pop()}:${cf.lineNumber + 1}`;
+    // Clé = allocateur + les 4 appelants les plus proches dans NOTRE code (src/), pour savoir qui déclenche.
+    const visite = (n, pile) => {
+      const cf = n.callFrame;
+      const p2 = [...pile, cf];
+      if (n.selfSize) {
+        const nous = p2.filter((f) => f.url.includes('/src/')).slice(-4).map(nom).reverse().join(' < ');
+        const cle = `${nom(cf)}${nous ? `  ⇐  ${nous}` : ''}`;
+        parFn.set(cle, (parFn.get(cle) || 0) + n.selfSize);
+      }
+      for (const c of n.children || []) visite(c, p2);
+    };
+    visite(profile.head, []);
+    const total = [...parFn.values()].reduce((x, y) => x + y, 0);
+    allocs = { totalMoParS: +(total / 1048576 / SECS).toFixed(2), top: [...parFn.entries()].sort((x, y) => y[1] - x[1]).slice(0, 30)
+      .map(([k, o]) => `${(o / 1048576 / SECS).toFixed(3).padStart(7)} Mo/s  ${k}`) };
+  }
   let profil = null;
   if (cdp) {
     const { profile } = await cdp.send('Profiler.stop');
@@ -387,7 +416,7 @@ for (const map of MAPS) {
       reseau: parType,
       canvas: [r.domElement.width, r.domElement.height],
       tour: window.ctx.state.turn, phase: window.ctx.state.phase,
-      msParSystemeParFrame: sys, pireFrameParSysteme: sysPire, pics, shadersEnMatch,
+      msParSystemeParFrame: sys, pireFrameParSysteme: sysPire, pics, shadersEnMatch, progsDetail: P.progs,
       qualite: window.__qualite ? { palier: window.__qualite.palier, echelle: window.__qualite.echelle, niveau: window.__qualite.niveau,
         medianeMs: window.__qualite.medianeMs, banc: window.__qualite.banc, ratio: r.getPixelRatio() } : null,
       vues: window.ctx.three.views ? window.ctx.three.views().length : (window.__rinfo_vues2 ? 2 : 1),
@@ -413,7 +442,7 @@ for (const map of MAPS) {
     imagesSup50ms: mesure.pics,
     qualite: mesure.qualite, vues: mesure.vues,
     longuesFramesPires: mesure.loafPires,
-    profil,
+    profil, allocs,
     erreurs: erreurs.slice(0, 10),
   };
   resultats.maps[map] = r;
@@ -427,7 +456,14 @@ for (const map of MAPS) {
   console.log(`  pire frame par système (ms) : ${r.pireFrameParSysteme.slice(0, 6).map(([k, v]) => `${k} ${v}`).join(' · ')}`);
   if (r.qualite) console.log(`  qualité : palier ${r.qualite.palier} · échelle ${r.qualite.echelle} · ratio ${r.qualite.ratio} · banc ${r.qualite.banc?.toFixed?.(3)} ms · vues ${r.vues} · image médiane (1 s) ${r.qualite.medianeMs?.toFixed?.(1)} ms`);
   console.log(`  shaders compilés pendant le match : ${r.shadersCompilesPendantLeMatch} · images > 50 ms : ${r.imagesSup50ms.length || 'aucune'}`);
+  if (args.includes('--shaders')) {
+    const tous = new Map();
+    for (const e of mesure.progsDetail || []) for (const n of e.noms) tous.set(n, (tous.get(n) || 0) + 1);
+    console.log(`  shaders compilés en match, par objet (${tous.size}) :`);
+    for (const [n, k] of [...tous.entries()].sort((a, b) => b[1] - a[1]).slice(0, 40)) console.log(`    ${k}×  ${n}`);
+  }
   for (const p of r.imagesSup50ms.slice(0, 8)) console.log(`    ${p.ms} ms${p.nouveauxShaders.length ? ` · shaders : ${[...new Set(p.nouveauxShaders)].slice(0, 4).join(', ')}` : ''}${p.scripts.length ? ` · scripts : ${p.scripts.slice(0, 3).join(', ')}` : ''}`);
+  if (allocs) console.log(`  allocations : ${allocs.totalMoParS} Mo/s en combat ; plus gros allocateurs :\n    ` + allocs.top.slice(0, 25).join('\n    '));
   if (profil) console.log('  profil CPU (temps propre) :\n    ' + profil.slice(0, 15).join('\n    '));
   if (erreurs.length) console.log(`  erreurs : ${erreurs.slice(0, 3).join(' | ')}`);
   await context.close();
