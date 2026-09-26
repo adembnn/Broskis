@@ -1,0 +1,218 @@
+[
+  {
+    "id": "preset-rubber-duck",
+    "object": "yellow rubber duck",
+    "weaponName": "Quack Attack",
+    "category": "grenade",
+    "why": "You toss it in the tub and it explodes just like bath time.",
+    "stats": {
+      "a": 3,
+      "b": 3,
+      "c": 4
+    },
+    "trait": "bouncy",
+    "palette": [
+      "#FFCC00",
+      "#FF6600"
+    ],
+    "lines": {
+      "intro": "In this corner the yellow fowl of doom forged to negotiate with deep sea monsters!",
+      "hit": "A devastating squeak straight to the jaw!",
+      "miss": "It bounced right into the cheap seats!",
+      "parried": "Swatted away like a rogue bath sponge!"
+    },
+    "stickerUrl": "/assets/presets/rubber-duck.jpg",
+    "voiceUrl": "/assets/presets/rubber-duck.wav",
+    "source": "preset",
+    "cooldown": 0
+  },
+  {
+    "id": "preset-frying-pan",
+    "object": "black frying pan",
+    "weaponName": "Pan of Steel",
+    "category": "shield",
+    "why": "It blocks every attack perfectly but your morning eggs will still stick anyway.",
+    "stats": {
+      "a": 5,
+      "b": 3,
+      "c": 2
+    },
+    "trait": "loud",
+    "palette": [
+      "#0B0C10",
+      "#1F2833"
+    ],
+    "lines": {
+      "intro": "Weighing in at five pounds, the undisputed champion of ping pong paddles has arrived!",
+      "hit": "A brutal backhand from the giant black paddle!",
+      "miss": "A terrible swing from the heavy paddle!",
+      "parried": "The giant paddle was completely rejected!"
+    },
+    "stickerUrl": "/assets/presets/frying-pan.jpg",
+    "voiceUrl": "/assets/presets/frying-pan.wav",
+    "source": "preset",
+    "cooldown": 0
+  },
+  {
+    "id": "preset-baguette",
+    "object": "French baguette",
+    "weaponName": "Crust Buster",
+    "category": "blaster",
+    "why": "Because nothing hurts quite like a week-old loaf of stale French bread.",
+    "stats": {
+      "a": 4,
+      "b": 3,
+      "c": 3
+    },
+    "trait": "split",
+    "palette": [
+      "#C48A45",
+      "#F5E5C0"
+    ],
+    "lines": {
+      "intro": "In this corner holding what appears to be a carb-loaded shotgun from a Parisian bakery!",
+      "hit": "Right in the kisser with high velocity crumbs!",
+      "miss": "The deadly croutons scatter harmlessly into the crowd!",
+      "parried": "A flawless shield against the flying yeast!"
+    },
+    "stickerUrl": "/assets/presets/baguette.jpg",
+    "voiceUrl": "/assets/presets/baguette.wav",
+    "source": "preset",
+    "cooldown": 0
+  },
+  {
+    "id": "preset-smartphone",
+    "object": "smartphone",
+    "weaponName": "Doom Scroller",
+    "category": "grenade",
+    "why": "The group chat is blowing up, so this device must do the same.",
+    "stats": {
+      "a": 5,
+      "b": 4,
+      "c": 1
+    },
+    "trait": "explosive",
+    "palette": [
+      "#000000",
+      "#100000"
+    ],
+    "lines": {
+      "intro": "In this corner, a tiny glowing rectangle people stare at instead of fighting! Prepare for eye strain!",
+      "hit": "Right in the inbox! Unsubscribe! Unsubscribe!",
+      "miss": "No signal! The connection dropped completely!",
+      "parried": "Call forwarded! The block button actually works!"
+    },
+    "stickerUrl": "/assets/presets/smartphone.jpg",
+    "voiceUrl": "/assets/presets/smartphone.wav",
+    "source": "preset",
+    "cooldown": 0
+  },
+  {
+    "id": "preset-banana",
+    "object": "banana",
+    "weaponName": "Boomernana",
+    "category": "throwable",
+    "why": "Its natural aerodynamic curve makes it a terrifyingly effective, albeit mushy, yellow boomerang.",
+    "stats": {
+      "a": 3,
+      "b": 5,
+      "c": 2
+    },
+    "trait": "slippery",
+    "palette": [
+      "#FFE135",
+      "#4B2E0B"
+    ],
+    "lines": {
+      "intro": "He is throwing his yellow telephone! Who is he trying to call, the ambulance?",
+      "hit": "The recipient answered the call with his face!",
+      "miss": "He hung up! Terrible connection in this arena!",
+      "parried": "Call rejected! Send it straight to voicemail!"
+    },
+    "stickerUrl": "/assets/presets/banana.jpg",
+    "voiceUrl": "/assets/presets/banana.wav",
+    "source": "preset",
+    "cooldown": 0
+  },
+  {
+    "id": "preset-office-chair",
+    "object": "office chair",
+    "weaponName": "Spin Blocker",
+    "category": "shield",
+    "why": "Perfect for blocking attacks and dodging mandatory corporate meetings.",
+    "stats": {
+      "a": 4,
+      "b": 4,
+      "c": 2
+    },
+    "trait": "slippery",
+    "palette": [
+      "#111111",
+      "#D3D3D3"
+    ],
+    "lines": {
+      "intro": "Weighing in at thirty pounds, it is the undisputed champion of indoor racing chariots!",
+      "hit": "A devastating crash by the racing throne!",
+      "miss": "The wheels spun completely out of control!",
+      "parried": "They slammed the brakes on that illegal vehicle!"
+    },
+    "stickerUrl": "/assets/presets/office-chair.jpg",
+    "source": "preset",
+    "cooldown": 0,
+    "voiceUrl": "/assets/presets/office-chair.wav"
+  },
+  {
+    "id": "preset-stapler",
+    "object": "red stapler",
+    "weaponName": "Crimson Clincher",
+    "category": "blaster",
+    "why": "It rapidly spits tiny metal teeth, making it a perfect office machine gun.",
+    "stats": {
+      "a": 2,
+      "b": 5,
+      "c": 3
+    },
+    "trait": "sticky",
+    "palette": [
+      "#CC0000",
+      "#111111"
+    ],
+    "lines": {
+      "intro": "Behold the metal mouth designed to stitch your torn wrestling trunks right on the stage!",
+      "hit": "Right in the face with a steel stitch!",
+      "miss": "Out of ammo in the loading tray!",
+      "parried": "Blocked! Those tiny teeth bent backwards!"
+    },
+    "stickerUrl": "/assets/presets/stapler.jpg",
+    "voiceUrl": "/assets/presets/stapler.wav",
+    "source": "preset",
+    "cooldown": 0
+  },
+  {
+    "id": "preset-garden-gnome",
+    "object": "garden gnome",
+    "weaponName": "Gnome Wrecker",
+    "category": "throwable",
+    "why": "It is surprisingly aerodynamic when hurled directly at your neighbor's face.",
+    "stats": {
+      "a": 5,
+      "b": 2,
+      "c": 3
+    },
+    "trait": "heavy",
+    "palette": [
+      "#FF0000",
+      "#0000FF"
+    ],
+    "lines": {
+      "intro": "In the red corner, a tiny bearded Santa who forgot his reindeer and chose violence!",
+      "hit": "Right in the kisser with the concrete beard!",
+      "miss": "The little man flies away to a new lawn!",
+      "parried": "Denied! Return to sender, little lawn ornament!"
+    },
+    "stickerUrl": "/assets/presets/garden-gnome.jpg",
+    "source": "preset",
+    "cooldown": 0,
+    "voiceUrl": "/assets/presets/garden-gnome.wav"
+  }
+]
