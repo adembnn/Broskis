@@ -2,13 +2,13 @@
 import './style.css';
 import { install as installAudio } from './audio';
 import { createCtx } from './core/ctx';
+import { installPreload } from './core/preload';
 import { install as installGameplay } from './gameplay';
 import { install as installMapEvents } from './gameplay/map-events';
 import { install as installIa } from './ia';
 import { install as installScene } from './scene';
 import { install as installMaps } from './scene/maps';
 import { install as installUi } from './ui';
-import { install as installTrailer } from './trailer';
 import type { Install } from './core/types';
 
 const MODULES: [string, Install][] = [
@@ -19,7 +19,7 @@ const MODULES: [string, Install][] = [
   ['ia', installIa],
   ['audio', installAudio],
   ['ui', installUi],
-  ['trailer', installTrailer], // inerte sans ?trailer= dans l'URL (demo/TRAILER.md)
+  ['preload', installPreload], // lot LLOAD : charge persos et maps pendant les menus
 ];
 
 function showBootError(err: unknown) {
