@@ -32,6 +32,7 @@ export class CameraRig {
   private launchT = 0;      // s restantes de suivi d'éjection
   private launchW = 0;      // poids lissé du suivi d'éjection
   private snapNext = true;
+  private lookSnap = false;
   private forced: { pos: THREE.Vector3; look: THREE.Vector3 } | null = null;
   /** Débogage : dernier obstacle qui a fait rentrer la caméra (window.__rtviewRigs). */
   lastHit: string | null = null;
@@ -68,10 +69,11 @@ export class CameraRig {
     this.fovPunch = Math.max(this.fovPunch, crit ? juice.critique.fov : RTVIEW.impact.fov);
   }
 
-  /** Zoom KO (effets Smash) : zoom sec sur SON joueur, qui revient tout seul. */
+  /** Zoom KO (effets Smash) : zoom SEC sur son joueur (visée recalée tout de suite), qui revient tout seul. */
   koZoom(): void {
     this.fovPunch = RTVIEW.koZoom.fov;
     this.koFocus = RTVIEW.koZoom.focus;
+    this.lookSnap = true;
   }
 
   /** Éjection : la caméra recule, monte et suit la trajectoire de son joueur. */
@@ -151,7 +153,7 @@ export class CameraRig {
       this.anchor.x += (s[0] - this.anchor.x) * kxz;
       this.anchor.z += (s[2] - this.anchor.z) * kxz;
       this.anchor.y += (selfY - this.anchor.y) * expFollow(real, this.launchW > 0.5 || fall > 0.5 ? RTVIEW.lissage : RTVIEW.lissageY);
-      this.look.lerp(_look, kxz);
+      if (this.lookSnap) { this.look.copy(_look); this.lookSnap = false; } else this.look.lerp(_look, kxz);
       const r = this.reachWant < this.reach ? RTVIEW.collision.rentre : RTVIEW.collision.ressort;
       this.reach += (this.reachWant - this.reach) * expFollow(real, r);
     }
