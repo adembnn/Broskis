@@ -104,7 +104,7 @@ const handler: ApiHandler<ScanFighterRequest> = async ({ body, env }) => {
       if (candidate?.finishReason !== FinishReason.IMAGE_SAFETY && candidate?.finishReason !== FinishReason.NO_IMAGE) {
         const part = candidate?.content?.parts?.find((p) => p.inlineData?.data);
         if (part?.inlineData?.data) {
-          faceUrl = \`data:\${part.inlineData.mimeType || 'image/png'};base64,\${part.inlineData.data}\`;
+          faceUrl = `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
         }
       }
     }
@@ -124,7 +124,7 @@ const handler: ApiHandler<ScanFighterRequest> = async ({ body, env }) => {
 
   } catch (err) {
     console.error('[api/scan-fighter]', err);
-    return fail(502, \`gemini error: \${(err as Error)?.message ?? err}\`);
+    return fail(502, `gemini error: ${(err as Error)?.message ?? err}`);
   }
 };
 

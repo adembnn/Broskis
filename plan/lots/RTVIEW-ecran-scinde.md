@@ -1,6 +1,13 @@
 # Lot RTVIEW · Écran scindé + caméras troisième personne verrouillées
 Exécution : **agent Claude (Opus)** · Priorité 1 du pivot temps réel (`plan/PIVOT-TEMPS-REEL.md`, qui fait foi).
 
+## Règle d'Adem (15h21) — NON NÉGOCIABLE
+**En écran scindé, chaque vue reste TOUJOURS sur le joueur qui lui est attribué** (vue gauche = P1, vue droite = P2), du `GO!` au `GAME!` :
+- aucune bascule de point de vue, aucun échange de caméras entre les vues, aucun mouvement de caméra vers l'autre joueur ;
+- aucune caméra de tour, aucun plan cinématique partagé (intro, KO, victoire) qui prendrait le contrôle des 2 vues ;
+- les effets (secousse, zoom KO, suivi d'éjection) se jouent dans la vue du joueur concerné **sans quitter son joueur**.
+Seule exception : le mode solo / vs IA (une seule vue, sur l'humain).
+
 ## À livrer
 1. **Rendu en 2 vues** (`src/core/ctx.ts`, `src/scene/render/**`) :
    - un seul `WebGLRenderer` ; mode `split` : P1 à gauche, P2 à droite, séparateur de 4 px à la couleur de l'encre ; mode `solo` : 1 vue plein écran ;

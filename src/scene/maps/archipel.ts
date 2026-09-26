@@ -117,7 +117,7 @@ export function buildArchipelDef(): MapDef {
     platforms: plateformes(),
     props: couverts(),
     backdrop: fond(),
-    periodicEvent: { kind: 'ring', everyTurns: 2, firstTurn: 4, leadTurns: 2 },
+    periodicEvent: { kind: 'ring', everyTurns: 2, firstTurn: 4, leadTurns: 2, maxEvents: RINGS - 1 },
     catapult: { build: { kind: 'model', url: HEX.catapultTower }, pos: [-15, -1.5, -21], scale: 4.5 },
     catapultAmmo: { kind: 'model', url: HEX.catapultProjectile },
   };

@@ -3,6 +3,50 @@
 // Palettes d'armes ci-dessous = données d'arme (comme le stub src/ia), pas de la direction artistique.
 import type { Category, FighterDef, Trait, Weapon } from '../core/types';
 
+// ---------- Temps réel (plan/PIVOT-TEMPS-REEL.md, lot RTCORE) : ces valeurs priment sur celles « Tour » ----------
+export const RT = {
+  countdownS: 3,
+  suddenDeathS: 180,
+  moveSpeed: 6.5,
+  /** Fraction de la vitesse au sol disponible en l'air (contrôle aérien). */
+  airControl: 0.85,
+  jumpVelocity: 7.2,
+  airJumpVelocity: 6.8,
+  maxJumps: 2,
+  /** Au bord : on vacille ; en poussant ce temps-là, on passe dans le vide. */
+  teeterPushS: 0.3,
+  blockMoveMult: 0.4,
+  chargeMoveMult: 0.85,
+  /** Tir maintenu : charge de 0 à 1 entre chargeMinS et chargeFullS ; relâché tout seul après autoReleaseS. */
+  chargeMinS: 0.3,
+  chargeFullS: 1,
+  autoReleaseS: 2.2,
+  cooldownS: { blaster: 1.2, grenade: 3, throwable: 4, shield: 8 } as Record<Category, number>,
+  shieldLifeS: 5,
+  blasterShots: 3,
+  blasterIntervalS: 0.09,
+  /** Vitesse des projectiles (m/s) ; + chargeSpeedBonus × charge. */
+  speed: { blaster: 24, throwable: 18, grenade: 0, shield: 0 } as Record<Category, number>,
+  chargeSpeedBonus: 0.3,
+  /** Rayon des projectiles pour le contact avec la capsule d'un perso (m). */
+  radius: { blaster: 0.22, throwable: 0.38, grenade: 0.3, shield: 0 } as Record<Category, number>,
+  grenadeGravity: 14,
+  /** Durée de vol de la grenade : min + distance × perM, plafonnée. */
+  grenadeFlight: { min: 0.55, perM: 0.035, max: 1.1 },
+  projectileMaxLifeS: 3.5,
+  /** Blocage maintenu : dégâts ÷ 3, recul ÷ 2 ; parade parfaite si le blocage a commencé < perfectMs avant l'impact. */
+  block: { damageMult: 1 / 3, launchMult: 0.5, perfectMs: 150 },
+  parrySlowmo: { factor: 0.3, ms: 300 },
+  reflectSpeedMult: 1.15,
+  /** `projectile:incoming` émis ce temps avant l'impact prévu (anneau de repère). */
+  incomingLeadMs: 400,
+  respawnInvulnS: 2,
+  crateEveryS: 35,
+  crateWarnS: 3,
+  hazardEveryS: [20, 30] as [number, number],
+  hazardWarnS: 3,
+} as const;
+
 // ---------- Tour ----------
 export const TURN_BANNER_S = 1;
 /** Règles v2 : 15 s sans rien faire → tir automatique de l'arme 1 à 60 % (le tour ne se bloque jamais). */
@@ -45,8 +89,9 @@ export const CRATE_PICKUP_RADIUS = 1.4;
 // ---------- Règles v2 façon Smash (lot LSMASH) : %, vies, bords ouverts ----------
 export const STOCKS_DEFAULT = 2;
 export const STOCKS_DEMO = 1;
-/** Dégâts en % par point de puissance (stat a). */
-export const PCT_PER_POWER = 14;
+/** Dégâts en % par point de puissance (stat a). Temps réel : ≈ 18 % pour une grenade moyenne (a = 4), les coups
+ * sont bien plus fréquents qu'au tour par tour (14 à l'époque). */
+export const PCT_PER_POWER = 4.5;
 /** Bonus du perso : × (1 + (power − 5) × ce facteur). */
 export const FIGHTER_POWER_PCT_FACTOR = 0.04;
 /** Charge : dégâts × (CHARGE_DAMAGE_MIN + CHARGE_DAMAGE_SPAN × charge). */
@@ -88,6 +133,8 @@ export const BLAST_SIDE_MARGIN = 8;
 export const BLAST_TOP = 16;
 /** BRO SMASH (« Final Smash ») : prochain tir après `super:ready`. */
 export const BRO_SMASH = { launchMult: 1.8, damageMult: 1.5 };
+/** Base de recul minimale d'un BRO SMASH (avant ×1,8) : même un tir de blaster devient spectaculaire. */
+export const SUPER_MIN_LAUNCH_BASE = 2.2;
 /** Jauge BRO (0 à 100) : gains par parade, NICE, % reçus et % infligés. */
 export const BRO_GAIN = { perfect: 12, good: 6, nice: 10, perPctTaken: 0.45, perPctDealt: 0.25 };
 /** Réapparition : au-dessus du centre, flotte un instant puis tombe. */
@@ -114,8 +161,10 @@ export const AIM_OVERHOLD_MS = 1500;
 export const AIM_LOCK_BREAK_PX = 40;
 /** Aimant : un point visé à moins de cette distance (m) de l'adversaire se cale sur lui. */
 export const AIM_MAGNET_M = 1.8;
+/** Obsolètes pour le gameplay (touches réglables par joueur : src/core/input.ts) ; gardées, alignées sur les
+ * touches par défaut de J1, pour les écrans qui les lisent encore. */
 export const FIRE_KEY = 'KeyF';
-export const JUMP_KEY = 'ShiftLeft'; // Espace/Entrée réservés à la parade (voir parry.ts)
+export const JUMP_KEY = 'Space';
 /** Hauteur du point de tir/visée au-dessus des pieds (mains/torse). */
 export const SHOT_ORIGIN_HEIGHT = 1.1;
 /** Petit délai avant qu'un renvoi (parade parfaite, throwable/shield) ne touche l'attaquant d'origine. */

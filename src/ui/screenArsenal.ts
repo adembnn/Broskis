@@ -3,10 +3,10 @@
 // La photo réellement capturée est gardée à part (photos, par id d'arme) : le contrat Weapon ne la porte pas,
 // mais la présentation (règle 5 du DA) veut la vraie preuve webcam sur la carte.
 import type { Category, PlayerId, Weapon } from '../core/types';
-import { scanObject } from '../ia';
+import { primeWeapon, scanObject } from '../ia';
 import { mountCapture } from './capture';
 import { button, clear, el, menuScreen } from './dom';
-import { mountForge } from './forge';
+import { mountForgeView } from './loading';
 import { CAMERA_SVG, categoryTag } from './icons';
 import { presetsReady, weaponPresets } from './presets';
 import { weaponSticker } from './sticker2d';
@@ -71,13 +71,17 @@ async function forgeAndCard(
   slotNumber: number,
 ): Promise<Weapon> {
   clear(area);
-  const forge = mountForge(`Forging ${label}'s weapon…`);
+  // LLOAD : forge branchée sur les étapes réelles du scan (scan:progress) ; elle reste à côté de la carte jusqu'au sticker.
+  const forge = mountForgeView({ photoUrl, label });
   area.append(forge.root);
   const weapon = await scanObject(blob, category ? { category } : {});
   return new Promise((resolve) => {
     clear(area);
     const wrap = el('div', 'weapon-confirm');
-    wrap.append(
+    const pair = el('div', 'lload-pair');
+    wrap.append(pair);
+    pair.append(forge.root);
+    pair.append(
       renderWeaponCard(weapon, {
         player,
         cardNumber: slotNumber,
@@ -151,6 +155,7 @@ function pickArsenal(screenLayer: HTMLElement, player: PlayerId, photos: Map<str
   function assign(weapon: Weapon, photoUrl?: string) {
     const slotIndex = current;
     const cloned: Weapon = { ...weapon, id: `${weapon.id}-p${player}-${slotIndex}` };
+    void primeWeapon(cloned); // LLOAD : sa réplique de pesée se vocalise dès maintenant, pas à la présentation
     slots[slotIndex] = cloned;
     if (photoUrl) photos.set(cloned.id, photoUrl);
     const next = slots.findIndex((w) => !w);
@@ -175,10 +180,19 @@ function pickArsenal(screenLayer: HTMLElement, player: PlayerId, photos: Map<str
   });
 }
 
-export async function runArsenal(screenLayer: HTMLElement): Promise<ArsenalResult> {
+/** Contre l'IA : 3 vraies armes différentes tirées au hasard, une par catégorie autant que possible. */
+function aiArsenal(): Weapon[] {
+  const pool = [...weaponPresets()].sort(() => Math.random() - 0.5);
+  const picked: Weapon[] = [];
+  for (const w of pool) if (picked.length < 3 && !picked.some((p) => p.category === w.category)) picked.push(w);
+  for (const w of pool) if (picked.length < 3 && !picked.includes(w)) picked.push(w);
+  return picked.map((w, i) => ({ ...w, id: `${w.id}-p1-${i}` }));
+}
+
+export async function runArsenal(screenLayer: HTMLElement, vsAI = false): Promise<ArsenalResult> {
   await presetsReady; // les 8 vraies armes (stickers) : fichier local, déjà là en pratique
   const photos = new Map<string, string>();
   const p0 = await pickArsenal(screenLayer, 0, photos);
-  const p1 = await pickArsenal(screenLayer, 1, photos);
+  const p1 = vsAI ? aiArsenal() : await pickArsenal(screenLayer, 1, photos);
   return { weapons: [p0, p1], photos };
 }
