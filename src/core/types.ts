@@ -121,15 +121,48 @@ export interface GameState {
   difficulty: 'easy' | 'medium' | 'hard' | 'hardcore';
 }
 
+/** 'split' : P1 à gauche, P2 à droite · 'solo' : une seule vue plein écran (vs IA, menus). */
+export type ViewMode = 'solo' | 'split';
+
+/** Une vue de l'écran (lot RTVIEW) : un rectangle du canvas et la caméra de son joueur. */
+export interface View {
+  player: PlayerId;
+  camera: THREE.PerspectiveCamera;
+  /** Rectangle en pixels CSS, origine en haut à gauche du canvas. */
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  /** false : vue non dessinée (en solo, seule la vue du joueur suivi l'est). */
+  visible: boolean;
+}
+
 export interface Three {
   scene: THREE.Scene;
+  /** Caméra de P1 (compatibilité) ; en écran scindé, chaque vue a la sienne : `cameras`. */
   camera: THREE.PerspectiveCamera;
+  /** Une caméra par joueur (lot RTVIEW) : [P1, P2]. Placées chaque image par src/scene/camera. */
+  cameras: [THREE.PerspectiveCamera, THREE.PerspectiveCamera];
   renderer: THREE.WebGLRenderer;
   canvas: HTMLCanvasElement;
   /** Couche HTML au-dessus du canvas pour l'interface (lot LU). */
   uiRoot: HTMLElement;
-  /** Fonction de rendu appelée en fin de frame ; le lot LA peut la remplacer (post-traitement). */
+  /** Fonction de rendu appelée en fin de frame ; le lot LA peut la remplacer (post-traitement). Dessine toutes les vues. */
   render: () => void;
+  /** Mode d'affichage courant (lot RTVIEW). Changer avec setViewMode. */
+  viewMode: ViewMode;
+  /** Joueur suivi par la vue unique en mode solo. */
+  soloPlayer: PlayerId;
+  setViewMode(mode: ViewMode, soloPlayer?: PlayerId): void;
+  /** Vue d'un joueur : où placer son HUD et ses effets, avec quelle caméra projeter. */
+  viewOf(player: PlayerId): View;
+  /** Vues dessinées cette image, de gauche à droite (1 en solo, 2 en scindé). */
+  views(): View[];
+  /** Appelé juste avant de dessiner chaque vue (occlusion par vue, effets réservés à une vue…). */
+  onBeforeView(fn: (view: View) => void): void;
+  /** Direction avant horizontale de la caméra du joueur (y = 0, normée) : repère du déplacement relatif.
+   * Droite = [-f[2], 0, f[0]]. */
+  forwardOf(player: PlayerId): Vec3;
 }
 
 export interface StartMatchOptions {
@@ -141,7 +174,7 @@ export interface StartMatchOptions {
   /** Nombre de vies (règles v2) : 2 par défaut, 1 en démo. */
   stocks?: number;
   difficulty?: 'easy' | 'medium' | 'hard' | 'hardcore';
-  /** Écran scindé (défaut : true à 2 humains, false contre l'IA). */
+  /** Écran scindé (lot RTVIEW) : vrai par défaut à 2 humains, faux contre l'IA. */
   split?: boolean;
 }
 
