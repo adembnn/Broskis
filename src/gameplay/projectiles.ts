@@ -37,6 +37,7 @@ function endTurnSoon(ctx: Ctx): void {
 function launchOne(
   ctx: Ctx, shooter: PlayerId, weapon: Weapon, origin: Vec3, dir: Vec3, power: number,
   isFirstOfAction: boolean, onDone: () => void,
+  index = 1, count = 1
 ): void {
   const target = otherPlayer(shooter);
   const traj = predictTrajectory(ctx, shooter, weapon, origin, dir, power);
@@ -61,7 +62,7 @@ function launchOne(
     return;
   }
   registerIncoming(ctx, {
-    id, player: target, totalTravelMs, incomingDelayMs: CAMERA_SWING_MS,
+    id, player: target, attacker: shooter, weapon, index, count, totalTravelMs, incomingDelayMs: CAMERA_SWING_MS,
     onResolve: (outcome) => {
       resolveImpact(ctx, shooter, target, weapon, origin, traj, outcome.grade);
       onDone();
@@ -131,7 +132,7 @@ function fireBlasterBurst(ctx: Ctx, shooter: PlayerId, weapon: Weapon, origin: V
       launchOne(ctx, shooter, weapon, origin, yawJitter(ctx, dir, spread), power, i === 0, () => {
         remaining -= 1;
         if (remaining <= 0) onAllDone();
-      });
+      }, i + 1, shots);
     }, i * BLASTER_SHOT_INTERVAL_MS);
   }
 }
@@ -171,7 +172,7 @@ export function performFire(ctx: Ctx, shooter: PlayerId, power: number): void {
   } else if (weapon.category === 'blaster') {
     fireBlasterBurst(ctx, shooter, weapon, origin, dir, clampedPower, () => endTurnSoon(ctx));
   } else {
-    launchOne(ctx, shooter, weapon, origin, dir, clampedPower, true, () => endTurnSoon(ctx));
+    launchOne(ctx, shooter, weapon, origin, dir, clampedPower, true, () => endTurnSoon(ctx), 1, 1);
   }
   fireSplitFragments(ctx, shooter, weapon, origin, dir, clampedPower);
 }
@@ -183,7 +184,7 @@ function fireSplitFragments(ctx: Ctx, shooter: PlayerId, weapon: Weapon, origin:
   for (let i = 0; i < TRAIT_TUNING.split.fragments; i++) {
     setTimeout(() => {
       if (matchIsOver(ctx)) return;
-      launchOne(ctx, shooter, weapon, origin, yawJitter(ctx, dir, TRAIT_TUNING.split.spreadDeg), power, false, () => {});
+      launchOne(ctx, shooter, weapon, origin, yawJitter(ctx, dir, TRAIT_TUNING.split.spreadDeg), power, false, () => {}, i + 2, TRAIT_TUNING.split.fragments + 1);
     }, 70 * (i + 1));
   }
 }

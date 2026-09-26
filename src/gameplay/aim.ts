@@ -8,7 +8,7 @@ import { computeDamage, computeKnockbackMagnitude } from './damage';
 import { armFirstGestureTimer, setPhase } from './phases';
 import { aimOrigin, performFire } from './projectiles';
 import { getRuntime, otherPlayer, type PlayerRuntime } from './runtime';
-import { AIM_CHARGE_MS, EJECT_KNOCKBACK_THRESHOLD, KNOCKBACK_UP_RATIO, SHOT_ORIGIN_HEIGHT } from './tuning';
+import { AIM_CHARGE_MS, EJECT_KNOCKBACK_THRESHOLD, KNOCKBACK_UP_RATIO, SHOT_ORIGIN_HEIGHT, getParryWindow } from './tuning';
 import { predictTrajectory } from './trajectory';
 import { normalize, normalizeXZ, sub } from './vec3';
 
@@ -17,6 +17,7 @@ const aimPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -SHOT_ORIGIN_HEIGHT
 const ndc = new THREE.Vector2();
 const hitPoint = new THREE.Vector3();
 const DIGIT_KEYS = new Map<string, number>([['Digit1', 0], ['Digit2', 1], ['Digit3', 2]]);
+const feintsEmitted = new Map<PlayerId, number>();
 
 function currentCharge(rt: PlayerRuntime): number {
   if (!rt.charging) return 0;
@@ -88,8 +89,34 @@ function onMouseDown(ctx: Ctx, e: MouseEvent): void {
   const rt = getRuntime().players[player];
   rt.charging = true;
   rt.chargeStartMs = performance.now();
+  feintsEmitted.set(player, 0);
   armFirstGestureTimer(ctx);
   if (ctx.state.phase === 'move') setPhase(ctx, 'aim');
+}
+
+function handleFireNice(ctx: Ctx, player: PlayerId, power: number, elapsed: number): void {
+  const nearestPulse = Math.round(elapsed / 400) * 400;
+  const dist = Math.abs(elapsed - nearestPulse);
+  
+  if (nearestPulse > 0 && dist <= 100) {
+    ctx.bus.emit('attack:nice', { player });
+    
+    const weapon = ctx.state.players[player].weapons[ctx.state.players[player].selected];
+    if (weapon) {
+      const originalA = weapon.stats.a;
+      weapon.stats.a = originalA * 1.25;
+      
+      const restore = () => {
+        weapon.stats.a = originalA;
+        ctx.bus.off('turn:end', restore);
+        ctx.bus.off('match:end', restore);
+      };
+      ctx.bus.on('turn:end', restore);
+      ctx.bus.on('match:end', restore);
+    }
+  }
+  
+  performFire(ctx, player, power);
 }
 
 function onMouseUp(ctx: Ctx, e: MouseEvent): void {
@@ -98,8 +125,9 @@ function onMouseUp(ctx: Ctx, e: MouseEvent): void {
   const rt = getRuntime().players[player];
   if (!rt.charging) return;
   const power = currentCharge(rt);
+  const elapsed = performance.now() - rt.chargeStartMs;
   rt.charging = false;
-  performFire(ctx, player, power);
+  handleFireNice(ctx, player, power, elapsed);
 }
 
 export function install(ctx: Ctx): void {
@@ -114,7 +142,25 @@ export function install(ctx: Ctx): void {
   });
   ctx.loop.addSystem('gameplay-aim-charge', () => {
     const player = ctx.state.active;
-    if (getRuntime().players[player].charging) updateAimPreview(ctx, player);
+    const rt = getRuntime().players[player];
+    if (rt.charging) {
+      const elapsed = performance.now() - rt.chargeStartMs;
+      const feintCount = Math.floor(elapsed / 400);
+      const emitted = feintsEmitted.get(player) || 0;
+      
+      if (feintCount > emitted) {
+        const win = getParryWindow(ctx.state.turn);
+        if (feintCount > win.feints) {
+          rt.charging = false;
+          handleFireNice(ctx, player, currentCharge(rt), elapsed);
+          return;
+        } else {
+          ctx.bus.emit('feint', { player });
+          feintsEmitted.set(player, feintCount);
+        }
+      }
+      updateAimPreview(ctx, player);
+    }
   }, 60);
 
   ctx.hooks.pickWeapon = (index) => pickWeapon(ctx, index);

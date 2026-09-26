@@ -97,3 +97,49 @@ Tes fichiers seulement. L'audio fait environ 30 Mo : c'est normal, commite-le. P
   automatiques) — recommandé de faire un tour d'oreille rapide avant la démo si possible. Le taunt de
   provocation (`taunt_turn`) est limité à 1 tour sur 2 par un compteur pair/impair déterministe (plutôt qu'un
   tirage aléatoire), choisi pour rester testable par script par les agents du harnais.
+- **Note sur la recherche « Direction vocale » ci-dessous** : arrivée en parallèle (même heure) sur la branche
+  partagée, après que la génération de cette session ait déjà tourné. Je ne l'ai **pas** appliquée dans ce
+  passage (252 fichiers déjà générés et validés, temps de hackathon compté) ; c'est une bonne base pour un
+  futur passage de polish (chaînes par rôle plus détaillées, anti-répétition sur les 2 dernières répliques,
+  coupure avec fondu par priorité, lot de génération plus court par appel). Mon choix pour cette session — texte
+  TTS sans aucun préfixe de ton — reste compatible avec ces recommandations (elles aussi pointent vers des
+  répliques très courtes et une consigne de ton qui ne doit pas être lue).
+
+## Direction vocale (recherche du 26/09, 13h30) : à appliquer
+- **Barks courts** : 1 à 4 mots, 1,5 s maximum (« GAME! », « K.O.! »). Commentaire : 12 mots maximum.
+- **Débit** : 6 à 7 syllabes/s, avec des pointes à 9 ; **une seule** voyelle étirée, sur le mot-clé (0,6 à 1,2 s).
+- **Écriture** :
+  - des « ! » et des points, **pas de virgules** (elles donnent un ton de narrateur) ;
+  - **une seule majuscule** par réplique, jamais sur un mot de 2 ou 3 lettres ;
+  - au plus 3 voyelles répétées (« Nooo ») ;
+  - nombres en toutes lettres.
+- **Générer par lots de 5 à 8 répliques**, puis découper : les textes très courts sont instables. Garder la meilleure de 4 prises.
+- **Consigne Gemini TTS de l'animateur** : « yelling at full volume like a boxing ring announcer, speaking rapidly, one big stretched vowel on the key word, pitch leaping up ».
+- **Système** :
+  - une réplique toutes les 4 à 6 s au plus ;
+  - le bark du perso d'abord, l'annonceur 250 ms après ;
+  - priorités KO / PERFECT / sortie de ring > critique / caisse > coup > remplissage ;
+  - une réplique plus prioritaire coupe l'autre avec un fondu de 60 ms ;
+  - jamais une des 2 dernières répliques jouées ;
+  - `playbackRate` ±3 % et gain ±1,5 dB aléatoires.
+- **Chaîne WebAudio par rôle** :
+
+| | playbackRate | EQ | Compresseur (seuil, ratio, attaque, relâchement) | Saturation (k, mix) | Écho, réverbération |
+|---|---|---|---|---|---|
+| Animateur | 1,10 | HP 110 Hz ; 300 Hz −3 dB ; 3,5 kHz +5 dB ; aigus 10 kHz +2 dB | −24 dB, 4:1, 5 ms, 120 ms | 3, 20 % | écho 110 ms (retour 0,28, mélange 0,2) + 2e écho 230 ms à 0,1 ; réverbération 1,6 s, mélange 0,12 |
+| Barbare | 0,94 | HP 70 Hz + graves 150 Hz +3 dB ; 2,5 kHz +3 dB | −24 dB, 6:1 | 5, 35 % | réverbération 0,8 s, 0,06 |
+| Mage | 1,15 | HP 180 Hz ; 4,5 kHz +4 dB ; 1,2 kHz +3 dB | −24 dB, 4:1, 3 ms, 100 ms | 2, 10 % | réverbération 2,2 s, 0,18 |
+| Chevalier | 1,0 | comme l'animateur | comme l'animateur | 2, 10 % | effet « heaume » : délai 9 ms, retour 0,35, passe-bande 1,5 kHz, mélange 20 % |
+
+  - Gain de 0,7 après le compresseur (le compresseur WebAudio ajoute environ +11 dB), puis un limiteur (−2 dB, knee 0, 20:1, 1 ms, 50 ms).
+- **Mixage** :
+  - la musique baisse à 0,4 (`setTargetAtTime(0.4, t0, 0.03)`) puis revient avec 0,15 s de retard ;
+  - la foule reste 12 dB sous la voix, et monte de +6 dB en 300 ms sur un KO ;
+  - la voix démarre 200 ms après l'impact, 350 ms sur un KO ;
+  - le silence de début de fichier est coupé (au-dessus de −45 dBFS).
+- **À éviter** :
+  - le même fichier rejoué à l'identique ;
+  - un blanc avant la voix ;
+  - un annonceur qui parle sans arrêt ;
+  - `playbackRate` au-delà de 1,25 ;
+  - une réverbération au-delà de 0,2.

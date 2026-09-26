@@ -15,6 +15,7 @@ import { runReveal } from './screenReveal';
 import { mountTitle } from './screenTitle';
 import { installSnapTime } from './snapTime';
 import { injectGoogleFonts, injectStyles } from './theme';
+import { installParryHud } from './parry-hud';
 
 interface Picks {
   fighters: [FighterDef, FighterDef];
@@ -53,6 +54,7 @@ export const install: Install = (ctx) => {
   root.append(hud.root, screenLayer);
   ctx.three.uiRoot.append(root);
   installSnapTime(ctx, screenLayer);
+  installParryHud(ctx, hud.root);
 
   async function runPreMatch(): Promise<Picks> {
     ctx.bus.emit('phase:change', { from: ctx.state.phase, to: 'fighter-select' });

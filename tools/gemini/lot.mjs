@@ -29,6 +29,8 @@ const REGLES = `Règles communes (non négociables) :
 - Tout le texte affiché dans le jeu est en ANGLAIS. Code et commentaires en français, courts.
 - Ne touche QUE les chemins que ta consigne t'attribue. N'installe AUCUN paquet npm (dis-le dans ton rendu s'il t'en faut un).
 - Ne lis jamais le fichier .env et n'affiche jamais une clé.
+- INTERDIT ABSOLU : n'arrête JAMAIS un processus que tu n'as pas lancé toi-même. Pas de « Get-Process node | Stop-Process », « taskkill /IM node.exe », « killall node », « pkill node » : d'autres agents et le tableau de bord d'Adem tournent sur la même machine. Pour arrêter un serveur de test, garde son PID quand tu le lances et arrête ce PID-là uniquement. Pour tes serveurs de test, utilise un port libre entre 5300 et 5399.
+- Si ta copie contient déjà des fichiers de ton lot (reprise après interruption), relis-les et CONTINUE le travail au lieu de repartir de zéro.
 - Avant de rendre : \`npm run build\` doit passer.
 - Commite tes fichiers en les nommant un par un (jamais git add -A), message en français clair terminé par la ligne « Co-Authored-By: Gemini <noreply@google.com> ». Ne pousse pas.
 - Écris ton rendu dans plan/rendus/${id}.md (fait avec chemins et hash · pas fait et pourquoi · décisions prises seul · frictions) et commite-le aussi.`;
@@ -57,15 +59,28 @@ const fluxFile = path.join(DASHBOARD_DIR, 'logs', `${nom}.jsonl`);
 const t0 = Date.now();
 log({ source: 'gemini', kind: mode, status: 'en-cours', lot: id, model: MODEL, title: mode === 'lot' ? `Gemini code le lot ${id}` : `Gemini joue l'agent ${id}`, branche, flux: path.relative(ROOT, fluxFile) });
 const flux = fs.createWriteStream(fluxFile);
-const child = spawn('gemini', ['--skip-trust', '--approval-mode', 'yolo', '-m', MODEL, '-o', 'stream-json', '-p', prompt], {
+// La consigne passe par stdin : sous Windows, le shell découperait un long argument en morceaux.
+const child = spawn('gemini', ['--skip-trust', '--approval-mode', 'yolo', '-m', MODEL, '-o', 'stream-json', '-p', 'GO'], {
   cwd: wt, shell: true, env: { ...process.env, GEMINI_CLI_TRUST_WORKSPACE: 'true' },
 });
+child.stdin.write(`${prompt}\n\n`);
+child.stdin.end();
 child.stdout.pipe(flux);
 child.stderr.on('data', (d) => flux.write(JSON.stringify({ type: 'stderr', text: String(d) }) + '\n'));
 child.on('close', (code) => {
   const minutes = ((Date.now() - t0) / 60000).toFixed(1);
+  // Filet de sécurité : Gemini oublie parfois de commiter. On commite ce qu'il a laissé, fichier par fichier.
+  try {
+    const restants = sh('git status --porcelain --untracked-files=all', wt).split('\n')
+      .map((l) => l.slice(3).trim()).filter((f) => f && !f.startsWith('node_modules') && !f.includes('.env'));
+    if (restants.length) {
+      for (const f of restants) { try { sh(`git add -- "${f}"`, wt); } catch {} }
+      sh(`git commit -q -m "Lot ${id} : travail laissé non commité par Gemini, commité par le lanceur" -m "Co-Authored-By: Gemini <noreply@google.com>"`, wt);
+      log({ source: 'gemini', kind: mode, status: 'info', lot: id, title: `Lot ${id} : ${restants.length} fichier(s) oubliés, commités par le lanceur` });
+    }
+  } catch {}
   let resume = '';
-  try { resume = sh(`git log --oneline HEAD ^main`, wt).trim(); } catch {}
+  try { resume = sh(`git log --oneline main..HEAD`, wt).trim(); } catch {}
   if (mode === 'agent') {
     fs.mkdirSync(path.join(ROOT, 'reports'), { recursive: true });
     for (const f of fs.readdirSync(path.join(wt, 'reports')).filter((x) => x.endsWith('.md'))) {

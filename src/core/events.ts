@@ -15,6 +15,13 @@ export interface EventMap {
   'projectile:spawn': { id: string; weapon: Weapon; from: Vec3; vel: Vec3 };
   /** Part ~1,2 s avant l'impact : déclenche les repères de parade. */
   'projectile:incoming': { id: string; target: PlayerId; etaMs: number };
+  'parry:cue': { defender: PlayerId; attacker: PlayerId };
+  'parry:window': { defender: PlayerId; tImpact: number; perfectMs: number; goodMs: number; index: number; count: number };
+  'parry:streak': { player: PlayerId; streak: number; multiplier: number };
+  'bro:gauge': { player: PlayerId; value: number };
+  'super:ready': { player: PlayerId };
+  'attack:nice': { player: PlayerId };
+  'feint': { player: PlayerId };
   'parry:result': { player: PlayerId; grade: ParryGrade; deltaMs: number };
   'hit': { target: PlayerId; attacker: PlayerId; weapon: Weapon; damage: number; knockback: Vec3; crit: boolean; pos: Vec3 };
   'shield:placed': { player: PlayerId; weapon: Weapon; pos: Vec3 };

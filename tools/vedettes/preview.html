@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Preview Vedette</title>
+  <style>
+    body { margin: 0; background: #fff; overflow: hidden; }
+    canvas { display: block; }
+    #ui { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.5); color: white; padding: 5px; font-family: monospace; }
+  </style>
+</head>
+<body>
+  <div id="ui">Loading...</div>
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+    import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const nom = urlParams.get('nom');
+    
+    // Grid settings
+    const cols = 8;
+    const clipsToTest = ['idle', 'run', 'throw', 'hit', 'death'];
+    const views = [0, Math.PI / 4]; // Face and 3/4
+    const spacingX = 2;
+    const spacingY = 2.5;
+
+    const rows = clipsToTest.length * views.length;
+    
+    const width = 1600;
+    const height = 200 * rows;
+    
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xdddddd);
+    
+    // Orthographic camera covering the grid
+    const camWidth = cols * spacingX;
+    const camHeight = rows * spacingY;
+    const camera = new THREE.OrthographicCamera(-spacingX/2, camWidth - spacingX/2, spacingY/2, -camHeight + spacingY/2, -10, 20);
+    camera.position.set(0, 1, 10);
+    
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setSize(width, height);
+    document.body.appendChild(renderer.domElement);
+
+    const light = new THREE.DirectionalLight(0xffffff, 2);
+    light.position.set(5, 5, 5);
+    scene.add(light);
+    scene.add(new THREE.AmbientLight(0xffffff, 1));
+
+    const loader = new GLTFLoader();
+    
+    async function load() {
+      try {
+        const [vedetteGltf, animGltf] = await Promise.all([
+          loader.loadAsync(`/assets/vedettes/${nom}.glb`),
+          loader.loadAsync(`/assets/characters/knight.glb`)
+        ]);
+
+        const baseModel = vedetteGltf.scene;
+        const allClips = animGltf.animations;
+        
+        let rowIdx = 0;
+        
+        for (const clipName of clipsToTest) {
+          const clip = allClips.find(c => c.name.toLowerCase().includes(clipName)) || allClips[0];
+          
+          for (const angle of views) {
+            for (let col = 0; col < cols; col++) {
+              const clone = SkeletonUtils.clone(baseModel);
+              scene.add(clone);
+              
+              clone.position.set(col * spacingX, -rowIdx * spacingY, 0);
+              clone.rotation.y = angle;
+              
+              const mixer = new THREE.AnimationMixer(clone);
+              const action = mixer.clipAction(clip);
+              action.play();
+              
+              const time = (clip.duration / (cols - 1)) * col;
+              mixer.setTime(time);
+              mixer.update(0); // Force update
+            }
+            rowIdx++;
+          }
+        }
+        
+        renderer.render(scene, camera);
+        
+        document.getElementById('ui').id = 'ready';
+        document.getElementById('ready').innerText = 'Ready';
+      } catch (e) {
+        document.getElementById('ui').id = 'error';
+        document.getElementById('error').innerText = e.message;
+      }
+    }
+    load();
+  </script>
+</body>
+</html>

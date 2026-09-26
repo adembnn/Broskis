@@ -29,3 +29,7 @@ captures
 .claude/worktrees
 /dashboard/
 /reports/tmp/
+/public/assets/vedettes/
+/tools/vedettes/input/
+/tools/vedettes/work/
+/captures/
