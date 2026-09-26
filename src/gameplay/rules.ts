@@ -69,9 +69,10 @@ function calculateDamageAndKnockback(
     let bounceHitChance = 0.4 + (weapon.stats.c * 0.15); // bounce and radius
     accuracyHitChance = bounceHitChance;
   } else if (weapon.category === 'throwable') {
-    knockback *= 1.2;
+    knockback *= 1.5;
+    baseDamage *= 1.2;
   } else if (weapon.category === 'shield') {
-    baseDamage *= 0.5;
+    baseDamage *= 0.8;
   }
 
   if (rng() > accuracyHitChance) {
@@ -109,12 +110,19 @@ function calculateDamageAndKnockback(
 
   let finalDamage = Math.min(baseDamage * mult, MAX_DAMAGE_PER_HIT);
   let finalKnockback = knockback * mult;
-  
+
+  let totalDamage = finalDamage * hits;
+  if (totalDamage > MAX_DAMAGE_PER_HIT && !suddenDeath) {
+    totalDamage = MAX_DAMAGE_PER_HIT;
+  }
+
   // HP scaling for knockback (Smash-like)
   const hpRatio = Math.max(0, defender.hp) / defender.hpMax;
   finalKnockback *= 1 + ((1 - hpRatio) * TUNING.KNOCKBACK_HP_SCALING);
+  
+  if (finalKnockback > 120 && !suddenDeath) finalKnockback = 120; // Cap to prevent turn 1 ringouts
 
-  return { damage: finalDamage * hits, knockback: finalKnockback, hits, reflected };
+  return { damage: totalDamage, knockback: finalKnockback, hits, reflected };
 }
 
 export function applyRuleEngine(state: SimState, action: SimAction, rng: Rng): SimState {
@@ -145,8 +153,8 @@ export function applyRuleEngine(state: SimState, action: SimAction, rng: Rng): S
     }
     attacker.distanceToOpponent = Math.max(1, Math.min(20, attacker.distanceToOpponent));
   } else if (action.type === 'attack') {
-    attacker.hasCover = false;
     const weapon = attacker.weapons[action.weaponIdx];
+    attacker.hasCover = (weapon.category === 'shield');
     attacker.cooldowns[action.weaponIdx] = TUNING.WEAPON_COOLDOWN_TURNS + 1; // +1 because it decrements at end of turn
 
     const parry = getParryGrade(action.parryTimingMs, action.parryHasInput, newState.turn);
