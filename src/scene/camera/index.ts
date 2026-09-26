@@ -5,7 +5,7 @@
 // `juice` de tokens.js, comme avant.
 import * as THREE from 'three';
 import { juice } from '../../art/tokens.js';
-import type { Ctx, Phase, PlayerId } from '../../core/types';
+import type { Ctx, Phase, PlayerId, Vec3 } from '../../core/types';
 import { registry } from '../registry';
 import { applyOcclusion, clearOcclusion, decorRoots, raycastOcclusion, resetOcclusion, stepOcclusion } from './occlusion';
 import { CameraRig } from './rig';
@@ -16,9 +16,18 @@ const MENUS = new Set<Phase>(['title', 'fighter-select', 'arsenal', 'reveal', 'm
 
 declare global { interface Window { __rtviewRigs?: [CameraRig, CameraRig] } }
 
+let installed: [CameraRig, CameraRig] | null = null;
+
+/** Avant horizontal (y = 0, normé) de la caméra du joueur, comme ctx.three.forwardOf ; null avant l'installation.
+ * Lu par le cœur temps réel (gameplay/movement.ts) pour le déplacement relatif à la vue. */
+export function forwardOf(player: PlayerId): Vec3 | null {
+  return installed ? installed[player].forward() : null;
+}
+
 export function installCamera(ctx: Ctx): [CameraRig, CameraRig] {
   const three = ctx.three;
   const rigs: [CameraRig, CameraRig] = [new CameraRig(ctx, 0), new CameraRig(ctx, 1)];
+  installed = rigs;
   registry.three = three;
   registry.camera = three.camera;
   registry.renderer = three.renderer;
