@@ -31,10 +31,10 @@ if (!(await up())) {
   // `--dev` : serveur de développement (plus rapide à lancer, mais recharge la page à chaque modification).
   const dev = args.includes('--dev');
   if (!dev) {
-    const b = spawnSync(process.execPath, ['node_modules/vite/bin/vite.js', 'build', '--outDir', 'captures/rtbot/dist', '--emptyOutDir', '--logLevel', 'error'], { stdio: 'inherit' });
+    const b = spawnSync(process.execPath, ['node_modules/vite/bin/vite.js', 'build', '--outDir', `captures/rtbot/dist-${port}`, '--emptyOutDir', '--logLevel', 'error'], { stdio: 'inherit' });
     if (b.status !== 0) throw new Error('build du banc en échec');
   }
-  const cli = dev ? ['--port', String(port), '--strictPort'] : ['preview', '--outDir', 'captures/rtbot/dist', '--port', String(port), '--strictPort'];
+  const cli = dev ? ['--port', String(port), '--strictPort'] : ['preview', '--outDir', `captures/rtbot/dist-${port}`, '--port', String(port), '--strictPort'];
   server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', ...cli], { stdio: 'ignore' });
   console.log(`Vite ${dev ? 'dev' : 'preview'} lancé (PID ${server.pid}) sur ${url}`);
   for (let i = 0; i < 60 && !(await up()); i++) await new Promise((r) => setTimeout(r, 500));
