@@ -60,35 +60,11 @@ function couverts(): PropSpec[] {
 }
 
 // ---------------------------------------------------------------------------
-// Fond : mer de nuages sous le plateau, îles lointaines dans la brume, rochers épars (jamais devant).
+// Fond (LSKY) : le panorama peint (sky.ts) porte la mer de nuages et les îles lointaines. Ici, seulement
+// l'île de la catapulte (gameplay) ; la parallaxe de mi-distance (2 îles habitées) est dans dressing.ts.
 // ---------------------------------------------------------------------------
 function fond(): BackdropSpec[] {
-  const clouds: BackdropSpec['items'] = [];
-  const smalls: BackdropSpec['items'] = [];
-  let s = 11;
-  const rnd = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
-  for (let i = 0; i < 40 && clouds.length + smalls.length < 26; i++) {
-    const a = rnd() * Math.PI * 2;
-    const r = 18 + rnd() * 62;
-    const x = Math.cos(a) * r, z = Math.sin(a) * r;
-    if (z > 0 && r < 50) continue; // jamais entre la caméra (côté +Z) et le plateau
-    const item = { pos: [x, -24 - rnd() * 6, z] as Vec3, yaw: rnd() * 6.28, scale: 3.5 + rnd() * 2.5 };
-    (i % 3 === 0 ? smalls : clouds).push(item);
-  }
-  const islands: [number, number, number, number][] = [ // x, y, z, échelle
-    [-46, -4, -40, 1.3], [-8, -2, -62, 1.6], [34, -5, -48, 1.2], [58, -3, -14, 1], [-58, -6, -8, 0.9], [18, -8, -30, 0.55],
-  ];
-  const rocks: BackdropSpec['items'] = islands.map(([x, y, z, k]) => ({ pos: [x, y, z] as Vec3, scale: k }));
-  const tops: BackdropSpec['items'] = islands.map(([x, y, z, k], i) => ({ pos: [x, y, z] as Vec3, yaw: i * 1.3, scale: 7 * k }));
-  // Petits rochers flottants proches (profondeur), sous le niveau du plateau et derrière lui.
-  const debris: BackdropSpec['items'] = [[-13, -4, -9, 0.22], [12, -6, -12, 0.18], [-19, -2.5, -17, 0.28], [20, -3, -3, 0.15]]
-    .map(([x, y, z, k]) => ({ pos: [x!, y!, z!] as Vec3, yaw: x!, scale: k! }));
   return [
-    { build: { kind: 'model', url: HEX.cloudBig }, items: clouds },
-    { build: { kind: 'model', url: HEX.cloudSmall }, items: smalls },
-    { build: { kind: 'procedural', shape: 'rock', size: [6, 9, 0.8] }, items: [...rocks, ...debris] },
-    { build: { kind: 'model', url: HEX.mountainTrees }, items: tops.filter((_, i) => i % 2 === 0) },
-    { build: { kind: 'model', url: HEX.hillsTrees }, items: tops.filter((_, i) => i % 2 === 1) },
     // Île de la catapulte (au fond à gauche) : son rocher.
     { build: { kind: 'procedural', shape: 'rock', size: [3.2, 7, 0.4] }, items: [{ pos: [-15, -1.5, -21], scale: 1 }] },
     { build: { kind: 'model', url: HEX.grass }, items: [{ pos: [-15, -1.5, -21], scale: [1.7, 0.8, 1.7] }] },

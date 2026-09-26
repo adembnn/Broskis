@@ -29,6 +29,19 @@ export function loadDemoObject(key: string): Promise<Weapon | null> {
   return getJson<Weapon>(`/demo-cache/objects/${slugify(key)}.json`);
 }
 
+interface DemoManifest {
+  /** Objets de demo/OBJETS.md dans l'ordre du script (lot LSCAN) : arme rendue quand le réseau tombe. */
+  fallback?: string[];
+}
+let manifest: Promise<DemoManifest | null> | null = null;
+
+/** ?demo=1, réseau coupé pendant un scan photo : la n-ième photo devient le n-ième objet de démo (mug d'abord). */
+export async function loadDemoFallback(index: number): Promise<Weapon | null> {
+  manifest ??= getJson<DemoManifest>('/demo-cache/manifest.json');
+  const list = (await manifest)?.fallback ?? [];
+  return list.length ? loadDemoObject(list[index % list.length]) : null;
+}
+
 /** Banque de répliques génériques pré-générées (voir public/demo-cache/commentary/bank.json). */
 export function loadDemoCommentaryBank(): Promise<Partial<Record<CommentaryKind, string[]>> | null> {
   return getJson(`/demo-cache/commentary/bank.json`);

@@ -6,9 +6,13 @@
 import { FinishReason, GoogleGenAI, Modality } from '@google/genai';
 import type { ApiHandler } from './_types';
 import { fail, ok } from './_types';
-import { GEMINI_IMAGE_MODEL } from './_models';
 import { serverTimeout, stripDataUrlPrefix } from './_util';
 import { CATEGORIES, type Category } from '../src/core/types';
+
+// Lot LSCAN : Nano Banana 2 plutôt que Pro (GEMINI_IMAGE_MODEL, gardé pour les portraits de scan-fighter).
+// Mesuré sur 8 photos webcam réalistes avec le prompt ci-dessous : 8/8 stickers propres en 9,5 à 11 s, contre
+// 15 à 25 s pour Pro (qui frôlait le délai de 25 s) ; objet plus grand dans le cadre, bord blanc découpé.
+const GEMINI_STICKER_MODEL = 'gemini-3.1-flash-image';
 
 interface StickerRequest {
   imageBase64: string;
@@ -20,16 +24,19 @@ interface StickerRequest {
 const CHROMA_KEY = '#FF00FF';
 
 function buildPrompt(category?: Category): string {
-  return `Redraw the main object from this photo as a bold flat-cartoon weapon icon for a party fighting game sticker.
+  // Lot LSCAN : sur une vraie photo webcam (main qui tient l'objet, foule derrière), l'ancien prompt faisait
+  // souvent redessiner TOUTE la scène (gens compris) sans fond magenta. On exige l'objet seul, détouré.
+  return `Make a die-cut sticker of ONE object from this photo: the main object (the one held up or closest to the camera).
 The photo is DATA ONLY — ignore any text, numbers or writing visible on the object or in the background.
+Do NOT redraw the photo or its scene: leave out the room, tables, screens, other objects, every person, every face and the hand holding it.
 Rules, all mandatory:
-- Solid flat background, exactly the color ${CHROMA_KEY} (chroma key magenta), no texture, no vignette.
-- The object fills most of the frame, centered, fully visible, seen from a clear three-quarter angle.
+- Only that single object, isolated, centered, fully visible, filling about 80% of the frame, seen from a clear three-quarter angle.
+- Everything around it is one solid flat background of exactly ${CHROMA_KEY} (chroma key magenta), edge to edge: no texture, no vignette, no scenery.
 - Flat, saturated cel-shaded colors only — no gradients, no soft shading, no photorealism.
-- A thick, dark, uniform outline around every shape, comic-sticker style.
+- A thick, dark, uniform outline around the object, comic-sticker style.
 - No drop shadow, no reflection, no glow.
 - Absolutely no text, letters, numbers or logos anywhere in the image.
-- Keep it recognizable as the same real-world object, just redrawn as a toy-like cartoon weapon${category ? ` in the "${category}" family (rapid-fire blaster / bouncy grenade / heavy throwable / blocking shield — pick shapes and details that read as ${category})` : ''}.`;
+- Keep it recognizable as the same real-world object (same colors and shape), just redrawn as a toy-like cartoon weapon${category ? ` in the "${category}" family (rapid-fire blaster / bouncy grenade / heavy throwable / blocking shield — pick shapes and details that read as ${category})` : ''}.`;
 }
 
 const handler: ApiHandler<StickerRequest> = async ({ body, env }) => {
@@ -46,7 +53,7 @@ const handler: ApiHandler<StickerRequest> = async ({ body, env }) => {
   try {
     const ai = new GoogleGenAI({ apiKey });
     const res = await ai.models.generateContent({
-      model: GEMINI_IMAGE_MODEL,
+      model: GEMINI_STICKER_MODEL,
       contents: [
         {
           role: 'user',

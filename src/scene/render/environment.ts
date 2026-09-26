@@ -190,7 +190,7 @@ export function installEnvironment(ctx: Ctx): EnvironmentHandles {
     flickerAmount = m.pratique.vacillement;
     
     // Toggle specific elements
-    sky.visible = mapId === 'archipel' || mapId === 'galion';
+    sky.visible = false; // LSKY : le ciel est le panorama peint (src/scene/maps/sky.ts) ; Sky le recouvrirait
     // Les fonds (îles, mer, cuisine floue) sont faits par les maps, LDECOR et LSKY : ces doublons de LDA2 restent
     // cachés (la 2e mer créait des blocs noirs au premier plan du Galion, le cylindre masquait le fond de la Cuisine).
     islandsGroup.visible = false;

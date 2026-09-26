@@ -4,9 +4,16 @@
   "name": "The Stale Mate",
   "category": "throwable",
   "why": "Day-old and rock hard. A bakery's fault, not ours.",
-  "stats": { "a": 3, "b": 5, "c": 2 },
-  "trait": "bouncy",
-  "palette": ["#a15c2e", "#e8c987"],
+  "stats": {
+    "a": 2,
+    "b": 5,
+    "c": 3
+  },
+  "trait": "sticky",
+  "palette": [
+    "#a15c2e",
+    "#e8c987"
+  ],
   "lines": {
     "intro": "Fresh from the oven. Or last Tuesday.",
     "hit": "CRACK! That's stale-bread violence.",
@@ -14,5 +21,18 @@
     "parried": "Snapped back — still somehow whole."
   },
   "source": "preset",
-  "cooldown": 0
+  "cooldown": 0,
+  "physics": {
+    "massKg": 0.25,
+    "sizeM": [
+      0.06,
+      0.07,
+      0.65
+    ],
+    "material": "food",
+    "shape": "long",
+    "bounciness": 0.05,
+    "fragile": false,
+    "liquid": false
+  }
 }
