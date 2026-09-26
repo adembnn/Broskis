@@ -16,7 +16,7 @@ import { mountVitrine, type Vitrine } from '../scene/fighter-custom/vitrine';
  * l'autre joueur fait déjà son scan. */
 async function snapPhoto(area: HTMLElement): Promise<Blob | null> {
   clear(area);
-  const capture = mountCapture('Show your face to the camera, or drop in a photo.');
+  const capture = mountCapture('Center your face in the oval, or drop in a photo. Only used to draw your fighter: nothing is saved.', { face: true });
   const back = button('Back', 'b-btn small', () => {
     capture.dispose();
     resolveBack(null);
@@ -40,6 +40,9 @@ const LFACE_CSS = `
 .fighter-panel input.name-input:focus { outline:none; border-bottom-style:solid; }
 .fighter-panel .fighter-issue { font-size:14px; font-weight:700; }
 .fighter-panel .forge { transform:scale(.7); transform-origin:center; margin:-14px 0; }
+.fighter-side .capture-zone { position:relative; }
+.fighter-side .capture-oval { position:absolute; left:50%; top:50%; height:74%; aspect-ratio:3/4; transform:translate(-50%,-50%);
+  border:4px dashed var(--b-vinyle); border-radius:50%; box-shadow:0 0 0 2px var(--b-encre); pointer-events:none; }
 .fighter-stage { height:clamp(220px, 34vh, 400px); }
 .fighter-stage-canvas { display:block; width:100%; height:100%; }
 .fighter-side:not([hidden]) ~ .fighter-stage { display:none !important; }
