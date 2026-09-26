@@ -15,8 +15,8 @@ Références : **Super Smash Bros. Ultimate** et **Brawlhalla** : les 2 combatta
 - **Occlusion** : tout décor entre la caméra et un des 2 persos devient transparent (opacité 0,15, fondu de 0,2 s) : mâts et voiles du Galion, meubles de la Cuisine. Aujourd'hui, sur ces 2 maps, on ne voit pas les persos (captures de Claude). Cherche si le moteur de maps (`src/scene/maps/`) a déjà ce mécanisme et branche-le, sinon crée-le dans `src/scene/camera/occlusion.ts`.
 - Ne jamais placer la caméra **dans** une géométrie : test de collision caméra ↔ décor, puis rapprochement si besoin.
 
-## 2. Le parcours complet depuis l'écran-titre (`src/ui/**` sauf `hud.ts`)
-Joue-le par script Playwright (port libre 5300-5399, garde le PID du serveur, arrête-le à la fin) : **PLAY → choix des persos → arsenal (3 préréglages chacun) → présentation des armes → choix de la map → match → au moins 2 tours → écran de fin → REMATCH**. Fais-le sur les 3 maps, puis une fois avec **vs AI**. Corrige tout ce qui bloque, casse ou laisse un écran vide. Le bouton « vs AI » ne doit plus chevaucher le texte « coming soon » (ce texte doit disparaître : le mode existe).
+## 2. Le parcours complet depuis l'écran-titre (tester, et corriger hors de `src/ui/**`)
+Joue-le par script Playwright (port libre 5300-5399, garde le PID du serveur, arrête-le à la fin) : **PLAY → choix des persos → arsenal (3 préréglages chacun) → présentation des armes → choix de la map → match → au moins 2 tours → écran de fin → REMATCH**. Fais-le sur les 3 maps, puis une fois avec **vs AI**. Corrige ce qui bloque **hors de `src/ui/**`** : l'interface est entièrement refaite en parallèle par le lot LUX. Liste précisément dans ton rendu les bugs d'interface observés (écran, action, erreur console) : Claude les transmettra à LUX.
 
 ## 3. Le banc d'animation (`tools/anim/anim-eval.mjs`)
 Ses planches ne montrent que l'écran-titre : le banc doit démarrer le match sans menus (`startMatch` efface maintenant les menus : vérifie-le). Passe aussi son port 5173 dans la plage 5300-5399, pour ne pas couper le serveur de jeu d'Adem.

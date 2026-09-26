@@ -16,6 +16,9 @@ export function createPlayer(id: PlayerId): PlayerState {
     selected: 0,
     alive: true,
     parryStreak: 0,
+    pct: 0,
+    stocks: 2,
+    onLedge: false,
   };
 }
 

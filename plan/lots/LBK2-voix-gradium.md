@@ -14,6 +14,21 @@ Exécution : **Gemini** · Dépend de : LBK (fusionné) · Décision d'Adem (26/
 | mage | `vox_emb_lXuuPMv87ugtRCS7` | `{ "temp": 1.35, "padding_bonus": -1.5 }` |
 | rogue | `vox_emb_K094e8x6A3ZzaRdx` | `{ "temp": 1.3, "padding_bonus": -2 }` |
 
+## Retours d'Adem à l'écoute (13h) : À CORRIGER EN PRIORITÉ
+- **Chevalier** : « pas encore assez d'entrain ». **Barbare** : « pas du tout assez convaincant pour un barbare ».
+- **Pas d'effet stade sur les combattants** : il est réservé à l'animateur.
+- Les voix Gemini lisaient leur consigne à voix haute. Avec Gradium, la consigne de ton ne va **jamais** dans le texte : le ton vient de la voix (Voice Design) et de l'écriture (MAJUSCULES, « !!! », une voyelle étirée).
+
+### Étape 0 : re-casting énergique, avant de générer les 192 répliques
+1. **Voice Design** Gradium : `POST https://api.gradium.ai/api/voice-generator/generate`, corps `{ "prompt": "...", "language": "en", "n_samples": 4 }`, qui renvoie `{ embeddings: [{ embedding_id }] }`. Attends ensuite que chaque voix soit prête : `GET https://api.gradium.ai/api/voice-generator/embeddings?embedding_id=<id>`, jusqu'à `embeddings[0].ready === true`, toutes les 2 s. L'`embedding_id` s'utilise comme `voice_id` en TTS.
+2. Pour **chacun des 4 rôles**, 4 nouvelles candidates avec des consignes encore plus extrêmes, par exemple :
+   - **barbare** : « A gigantic barbarian warlord BELLOWING a battle cry at the top of his lungs, monstrous deep chest voice, raspy, growling between words, spit flying, berserker rage, laughing like a maniac, cartoon Viking » ;
+   - **chevalier** : « An over-the-top heroic knight SCREAMING a charge into battle, booming theatrical British voice cracking with excitement, absolutely fired up, fast, cartoon hero » ;
+   - **mage** et **voleur** : même esprit.
+   Garde aussi la voix actuelle du tableau ci-dessous comme 5e candidate.
+3. **Audition jugée par Gemini** : fais dire à chaque candidate la même réplique test du rôle, par exemple « RAAAAAH! YOU CALL THAT A HIT?! », avec `temp` 1,35 à 1,5 et `padding_bonus` −2. Envoie les 5 WAV à `gemini-3.1-pro-preview`, l'audio étant accepté en `inlineData`, `audio/wav`. Demande un classement JSON : énergie et cri, crédibilité du personnage, zéro ton robotique, articulation compréhensible. **Garde la gagnante** et note son `voice_id` dans `tools/voices/LISEZMOI.md`.
+4. Pour chaque réplique, génère **3 prises** et garde la meilleure selon le même juge Gemini (la plus énergique et compréhensible). La direction vocale demande la meilleure de 4 prises ; 3 suffisent ici.
+
 ## API Gradium (déjà utilisée dans `api/tts.ts` : copie son appel)
 - `POST https://api.gradium.ai/api/post/speech/tts`, en-tête `x-api-key: <GRADIUM_API_KEY>` (lue dans le `.env` du dépôt principal ; le script remonte les dossiers pour le trouver, comme `vite.config.ts`). Corps : `{ text, voice_id, output_format: "wav", only_audio: true, model_name: "gradium-tts-beta", json_config }`.
 - **2 requêtes simultanées au maximum** (limite du compte), 3 essais avec attente croissante, reprise possible : saute les fichiers déjà régénérés, suivis dans `tools/voices/gradium-done.json`.

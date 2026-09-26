@@ -24,7 +24,8 @@ export interface EventMap {
   'attack:nice': { player: PlayerId };
   'feint': { player: PlayerId };
   'parry:result': { player: PlayerId; grade: ParryGrade; deltaMs: number };
-  'hit': { target: PlayerId; attacker: PlayerId; weapon: Weapon; damage: number; knockback: Vec3; crit: boolean; pos: Vec3 };
+  /** pct = % du défenseur après le coup ; launch = vitesse d'éjection (m/s) ; willKo = l'éjection sortira de l'arène (déclenche le zoom KO). */
+  'hit': { target: PlayerId; attacker: PlayerId; weapon: Weapon; damage: number; knockback: Vec3; crit: boolean; pos: Vec3; pct?: number; launch?: Vec3; willKo?: boolean };
   'shield:placed': { player: PlayerId; weapon: Weapon; pos: Vec3 };
   'map:warn': { mapId: MapId; kind: string; turnsLeft: number; area?: Vec3[] };
   'map:event': { mapId: MapId; kind: string };
@@ -35,6 +36,16 @@ export interface EventMap {
   'scan:start': { player: PlayerId; source: 'webcam' | 'upload' | 'crate' | 'cache' };
   'scan:result': { player: PlayerId; weapon: Weapon };
   'ringout': { player: PlayerId };
+  /** Règles v2 (LSMASH) : perte d'une vie, point de sortie de l'arène et côté (bas = chute, haut = éjection vers le ciel). */
+  'stock:lost': { player: PlayerId; stocksLeft: number; exitPos: Vec3; side: 'side' | 'top' | 'bottom' };
+  'respawn': { player: PlayerId; pos: Vec3 };
+  'ledge:grab': { player: PlayerId; pos: Vec3 };
+  'ledge:climb': { player: PlayerId };
+  /** Au bord du vide (animation d'équilibre + avertissement). */
+  'teeter': { player: PlayerId; on: boolean };
+  'super:fire': { player: PlayerId };
+  /** Début (READY?/GO!) et fin (GAME!) de match, pour les bandeaux et la voix. */
+  'match:banner': { kind: 'ready' | 'go' | 'game' };
   'ko': { player: PlayerId; cause: 'hp' | 'ringout' };
   'match:end': { winner: PlayerId };
   'commentary:line': { text: string; priority: number; audioUrl?: string; at?: number };

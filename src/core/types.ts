@@ -84,6 +84,10 @@ export interface PlayerState {
   selected: number;
   alive: boolean;
   parryStreak: number;
+  /** Règles v2 façon Smash (lot LSMASH) : dégâts en % (0 au départ, monte à chaque coup), vies restantes, accroché au bord. */
+  pct: number;
+  stocks: number;
+  onLedge: boolean;
 }
 
 export interface CrateState { pos: Vec3; landsInTurns: number; landed: boolean }
@@ -122,6 +126,8 @@ export interface StartMatchOptions {
   map?: MapId;
   seed?: number;
   vsAI?: boolean;
+  /** Nombre de vies (règles v2) : 2 par défaut, 1 en démo. */
+  stocks?: number;
   difficulty?: 'easy' | 'medium' | 'hard' | 'hardcore';
 }
 

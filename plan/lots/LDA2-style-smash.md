@@ -8,15 +8,15 @@ Exécution : **Gemini** · Retour d'Adem et Titouan (14h, en jouant) : « ça fa
   - lumière : lumière principale chaude + ciel froid (hémisphère), **lumière de contour** (rim light) derrière les persos pour les détacher du fond, ombres douces ;
   - post-traitement : tone mapping **ACES Filmic**, bloom léger sur les effets et les lumières (seuil haut), vignette douce, étalonnage par map ;
   - persos plus saturés et plus lumineux que le décor (lisibilité façon Smash).
-- **Arènes façon Smash** : chaque map devient une **scène suspendue dans un décor lointain spectaculaire**, avec un plateau principal net et lisible, des bords francs au-dessus du vide et **2 plateformes flottantes** où l'on peut sauter (comme Battlefield). Les dalles, colliders Rapier et points d'apparition restent dans le format JSON du moteur de maps (`src/scene/maps/`).
-  - **Archipel** → ruines flottantes au coucher du soleil (ambiance « Battlefield » / « Hyrule Castle ») : îles lointaines, mer de nuages, ciel dégradé orange-violet, rayons de soleil.
-  - **Galion** → le stage « Pirate Ship » de Smash : pont du galion en pleine mer, tempête, éclairs qui illuminent la scène, pluie en particules légères, vagues animées autour ; la gîte tous les 3 tours reste.
-  - **Cuisine géante** → l'esprit du stage « Living Room » de Smash : persos minuscules sur un plan de travail, **lumière de fenêtre réaliste**, arrière-plan de cuisine flou (profondeur), objets du quotidien immenses.
+- **Ambiance par map, façon Smash** (la disposition des arènes est refaite en parallèle par le lot LMAP2 dans `src/scene/maps/**` : tu fais la lumière, le ciel, le fond lointain et l'étalonnage) :
+  - **Archipel** : coucher de soleil orange-violet, mer de nuages, îles lointaines, rayons de soleil ;
+  - **Galion** : tempête, éclairs qui illuminent la scène, pluie légère en particules, mer animée autour ;
+  - **Cuisine** : lumière de fenêtre réaliste, arrière-plan flou (profondeur).
 - **Ciel et fond** : un vrai ciel par map (shader de ciel de three.js `examples/jsm/objects/Sky.js`, ou dégradé + nuages en billboards) et des éléments lointains à faible coût (silhouettes, brouillard de distance).
 - Budget : **150 appels de dessin maximum** et 60 i/s visés. Réutilise les packs déjà téléchargés dans `public/assets/packs/` (hexagon, pirate, restaurant, furniture, platformer). **Aucun nouveau téléchargement.**
 
 ## Tes chemins
-`src/scene/render/**`, `src/art/tokens.js` (mets à jour les jetons), `src/scene/maps/**` (visuel et disposition, sans casser le format JSON ni les événements de map), `src/scene/fighters/loader.ts` (matières et coques des persos seulement), `src/scene/postfx*`. **Pas** la caméra (`src/scene/camera/**`, lot LFIX2 en parallèle), **pas** le HUD ni les règles (lot LSMASH en parallèle).
+`src/scene/render/**` (dont l'environnement : ciel, lumières, fond lointain), `src/art/tokens.js` (mets à jour les jetons), `src/scene/fighters/loader.ts` (matières et coques des persos seulement), `src/scene/postfx*`. **Pas** `src/scene/maps/**` (lot LMAP2), **pas** la caméra (`src/scene/camera/**`, lot LFIX2 en parallèle), **pas** le HUD ni les règles (lot LSMASH en parallèle).
 
 ## Contrôles
 - `npm run build` passe.
