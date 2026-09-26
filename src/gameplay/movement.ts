@@ -6,7 +6,8 @@ import { JUMP_COST } from '../core/state';
 import { applyMove, stepVerticalMotion, tryStartJump } from './character';
 import { checkCratePickup } from './crate';
 import { armFirstGestureTimer } from './phases';
-import { JUMP_KEY, JUMP_VELOCITY, MOVE_SPEED } from './tuning';
+import { getRuntime } from './runtime';
+import { JUMP_KEY, JUMP_VELOCITY, MOVE_SPEED, TRAIT_TUNING } from './tuning';
 
 const HELD = new Set<string>();
 const MOVE_KEYS = new Set(['KeyW', 'KeyZ', 'ArrowUp', 'KeyS', 'ArrowDown', 'KeyA', 'KeyQ', 'ArrowLeft', 'KeyD', 'ArrowRight']);
@@ -28,10 +29,14 @@ function currentDir(): [number, number] {
 export function requestMove(ctx: Ctx, player: PlayerId, dx: number, dz: number): void {
   if (ctx.state.phase !== 'move' || player !== ctx.state.active) return;
   const state = ctx.state.players[player];
-  const requested = Math.hypot(dx, dz);
+  // Trait `slippery` subi récemment (voir damage.ts) : on dérape, le déplacement demandé est amplifié.
+  const rt = getRuntime().players[player];
+  const slidingMult = performance.now() < rt.slipperyUntilMs ? 1 + TRAIT_TUNING.slippery.driftMult : 1;
+  const [ddx, ddz] = [dx * slidingMult, dz * slidingMult];
+  const requested = Math.hypot(ddx, ddz);
   if (requested <= 0 || state.moveLeft <= 0) return;
   const scale = Math.min(1, state.moveLeft / requested);
-  const result = applyMove(ctx, player, dx * scale, dz * scale);
+  const result = applyMove(ctx, player, ddx * scale, ddz * scale);
   if (result.movedDistance <= 0) return;
   state.moveLeft = Math.max(0, state.moveLeft - result.movedDistance);
   ctx.bus.emit('move:update', { player, pos: result.pos, moveLeft: state.moveLeft });

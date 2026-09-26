@@ -5,6 +5,7 @@ import {
   restoreKinematicFromDynamic, setDynamicForRecovery, syncFromDynamicBody,
 } from './character';
 import { goToKo } from './phases';
+import { getRuntime } from './runtime';
 import {
   CRIT_CHANCE, CRIT_MULT, DAMAGE_PER_POWER, FIGHTER_POWER_DAMAGE_FACTOR, KNOCKBACK_BASE,
   KNOCKBACK_DAMAGE_FACTOR, KNOCKBACK_HP_SCALING, KNOCKBACK_UP_RATIO, KO_EXTRA_KNOCKBACK_MULT,
@@ -68,6 +69,10 @@ export function applyHit(ctx: Ctx, opts: ApplyHitOptions): void {
   }
   if (opts.weapon.trait === 'loud') {
     ctx.bus.emit('slowmo', { factor: TRAIT_TUNING.loud.slowmoFactor, ms: TRAIT_TUNING.loud.slowmoMs });
+  }
+  if (opts.weapon.trait === 'slippery') {
+    // Consommé par movement.ts::requestMove : les prochains déplacements du joueur touché dérapent.
+    getRuntime().players[opts.target].slipperyUntilMs = performance.now() + TRAIT_TUNING.slippery.slideMs;
   }
 
   ctx.bus.emit('hit', {

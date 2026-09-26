@@ -10,7 +10,8 @@ import { addShieldBody, getRuntime, otherPlayer } from './runtime';
 import {
   BLASTER_SHOTS_MAX, BLASTER_SHOTS_MIN, BLASTER_SHOT_INTERVAL_MS, BLASTER_SPREAD_DEG_MAX, BLASTER_SPREAD_DEG_MIN,
   CAMERA_SWING_MS, FIRE_SWING_SLOWMO, MIN_REMAINING_FLIGHT_MS, REFLECT_RETURN_MS, SHIELD_HEIGHT_MAX, SHIELD_HEIGHT_MIN,
-  SHIELD_PLACE_DISTANCE, SHIELD_THICKNESS, SHIELD_WIDTH_MAX, SHIELD_WIDTH_MIN, SHOT_ORIGIN_HEIGHT, WEAPON_COOLDOWN_TURNS,
+  SHIELD_PLACE_DISTANCE, SHIELD_THICKNESS, SHIELD_WIDTH_MAX, SHIELD_WIDTH_MIN, SHOT_ORIGIN_HEIGHT, TRAIT_TUNING,
+  WEAPON_COOLDOWN_TURNS,
 } from './tuning';
 import { lerp, predictTrajectory, type TrajectoryResult } from './trajectory';
 import { add, length, normalize, sub, yawQuaternion } from './vec3';
@@ -41,7 +42,8 @@ function launchOne(
   const traj = predictTrajectory(ctx, shooter, weapon, origin, dir, power);
   const id = nextId();
 
-  const rawTravelMs = Math.max(1, traj.travelMs);
+  let rawTravelMs = Math.max(1, traj.travelMs);
+  if (weapon.trait === 'heavy') rawTravelMs /= TRAIT_TUNING.heavy.speedMult; // lourd = plus lent, donc plus long à voler
   const totalTravelMs = Math.max(rawTravelMs, CAMERA_SWING_MS + MIN_REMAINING_FLIGHT_MS);
   const distance = Math.max(0.01, length(sub(traj.impact, origin)));
   const speed = distance / (totalTravelMs / 1000); // vel reporté cohérent avec le temps de vol réellement utilisé
@@ -76,10 +78,19 @@ function resolveImpact(
     return; // 0 dégât, blaster/grenade ne se renvoient pas (voir parry.ts)
   }
   const damageMultiplier = grade === 'good' ? 0.5 : 1;
+  // Trait `explosive` : ajoute un souffle même à une catégorie qui n'en a normalement pas (blaster/throwable).
+  const radius = traj.splashRadius + (weapon.trait === 'explosive' ? TRAIT_TUNING.explosive.bonusRadius : 0);
   // fromPos détermine la DIRECTION du recul : l'origine du tir pour un impact direct (loin du tireur),
-  // le centre de l'explosion pour une grenade (loin du souffle) — jamais le point d'impact lui-même pour
-  // un tir direct, sinon la cible == le point d'impact et la direction devient dégénérée.
-  resolveDamage(ctx, shooter, target, weapon, traj, traj.splashRadius > 0 ? traj.impact : origin, damageMultiplier);
+  // le centre de l'explosion pour une grenade/un souffle (loin du point d'impact) — jamais le point
+  // d'impact lui-même pour un tir direct, sinon la cible == le point d'impact et la direction devient dégénérée.
+  const fromPos = radius > 0 ? traj.impact : origin;
+  const resolved = { ...traj, splashRadius: radius };
+  // Trait `sticky` : le coup adhère un instant avant d'infliger ses dégâts (fusible), plutôt qu'à l'impact.
+  if (weapon.trait === 'sticky') {
+    setTimeout(() => { if (!matchIsOver(ctx)) resolveDamage(ctx, shooter, target, weapon, resolved, fromPos, damageMultiplier); }, TRAIT_TUNING.sticky.fuseMs);
+  } else {
+    resolveDamage(ctx, shooter, target, weapon, resolved, fromPos, damageMultiplier);
+  }
 }
 
 function resolveDamage(ctx: Ctx, attacker: PlayerId, target: PlayerId, weapon: Weapon, traj: TrajectoryResult, fromPos: Vec3, damageMultiplier: number): void {
@@ -161,5 +172,18 @@ export function performFire(ctx: Ctx, shooter: PlayerId, power: number): void {
     fireBlasterBurst(ctx, shooter, weapon, origin, dir, clampedPower, () => endTurnSoon(ctx));
   } else {
     launchOne(ctx, shooter, weapon, origin, dir, clampedPower, true, () => endTurnSoon(ctx));
+  }
+  fireSplitFragments(ctx, shooter, weapon, origin, dir, clampedPower);
+}
+
+/** Trait `split` : quelques projectiles supplémentaires en éventail, en plus du tir principal ci-dessus.
+ * Résolus indépendamment (ne retardent pas la fin du tour). */
+function fireSplitFragments(ctx: Ctx, shooter: PlayerId, weapon: Weapon, origin: Vec3, dir: Vec3, power: number): void {
+  if (weapon.trait !== 'split' || weapon.category === 'shield') return;
+  for (let i = 0; i < TRAIT_TUNING.split.fragments; i++) {
+    setTimeout(() => {
+      if (matchIsOver(ctx)) return;
+      launchOne(ctx, shooter, weapon, origin, yawJitter(ctx, dir, TRAIT_TUNING.split.spreadDeg), power, false, () => {});
+    }, 70 * (i + 1));
   }
 }

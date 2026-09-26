@@ -2,12 +2,14 @@
 // (projectiles.ts). Fonctions pures côté données (elles ne modifient ni les PV ni les armes) ; elles font
 // seulement des requêtes Rapier en lecture (raycasts) pour savoir où un tir irait.
 import type * as RAPIER from '@dimforge/rapier3d-compat';
-import type { Category, Ctx, PlayerId, Vec3 } from '../core/types';
+import type { Category, Ctx, PlayerId, Trait, Vec3 } from '../core/types';
 import { getRuntime, otherPlayer } from './runtime';
 import {
   CATEGORY_TUNING, GRENADE_ARC_GRAVITY, GRENADE_BOUNCE_RESTITUTION, GRENADE_BOUNCES_MAX, GRENADE_BOUNCES_MIN,
-  GRENADE_LIFT_RATIO, GRENADE_RADIUS_MAX, GRENADE_RADIUS_MIN, SHIELD_PLACE_DISTANCE,
+  GRENADE_LIFT_RATIO, GRENADE_RADIUS_MAX, GRENADE_RADIUS_MIN, SHIELD_PLACE_DISTANCE, TRAIT_TUNING,
 } from './tuning';
+
+interface TrajectoryWeapon { category: Category; stats: { a: number; b: number; c: number }; trait?: Trait }
 import { add, fromRapier, normalize, toRapier } from './vec3';
 
 export interface TrajectoryResult {
@@ -41,7 +43,7 @@ function hitKind(hit: RAPIER.RayColliderIntersection): { kind: string; player?: 
 }
 
 /** Blaster / throwable : ligne droite, arrêtée par le premier obstacle (mur, bouclier ou joueur adverse). */
-function simulateStraight(ctx: Ctx, shooter: PlayerId, weapon: { category: Category }, origin: Vec3, dir: Vec3, power: number): TrajectoryResult {
+function simulateStraight(ctx: Ctx, shooter: PlayerId, weapon: TrajectoryWeapon, origin: Vec3, dir: Vec3, power: number): TrajectoryResult {
   const tuning = CATEGORY_TUNING[weapon.category];
   const speed = tuning.speed * (0.7 + 0.5 * power);
   const range = tuning.maxRange;
@@ -56,7 +58,7 @@ function simulateStraight(ctx: Ctx, shooter: PlayerId, weapon: { category: Categ
 }
 
 /** Grenade : balistique en cloche, rebonds, puis explosion (rayon) au point de repos ou au bout des rebonds. */
-function simulateArc(ctx: Ctx, shooter: PlayerId, weapon: { stats: { a: number; b: number; c: number } }, origin: Vec3, dir: Vec3, power: number): TrajectoryResult {
+function simulateArc(ctx: Ctx, shooter: PlayerId, weapon: TrajectoryWeapon, origin: Vec3, dir: Vec3, power: number): TrajectoryResult {
   const tuning = CATEGORY_TUNING.grenade;
   const speed = tuning.speed * (0.7 + 0.6 * power);
   const gravity = GRENADE_ARC_GRAVITY;
@@ -65,7 +67,9 @@ function simulateArc(ctx: Ctx, shooter: PlayerId, weapon: { stats: { a: number; 
   let vel: Vec3 = [dir[0] * speed, dir[1] * speed + speed * GRENADE_LIFT_RATIO, dir[2] * speed];
   const path: Vec3[] = [pos];
   const bounces: Vec3[] = [];
-  let bouncesLeft = Math.round(lerp(GRENADE_BOUNCES_MIN, GRENADE_BOUNCES_MAX, weapon.stats.c));
+  // Trait `bouncy` : quelques rebonds de plus que le tirage de la stat « bounce » (c).
+  let bouncesLeft = Math.round(lerp(GRENADE_BOUNCES_MIN, GRENADE_BOUNCES_MAX, weapon.stats.c))
+    + (weapon.trait === 'bouncy' ? TRAIT_TUNING.bouncy.extraBounces : 0);
   const dt = 1 / 30;
   let t = 0;
   const maxSteps = 240;
@@ -124,7 +128,7 @@ function simulateShield(origin: Vec3, dir: Vec3): TrajectoryResult {
 export function predictTrajectory(
   ctx: Ctx,
   shooter: PlayerId,
-  weapon: { category: Category; stats: { a: number; b: number; c: number } },
+  weapon: TrajectoryWeapon,
   origin: Vec3,
   dirRaw: Vec3,
   power: number,
