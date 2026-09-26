@@ -1,20 +1,24 @@
 // Juge vidéo Gemini (lot LE, plan/lots/LE-eval-animation.md) : envoie chaque vidéo de scénario
 // (captures/anim/video/<scénario>.webm) au modèle ci-dessous avec une grille de correction, et récupère un
 // verdict JSON contraint. Écrit captures/anim/gemini-verdict.json. Lancé par anim-eval.mjs (sauf --no-gemini),
-// ou directement : node tools/anim/juge-gemini.mjs
+// ou directement : node tools/anim/juge-gemini.mjs [--env <chemin du .env>] [--videos <dossier>] [--out <fichier>]
+// (--env : depuis une copie de travail sans .env, l'outil lit lui-même celui du dépôt principal).
 const MODELE = 'gemini-3.1-pro-preview'; // le meilleur modèle disponible (consigne du lot LE) — ne pas changer sans consigne.
 const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODELE}:generateContent`;
 const TAILLE_MAX = 20 * 1024 * 1024; // 20 Mo : au-delà, l'envoi en ligne (inlineData) n'est pas fait.
 
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 
+const ARGS = process.argv.slice(2);
+const arg = (k, d) => { const i = ARGS.indexOf(k); return i >= 0 ? ARGS[i + 1] : d; };
 const OUT = 'captures/anim';
-const OUT_VIDEO = `${OUT}/video`;
+const OUT_VIDEO = arg('--videos', `${OUT}/video`);
+const OUT_FICHIER = arg('--out', `${OUT}/gemini-verdict.json`);
 
 // ---- Clé API : lue dans process.env.GEMINI_API_KEY, remplie en analysant .env à la racine (sans paquet dotenv). ----
 // Ce script s'exécute côté outillage (jamais envoyé au navigateur) : c'est ICI, et seulement ici, qu'on touche .env.
 function chargerEnvDepuisRacine() {
-  const chemin = '.env';
+  const chemin = arg('--env', '.env');
   if (!existsSync(chemin)) return;
   for (const ligne of readFileSync(chemin, 'utf8').split(/\r?\n/)) {
     const l = ligne.trim();
@@ -171,7 +175,7 @@ async function main() {
   const notes = verdicts.map((v) => v.note).filter((n) => typeof n === 'number' && !Number.isNaN(n));
   const moyenne = notes.length ? +(notes.reduce((a, b) => a + b, 0) / notes.length).toFixed(2) : null;
 
-  writeFileSync(`${OUT}/gemini-verdict.json`, JSON.stringify({
+  writeFileSync(OUT_FICHIER, JSON.stringify({
     modele: MODELE,
     genereLe: new Date().toISOString(),
     moyenne,
@@ -179,7 +183,7 @@ async function main() {
   }, null, 2));
 
   console.log(`\nMoyenne Gemini : ${moyenne ?? 'n/a'}/10 (${notes.length}/${verdicts.length} vidéos notées).`);
-  console.log(`Détail : ${OUT}/gemini-verdict.json`);
+  console.log(`Détail : ${OUT_FICHIER}`);
 }
 
 try {
