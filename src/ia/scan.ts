@@ -21,6 +21,7 @@ import {
   clampTrait,
   clampWeaponName,
   clampWhy,
+  looksUnsafe,
 } from './sanitize';
 
 /**
@@ -172,13 +173,61 @@ export async function scanObject(image: Blob | string, opts: ScanOptions = {}): 
   return weapon;
 }
 
-/** Stats JSON de l'arme. `onPartial` reçoit les champs déjà lisibles quand le serveur les envoie au fil de l'eau. */
+interface StreamPoll { text: string; done: boolean; result: ScanObjectApiResult | null; error: string | null }
+
+/** Champ texte d'un JSON en cours d'écriture, seulement une fois la chaîne fermée : un début de nom pourrait
+ *  s'avérer refusé (vraie arme, personne) et remplacé par une arme de secours — on n'affiche que du complet. */
+function partialField(text: string, key: string): string | undefined {
+  const m = new RegExp(`"${key}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`).exec(text);
+  if (!m) return undefined;
+  try { return JSON.parse(`"${m[1]}"`) as string; } catch { return undefined; }
+}
+
+/** Aperçu nettoyé (mêmes bornes que l'arme finale) ; rien si l'aperçu ressemble à une vraie arme ou une personne. */
+function previewOf(text: string, forced: Category | undefined): Partial<Weapon> | null {
+  const object = partialField(text, 'object');
+  const name = partialField(text, 'weaponName');
+  const why = partialField(text, 'why');
+  if (looksUnsafe(object, name, why)) return null;
+  const w: Partial<Weapon> = {};
+  if (object) w.object = clampObject(object);
+  if (name) w.name = clampWeaponName(name);
+  if (why) w.why = clampWhy(why);
+  const cat = /"category"\s*:\s*"(\w+)"/.exec(text)?.[1];
+  if (cat) w.category = clampCategory(cat, forced);
+  return Object.keys(w).length ? w : null;
+}
+
+/**
+ * Stats JSON de l'arme, AU FIL DE L'EAU (lot LLOAD) : le serveur lance generateContentStream et le navigateur relève
+ * le texte partiel en long polling ; `onPartial` reçoit le nom, l'objet, la phrase dès qu'ils s'écrivent. Même délai
+ * maximum qu'avant (TIMEOUTS.scan) ; serveur sans flux ou tâche perdue → appel classique.
+ */
 async function fetchStats(
   base64: string,
   mimeType: string,
   category: Category | undefined,
   onPartial: (w: Partial<Weapon>) => void,
 ): Promise<ScanObjectApiResult | null> {
-  void onPartial;
-  return postJson<ScanObjectApiResult>(ENDPOINTS.scanObject, { imageBase64: base64, mimeType, category }, TIMEOUTS.scan);
+  const body = { imageBase64: base64, mimeType, category };
+  const deadline = performance.now() + TIMEOUTS.scan;
+  const started = await postJson<{ jobId?: string } & Partial<ScanObjectApiResult>>(ENDPOINTS.scanObject, { ...body, stream: true }, TIMEOUTS.scan);
+  if (!started) return null;
+  if (!started.jobId) return (started as ScanObjectApiResult).weaponName ? (started as ScanObjectApiResult) : null;
+  let lastLen = 0;
+  while (performance.now() < deadline) {
+    const left = Math.max(500, deadline - performance.now());
+    const poll = await postJson<StreamPoll>(ENDPOINTS.scanObject, { jobId: started.jobId }, left);
+    if (!poll) {
+      // Tâche inconnue (serveur redémarré…) : appel classique avec le temps qui reste.
+      return postJson<ScanObjectApiResult>(ENDPOINTS.scanObject, body, Math.max(500, deadline - performance.now()));
+    }
+    if (poll.text.length > lastLen) {
+      lastLen = poll.text.length;
+      const preview = previewOf(poll.text, category);
+      if (preview) onPartial(preview);
+    }
+    if (poll.done) return poll.result;
+  }
+  return null;
 }
