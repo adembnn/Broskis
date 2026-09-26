@@ -121,13 +121,90 @@ async function scanner(base64: string, mimeType: string, resizeMs: number, onTex
     return { fighter: FALLBACK_FIGHTER, issue, ms };
   }
   if (faceUrl) {
-    fighter.portraitUrl = faceUrl;
-    if (fighter.look) fighter.look.faceUrl = faceUrl;
+    await appliquerPortrait(fighter, faceUrl);
     return { fighter, issue: null, ms, portraitModel: portrait?.timings?.imageModel };
   }
   const reason = portrait?.imageReason;
   const issue: FighterScanIssue = !portrait ? 'timeout' : reason === 'IMAGE_SAFETY' ? 'blocked' : reason === 'TIMEOUT' ? 'timeout' : 'no-portrait';
   return { fighter, issue, ms };
+}
+
+/** Magenta du fond (tolérant au bruit JPEG) : même règle que src/scene/fighter-custom. */
+const estFond = (r: number, g: number, b: number) => r > 150 && b > 150 && g < 110 && Math.abs(r - b) < 90;
+
+function chargerImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('planche illisible'));
+    img.src = src;
+  });
+}
+
+/** Planche Nano Banana (tête de face à gauche, même tête de dos à droite, fond magenta) → 2 images recadrées, fond
+ * magenta gardé (les détourages en aval ne changent pas). Pas de séparation nette : tout va dans `front`. */
+export async function decouperPlanche(url: string): Promise<{ front: string; back?: string }> {
+  const img = await chargerImage(url);
+  const W = img.naturalWidth || img.width;
+  const H = img.naturalHeight || img.height;
+  if (W < H * 1.3) return { front: url }; // portrait simple, pas une planche
+  const k = Math.min(1, 400 / W);
+  const w = Math.max(1, Math.round(W * k));
+  const h = Math.max(1, Math.round(H * k));
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  const g = c.getContext('2d', { willReadFrequently: true })!;
+  g.drawImage(img, 0, 0, w, h);
+  const d = g.getImageData(0, 0, w, h).data;
+  const cols = new Uint16Array(w);
+  const plein = new Uint8Array(w * h);
+  for (let i = 0; i < w * h; i++) {
+    if (estFond(d[i * 4], d[i * 4 + 1], d[i * 4 + 2])) continue;
+    plein[i] = 1;
+    cols[i % w]++;
+  }
+  // Gouttière : la colonne la plus vide au milieu de l'image.
+  let coupe = -1;
+  for (let x = Math.round(w * 0.3); x <= Math.round(w * 0.7); x++) if (coupe < 0 || cols[x] < cols[coupe]) coupe = x;
+  if (coupe < 0 || cols[coupe] > h * 0.02) return { front: url };
+  const boite = (x0: number, x1: number) => {
+    let minX = x1, maxX = x0, minY = h, maxY = -1, aire = 0;
+    for (let y = 0; y < h; y++) for (let x = x0; x < x1; x++) {
+      if (!plein[y * w + x]) continue;
+      aire++;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+    return { minX, maxX, minY, maxY, aire };
+  };
+  const a = boite(0, coupe);
+  const b = boite(coupe, w);
+  if (a.aire < w * h * 0.03 || b.aire < a.aire * 0.3) return { front: url };
+  const recadrer = (r: { minX: number; maxX: number; minY: number; maxY: number }) => {
+    const pad = Math.round(Math.max(r.maxX - r.minX, r.maxY - r.minY) * 0.04);
+    const x0 = Math.max(0, (r.minX - pad) / k), y0 = Math.max(0, (r.minY - pad) / k);
+    const x1 = Math.min(W, (r.maxX + 1 + pad) / k), y1 = Math.min(H, (r.maxY + 1 + pad) / k);
+    const out = document.createElement('canvas');
+    out.width = Math.round(x1 - x0);
+    out.height = Math.round(y1 - y0);
+    out.getContext('2d')!.drawImage(img, x0, y0, x1 - x0, y1 - y0, 0, 0, out.width, out.height);
+    return out.toDataURL('image/png');
+  };
+  return { front: recadrer(a), back: recadrer(b) };
+}
+
+/** Pose un portrait arrivé (planche face + dos) sur le combattant : UI (portraitUrl), tête de face et de dos. À appeler
+ * aussi pour un portrait arrivé en retard, pour que les 2 faces arrivent ensemble. */
+export async function appliquerPortrait(fighter: FighterDef, planche: string): Promise<void> {
+  const { front, back } = await decouperPlanche(planche).catch(() => ({ front: planche, back: undefined }));
+  fighter.portraitUrl = front;
+  if (fighter.look) {
+    fighter.look.backUrl = back;
+    fighter.look.faceUrl = front;
+  }
 }
 
 let prechauffe = false;
