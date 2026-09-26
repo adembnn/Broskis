@@ -14,7 +14,7 @@ const SPOTS: [number, number, number][] = [
   [11, 17, -12], [80, 13, 10], [11, 60, 8], [86, 57, -9], [24, 85, -6], [72, 85, 12],
 ];
 
-export function mountTitle(container: HTMLElement): Promise<{ vsAI?: boolean; difficulty?: Difficulty } | void> {
+export function mountTitle(container: HTMLElement, onSettings?: () => void): Promise<{ vsAI?: boolean; difficulty?: Difficulty } | void> {
   return new Promise((resolve) => {
     const { root, card } = menuScreen('title-card');
     root.classList.add('title-screen');
@@ -41,7 +41,7 @@ export function mountTitle(container: HTMLElement): Promise<{ vsAI?: boolean; di
 
     const mainRow = el('div', 'title-actions');
     const play = button('', 'b-btn cta title-play', () => resolve());
-    play.append(el('span', 'title-play-main', 'PLAY'), el('span', 'title-play-sub', '2 players · 1 keyboard'));
+    play.append(el('span', 'title-play-main', 'PLAY'), el('span', 'title-play-sub', '2 players · 1 keyboard · split screen'));
     const vsAi = button('vs AI', 'b-btn', () => {
       mainRow.hidden = true;
       diffRow.hidden = false;
@@ -61,8 +61,12 @@ export function mountTitle(container: HTMLElement): Promise<{ vsAI?: boolean; di
       }),
     );
 
-    const scandex = button('Scandex: your scanned weapons', 'b-btn link title-scandex', () => openScandexScreen(container));
-    card.append(mainRow, diffRow, scandex);
+    const links = el('div', 'title-links');
+    links.append(
+      button('Settings · Controls', 'b-btn link', () => onSettings?.()),
+      button('Scandex: your scanned weapons', 'b-btn link', () => openScandexScreen(container)),
+    );
+    card.append(mainRow, diffRow, links);
     container.append(root);
   });
 }
