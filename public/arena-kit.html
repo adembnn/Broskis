@@ -161,6 +161,9 @@ if (VUE === 'arene') {
   await perso(-7, 0.4, Math.PI / 2);
   await perso(7, 0.4, -Math.PI / 2);
   if (params.get('cam') === 'basse') { camera.position.set(-7, 2.4, 22); camera.lookAt(2, 0.2, 0); } // vue de côté, façon caméra Smash
+  else if (params.get('cam') === 'joueur') { // 3e personne derrière P1, axe vers P2, comme une moitié d'écran scindé
+    camera.fov = 55; camera.updateProjectionMatrix(); camera.position.set(-12.2, 3.3, 2.4); camera.lookAt(4, 0.9, -0.8);
+  }
   else { camera.position.set(0, 12.5, 32); camera.lookAt(0, 0.2, -1.5); }
   tournants.push({ obj: racine, lent: true });
 } else {

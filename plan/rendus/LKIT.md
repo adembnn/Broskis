@@ -73,7 +73,7 @@ Aperçu : `/arena-kit.html?map=archipel|galion|cuisine[&cam=basse]` et `?vue=kit
 - Préceinte peinte vert-de-mer sur la coque (couleur `accent` du galion dans les tokens), une pierre sur dix moussue.
 
 ## 5. Note de directeur artistique (« est-ce que ça ressemble à une arène de Smash Ultimate ? »)
-Captures (locales, `captures/` n'est pas versionné) : `captures/lkit/kit.png`, `arene-archipel.png`, `arene-archipel-basse.png`, `arene-galion.png`, `arene-galion-basse.png`, `arene-cuisine.png`, `arene-cuisine-basse.png`.
+Captures (locales, `captures/` n'est pas versionné) : `captures/lkit/kit.png`, `arene-archipel.png`, `arene-archipel-basse.png`, `arene-galion.png`, `arene-galion-basse.png`, `arene-cuisine.png`, `arene-cuisine-basse.png`, et **vue de jeu** à la 3e personne dans une moitié d'écran scindé (800 × 900) : `arene-archipel-joueur.png`, `arene-galion-joueur.png`, `arene-cuisine-joueur.png` (`node tools/assets/capture-kit.mjs --taille 800x900 --vues arene-archipel-joueur`). Depuis la caméra de jeu, le liseré du bord lointain reste une ligne claire lisible et les couverts ont la bonne échelle (hauteur de torse).
 
 | Map | Note | Ce qui marche | Ce qui manque encore |
 |---|---:|---|---|

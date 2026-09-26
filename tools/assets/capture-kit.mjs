@@ -11,6 +11,7 @@ const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] :
 const OUT = opt('--out', 'captures/lkit');
 const VUES = opt('--vues', 'arene-archipel,arene-galion,arene-cuisine,kit').split(',');
 const SUFFIXE = opt('--suffixe', '');
+const [LARG, HAUT] = opt('--taille', '1600x900').split('x').map(Number); // ex. 800x900 = une moitié d'écran scindé
 mkdirSync(OUT, { recursive: true });
 
 const libre = (p) => new Promise((ok) => { const s = net.createServer(); s.once('error', () => ok(false)); s.listen(p, '127.0.0.1', () => s.close(() => ok(true))); });
@@ -23,7 +24,7 @@ for (let i = 0; i < 60; i++) { try { if ((await fetch(base + '/arena-kit.html'))
 
 const browser = await chromium.launch({ args: ['--ignore-gpu-blocklist', '--enable-webgl', '--use-angle=default'] });
 try {
-  const page = await browser.newPage({ viewport: { width: 1600, height: 900 } });
+  const page = await browser.newPage({ viewport: { width: LARG, height: HAUT } });
   const erreurs = [];
   page.on('pageerror', (e) => erreurs.push(e.message));
   page.on('console', (m) => m.type() === 'error' && erreurs.push(m.text()));
