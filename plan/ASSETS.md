@@ -32,3 +32,23 @@ Destination : `public/assets/packs/<pack>/`.
 | KayKit Platformer | tremplins, bombes, plateformes | https://kaylousberg.itch.io/kaykit-platformer |
 
 **À éviter** : les versions EXTRA payantes de KayKit, et les `.glb` de `Downloads\` (origine inconnue).
+
+## Ajoutés à 12h40 (téléchargés à la main par Adem sur itch.io, licence CC0)
+- **`public/assets/packs/animations/`** : KayKit Character Animations 1.1, squelette **Rig_Medium** (le même que nos persos : les clips s'appliquent directement, sans reciblage).
+  - 8 GLB d'animations uniquement (139 clips au total).
+  - La liste complète est dans `public/assets/packs/animations/clips.json`.
+  - **Ne jamais jouer le clip `T-Pose`.**
+- **`public/assets/packs/platformer/`** : KayKit Platformer Free en glTF (couleurs `blue`, `green`, `neutral`, `red`, `yellow`), dont `spring` (tremplin) et `bomb`.
+
+| Besoin | Clips du pack |
+|---|---|
+| Marche, course, pas latéraux, recul | `Walking_A/B/C`, `Running_A/B`, `Running_Strafe_Left/Right`, `Walking_Backwards` |
+| Saut en 3 temps | `Jump_Start` → `Jump_Idle` → `Jump_Land` (+ `Jump_Full_Short/Long`) |
+| Lancer (GRENADE, THROWABLE) | `Throw` |
+| BLASTER | `Ranged_1H_Aiming`, `Ranged_1H_Shoot`, `Ranged_1H_Shooting`, `Ranged_2H_*`, `Ranged_Magic_Shoot` |
+| SHIELD | `Melee_Block`, `Melee_Blocking`, `Melee_Block_Hit` |
+| Coups reçus, esquives | `Hit_A`, `Hit_B`, `Dodge_Forward/Backward/Left/Right` |
+| KO, relevé | `Death_A/B`, `Lie_StandUp` |
+| Entrée en scène | `Spawn_Air`, `Spawn_Ground` |
+| Idle, humeur | `Idle_A`, `Idle_B`, `Melee_Unarmed_Idle`, `Cheering`, `Waving`, `Skeletons_Taunt` |
+| Caisse Snap | `PickUp`, `Use_Item`, `Interact` |

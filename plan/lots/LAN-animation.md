@@ -49,7 +49,8 @@ Chaque action suit 4 temps : **anticipation → action → continuité du mouvem
 
 ## Clips disponibles
 - **Déjà présents** : `idle`, `run`, `jump`, `throw`, `cast`, `castLong`, `raise`, `block`, `dodge`, `hit`, `hitB`, `death`, `cheer` (+ `taunt`).
-- **Manquants**, à obtenir par des couches procédurales (décalages d'os additifs) ou avec le pack KayKit Character Animations s'il est dans `public/assets/packs/_incoming/` : marche, visée, tir, recul, relevé, déséquilibre au bord, rotation sur place, réception.
+- **Pack KayKit Character Animations disponible** (`public/assets/packs/animations/`, même squelette, 139 clips, correspondances dans `plan/ASSETS.md`) : marche, visée, tir, blocage, esquives, saut en 3 temps, relevé, entrée en scène.
+- **Encore manquants, à faire en procédural** (décalages d’os additifs) : déséquilibre au bord du vide, rotation sur place, recul de tir, respiration, humeur.
 
 ## Contrat de mesure (obligatoire, lu par `npm run anim`)
 ```ts
