@@ -8,7 +8,8 @@ const FALLBACK_TAUNTS = [
   "Too easy!",
   "Is that all you got?",
   "Watch and learn!",
-  "Say goodbye to your HP!"
+  "Your percent is climbing!",
+  "Next stop: off the edge!",
 ];
 
 export function installBrain(ctx: Ctx) {

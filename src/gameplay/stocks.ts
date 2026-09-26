@@ -5,7 +5,7 @@ import type { Ctx, PlayerId, Vec3 } from '../core/types';
 import { getArena, type BlastSide } from './arena';
 import { teleport } from './character';
 import { setBlastHandler, setTeeter } from './launch';
-import { cancelGestureTimer, finishMatch, setPhase } from './phases';
+import { cancelGestureTimer, endTurnWhenSettled, finishMatch, setPhase } from './phases';
 import { getRuntime, otherPlayer } from './runtime';
 import { GAME_SLOWMO, RESPAWN_DELAY_S, RESPAWN_HEIGHT, RESPAWN_HOVER_S, SUDDEN_DEATH_PCT } from './tuning';
 
@@ -30,6 +30,11 @@ export function loseStock(ctx: Ctx, player: PlayerId, side: BlastSide, exitPos: 
   if (ps.stocks <= 0) { endGame(ctx, player); return; }
   const seq = rt.matchSeq;
   ctx.loop.later(RESPAWN_DELAY_S, () => { if (getRuntime().matchSeq === seq) respawn(ctx, player); });
+  // Sorti pendant son propre tour (chute, renvoi) : son tour s'arrête là, on passe la main après la réapparition.
+  if (ctx.state.active === player && (ctx.state.phase === 'move' || ctx.state.phase === 'aim')) {
+    setPhase(ctx, 'resolve');
+    endTurnWhenSettled(ctx);
+  }
 }
 
 function endGame(ctx: Ctx, loser: PlayerId): void {
