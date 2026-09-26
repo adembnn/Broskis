@@ -647,9 +647,9 @@ export class FighterAnimator {
       // bras grands ouverts (un V trop fermé disparaît derrière la grosse tête des persos chibi), poings qui pompent
       const up = 0.7 + Math.sin(pump) * 1.4, out = 1;
       this.point(armL, foreL, this.vd.set(out, up, 0.2), this.victoryW);
-      this.point(foreL, handL, this.vd.set(0.35, 1, 0.3), this.victoryW);
+      this.point(foreL, handL, this.vd.set(out, up + 0.3, 0.2), this.victoryW); // bras tendus : dépassent de la silhouette
       this.point(armR, foreR, this.vd.set(-out, up, 0.2), this.victoryW);
-      this.point(foreR, this.bones.hand, this.vd.set(-0.35, 1, 0.3), this.victoryW);
+      this.point(foreR, this.bones.hand, this.vd.set(-out, up + 0.3, 0.2), this.victoryW);
       this.rot(head, MX, -ANIM.victoire.tete * this.victoryW);
       this.rot(spine, MX, -ANIM.lancer.cambre * this.victoryW);
     }
