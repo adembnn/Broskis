@@ -31,6 +31,36 @@ const faded = new Map<THREE.Mesh, Faded>();
 const hits: [Set<THREE.Mesh>, Set<THREE.Mesh>] = [new Set(), new Set()];
 let candidates: THREE.Mesh[] = [];
 
+// Variante « transparente » du shader de chaque matériau : compilée en tâche de fond avant son 1er fondu (sinon
+// three la compile au rendu et l'image gèle, 76 à 153 ms mesurés par LPERF pour un shader). Le clone de
+// préchauffe reste en vie : il garde le programme compilé même quand les fondus sont rendus.
+type Warmer = (mesh: THREE.Mesh, clone: THREE.Material) => Promise<unknown>;
+let warmer: Warmer | null = null;
+const warmed = new Map<string, THREE.Material>(); // uuid du matériau d'origine -> clone de préchauffe
+const warming = new Set<string>();
+
+export function setOcclusionWarmer(fn: Warmer): void { warmer = fn; }
+
+/** Clone estompable : garde les retouches de shader des maps (onBeforeCompile, que Material.clone ne copie pas). */
+function fadeClone(original: FadeMaterial): FadeMaterial {
+  const clone = original.clone() as FadeMaterial;
+  clone.onBeforeCompile = original.onBeforeCompile;
+  clone.customProgramCacheKey = original.customProgramCacheKey;
+  clone.transparent = true;
+  return clone;
+}
+
+/** Vrai si le shader transparent de ce matériau est prêt ; sinon lance sa compilation et répond faux. */
+function readyToFade(mesh: THREE.Mesh, original: FadeMaterial): boolean {
+  if (original.transparent || !warmer || warmed.has(original.uuid)) return true;
+  if (!warming.has(original.uuid)) {
+    warming.add(original.uuid);
+    const clone = fadeClone(original);
+    warmer(mesh, clone).catch(() => {}).finally(() => { warming.delete(original.uuid); warmed.set(original.uuid, clone); });
+  }
+  return false;
+}
+
 function collect(o: THREE.Object3D, out: THREE.Mesh[]): void {
   // Plateformes à sauter (maps/engine.ts les exclut) : en troisième personne, une planche entre la caméra et
   // son perso le cachait entièrement (Cuisine, planche à découper, mesuré). Seul le plateau ne s'efface jamais.
@@ -78,8 +108,8 @@ export function raycastOcclusion(view: PlayerId, camera: THREE.Camera, targets: 
   for (const mesh of set) {
     if (faded.has(mesh)) continue;
     const original = mesh.material as FadeMaterial;
-    const clone = original.clone() as FadeMaterial;
-    clone.transparent = true; // nouveau matériau : son shader transparent est choisi au 1er dessin
+    if (!readyToFade(mesh, original)) { set.delete(mesh); continue; } // shader en préparation : fondu au prochain passage
+    const clone = fadeClone(original);
     mesh.material = clone;
     faded.set(mesh, { original, clone, base: original.opacity, baseDepthWrite: original.depthWrite, opacity: [original.opacity, original.opacity] });
   }
@@ -149,4 +179,6 @@ export function resetOcclusion(): void {
   hits[0].clear();
   hits[1].clear();
   candidates = [];
+  for (const m of warmed.values()) m.dispose(); // autre map : ses matériaux ne reviendront pas
+  warmed.clear();
 }
