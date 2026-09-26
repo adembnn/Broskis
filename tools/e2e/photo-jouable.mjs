@@ -72,6 +72,8 @@ const CANETTE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="768" height=
 </svg>`;
 
 async function photoCanette(browser) {
+  // Déjà « photographiée » une fois (tools/e2e/canette-dessinee.jpg, notre dessin) : pas de capture au démarrage.
+  if (existsSync('tools/e2e/canette-dessinee.jpg')) return 'tools/e2e/canette-dessinee.jpg';
   const f = join(OUT, 'canette-dessinee.jpg');
   const p = await browser.newPage({ viewport: { width: 768, height: 768 } });
   await p.setContent(`<html><body style="margin:0">${CANETTE_SVG}</body></html>`);
