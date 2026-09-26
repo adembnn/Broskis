@@ -1,0 +1,39 @@
+{
+  "id": "demo-water-bottle",
+  "object": "water bottle",
+  "name": "The Hydration Missile",
+  "category": "throwable",
+  "why": "Heavy stainless steel full of cold brew makes a truly devastating projectile.",
+  "stats": {
+    "a": 3,
+    "b": 4,
+    "c": 3
+  },
+  "trait": "heavy",
+  "palette": [
+    "#E87722",
+    "#FFFFFF"
+  ],
+  "lines": {
+    "intro": "Drink up, folks! Here comes thirty-two ounces of pure blunt force!",
+    "hit": "Right in the teeth! Now that is what I call aggressive hydration!",
+    "miss": "Clattered off the floor without leaving a single sip!",
+    "parried": "Reflected! That metallic clink is the sound of total regret!"
+  },
+  "physics": {
+    "massKg": 0.8,
+    "sizeM": [
+      0.25,
+      0.09,
+      0.09
+    ],
+    "material": "metal",
+    "shape": "long",
+    "bounciness": 0.1,
+    "fragile": false,
+    "liquid": true
+  },
+  "stickerUrl": "/demo-cache/stickers/water-bottle.jpg",
+  "source": "cache",
+  "cooldown": 0
+}

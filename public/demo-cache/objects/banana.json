@@ -1,0 +1,39 @@
+{
+  "id": "demo-banana",
+  "object": "banana",
+  "name": "Potassium Curveball",
+  "category": "throwable",
+  "why": "It has an aerodynamic ergonomic curve perfected by millions of years of primate ballistic engineerin",
+  "stats": {
+    "a": 2,
+    "b": 6,
+    "c": 2
+  },
+  "trait": "slippery",
+  "palette": [
+    "#F4D03F",
+    "#5D4037"
+  ],
+  "lines": {
+    "intro": "Rich in potassium and ready for extreme airborne violence!",
+    "hit": "Right in the mush! That is gonna leave a yellow smear!",
+    "miss": "Slipped right past them without bruising a single spot!",
+    "parried": "Boofed right back! Eat your own daily fruit serving!"
+  },
+  "physics": {
+    "massKg": 0.12,
+    "sizeM": [
+      0.04,
+      0.2,
+      0.04
+    ],
+    "material": "food",
+    "shape": "long",
+    "bounciness": 0.15,
+    "fragile": false,
+    "liquid": false
+  },
+  "stickerUrl": "/demo-cache/stickers/banana.jpg",
+  "source": "cache",
+  "cooldown": 0
+}

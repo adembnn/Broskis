@@ -1,0 +1,39 @@
+{
+  "id": "demo-coffee-mug",
+  "object": "coffee mug",
+  "name": "The Monday Meltdown",
+  "category": "grenade",
+  "why": "It is filled with scalding caffeine and guaranteed to shatter violently into hot chaos upon impact.",
+  "stats": {
+    "a": 4,
+    "b": 5,
+    "c": 1
+  },
+  "trait": "explosive",
+  "palette": [
+    "#b82f28",
+    "#593b2a"
+  ],
+  "lines": {
+    "intro": "Freshly brewed and violently caffeinated, here comes the red menace!",
+    "hit": "Direct splash! That is gonna leave a third-degree stain!",
+    "miss": "Spilled on the carpet! What a tragic waste of premium beans!",
+    "parried": "Hot coffee reflected right back into your morning face!"
+  },
+  "physics": {
+    "massKg": 0.55,
+    "sizeM": [
+      0.11,
+      0.12,
+      0.09
+    ],
+    "material": "ceramic",
+    "shape": "round",
+    "bounciness": 0.05,
+    "fragile": true,
+    "liquid": true
+  },
+  "stickerUrl": "/demo-cache/stickers/coffee-mug.jpg",
+  "source": "cache",
+  "cooldown": 0
+}

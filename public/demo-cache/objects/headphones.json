@@ -1,0 +1,39 @@
+{
+  "id": "demo-headphones",
+  "object": "headphones",
+  "name": "The Decibel Dampener",
+  "category": "shield",
+  "why": "It completely blocks incoming attacks by pretending it cannot hear them.",
+  "stats": {
+    "a": 3,
+    "b": 4,
+    "c": 3
+  },
+  "trait": "loud",
+  "palette": [
+    "#181a1b",
+    "#34383c"
+  ],
+  "lines": {
+    "intro": "Equipping the twin noise-cushions of pure denial!",
+    "hit": "That slap sent low frequencies straight to the skull!",
+    "miss": "Wound up tangled in its own headphone cord!",
+    "parried": "Noise-cancelling reflected the sonic boom right back!"
+  },
+  "physics": {
+    "massKg": 0.25,
+    "sizeM": [
+      0.2,
+      0.18,
+      0.08
+    ],
+    "material": "plastic",
+    "shape": "irregular",
+    "bounciness": 0.2,
+    "fragile": false,
+    "liquid": false
+  },
+  "stickerUrl": "/demo-cache/stickers/headphones.jpg",
+  "source": "cache",
+  "cooldown": 0
+}
