@@ -196,7 +196,8 @@ export function installHands(ctx: Ctx) {
       if (h.aim.lengthSq() < 1e-6) h.aim.set(1, 0, 0);
       h.aim.normalize();
       // Un gros objet (chaise) ne rentre pas dans le corps : il déborde devant et sur le côté de la main droite.
-      _p.addScaledVector(h.aim, h.size * 0.2).addScaledVector(_o.crossVectors(h.aim, UP).normalize(), h.size * 0.12);
+      // Lot LE2E : nettement à droite (hors de la silhouette et de la grosse tête, vus de la caméra d'épaule).
+      _p.addScaledVector(h.aim, h.size * 0.2).addScaledVector(_o.crossVectors(h.aim, UP).normalize(), h.size * WEAPON_FX.main.cote + WEAPON_FX.main.coteMin);
       h.pop = Math.min(1, h.pop + real * 1000 / WEAPON_FX.main.pop);
       const pop = h.pop < 1 ? 1 + 0.25 * Math.sin(h.pop * Math.PI) : 1;
       // Charge : tremble et luit. Temps réel : `charge` (0..1) dans l'état du joueur ; sinon charge du tour.
@@ -237,6 +238,19 @@ export function installHands(ctx: Ctx) {
     }
     casingMesh.instanceMatrix.needsUpdate = true;
   }
+
+  // Lot LE2E : un sticker vu par la tranche est invisible (la chaise en main ne se voyait pas). Avant chaque vue, l'objet
+  // tenu se tourne debout vers la caméra de cette vue : chacun voit sa FACE, dans sa vue comme dans celle de l'adversaire.
+  const _cam = new THREE.Vector3();
+  ctx.three.onBeforeView((view) => {
+    for (const p of [0, 1] as const) {
+      const m = held[p].model;
+      if (!m || !m.root.visible) continue;
+      view.camera.getWorldPosition(_cam);
+      _cam.y = m.root.position.y;
+      m.root.lookAt(_cam);
+    }
+  });
 
   return { update, handPos, shot };
 }

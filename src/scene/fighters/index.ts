@@ -18,6 +18,7 @@ import { LOCAL_TOKENS } from '../localTokens';
 import { angleDelta, angleLerp, easeInOutCubic, expFollow } from '../mathUtils';
 import { setFighterObject, setHandSlot } from '../registry';
 import { applyFighterLook } from '../fighter-custom';
+import { installOwnHeadFade } from './ownHead';
 import { applyVinylRank, buildFighterRig, defaultFighter, disposeFighterRig, type FighterRig } from './rig';
 
 export interface FighterSystem {
@@ -170,6 +171,9 @@ export function installFighters(ctx: Ctx): FighterSystem {
     respawnAll().catch((e) => console.error('[fighters] match:start', e));
   });
 
+  // Lot LE2E : dans SA vue, sa grosse tête s'efface un peu pendant la charge et le lancer (ownHead.ts).
+  installOwnHeadFade(ctx, (p) => rigs[p]?.root.getObjectByName('grosse-tete') ?? null);
+
   // Lot LE2E : portrait du perso photo arrivé après le délai d'écran → la vraie grosse tête remplace la tête de secours
   // en plein match, avec un petit « pop » (la tête passe de 30 % à 115 % puis se pose).
   ctx.bus.on('fighter:portrait', ({ fighterId }) => {
@@ -181,12 +185,14 @@ export function installFighters(ctx: Ctx): FighterSystem {
         const tete = rig.root.getObjectByName('grosse-tete')?.children[0];
         if (!tete) return;
         const base = tete.scale.x;
+        tete.userData.le2ePop = true;
         const t0 = performance.now();
         const pop = () => {
           const u = Math.min(1, (performance.now() - t0) / durees.glisse);
           const k = u < 0.6 ? 0.3 + (1.15 - 0.3) * (u / 0.6) : 1.15 - 0.15 * ((u - 0.6) / 0.4);
           tete.scale.setScalar(base * k);
           if (u < 1) requestAnimationFrame(pop);
+          else tete.userData.le2ePop = false;
         };
         pop();
       }).catch((e) => console.error('[fighters] portrait tardif', e));

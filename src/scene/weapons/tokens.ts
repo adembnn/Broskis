@@ -3,9 +3,10 @@
 // (même principe que ../localTokens.ts).
 export const WEAPON_FX = {
   // Objet en main pendant la charge (sa taille est la taille réelle, voir `physique`).
-  main: { tremble: 0.035, lueur: 0.45, pop: 160 },
+  // cote / coteMin (lot LE2E) : décalage à droite de la main = taille × cote + coteMin (m), hors de la silhouette.
+  main: { tremble: 0.035, lueur: 0.3, pop: 160, cote: 0.45, coteMin: 0.15 },
   // Physique réelle → rendu : taille lisible bornée (m), tours/s ≈ tours / √masse, bornés.
-  physique: { tailleMin: 0.5, tailleMax: 1.6, tours: 1.6, toursMin: 0.35, toursMax: 4.5, tailleMaxApproche: 1.9 },
+  physique: { tailleMin: 0.65, tailleMax: 1.6, tours: 1.6, toursMin: 0.35, toursMax: 4.5, tailleMaxApproche: 1.9 },
   // Épaisseur du sticker (banc LBENCH) : ×3 au plus, au plus 25 % de la largeur ; tranche jamais plus sombre que ça.
   epaisseur: { max: 3, largeur: 0.25, clarteMin: 0.24 },
   // Objet en vol : grossissement à l'approche du défenseur, taille des copies (split), tache d'encre au sol.

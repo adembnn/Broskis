@@ -7,8 +7,13 @@ export const RTVIEW = {
   fovScinde: 55,          // FOV vertical d'une demi-vue (deg)
   fovSolo: 45,            // plein écran 16:9 : 55° y ferait un fish-eye (85° en largeur)
   distance: 6.5,          // m derrière son joueur, sur l'axe joueur -> adversaire
-  hauteur: 3.2,           // m au-dessus de ses pieds
-  lateral: 0.9,           // m à droite : vue par-dessus l'épaule, l'adversaire n'est pas caché
+  hauteur: 3.6,           // m au-dessus de ses pieds
+  // m à droite : vue par-dessus l'épaule droite (lot LE2E : 0,9 → 2) ; la grosse tête passe dans le tiers gauche-bas,
+  // la main droite, l'objet tenu et sa trajectoire restent visibles ; l'adversaire n'est pas caché.
+  lateral: 2,
+  // Lot LE2E : dans SA vue seulement, pendant la charge et le lancer, sa grosse tête rétrécit et devient translucide
+  // (l'adversaire la voit toujours pleine). apresTirMs : durée après le lâcher.
+  teteSienne: { echelle: 0.85, opacite: 0.6, apresTirMs: 900 },
   visee: 0.62,            // point visé entre les 2 : 0 = son joueur, 1 = l'adversaire
   viseeHauteur: -0.4,     // m (sol = 0) : point visé bas, le perso reste entre 46 et 67 % de la hauteur, au-dessus du HUD
   suiviHauteur: 0.35,     // part de la hauteur de l'adversaire suivie : quand il saute, son joueur ne file pas sous le HUD
