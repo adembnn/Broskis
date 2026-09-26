@@ -34,7 +34,7 @@ export interface PlayOptions {
 }
 
 /** Clips que la locomotion ne doit pas couper (coup reçu, KO…) : voir `isBusy()`. */
-const LOCOMOTION = new Set(['idle', 'run', 'walk', 'jumpAir', 'jumpStart', 'jumpLand', 'jump', 'strafeL', 'strafeR', 'backpedal']);
+const LOCOMOTION = new Set(['idle', 'run', 'walk', 'jumpAir', 'jumpStart', 'jumpLand', 'jump', 'strafeL', 'strafeR', 'backpedal', 'dodgeF']);
 
 /** Os de la couche haut du corps (noms assainis par GLTFLoader : handslot.r → handslotr). */
 const UPPER_BONES = new Set(['spine', 'chest', 'head', 'upperarml', 'upperarmr', 'lowerarml', 'lowerarmr',
@@ -97,6 +97,9 @@ const MY = new THREE.Vector3(0, 1, 0);
 const MZ = new THREE.Vector3(0, 0, 1);
 
 const STIFFNESS = 140; // ressort un peu lent : écrasements lisibles (≥ 60 ms sous 0,95)
+
+/** Échantillons de mesure (window.animMetrics) : seulement pour le banc (?animtest=1), pas en jeu (coût par image). */
+const MEASURE = typeof location !== 'undefined' && new URLSearchParams(location.search).has('animtest');
 const DAMPING = 12;
 
 export class FighterAnimator {
@@ -609,7 +612,7 @@ export class FighterAnimator {
       m.fn([h.x, h.y, h.z]);
     }
 
-    this.sample(container);
+    if (MEASURE) this.sample(container);
   }
 
   // ---------------------------------------------------------------- mesures (window.animMetrics)
