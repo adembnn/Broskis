@@ -96,6 +96,8 @@ export interface ProcState {
   raise: number;
   /** Pieds au sol (ni en l'air, ni en vol, ni accroché) : mesure pied-sol et glissement. */
   grounded: boolean;
+  /** Victoire (0/1, lissé) : bras en V qui pompent, tête levée. */
+  victory: number;
 }
 
 const MX = new THREE.Vector3(1, 0, 0);
@@ -110,7 +112,8 @@ const DAMPING = 12;
 
 export class FighterAnimator {
   readonly mixer: THREE.AnimationMixer;
-  readonly proc: ProcState = { lookAt: null, lookWeight: 0.5, charge: 0, teeter: null, hang: false, guard: 0, aimArm: 0, cock: 0, raise: 0, grounded: true };
+  readonly proc: ProcState = { lookAt: null, lookWeight: 0.5, charge: 0, teeter: null, hang: false, guard: 0, aimArm: 0, cock: 0, raise: 0, grounded: true, victory: 0 };
+  private victoryW = 0;
   private feetInit = false;
   private sway = 0;
   private cockW = 0;
@@ -135,8 +138,9 @@ export class FighterAnimator {
   private readonly whipF = new Spring();
   private readonly whipS = new Spring();
   private readonly bank = new Spring();
+  private readonly twist = new Spring();
   // os
-  private readonly bones: Record<'hips' | 'spine' | 'chest' | 'head' | 'armL' | 'armR' | 'foreR' | 'hand' | 'footL' | 'footR', THREE.Object3D | null>;
+  private readonly bones: Record<'hips' | 'spine' | 'chest' | 'head' | 'armL' | 'armR' | 'foreL' | 'foreR' | 'hand' | 'footL' | 'footR', THREE.Object3D | null>;
   private readonly boneByName = new Map<string, THREE.Object3D>();
   /** Pose de repos des os retouchés par la couche procédurale (et la couche haut du corps). */
   private readonly rest: { bone: THREE.Object3D; q: THREE.Quaternion }[] = [];
@@ -153,6 +157,7 @@ export class FighterAnimator {
   private readonly va = new THREE.Vector3();
   private readonly vb = new THREE.Vector3();
   private readonly vc = new THREE.Vector3();
+  private readonly vd = new THREE.Vector3();
   private readonly lastPos = new THREE.Vector3();
   private readonly lastFeet: [THREE.Vector3, THREE.Vector3] = [new THREE.Vector3(), new THREE.Vector3()];
   private groundSpeed = 0;
@@ -177,7 +182,8 @@ export class FighterAnimator {
     };
     this.bones = {
       hips: get('hips'), spine: get('spine'), chest: get('chest'), head: get('head'),
-      armL: get('upperarml', 'upperarm.l'), armR: get('upperarmr', 'upperarm.r'), foreR: get('lowerarmr', 'lowerarm.r'),
+      armL: get('upperarml', 'upperarm.l'), armR: get('upperarmr', 'upperarm.r'),
+      foreL: get('lowerarml', 'lowerarm.l'), foreR: get('lowerarmr', 'lowerarm.r'),
       hand: get('handslotr', 'handslot.r'), footL: get('footl', 'foot.l'), footR: get('footr', 'foot.r'),
     };
     // Pose de repos : direction « devant » de la poitrine et de la tête dans leur propre repère.
@@ -237,6 +243,11 @@ export class FighterAnimator {
 
   get current(): string | null {
     return this.currentName;
+  }
+
+  /** Temps écoulé depuis la création (s) : cadence des couches procédurales. */
+  get clock(): number {
+    return this.time;
   }
 
   /** Vrai tant qu'un clip ponctuel du corps entier (coup, KO…) joue : la locomotion ne le coupe pas. */
@@ -417,6 +428,11 @@ export class FighterAnimator {
   }
 
   /** Fouet du torse dans le sens du recul reçu (direction monde, angle en rad). */
+  /** Torsion du buste autour de la verticale (coup reçu sur une épaule) : lisible même de face. */
+  kickTwist(angle: number): void {
+    this.twist.kick(angle * 28);
+  }
+
   kickWhip(dirWorld: THREE.Vector3, angle: number): void {
     const inv = this.root.getWorldQuaternion(this.qa).invert();
     const d = this.va.copy(dirWorld).setY(0).applyQuaternion(inv);
@@ -446,6 +462,22 @@ export class FighterAnimator {
     b.quaternion.premultiply(this.qb);
   }
 
+  /**
+   * Oriente l'os `b` pour que le segment os → `child` pointe dans `dirModel` (repère du perso), en partie
+   * (`w`). Indépendant de la pose du clip : un bras qui part en arrière ou devant arrive au même endroit.
+   */
+  private point(b: THREE.Object3D | null, child: THREE.Object3D | null, dirModel: THREE.Vector3, w: number): void {
+    if (!b?.parent || !child || w <= 0.001) return;
+    const o = b.getWorldPosition(this.va);
+    const cur = child.getWorldPosition(this.vb).sub(o).normalize();
+    const want = this.vc.copy(dirModel).normalize().applyQuaternion(this.qa.copy(this.rootInvQ).invert());
+    this.qb.setFromUnitVectors(cur, want);
+    this.qc.identity().slerp(this.qb, Math.min(1, w));
+    b.getWorldQuaternion(this.qa).premultiply(this.qc);
+    b.parent.getWorldQuaternion(this.qb).invert();
+    b.quaternion.copy(this.qb.multiply(this.qa));
+  }
+
   /** Direction « devant » actuelle d'un os, dans le repère du perso. */
   private fwdOf(b: THREE.Object3D, local: THREE.Vector3, out: THREE.Vector3): THREE.Vector3 {
     b.getWorldQuaternion(this.qa).premultiply(this.rootInvQ);
@@ -453,7 +485,8 @@ export class FighterAnimator {
   }
 
   private applyProcedural(dt: number, container: THREE.Object3D): void {
-    const { spine, chest, head, armL, armR, foreR } = this.bones;
+    const { spine, chest, head, armL, armR, foreL, foreR } = this.bones;
+    const handL = this.boneByName.get('handslotl') ?? this.boneByName.get('handl') ?? null;
     const p = this.proc;
     this.root.getWorldQuaternion(this.rootInvQ).invert();
     const t = this.time;
@@ -539,8 +572,10 @@ export class FighterAnimator {
     this.cockW += (p.cock - this.cockW) * Math.min(1, dt * (p.cock > this.cockW ? 10 : 14));
     this.raiseW += (p.raise - this.raiseW) * Math.min(1, dt * (p.raise > this.raiseW ? 10 : 14));
     if (this.cockW > 0.01) {
-      this.rot(armR, MX, ANIM.lancer.bras * this.cockW);
-      this.rot(foreR, MX, ANIM.lancer.bras * 0.35 * this.cockW);
+      // lanceur de base-ball : coude levé sur le côté (un peu haut, un peu en arrière), avant-bras dressé,
+      // main derrière la tête. La droite du perso est -X.
+      this.point(armR, foreR, this.vd.set(-1, 0.45, -0.45), this.cockW);
+      this.point(foreR, this.bones.hand, this.vd.set(-0.15, 1, -0.35), this.cockW);
     }
     if (this.raiseW > 0.01) {
       this.rot(armL, MX, -ANIM.bouclier.leve * this.raiseW);
@@ -573,6 +608,12 @@ export class FighterAnimator {
     // Fouet du coup reçu : le haut du corps part dans le sens du recul, puis revient.
     this.whipF.step(dt, 260, 14);
     this.whipS.step(dt, 260, 14);
+    this.twist.step(dt, 260, 14);
+    if (Math.abs(this.twist.x) > 1e-4) {
+      this.rot(spine, MY, this.twist.x * 0.4);
+      this.rot(chest, MY, this.twist.x * 0.4);
+      this.rot(head, MY, this.twist.x * 0.3);
+    }
     if (Math.abs(this.whipF.x) + Math.abs(this.whipS.x) > 1e-4) {
       // pencher vers +Z = rotation autour de +X ; vers +X = rotation autour de -Z
       this.rot(spine, MX, this.whipF.x * 0.35);
@@ -599,12 +640,27 @@ export class FighterAnimator {
       this.rot(armR, MZ, -0.6);
     }
 
+    // Victoire : bras en V au-dessus de la tête qui pompent, tête levée vers le ciel.
+    this.victoryW += (p.victory - this.victoryW) * Math.min(1, dt * 8);
+    if (this.victoryW > 0.01) {
+      const pump = Math.sin(t * Math.PI * 2 * ANIM.victoire.hz) * ANIM.victoire.pompe;
+      const up = Math.cos(pump), out = 0.55 + Math.sin(pump) * 0.4;
+      this.point(armL, foreL, this.vd.set(out, up, 0.1), this.victoryW);
+      this.point(foreL, handL, this.vd.set(out * 0.6, 1, 0.1), this.victoryW);
+      this.point(armR, foreR, this.vd.set(-out, up, 0.1), this.victoryW);
+      this.point(foreR, this.bones.hand, this.vd.set(-out * 0.6, 1, 0.1), this.victoryW);
+      this.rot(head, MX, -ANIM.victoire.tete * this.victoryW);
+      this.rot(spine, MX, -ANIM.lancer.cambre * this.victoryW);
+    }
+
     // Accroché au bord : bras tendus au-dessus de la tête, corps qui se balance.
     if (p.hang) {
       const swing = Math.sin(t * 2.4) * ANIM.accroche.balancement;
       this.rot(spine, MX, swing);
-      this.rot(armL, MX, -ANIM.accroche.bras);
-      this.rot(armR, MX, -ANIM.accroche.bras);
+      this.point(armL, foreL, this.vd.set(0.25, 1, 0.25), 1);
+      this.point(foreL, handL, this.vd.set(0.15, 1, 0.3), 1);
+      this.point(armR, foreR, this.vd.set(-0.25, 1, 0.25), 1);
+      this.point(foreR, this.bones.hand, this.vd.set(-0.15, 1, 0.3), 1);
       this.rot(head, MX, -0.35);
     }
   }
