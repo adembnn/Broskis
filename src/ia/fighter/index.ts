@@ -27,11 +27,12 @@ const SCAN_FIGHTER_TIMEOUT_MS = 25_000;
  *  23 s chacun) ; un portrait tardif est posé sur le perso, même en plein match (`fighter:portrait`). */
 const PORTRAIT_REQUEST_MS = 75_000;
 
-/** Portrait arrivé après le délai d'écran : complète LE MÊME FighterDef (déjà dans l'état du match) et prévient la scène. */
-function portraitTardif(fighter: FighterDef, faceUrl: string): void {
-  fighter.portraitUrl = faceUrl;
-  if (fighter.look) fighter.look.faceUrl = faceUrl;
-  getRuntimeCtx()?.bus.emit('fighter:portrait', { fighterId: fighter.id, faceUrl });
+/** Portrait arrivé après le délai d'écran : complète LE MÊME FighterDef (déjà dans l'état du match) et prévient la scène.
+ * La planche est découpée d'abord : la face ET le dos de la tête arrivent ensemble (lot LFACE). */
+function portraitTardif(fighter: FighterDef, planche: string): void {
+  void appliquerPortrait(fighter, planche).then(() => {
+    getRuntimeCtx()?.bus.emit('fighter:portrait', { fighterId: fighter.id, faceUrl: fighter.portraitUrl ?? planche, backUrl: fighter.look?.backUrl });
+  });
 }
 
 interface ScanFighterApiResult {
