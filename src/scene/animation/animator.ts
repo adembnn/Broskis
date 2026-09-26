@@ -644,11 +644,12 @@ export class FighterAnimator {
     this.victoryW += (p.victory - this.victoryW) * Math.min(1, dt * 8);
     if (this.victoryW > 0.01) {
       const pump = Math.sin(t * Math.PI * 2 * ANIM.victoire.hz) * ANIM.victoire.pompe;
-      const up = Math.cos(pump), out = 0.55 + Math.sin(pump) * 0.4;
-      this.point(armL, foreL, this.vd.set(out, up, 0.1), this.victoryW);
-      this.point(foreL, handL, this.vd.set(out * 0.6, 1, 0.1), this.victoryW);
-      this.point(armR, foreR, this.vd.set(-out, up, 0.1), this.victoryW);
-      this.point(foreR, this.bones.hand, this.vd.set(-out * 0.6, 1, 0.1), this.victoryW);
+      // bras grands ouverts (un V trop fermé disparaît derrière la grosse tête des persos chibi), poings qui pompent
+      const up = 0.7 + Math.sin(pump) * 1.4, out = 1;
+      this.point(armL, foreL, this.vd.set(out, up, 0.2), this.victoryW);
+      this.point(foreL, handL, this.vd.set(0.35, 1, 0.3), this.victoryW);
+      this.point(armR, foreR, this.vd.set(-out, up, 0.2), this.victoryW);
+      this.point(foreR, this.bones.hand, this.vd.set(-0.35, 1, 0.3), this.victoryW);
       this.rot(head, MX, -ANIM.victoire.tete * this.victoryW);
       this.rot(spine, MX, -ANIM.lancer.cambre * this.victoryW);
     }
