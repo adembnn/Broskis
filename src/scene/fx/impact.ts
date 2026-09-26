@@ -6,6 +6,7 @@ import type { PlayerId } from '../../core/types';
 import { LOCAL_TOKENS } from '../localTokens';
 import { getFighterObject } from '../api';
 import { excludeFromOcclusion } from '../registry';
+import { TEXTURE_VIDE } from '../../core/shaders';
 
 // ---------------------------------------------------------------------------
 // Flash blanc (en fait palette.lumiere : "seul à franchir le bloom") sur la cible touchée.
@@ -78,7 +79,8 @@ export function installImpactFx(scene: THREE.Scene): ImpactFx {
   }
 
   const spritePool: DamageSprite[] = [];
-  const spriteMat = () => new THREE.SpriteMaterial({ transparent: true, depthWrite: false });
+  // perf : map posée dès la création (LPERF) : le shader « avec image » est compilé par la préchauffe, pas au 1er coup.
+  const spriteMat = () => new THREE.SpriteMaterial({ map: TEXTURE_VIDE, transparent: true, depthWrite: false });
 
   function hitFlash(player: PlayerId): void {
     const root = getFighterObject(player);
