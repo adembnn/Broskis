@@ -75,6 +75,7 @@ export const LUX_CSS = `
 .weapon-card.reveal-size { width:min(var(--b-card-w), calc((100vh - 330px) * 5 / 7)); }
 .reveal-subtitle { margin:6px auto; max-width:52ch; font-size:clamp(15px, 2.3vh, 22px); }
 .reveal-footer { gap:10px; }
+.reveal-kicker.p2 { color:var(--b-p2-fonce); }
 
 /* ---------- Carte d'arme : le sticker à la place du pictogramme ---------- */
 .wc-category { display:inline-flex; align-items:center; gap:4px; text-transform:uppercase; }
@@ -220,7 +221,8 @@ export const LUX_CSS = `
 .help-turn { padding:5px 12px; font:400 .95em/1 var(--b-display); color:var(--b-vinyle); background:var(--b-p1); border:2px solid var(--b-encre);
   border-radius:999px; -webkit-text-stroke:0; }
 .help-bar.p2 .help-turn { background:var(--b-p2); }
-.cat-tag.does { text-transform:none; letter-spacing:0; font-size:13px; }
+.cat-tag.does { text-transform:none; letter-spacing:0; font-size:clamp(13px, 1.8vh, 19px); }
+.cat-tag.does .cat-badge { width:1.6em; height:1.6em; min-width:1.6em; }
 
 /* ---------- Provocation de l'IA (gameplay/ai/taunt-bubble.ts) : petite bulle discrète au-dessus du perso ---------- */
 .taunt-bubble { position:fixed; z-index:4; max-width:240px; padding:5px 10px; pointer-events:none; font:800 15px/1.2 var(--b-body); color:var(--b-encre);
@@ -228,14 +230,14 @@ export const LUX_CSS = `
   display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 
 /* ---------- Tutoriel du premier match : une bulle à la fois, toujours « Skip » ---------- */
-.tuto { position:absolute; left:50%; top:7vh; z-index:12; transform:translateX(-50%); display:grid; justify-items:center; gap:8px;
-  max-width:min(760px, 92vw); padding:12px 22px 12px; pointer-events:auto; text-align:center; background:var(--b-vinyle);
+.tuto { position:absolute; left:50%; top:7vh; z-index:12; translate:-50% 0; display:grid; justify-items:center; gap:8px;
+  max-width:min(760px, 92vw); padding:12px 22px 12px; pointer-events:none; text-align:center; background:var(--b-vinyle);
   border:var(--b-trait) solid var(--b-encre); border-radius:18px; box-shadow:var(--b-sticker-shadow); animation:stickerIn var(--b-t-snap) var(--b-claque); }
 .tuto-head { display:flex; align-items:center; gap:10px; }
 .tuto-step { padding:2px 9px; font:800 15px/1.3 var(--b-body); background:var(--b-alerte); border:2px solid var(--b-encre); border-radius:999px; }
 .tuto-title { font:400 clamp(26px, 4.4vh, 44px)/1 var(--b-display); }
 .tuto-body { font:800 clamp(18px, 2.8vh, 28px)/1.2 var(--b-body); }
-.tuto-skip { font-size:14px; padding:4px 12px; }
+.tuto-skip { font-size:14px; padding:4px 12px; pointer-events:auto; }
 .tuto.defend-tip { top:7vh; }
 
 /* ---------- Choix des persos façon Smash : grille de portraits + encarts P1/P2 ---------- */
@@ -304,7 +306,39 @@ export const LUX_CSS = `
 .end-mvp-total { font-weight:800; }
 .end-actions .b-btn.cta .key { font-size:.8em; margin-right:.3em; }
 
-/* ---------- Bandeaux existants : plus gros, lisibles de loin ---------- */
+/* ---------- Écran-titre : logo sticker, une phrase, les vraies armes collées autour ---------- */
+.title-screen { overflow:hidden; }
+.title-screen .b-card.title-card { position:relative; z-index:1; width:auto; max-width:92vw; overflow:visible; background:none; border:none; box-shadow:none; padding:0; }
+.title-screen .title-logo { margin:0 0 .12em; font-size:clamp(110px, 25vh, 260px); line-height:.9; color:var(--b-alerte);
+  -webkit-text-stroke:calc(var(--b-contour-grand) * 1.6) var(--b-encre); paint-order:stroke fill; text-shadow:0 .06em 0 var(--b-encre);
+  transform:rotate(-4deg); animation:slam var(--b-t-glisse) var(--b-claque) both; }
+.title-tagline { display:inline-block; margin:0 0 26px; padding:8px 20px; font:800 clamp(20px, 3.4vh, 34px)/1.2 var(--b-body); background:var(--b-papier);
+  border:var(--b-trait) solid var(--b-encre); border-radius:12px; box-shadow:0 5px 0 var(--b-encre); transform:rotate(1.5deg); }
+.title-actions { display:flex; justify-content:center; align-items:center; gap:16px; flex-wrap:wrap; }
+.title-play { display:grid; justify-items:center; gap:2px; padding:12px 44px 10px; }
+.title-play-main { font:400 clamp(40px, 7vh, 64px)/1 var(--b-display); }
+.title-play-sub { font:800 15px/1.2 var(--b-body); }
+.diff-label { font:400 24px/1 var(--b-display); }
+.diff-btn.hardcore { background:var(--b-encre); color:var(--b-vinyle); }
+.title-scandex { margin-top:14px; }
+.title-stickers { position:absolute; inset:0; pointer-events:none; }
+.title-sticker { position:absolute; width:clamp(110px, 20vh, 210px); height:clamp(90px, 16vh, 170px);
+  transform:translate(-50%, -50%) rotate(var(--r, 0deg)); animation:stickerDrop 420ms var(--b-claque) both; }
+@keyframes stickerDrop { from { transform:translate(-50%, -50%) rotate(var(--r, 0deg)) scale(1.7); opacity:0; } to { transform:translate(-50%, -50%) rotate(var(--r, 0deg)) scale(1); opacity:1; } }
+
+/* ---------- Choix de l'arène : grandes vignettes peintes ---------- */
+.map-card { width:min(1100px, 100%); }
+.map-grid { grid-template-columns:repeat(3, minmax(0, 1fr)); gap:22px; }
+.map-tile { display:grid; gap:8px; padding:10px 10px 12px; text-align:left; }
+.map-thumb { aspect-ratio:16 / 9; overflow:hidden; border:var(--b-trait) solid var(--b-encre); border-radius:10px; }
+.map-thumb svg { width:100%; height:100%; }
+.map-tile-head { display:flex; align-items:center; gap:10px; }
+.map-tile-head .key { font-size:22px; }
+.map-tile-name { margin:0; font-size:clamp(20px, 3.2vh, 30px); }
+.map-tile-blurb { margin:0; font-size:clamp(13px, 1.9vh, 17px); }
+
+/* ---------- Bandeaux existants : centrés pour de bon, lisibles de loin ---------- */
+.center-banner { translate:-50% 0; }
 .center-banner.ko.p1 { background:var(--b-p1); }
 .center-banner.ko.p2 { background:var(--b-p2); }
 .floater.streak { color:var(--b-alerte); font-size:calc(var(--b-taille-degats) * .9); }
