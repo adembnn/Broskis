@@ -20,8 +20,13 @@ const CUT = opt('--cut', '60');
 const FPS = Number(opt('--fps', '30'));
 const WORKERS = Math.max(1, Number(opt('--workers', '3')));
 const OUT = resolve(ROOT, opt('--out', 'captures/trailer'));
-const WIDTH = 1920;
-const HEIGHT = 1080;
+const PX = opt('--px', ''); // brouillon : --px 0.5 (3D en demi-résolution)
+// Fenêtre 1280×720 rendue à ×1,5 : vraie image 1920×1080, mais bien moins chère à rendre et à capturer
+// qu'une fenêtre 1920×1080 à ×1 (mesuré : 0,77 s par image contre 1,46 s).
+const WIDTH = 1280;
+const HEIGHT = 720;
+const SCALE = 1.5;
+const SAMPLE = args.includes('--sample'); // planche seulement : l'image du milieu de chaque plan
 const PORT = 5173;
 const BASE = `http://localhost:${PORT}/`;
 
@@ -59,6 +64,18 @@ const browser = await chromium.launch({
   args: ['--ignore-gpu-blocklist', '--enable-webgl', '--use-angle=default', '--autoplay-policy=no-user-gesture-required'],
 });
 const initScript = readFileSync(join(HERE, 'virtual-time.js'), 'utf8');
+// ignoreHTTPSErrors : derrière un proxy d'entreprise/cloud, la police Google passe par un certificat maison.
+const CONTEXT = { viewport: { width: WIDTH, height: HEIGHT }, deviceScaleFactor: SCALE, ignoreHTTPSErrors: true };
+
+// Échauffement : au premier chargement, Vite pré-compile ses dépendances et invalide les onglets déjà ouverts
+// (erreur 504 « Outdated Optimize Dep »). Un seul onglet d'abord, jusqu'à ce que le jeu soit prêt.
+{
+  const warm = await browser.newContext(CONTEXT);
+  const p = await warm.newPage();
+  await p.goto(`${BASE}?demo=1&trailer=${CUT}&fps=${FPS}&shots=0-0`, { waitUntil: 'load', timeout: 90000 });
+  await p.waitForFunction(() => window.trailer?.ready === true, null, { timeout: 120000 }).catch(() => {});
+  await warm.close();
+}
 
 // Répartition : des paquets de plans contigus, équilibrés par nombre d'images.
 const wanted = plan.filter((s) => s.index >= firstShot && s.index <= lastShot);
@@ -78,13 +95,14 @@ const t0 = Date.now();
 let done = 0;
 
 async function runBatch(shots, n) {
-  const context = await browser.newContext({ viewport: { width: WIDTH, height: HEIGHT }, deviceScaleFactor: 1 });
+  const context = await browser.newContext(CONTEXT);
   await context.addInitScript(initScript);
   const page = await context.newPage();
+  const cdp = await context.newCDPSession(page);
   page.on('pageerror', (e) => console.error(`[onglet ${n}] ${e.message}`));
   page.on('console', (m) => { if (m.type() === 'error') console.error(`[onglet ${n}] ${m.text().slice(0, 300)}`); });
   const range = `${shots[0].index}-${shots[shots.length - 1].index}`;
-  await page.goto(`${BASE}?demo=1&trailer=${CUT}&fps=${FPS}&shots=${range}`, { waitUntil: 'load', timeout: 60000 });
+  await page.goto(`${BASE}?demo=1&trailer=${CUT}&fps=${FPS}&shots=${range}${PX ? `&px=${PX}` : ''}${SAMPLE ? '&sample=1' : ''}`, { waitUntil: 'load', timeout: 60000 });
   await page.waitForFunction(() => window.trailer?.ready === true, null, { timeout: 90000 });
   await page.evaluate(() => window.__vt.freeze());
   const step = 1000 / FPS;
@@ -95,7 +113,8 @@ async function runBatch(shots, n) {
       return { capture: t.capture, frame: t.frame, done: t.done };
     }, step);
     if (s.capture) {
-      await page.screenshot({ path: join(frameDir, `${String(s.frame).padStart(6, '0')}.jpg`), type: 'jpeg', quality: 93 });
+      const shot = await cdp.send('Page.captureScreenshot', { format: 'jpeg', quality: 93, optimizeForSpeed: true, clip: { x: 0, y: 0, width: WIDTH, height: HEIGHT, scale: SCALE } });
+      writeFileSync(join(frameDir, `${String(s.frame).padStart(6, '0')}.jpg`), Buffer.from(shot.data, 'base64'));
       done++;
       if (done % 30 === 0) {
         const el = (Date.now() - t0) / 1000;
@@ -115,6 +134,18 @@ try {
   server?.kill();
 }
 
+if (SAMPLE) {
+  const ffmpegS = findFfmpeg();
+  const files = readdirSync(frameDir).filter((f) => f.endsWith('.jpg')).sort();
+  const list = join(OUT, 'planche-liste.txt');
+  writeFileSync(list, files.map((f) => `file '${join(frameDir, f)}'`).join('\n'));
+  const cols = 6;
+  const rows = Math.ceil(files.length / cols);
+  const sheetPath = join(OUT, `planche-${CUT}-plans${firstShot}-${lastShot}.jpg`);
+  spawnSync(ffmpegS, ['-y', '-f', 'concat', '-safe', '0', '-i', list, '-vf', `scale=480:-1,tile=${cols}x${rows}:padding=4:color=black`, '-frames:v', '1', '-q:v', '3', sheetPath], { stdio: 'ignore' });
+  console.log(`Planche : ${sheetPath} (${files.length} plans)`);
+  process.exit(0);
+}
 events.sort((a, b) => a.frame - b.frame);
 writeFileSync(join(OUT, `events-${CUT}.json`), JSON.stringify({ fps: FPS, events }, null, 1));
 const got = readdirSync(frameDir).filter((f) => f.endsWith('.jpg')).length;

@@ -48,13 +48,30 @@ l'animateur Gradium + musique générée par code, mise en scène autorisée pou
 HOOK (0–1,8) → REVEAL IA (2,3–9,2 raccourci à 5 s) → 6 plans d'escalade de 0,46 s → sticker BROSKIS
 + « Snap anything. Fight with it. » (3 s tenus). La démo live enchaîne sur la vraie table d'objets.
 
-## Pipeline technique
+## Pipeline technique (en place, 26/09 15h30)
 
-1. `?trailer=1` (`src/trailer/`) : la timeline pilote la caméra Three.js (hors directeur de caméra du
-   jeu), les actions via `window.gameHooks`, et une couche HTML de textes/stickers.
-2. Horloge figée : `performance.now` et `requestAnimationFrame` remplacés, la page avance d'1/60 s à
-   la demande (`window.trailer.step()`), donc rendu déterministe même si le conteneur est lent.
-3. `tools/trailer/render.mjs` : Playwright capture chaque image en PNG, puis ffmpeg (binaire
-   `ffmpeg-static` installé hors dépôt, dans le scratch) encode en H.264 1080p60 et mixe musique
-   générée + voix `public/assets/voices/announcer/*.wav`.
-4. Validation : planche de 12 images → `directeur-artistique`, puis `critique-aaa` sur la vidéo.
+```bash
+# Rendu final (1080p, 30 i/s, ~25 min dans le conteneur cloud, bien moins sur un PC avec carte graphique)
+node tools/trailer/render.mjs --cut 60 --fps 30 --workers 3          # → captures/trailer/broskis-trailer-60.mp4
+node tools/trailer/render.mjs --cut 15 --fps 30 --workers 3          # → captures/trailer/broskis-trailer-15.mp4
+# Brouillon rapide (3D en demi-résolution) d'une partie des plans (index de timeline.js)
+node tools/trailer/render.mjs --cut 60 --px 0.5 --shots 8-20 --out captures/trailer-draft
+```
+Il faut ffmpeg : dans le PATH, ou `FFMPEG_PATH=/chemin/ffmpeg`, ou `npm i ffmpeg-static` dans un dossier hors dépôt.
+
+- `?demo=1&trailer=60` (`src/trailer/`) : `director.ts` enchaîne les plans de `timeline.js`, `shots.ts` joue le
+  VRAI gameplay (startMatch / aim / fire / parry sur les 8 armes-objets de `public/assets/presets/`), `cam.ts`
+  pose la caméra (FOV fixe 40°, aucun zoom), `overlay.ts` dessine les textes-stickers et le viseur.
+- `tools/trailer/virtual-time.js` fige l'horloge de la page (minuteries, requestAnimationFrame, animations CSS) :
+  chaque image est calculée exactement, même si le conteneur ne rend que 3 i/s.
+- `tools/trailer/render.mjs` : plusieurs onglets en parallèle, capture JPEG, encodage H.264 + planche contact.
+- `tools/trailer/music.mjs` : musique 130 BPM générée par code (vi–IV–I–V), bruitages posés sur les vrais
+  événements du rendu (tir, impact, parade, K.O., textes qui claquent), voix de l'animateur et réplique Gradium
+  de l'arme (`public/assets/presets/rubber-duck.wav`), musique baissée de 7 dB sous la voix.
+
+## Veille (changements du jeu qui touchent le trailer)
+- 15h20 · LDA2 (ciel physique `Sky`) : halo blanc face au soleil rasant → le trailer masque ce ciel (`?sky=1`
+  pour le garder). À corriger dans le jeu par le propriétaire du rendu.
+- 15h20 · Chaque projectile vole au moins 1,9 s (fenêtre de parade) et le 1er lancer déclenche un ralenti de
+  0,7 s : les plans calent le tir sur `impactAt − durée de vol`.
+- 15h20 · La fenêtre de parade désature l'écran (lot LK2) : gardé seulement sur le plan « Perfect parry! ».

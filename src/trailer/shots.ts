@@ -5,6 +5,7 @@ import type { MapId, PlayerId, Vec3 } from '../core/types';
 import { ensurePlayerBody, raycastDown } from '../gameplay/character';
 import { aimOrigin } from '../gameplay/projectiles';
 import { predictTrajectory } from '../gameplay/trajectory';
+import { CAMERA_SWING_MS, MIN_REMAINING_FLIGHT_MS, TRAIT_TUNING } from '../gameplay/tuning';
 import { makeSticker } from '../scene/sticker';
 import { clamp01, ease, handheld, impactShake, orbit, v3, type Pose } from './cam';
 import type { Env } from './director';
@@ -18,6 +19,8 @@ export interface Shot {
   settleMs?: number;
   /** false : plan 100 % couche 2D, la 3D n'est pas rendue. */
   showGame?: boolean;
+  /** Garde la désaturation de la fenêtre de parade (lot LK2) ; sinon l'image reste en couleurs. */
+  parryLook?: boolean;
   setup?(env: Env): void | Promise<void>;
   at?: [number, (env: Env) => void][];
   every?(env: Env, t: number): void;
@@ -75,6 +78,13 @@ function closeIn(env: Env, dist: number): void {
 }
 
 interface Aim { yaw: number; pitch: number; power: number; travel: number }
+
+/** Délai tir → impact tel que le jeu le programme (projectiles.ts : vol minimum pour laisser parer). */
+function screenFlight(travel: number, trait: string): number {
+  const raw = trait === 'heavy' ? travel / TRAIT_TUNING.heavy.speedMult : travel;
+  const total = Math.max(raw * 1000, CAMERA_SWING_MS + MIN_REMAINING_FLIGHT_MS) / 1000;
+  return total + (trait === 'sticky' ? TRAIT_TUNING.sticky.fuseMs / 1000 : 0);
+}
 
 /** Cherche un tir qui touche vraiment (même simulation que le jeu : predictTrajectory). */
 function solveAim(env: Env, shooter: PlayerId, arc: boolean): Aim {
@@ -140,7 +150,7 @@ const orbitOn = (o: { on?: 'd' | 'a' | 'mid'; r?: number; h?: number; a0?: numbe
   const base = o.on === 'a' ? f.a : o.on === 'mid' ? f.mid : (o.follow ? env.p(1) : f.d);
   const center = base.clone().add(v3(0, 1.0, 0));
   const sideAngle = THREE.MathUtils.radToDeg(Math.atan2(f.side.x, f.side.z));
-  const pose = orbit(center, o.r ?? 6, o.h ?? 1.4, sideAngle + (o.a0 ?? -40), sideAngle + (o.a1 ?? 40), ease.outCubic(clamp01(t / dur)));
+  const pose = orbit(center, Math.max(5.5, o.r ?? 6.5), Math.max(1.4, o.h ?? 1.8), sideAngle + (o.a0 ?? -40), sideAngle + (o.a1 ?? 40), ease.outCubic(clamp01(t / dur)));
   return withShake(pose, env, t, s);
 };
 
@@ -163,9 +173,9 @@ const shoulderPush = (o: { back?: number; side?: number; h?: number; push?: numb
 /** Contre-plongée près du défenseur, caméra penchée (roulis). */
 const lowDutch = (o: { roll?: number; dist?: number; slide?: number } = {}): CamFn => (env, t, dur, f, s) => {
   const k = ease.outCubic(clamp01(t / dur));
-  const pos = f.d.clone().addScaledVector(f.axis, -(o.dist ?? 3.2)).addScaledVector(f.side, 2.2 + (o.slide ?? 1.2) * k);
-  pos.y += 0.45;
-  const look = env.p(1).add(v3(0, 1.3, 0));
+  const pos = f.d.clone().addScaledVector(f.axis, -(o.dist ?? 4.2)).addScaledVector(f.side, 3.0 + (o.slide ?? 1.2) * k);
+  pos.y += 1.0;
+  const look = env.p(1).add(v3(0, 1.2, 0));
   return withShake({ pos, look, roll: (o.roll ?? 9) * (1 - 0.3 * k) }, env, t, s, 0.22);
 };
 
@@ -210,15 +220,17 @@ interface AttackSpec {
   freeze?: number;
   slowAfter?: number;
   seed?: number;
+  preroll?: number;
   overlay?: (env: Env, t: number, dur: number, s: DuelState) => void;
 }
 
 function attack(spec: AttackSpec): Shot {
-  const PREROLL = 3.4;
+  const PREROLL = spec.preroll ?? 3.4;
   const SETUP_T = -PREROLL + 1.15; // après le bandeau de tour (1 s) : phase « move »
   return {
     preroll: PREROLL,
     settleMs: 700,
+    parryLook: spec.parry,
     setup(env) {
       const ctx = env.ctx;
       const [fa, fd] = spec.fighters ?? ['knight', 'rogue_hooded'];
@@ -236,9 +248,9 @@ function attack(spec: AttackSpec): Shot {
         const aim = solveAim(env, 0, spec.arc ?? env.ctx.state.players[0].weapons[0].category === 'grenade');
         ctx.hooks.aim(aim.yaw, aim.pitch);
         const s = duelState(env);
-        s.travel = aim.travel;
+        s.travel = screenFlight(aim.travel, ctx.state.players[0].weapons[0].trait);
         env.scratch.aim = aim;
-        env.scratch.fireAt = Math.max(SETUP_T + 0.1, spec.impactAt - aim.travel);
+        env.scratch.fireAt = Math.max(SETUP_T + 0.1, spec.impactAt - s.travel);
         (window as unknown as { trailerDebug?: unknown }).trailerDebug = { aim, p0: env.p(0).toArray(), p1: env.p(1).toArray() };
         env.scratch.frame = duelFrame(env.p(0), env.p(1));
       }],
@@ -291,6 +303,14 @@ const stickerShot: Shot = {
     ctx.hooks.startMatch({ map: 'archipel', seed: 7, fighters: [env.fighter('knight'), env.fighter('rogue_hooded')], vsAI: false });
     const w = env.weapon('rubber-duck');
     stickerMesh = await makeSticker(w.stickerUrl!, { height: 2.6 });
+    stickerMesh.traverse((o) => {
+      const mat = (o as THREE.Mesh).material as THREE.MeshBasicMaterial | THREE.MeshBasicMaterial[] | undefined;
+      for (const m of Array.isArray(mat) ? mat : mat ? [mat] : []) {
+        if (m.color) m.color.multiplyScalar(0.6); // sous le seuil du bloom (sinon le jaune vire au blanc)
+        const e = (m as unknown as THREE.MeshStandardMaterial).emissive;
+        if (e) e.setScalar(0);
+      }
+    });
     const mid = env.p(0).lerp(env.p(1), 0.5);
     stickerMesh.position.set(mid.x, mid.y + 3.2, mid.z);
     ctx.three.scene.add(stickerMesh);
@@ -390,7 +410,7 @@ const K2 = ['knight', 'rogue_hooded'] as [string, string];
 const BM = ['barbarian', 'mage'] as [string, string];
 
 export const SHOTS: Record<string, Shot> = {
-  hook: attack({ map: 'archipel', weapon: 'banana', hp: 35, dist: 7, impactAt: 0.95, cam: sideTrack({ from: -0.45, to: 0.35, h: 1.6 }), seed: 11 }),
+  hook: attack({ map: 'archipel', weapon: 'banana', hp: 35, dist: 7, impactAt: 0.62, cam: sideTrack({ from: 0.05, to: 0.5, h: 1.5, dist: -5.4 }), seed: 11 }),
   black,
   silence: black,
   'black-end': black,
@@ -404,41 +424,41 @@ export const SHOTS: Record<string, Shot> = {
   fighter: fighterShot,
   'title-lock': titleLock,
   // Montage (4 temps) : une arme différente par plan.
-  m1: attack({ map: 'archipel', weapon: 'baguette', fighters: K2, hp: 70, dist: 7, impactAt: 0.9, cam: sideTrack({ from: -0.4, to: 0.1, dist: 8, h: 1.2 }), seed: 21 }),
-  m2: attack({ map: 'cuisine', weapon: 'smartphone', fighters: BM, hp: 60, impactAt: 1.1, arc: true, cam: crane({ y0: 0.6, y1: 5.5, dist: 9 }), seed: 22 }),
+  m1: attack({ map: 'archipel', weapon: 'baguette', fighters: K2, hp: 100, dist: 7, impactAt: 0.9, cam: sideTrack({ from: -0.4, to: 0.1, dist: 8, h: 1.2 }), seed: 21 }),
+  m2: attack({ map: 'cuisine', weapon: 'smartphone', fighters: BM, hp: 100, impactAt: 1.1, arc: true, cam: crane({ y0: 3, y1: 8, dist: 12 }), seed: 22 }),
   m3: attack({
     map: 'archipel', weapon: 'garden-gnome', fighters: K2, hp: 80, dist: 6, impactAt: 0.95, parry: true, cam: lowDutch({ roll: -8 }), seed: 23,
     overlay: (env, t, _d, s) => { if (s.tFire != null) env.o.slam('Perfect *parry!*', t - (s.tFire + s.travel), { y: -0.6, size: 120, tilt: -4 }); },
   }),
-  m4: attack({ map: 'galion', weapon: 'stapler', fighters: K2, hp: 65, dist: 7.5, impactAt: 0.85, cam: shoulderPush(), seed: 24 }),
-  m5: attack({ map: 'galion', weapon: 'rubber-duck', fighters: BM, hp: 55, impactAt: 1.2, arc: true, cam: orbitOn({ on: 'mid', r: 10, h: 3, a0: -30, a1: 25 }), seed: 25 }),
-  m6: attack({ map: 'cuisine', weapon: 'banana', fighters: K2, hp: 50, dist: 6, impactAt: 0.8, cam: whip({ dist: 6 }), seed: 26 }),
-  m7: attack({ map: 'archipel', weapon: 'frying-pan', fighters: BM, hp: 60, impactAt: 0.9, cam: orbitOn({ on: 'a', r: 5, h: 1.2, a0: 20, a1: -40 }), seed: 27 }),
-  m8: attack({ map: 'galion', weapon: 'garden-gnome', fighters: K2, hp: 45, dist: 6, impactAt: 0.85, cam: sideTrack({ from: 0.3, to: -0.2, dist: 7, h: 2.6 }), seed: 28 }),
+  m4: attack({ map: 'archipel', weapon: 'stapler', fighters: K2, hp: 100, dist: 7.5, impactAt: 0.85, cam: shoulderPush(), seed: 24 }),
+  m5: attack({ map: 'galion', weapon: 'rubber-duck', fighters: BM, hp: 100, impactAt: 1.2, arc: true, cam: orbitOn({ on: 'mid', r: 10, h: 3, a0: -30, a1: 25 }), seed: 25 }),
+  m6: attack({ map: 'archipel', weapon: 'banana', fighters: K2, hp: 100, dist: 6, impactAt: 0.8, cam: whip({ dist: 6 }), seed: 26 }),
+  m7: attack({ map: 'archipel', weapon: 'frying-pan', fighters: BM, hp: 100, impactAt: 0.9, cam: orbitOn({ on: 'a', r: 5, h: 1.2, a0: 20, a1: -40 }), seed: 27 }),
+  m8: attack({ map: 'galion', weapon: 'garden-gnome', fighters: K2, hp: 100, dist: 6, impactAt: 0.85, cam: crane({ y0: 2.5, y1: 7, dist: 10 }), seed: 28 }),
   // Escalade (2 temps) : impact tôt dans le plan, caméra différente à chaque coupe.
-  e1: attack({ map: 'cuisine', weapon: 'baguette', fighters: BM, hp: 40, dist: 6, impactAt: 0.35, cam: lowDutch({ roll: 10 }), seed: 31 }),
-  e2: attack({ map: 'archipel', weapon: 'smartphone', fighters: K2, hp: 40, impactAt: 0.4, arc: true, cam: orbitOn({ r: 6, a0: 40, a1: 80 }), seed: 32 }),
-  e3: attack({ map: 'galion', weapon: 'banana', fighters: K2, hp: 35, dist: 6, impactAt: 0.35, cam: shoulderPush({ back: 2.6 }), seed: 33 }),
-  e4: attack({ map: 'archipel', weapon: 'stapler', fighters: BM, hp: 40, dist: 6, impactAt: 0.35, cam: sideTrack({ dist: 6, h: 0.9 }), seed: 34 }),
-  e5: attack({ map: 'cuisine', weapon: 'garden-gnome', fighters: K2, hp: 35, dist: 6, impactAt: 0.3, cam: crane({ y0: 3, y1: 7, dist: 6 }), seed: 35 }),
-  e6: attack({ map: 'galion', weapon: 'rubber-duck', fighters: BM, hp: 40, impactAt: 0.35, arc: true, cam: lowDutch({ roll: -11 }), seed: 36 }),
-  e7: attack({ map: 'archipel', weapon: 'baguette', fighters: K2, hp: 40, dist: 6, impactAt: 0.3, cam: whip({ dist: 4.5 }), seed: 37 }),
-  e8: attack({ map: 'cuisine', weapon: 'smartphone', fighters: BM, hp: 35, impactAt: 0.35, arc: true, cam: orbitOn({ r: 5, a0: -60, a1: -20 }), seed: 38 }),
-  e9: attack({ map: 'galion', weapon: 'stapler', fighters: K2, hp: 35, dist: 6, impactAt: 0.3, cam: sideTrack({ dist: 5.5, h: 3.2, from: 0.2, to: 0.4 }), seed: 39 }),
-  e10: attack({ map: 'archipel', weapon: 'banana', fighters: BM, hp: 30, dist: 5, impactAt: 0.3, cam: lowDutch({ roll: 12 }), seed: 40 }),
-  e11: attack({ map: 'cuisine', weapon: 'garden-gnome', fighters: K2, hp: 30, dist: 6, impactAt: 0.3, cam: shoulderPush({ back: 2.4, side: -1.2 }), seed: 41 }),
-  e12: attack({ map: 'galion', weapon: 'baguette', fighters: BM, hp: 30, dist: 6, impactAt: 0.3, cam: orbitOn({ r: 4.5, a0: 60, a1: 100 }), seed: 42 }),
+  e1: attack({ map: 'archipel', weapon: 'baguette', fighters: BM, hp: 100, dist: 6, impactAt: 0.35, cam: lowDutch({ roll: 10 }), seed: 31 }),
+  e2: attack({ map: 'archipel', weapon: 'smartphone', fighters: K2, hp: 45, impactAt: 0.4, arc: true, cam: orbitOn({ r: 6, a0: 40, a1: 80 }), seed: 32 }),
+  e3: attack({ map: 'archipel', weapon: 'banana', fighters: K2, hp: 100, dist: 6, impactAt: 0.35, cam: shoulderPush({ back: 2.6 }), seed: 33 }),
+  e4: attack({ map: 'archipel', weapon: 'stapler', fighters: BM, hp: 100, dist: 6, impactAt: 0.35, cam: sideTrack({ dist: 6, h: 0.9 }), seed: 34 }),
+  e5: attack({ map: 'archipel', weapon: 'garden-gnome', fighters: K2, hp: 45, dist: 6, impactAt: 0.3, cam: crane({ y0: 3, y1: 7, dist: 6 }), seed: 35 }),
+  e6: attack({ map: 'archipel', weapon: 'rubber-duck', fighters: BM, hp: 100, impactAt: 0.35, arc: true, cam: lowDutch({ roll: -11 }), seed: 36 }),
+  e7: attack({ map: 'archipel', weapon: 'baguette', fighters: K2, hp: 100, dist: 6, impactAt: 0.3, cam: whip({ dist: 4.5 }), seed: 37 }),
+  e8: attack({ map: 'archipel', weapon: 'smartphone', fighters: BM, hp: 45, impactAt: 0.35, arc: true, cam: orbitOn({ r: 5, a0: -60, a1: -20 }), seed: 38 }),
+  e9: attack({ map: 'archipel', weapon: 'stapler', fighters: K2, hp: 100, dist: 6, impactAt: 0.3, cam: sideTrack({ dist: 5.5, h: 3.2, from: 0.2, to: 0.4 }), seed: 39 }),
+  e10: attack({ map: 'archipel', weapon: 'banana', fighters: BM, hp: 45, dist: 5, impactAt: 0.3, cam: lowDutch({ roll: 12 }), seed: 40 }),
+  e11: attack({ map: 'archipel', weapon: 'garden-gnome', fighters: K2, hp: 100, dist: 6, impactAt: 0.3, cam: shoulderPush({ back: 2.4, side: -1.2 }), seed: 41 }),
+  e12: attack({ map: 'archipel', weapon: 'baguette', fighters: BM, hp: 45, dist: 6, impactAt: 0.3, cam: orbitOn({ r: 4.5, a0: 60, a1: 100 }), seed: 42 }),
   // Frappes (1 temps) : l'impact tombe presque sur la coupe.
-  f1: attack({ map: 'archipel', weapon: 'garden-gnome', fighters: K2, hp: 25, dist: 5, impactAt: 0.12, cam: lowDutch({ roll: 14, dist: 2.6 }), seed: 51 }),
-  f2: attack({ map: 'galion', weapon: 'banana', fighters: BM, hp: 25, dist: 5, impactAt: 0.12, cam: orbitOn({ r: 4, a0: -90, a1: -70 }), seed: 52 }),
-  f3: attack({ map: 'cuisine', weapon: 'stapler', fighters: K2, hp: 25, dist: 5, impactAt: 0.12, cam: lowDutch({ roll: -14, dist: 2.6 }), seed: 53 }),
-  f4: attack({ map: 'archipel', weapon: 'baguette', fighters: BM, hp: 25, dist: 5, impactAt: 0.12, cam: orbitOn({ r: 4, a0: 70, a1: 90 }), seed: 54 }),
+  f1: attack({ map: 'archipel', weapon: 'garden-gnome', fighters: K2, hp: 45, dist: 5, impactAt: 0.12, cam: lowDutch({ roll: 14, dist: 2.6 }), seed: 51 }),
+  f2: attack({ map: 'archipel', weapon: 'banana', fighters: BM, hp: 100, dist: 5, impactAt: 0.12, cam: orbitOn({ r: 4, a0: -90, a1: -70 }), seed: 52 }),
+  f3: attack({ map: 'archipel', weapon: 'stapler', fighters: K2, hp: 45, dist: 5, impactAt: 0.12, cam: lowDutch({ roll: -14, dist: 2.6 }), seed: 53 }),
+  f4: attack({ map: 'archipel', weapon: 'baguette', fighters: BM, hp: 100, dist: 5, impactAt: 0.12, cam: orbitOn({ r: 4, a0: 70, a1: 90 }), seed: 54 }),
   climax: attack({
     map: 'archipel', weapon: 'garden-gnome', fighters: K2, hp: 3, dist: 7, impactAt: 0.75, freeze: 0.5, slowAfter: 0.35, cam: koFollow, seed: 61,
     overlay: (env, t, _d, s) => { if (s.tHit != null) env.o.callout('GNOME WRECKER', 'THROWABLE · HEAVY · REAL GARDEN GNOME', t - s.tHit); },
   }),
   ko: attack({
-    map: 'archipel', weapon: 'garden-gnome', fighters: K2, hp: 3, dist: 7, impactAt: -1.6, seed: 61,
+    map: 'archipel', weapon: 'garden-gnome', fighters: K2, hp: 3, dist: 7, impactAt: -1.6, seed: 61, preroll: 6.5,
     cam: (_env, t, dur, f) => {
       const c = f.a.clone().add(v3(0, 1.1, 0));
       const sideAngle = THREE.MathUtils.radToDeg(Math.atan2(f.side.x, f.side.z));

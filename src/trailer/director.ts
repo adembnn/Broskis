@@ -45,6 +45,9 @@ export async function startTrailer(ctx: Ctx, opts: { cut: string; fps: number; s
   window.trailer = api;
 
   ctx.three.uiRoot.style.visibility = 'hidden'; // l'interface du jeu est remplacée par la couche du trailer
+  // Brouillon : `&px=0.5` rend la 3D en moitié de résolution (bien plus rapide), la couche 2D reste nette.
+  const px = Number(new URLSearchParams(location.search).get('px'));
+  if (px > 0) { ctx.three.renderer.setPixelRatio(px); window.dispatchEvent(new Event('resize')); }
   const o = createOverlay();
   o.onCue = (name) => { if (shot && local >= 0) api.events.push({ frame: todo[si].start + local, name }); };
 
@@ -95,10 +98,9 @@ export async function startTrailer(ctx: Ctx, opts: { cut: string; fps: number; s
 
   // Pas de rendu 3D pendant le pré-roulage ni derrière un plan 100 % couche 2D : c'est le poste le plus cher.
   const render = ctx.three.render;
-  ctx.three.render = () => {
-    if (!shot || local < 0 || shot.showGame === false) return;
-    render();
-  };
+  let renderThis = false;
+  ctx.three.render = () => { if (renderThis) render(); };
+  const sample = new URLSearchParams(location.search).get('sample') === '1';
 
   function begin(): void {
     const p = todo[si];
@@ -119,12 +121,23 @@ export async function startTrailer(ctx: Ctx, opts: { cut: string; fps: number; s
     }) : null;
   }
 
+  // Le ciel physique (three/addons Sky, lot LDA2) sature en blanc face au soleil rasant : masqué dans le
+  // trailer, le fond retombe sur la couleur de brouillard de la map (tokens `maps.*.ciel`). `?sky=1` le garde.
+  const keepSky = new URLSearchParams(location.search).get('sky') === '1';
+  const skies: THREE.Object3D[] = [];
+  ctx.three.scene.traverse((obj) => {
+    const mat = (obj as THREE.Mesh).material as THREE.ShaderMaterial | undefined;
+    if (mat && !Array.isArray(mat) && mat.uniforms && 'sunPosition' in mat.uniforms) skies.push(obj);
+  });
+
   function frame(): void {
-    if (api.done) { api.capture = false; return; }
+    if (!keepSky) for (const s of skies) s.visible = false;
+    if (!shot?.parryLook) { ctx.three.canvas.style.transition = 'none'; ctx.three.canvas.style.filter = 'none'; }
+    if (api.done) { api.capture = false; renderThis = false; return; }
     if (!shot) begin();
     if (!shot) return;
     // Préparation : on attend la fin du setup (chargements réels) avant de faire courir le pré-roulage.
-    if (setupPending || (waitingUntilReal && (window.__vt?.realNow() ?? 0) < waitingUntilReal)) { api.capture = false; return; }
+    if (setupPending || (waitingUntilReal && (window.__vt?.realNow() ?? 0) < waitingUntilReal)) { api.capture = false; renderThis = false; return; }
     const t = localT();
     shot.at?.forEach(([at, fn], i) => {
       if (!actionsDone.has(i) && t >= at) { actionsDone.add(i); try { fn(env); } catch (e) { console.error(`[trailer] ${todo[si].id}`, e); } }
@@ -137,11 +150,12 @@ export async function startTrailer(ctx: Ctx, opts: { cut: string; fps: number; s
     o.reset();
     if (local >= 0) {
       shot.overlay?.(env, t, dur);
-      api.capture = true;
+      api.capture = !sample || local === Math.floor((p.end - p.start) / 2);
       api.frame = p.start + local;
     } else {
       api.capture = false;
     }
+    renderThis = api.capture && shot.showGame !== false;
     local++;
     if (local >= 0 && p.start + local >= p.end) {
       // Dernière image de ce plan : elle est capturée après ce rendu, puis on passe au suivant.

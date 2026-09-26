@@ -229,6 +229,7 @@ function playSection(music, fx, kind, b0, beats, cutEndBeat) {
 const VOICE = {
   hook: ['voices/announcer/crit-1.wav', 'hit'],
   card: ['presets/rubber-duck.wav', 'start'],
+  fighter: ['voices/barbarian/taunt_turn-1.wav', 'start'],
   m3: ['voices/announcer/perfect-1.wav', 'parry:result'],
   climax: ['voices/announcer/ko-1.wav', 'ko'],
   ko: ['voices/announcer/victory-1.wav', 'start'],
@@ -256,7 +257,7 @@ export function renderSoundtrack({ cut, fps, events, out, fromFrame = 0, toFrame
     if (e.name === 'fire' && !seenFire.has(`${s?.id}`)) { seenFire.add(`${s?.id}`); whoosh(fx, t, 0.7); }
     else if (e.name === 'hit') impact(fx, t, d.crit ? 1 : 0.8, false);
     else if (e.name === 'parry:result' && d.grade === 'perfect') ting(fx, t, 1);
-    else if (e.name === 'ko') impact(fx, t, 1, true);
+    else if (e.name === 'ko') impact(fx, t, 1, ['hook', 'climax', 'ko'].includes(s?.id));
     else if (e.name === 'shield:placed') impact(fx, t, 0.5, false);
     else if (e.name === 'ui:slam' || e.name === 'ui:logo' || e.name === 'ui:sticker' || e.name === 'ui:callout') slap(fx, t, e.name === 'ui:logo' ? 1.3 : 0.9);
     else if (e.name === 'ui:flash') shutter(fx, t, 1);

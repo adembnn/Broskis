@@ -104,6 +104,10 @@ export function createOverlay(): Overlay {
   const root = document.createElement('div');
   root.id = 'trailer';
   document.body.appendChild(root);
+  // Tout est dessiné pour 1920 px de large : on met à l'échelle de la fenêtre réelle (rendu en 1280 × 1,5).
+  const fit = () => { root.style.setProperty('zoom', String(window.innerWidth / 1920)); };
+  fit();
+  window.addEventListener('resize', fit);
 
   const paperEl = el('div', 'tr-full', root);
   css(paperEl, { background: palette.fond });
@@ -228,7 +232,7 @@ export function createOverlay(): Overlay {
       }
       const flip = ease.outBack(clamp01(u / 0.45), 1.3);
       const slide = u * 90; // travelling latéral continu
-      css(cardWrap, { transform: `translate(-50%, -50%) translateX(${120 - slide}px) scale(1.55)` });
+      css(cardWrap, { transform: `translate(-50%, -50%) translate(${200 - slide}px, 20px) scale(1.7)` });
       if (cardInner) css(cardInner, { transform: `rotateY(${(1 - flip) * 180}deg) rotateZ(${-3 + (1 - flip) * 8}deg)`, 'transform-style': 'preserve-3d' });
     },
 
