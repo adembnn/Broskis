@@ -1,0 +1,272 @@
+{
+ "lot": "LKIT",
+ "genere": "2026-09-26T12:42",
+ "unites": "mètres, Y vers le haut ; ancre = centre du dessus marchable à y = 0 (sauf mention « ancre » dans la pièce)",
+ "chargement": "GLTFLoader.setMeshoptDecoder(MeshoptDecoder) (EXT_meshopt_compression + KHR_mesh_quantization, déjà géré par src/scene/maps/loader.ts)",
+ "matiere": {
+  "nom": "arena_kit",
+  "type": "MeshStandardMaterial",
+  "vertexColors": true,
+  "roughness": 0.85,
+  "metalness": 0,
+  "note": "toute la couleur et l'occlusion ambiante sont dans COLOR_0 ; ne pas re-teinter (grade {} ou saturation 1)"
+ },
+ "regenerer": "node tools/assets/build-kit.mjs",
+ "pieces": [
+  {
+   "role": "plateau",
+   "variante": "herbe et pierre",
+   "map": "archipel",
+   "surface": {
+    "forme": "superellipse",
+    "demiX": 9.5,
+    "demiZ": 7.5,
+    "exposant": 2.6,
+    "y": 0,
+    "liseré": 0.75
+   },
+   "collider": {
+    "type": "cylindre ou convexe du contour",
+    "conseil": "box hx 9.2 hy 0.25 hz 7.2 centrée y=-0.25, ou trimesh du dessus"
+   },
+   "usage": "Plateau principal flottant façon Battlefield : dessus d'herbe net, liseré de pierres claires = bord du vide.",
+   "nom": "plateau_pierre",
+   "fichier": "plateau_pierre.glb",
+   "boite": {
+    "min": [
+     -9.544,
+     -6.6,
+     -7.55
+    ],
+    "max": [
+     9.55,
+     0.067,
+     7.55
+    ],
+    "taille": [
+     19.094,
+     6.667,
+     15.099
+    ]
+   },
+   "trianglesSource": 2709,
+   "triangles": 2709,
+   "ko": 39.4
+  },
+  {
+   "role": "plateforme",
+   "variante": "herbe et pierre",
+   "map": "archipel",
+   "surface": {
+    "forme": "rectangle arrondi",
+    "demiX": 3.1,
+    "demiZ": 1.4,
+    "y": 0
+   },
+   "collider": {
+    "type": "box traversable par le dessous (one-way)",
+    "conseil": "box hx 3.05 hy 0.15 hz 1.35 centrée y=-0.15"
+   },
+   "usage": "Plateforme flottante fine (2,2 à 2,8 m au-dessus du plateau), traversable en sautant.",
+   "nom": "plateforme_L",
+   "fichier": "plateforme_L.glb",
+   "boite": {
+    "min": [
+     -3.14,
+     -1.15,
+     -1.44
+    ],
+    "max": [
+     3.14,
+     0.057,
+     1.44
+    ],
+    "taille": [
+     6.28,
+     1.207,
+     2.88
+    ]
+   },
+   "trianglesSource": 954,
+   "triangles": 954,
+   "ko": 16
+  },
+  {
+   "role": "plateforme",
+   "variante": "herbe et pierre",
+   "map": "archipel",
+   "surface": {
+    "forme": "rectangle arrondi",
+    "demiX": 2.3,
+    "demiZ": 1.2,
+    "y": 0
+   },
+   "collider": {
+    "type": "box traversable par le dessous (one-way)",
+    "conseil": "box hx 2.25 hy 0.15 hz 1.15 centrée y=-0.15"
+   },
+   "usage": "Plateforme flottante fine (2,2 à 2,8 m au-dessus du plateau), traversable en sautant.",
+   "nom": "plateforme_M",
+   "fichier": "plateforme_M.glb",
+   "boite": {
+    "min": [
+     -2.34,
+     -1.05,
+     -1.24
+    ],
+    "max": [
+     2.34,
+     0.058,
+     1.24
+    ],
+    "taille": [
+     4.68,
+     1.108,
+     2.48
+    ]
+   },
+   "trianglesSource": 864,
+   "triangles": 864,
+   "ko": 14.6
+  },
+  {
+   "role": "plateforme",
+   "variante": "herbe et pierre",
+   "map": "archipel",
+   "surface": {
+    "forme": "rectangle arrondi",
+    "demiX": 1.6,
+    "demiZ": 1,
+    "y": 0
+   },
+   "collider": {
+    "type": "box traversable par le dessous (one-way)",
+    "conseil": "box hx 1.55 hy 0.15 hz 0.95 centrée y=-0.15"
+   },
+   "usage": "Plateforme flottante fine (2,2 à 2,8 m au-dessus du plateau), traversable en sautant.",
+   "nom": "plateforme_S",
+   "fichier": "plateforme_S.glb",
+   "boite": {
+    "min": [
+     -1.616,
+     -0.95,
+     -1.04
+    ],
+    "max": [
+     1.64,
+     0.052,
+     1.04
+    ],
+    "taille": [
+     3.256,
+     1.002,
+     2.08
+    ]
+   },
+   "trianglesSource": 702,
+   "triangles": 702,
+   "ko": 12.4
+  },
+  {
+   "role": "bord",
+   "variante": "pierre",
+   "map": "toutes",
+   "surface": {
+    "forme": "segment droit",
+    "longueur": 2,
+    "largeur": 0.75,
+    "y": 0.05
+   },
+   "ancre": "milieu de l'arête extérieure, dessus à y=0 ; le vide est côté -Z",
+   "collider": {
+    "type": "aucun (visuel)",
+    "conseil": "garder le collider du sol existant"
+   },
+   "usage": "Liseré clair à poser le long de n importe quel bord (tuiles hex, pont) pour montrer où commence le vide.",
+   "nom": "bord_pierre",
+   "fichier": "bord_pierre.glb",
+   "boite": {
+    "min": [
+     -0.983,
+     -0.3,
+     -0.05
+    ],
+    "max": [
+     0.983,
+     0.06,
+     0.75
+    ],
+    "taille": [
+     1.965,
+     0.36,
+     0.8
+    ]
+   },
+   "trianglesSource": 36,
+   "triangles": 36,
+   "ko": 2.9
+  },
+  {
+   "role": "fond",
+   "variante": "île lointaine A",
+   "map": "archipel",
+   "collider": {
+    "type": "aucun"
+   },
+   "usage": "Silhouette de fond, à placer à 30-60 m, échelle 1 à 3, le brouillard fait le reste.",
+   "nom": "ile_lointaine_A",
+   "fichier": "ile_lointaine_A.glb",
+   "boite": {
+    "min": [
+     -3.2,
+     -4.2,
+     -2.385
+    ],
+    "max": [
+     3.2,
+     2.741,
+     2.385
+    ],
+    "taille": [
+     6.4,
+     6.941,
+     4.77
+    ]
+   },
+   "trianglesSource": 562,
+   "triangles": 562,
+   "ko": 11.2
+  },
+  {
+   "role": "fond",
+   "variante": "île lointaine B",
+   "map": "archipel",
+   "collider": {
+    "type": "aucun"
+   },
+   "usage": "Silhouette de fond, à placer à 30-60 m, échelle 1 à 3, le brouillard fait le reste.",
+   "nom": "ile_lointaine_B",
+   "fichier": "ile_lointaine_B.glb",
+   "boite": {
+    "min": [
+     -2.2,
+     -3.2,
+     -1.788
+    ],
+    "max": [
+     2.2,
+     2.41,
+     1.788
+    ],
+    "taille": [
+     4.4,
+     5.61,
+     3.576
+    ]
+   },
+   "trianglesSource": 504,
+   "triangles": 504,
+   "ko": 10.3
+  }
+ ]
+}
