@@ -3,7 +3,8 @@
 // l'impact, calé sur `parry:window` comme l'anneau 3D de LK2), la flèche au-dessus du joueur actif et « EDGE! »
 // au-dessus d'un joueur au bord du vide (`teeter`). Les touches viennent des réglages du gameplay (keys.ts).
 import * as THREE from 'three';
-import type { Ctx, PlayerId } from '../core/types';
+import type { Ctx, PlayerId, Vec3 } from '../core/types';
+import { getFighterObject, worldToScreen as sceneToScreen } from '../scene/api';
 import { el, worldToScreen } from './dom';
 import { jumpKey, kbd, keyLine, parryKey } from './keys';
 
@@ -166,7 +167,20 @@ export function mountHelp(ctx: Ctx): Help {
   ];
 
   // Projection monde → écran à chaque image : flèche du joueur actif, « EDGE! » au-dessus d'un joueur au bord.
+  // Ancrée sur le perso VISIBLE (API du lot LA : racine du perso + caméra réellement utilisée), repli sur l'état.
   const tmp = new THREE.Vector3();
+  const camDir = new THREE.Vector3();
+  function above(player: PlayerId, h: number): { x: number; y: number; behind: boolean } {
+    const obj = getFighterObject(player);
+    const base: Vec3 = obj ? (obj.getWorldPosition(tmp), [tmp.x, tmp.y, tmp.z]) : ctx.state.players[player].pos;
+    const point: Vec3 = [base[0], base[1] + h, base[2]];
+    const cam = ctx.three.camera;
+    cam.getWorldDirection(camDir);
+    tmp.set(point[0] - cam.position.x, point[1] - cam.position.y, point[2] - cam.position.z);
+    const behind = tmp.dot(camDir) <= 0;
+    const s = sceneToScreen(point);
+    return s ? { x: s.x, y: s.y, behind } : worldToScreen(cam, point, tmp);
+  }
   ctx.loop.addSystem(
     'ui-world-markers',
     () => {
@@ -175,7 +189,7 @@ export function mountHelp(ctx: Ctx): Help {
       const active = ctx.state.active;
       const p = ctx.state.players[active];
       if (show && p.fighter) {
-        const s = worldToScreen(ctx.three.camera, [p.pos[0], p.pos[1] + HEAD_H, p.pos[2]], tmp);
+        const s = above(active, HEAD_H);
         arrow.hidden = s.behind;
         // Au bord : la flèche du joueur actif devient elle-même « EDGE! » (pas deux étiquettes empilées).
         arrow.className = `parrow p${active + 1}${teeter[active] ? ' edge' : ''}`;
@@ -191,7 +205,7 @@ export function mountHelp(ctx: Ctx): Help {
           edge.hidden = true;
           return;
         }
-        const s = worldToScreen(ctx.three.camera, [q.pos[0], q.pos[1] + EDGE_H, q.pos[2]], tmp);
+        const s = above(i, EDGE_H);
         edge.hidden = s.behind;
         edge.style.transform = `translate(${Math.round(s.x)}px, ${Math.round(s.y)}px)`;
       });
