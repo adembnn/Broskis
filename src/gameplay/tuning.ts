@@ -93,6 +93,8 @@ export const GRAVITY = 20; // m/s², un peu plus nerveux que la gravité par dé
  * (corps dans son emprise) -> posé dessus. Évite de rater une plateforme de quelques centimètres. */
 export const ONEWAY_SNAP_BELOW = 0.35;
 export const ONEWAY_SNAP_MAX_VY = 1.5; // m/s
+/** « Bas + saut » sur une plateforme traversable : on la traverse vers le bas pendant ce temps (s). */
+export const DROP_THROUGH_S = 0.35;
 export const EDGE_RAYCAST_AHEAD = 0.35; // m devant les pieds, dans la direction du pas
 export const EDGE_RAYCAST_DEPTH = 1.35; // m sous les pieds : au-delà, c'est le vide
 /** Bord : on s'arrête et on vacille (`teeter`) ; en insistant ce temps-là, on marche dans le vide. */

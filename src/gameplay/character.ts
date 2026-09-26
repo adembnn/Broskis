@@ -8,7 +8,7 @@ import { groundYBelow, isFallingDebris } from './arena';
 import { isGroundReady } from './fallback-ground';
 import { getRuntime } from './runtime';
 import {
-  CHARACTER_HALF_HEIGHT, CHARACTER_RADIUS, EDGE_RAYCAST_AHEAD, EDGE_RAYCAST_DEPTH, GRAVITY, MOVE_SUBSTEP_M,
+  CHARACTER_HALF_HEIGHT, CHARACTER_RADIUS, DROP_THROUGH_S, EDGE_RAYCAST_AHEAD, EDGE_RAYCAST_DEPTH, GRAVITY, MOVE_SUBSTEP_M,
   ONEWAY_SNAP_BELOW, ONEWAY_SNAP_MAX_VY,
 } from './tuning';
 
@@ -113,7 +113,7 @@ function controllerFilter(ctx: Ctx, player: PlayerId, rising: boolean): (c: RAPI
       return !other.launch && !getRuntime().players[player].launch && !other.dead;
     }
     if (!data?.oneWay) return !isFallingDebris(c);
-    if (rising) return false;
+    if (rising || ctx.loop.time < getRuntime().players[player].dropUntil) return false; // on monte, ou on descend à travers
     return feetY >= colliderTopY(c) - 0.15;
   };
 }
@@ -184,9 +184,10 @@ export function stepVerticalMotion(ctx: Ctx, player: PlayerId, dt: number): void
   const rt = getRuntime().players[player];
   if (!rt.body || !rt.controller || !rt.collider || rt.launch || rt.dead || rt.ledge) return;
   if (!isGroundReady() || ctx.loop.time < rt.hoverUntil) { rt.vy = 0; return; }
+  const dropping = ctx.loop.time < rt.dropUntil;
   if (rt.grounded && rt.vy <= 0) {
-    // Le sol a pu disparaître (dalle qui tombe, gîte) : on vérifie avant de rester posé.
-    if (!isVoidAt(ctx, ctx.state.players[player].pos)) { rt.vy = 0; return; }
+    // Le sol a pu disparaître (dalle qui tombe, gîte) : on vérifie avant de rester posé (sauf descente à travers).
+    if (!dropping && !isVoidAt(ctx, ctx.state.players[player].pos)) { rt.vy = 0; return; }
     rt.grounded = false;
   }
   // Intégration exacte à gravité constante (moyenne des vitesses) : l'apex vaut v²/2g quelle que soit la cadence.
@@ -197,7 +198,21 @@ export function stepVerticalMotion(ctx: Ctx, player: PlayerId, dt: number): void
   rt.grounded = r.grounded;
   if (rt.grounded && rt.vy < 0) rt.vy = 0;
   if (rt.vy > 0 && r.moved[1] < dy * 0.5) rt.vy = 0; // tête contre un plafond
-  if (!rt.grounded && snapOntoOneWay(ctx, player)) rt.vy = 0;
+  if (!rt.grounded && !dropping && snapOntoOneWay(ctx, player)) rt.vy = 0;
+}
+
+/** Debout sur une plateforme traversable ? (pour « bas + saut » = descendre à travers, façon Smash). */
+export function standingOnOneWay(ctx: Ctx, player: PlayerId): boolean {
+  const [x, y, z] = ctx.state.players[player].pos;
+  return oneWayBoxes(ctx).some((b) => Math.abs(y - b.topY) < 0.2 && Math.abs(x - b.cx) <= b.hx + 0.2 && Math.abs(z - b.cz) <= b.hz + 0.2);
+}
+
+/** Descend à travers la plateforme traversable sous ses pieds. */
+export function dropThrough(ctx: Ctx, player: PlayerId): void {
+  const rt = getRuntime().players[player];
+  rt.dropUntil = ctx.loop.time + DROP_THROUGH_S;
+  rt.grounded = false;
+  rt.vy = -2;
 }
 
 // ---------- Lot LJUMP : atterrissage sur les plateformes traversables (le coyote time est dans movement.ts) ----------
