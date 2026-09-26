@@ -45,10 +45,15 @@ class Spring {
   x = 0;
   v = 0;
   kick(v: number): void { this.v += v; }
+  /** Sous-pas de 1/240 s : un ressort raide intégré à 20 i/s (machine chargée) divergerait et ferait vriller le buste. */
   step(dt: number, k: number = ANIM.ressort.raideur, c: number = ANIM.ressort.amortissement): void {
-    const a = -k * this.x - c * this.v;
-    this.v += a * dt;
-    this.x += this.v * dt;
+    const n = Math.min(24, Math.ceil(dt * 240));
+    const h = n > 0 ? dt / n : 0;
+    for (let i = 0; i < n; i++) {
+      this.v += (-k * this.x - c * this.v) * h;
+      this.x += this.v * h;
+    }
+    this.x = THREE.MathUtils.clamp(this.x, -1.2, 1.2);
   }
 }
 
@@ -81,6 +86,8 @@ export interface ProcState {
   teeter: THREE.Vector3 | null;
   /** Accroché au bord. */
   hang: boolean;
+  /** Garde tenue (0/1, lissé) : buste voûté derrière les bras, menton rentré. */
+  guard: number;
 }
 
 const MX = new THREE.Vector3(1, 0, 0);
@@ -92,7 +99,8 @@ const DAMPING = 12;
 
 export class FighterAnimator {
   readonly mixer: THREE.AnimationMixer;
-  readonly proc: ProcState = { lookAt: null, lookWeight: 0.5, charge: 0, teeter: null, hang: false };
+  readonly proc: ProcState = { lookAt: null, lookWeight: 0.5, charge: 0, teeter: null, hang: false, guard: 0 };
+  private guardW = 0;
   private readonly actions = new Map<string, THREE.AnimationAction>();
   private readonly clipsByName = new Map<string, THREE.AnimationClip>();
   private readonly root: THREE.Object3D;
@@ -376,7 +384,8 @@ export class FighterAnimator {
 
   /** Recul d'un coup de feu (additif, ~60 ms aller). */
   kickRecoil(strength = 1): void {
-    this.recoil.kick(-ANIM.tir.recul * 30 * strength);
+    // ressort (ω = 30, ζ ≈ 0,63) : un élan de 66 × l'angle donne un pic ≈ l'angle
+    this.recoil.kick(-ANIM.tir.recul * 66 * strength);
   }
 
   /** Fouet du torse dans le sens du recul reçu (direction monde, angle en rad). */
@@ -386,8 +395,9 @@ export class FighterAnimator {
     d.y = 0;
     if (d.lengthSq() < 1e-6) return;
     d.normalize();
-    this.whipF.kick(d.z * angle * 16);
-    this.whipS.kick(d.x * angle * 16);
+    // ressort (ω ≈ 16, ζ ≈ 0,43) : un élan de 28 × l'angle donne un pic ≈ l'angle
+    this.whipF.kick(d.z * angle * 28);
+    this.whipS.kick(d.x * angle * 28);
   }
 
   /** Position monde de la main droite (os handslotr). */
@@ -441,11 +451,12 @@ export class FighterAnimator {
       this.rot(chest, MZ, -this.bank.x * 0.4);
     }
 
-    // Charge : le torse s'enroule (épaule droite en arrière) et tremble de plus en plus.
+    // Charge : le torse s'enroule (épaule droite en arrière), se cambre, et tremble de plus en plus.
     if (p.charge > 0) {
       const coil = ANIM.lancer.torsion * Math.min(1, p.charge * 1.2);
       this.rot(spine, MY, coil * 0.45);
       this.rot(chest, MY, coil * 0.55);
+      this.rot(spine, MX, -ANIM.lancer.cambre * Math.min(1, p.charge * 1.2));
       const tr = ANIM.lancer.tremblement * p.charge;
       this.rot(chest, MX, Math.sin(t * 71) * tr);
       this.rot(chest, MZ, Math.sin(t * 53 + 1) * tr * 0.7);
@@ -476,6 +487,15 @@ export class FighterAnimator {
           this.rot(head, side, -e * 0.6);
         }
       }
+    }
+
+    // Garde : buste voûté derrière les bras, menton rentré (lissé : levée en ~40 ms).
+    this.guardW += (p.guard - this.guardW) * Math.min(1, dt * 30);
+    if (this.guardW > 0.01) {
+      const g = ANIM.parade.voute * this.guardW;
+      this.rot(spine, MX, g * 0.5);
+      this.rot(chest, MX, g * 0.5);
+      this.rot(head, MX, g * 0.3);
     }
 
     // Recul du tir : poitrine rejetée en arrière, bras qui remonte.
@@ -546,10 +566,11 @@ export class FighterAnimator {
     this.applyProcedural(dt, container);
 
     // Écrasement-étirement à volume constant (ressort).
-    if (dt > 0) {
-      const a = -STIFFNESS * (this.squash.k - 1) - DAMPING * this.squash.v;
-      this.squash.v += a * dt;
-      this.squash.k += this.squash.v * dt;
+    const n = Math.min(24, Math.ceil(dt * 240));
+    for (let i = 0; i < n; i++) {
+      const h = dt / n;
+      this.squash.v += (-STIFFNESS * (this.squash.k - 1) - DAMPING * this.squash.v) * h;
+      this.squash.k += this.squash.v * h;
     }
     const k = this.squash.k;
     const side = this.baseScale / Math.sqrt(Math.max(0.25, k));
