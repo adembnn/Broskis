@@ -1,4 +1,5 @@
 # Lot LBAL2 · Corriger le simulateur puis régler l'équilibrage jusqu'aux cibles
+> **Obsolète depuis le pivot temps réel (15h25)** pour : cibles comptées en tours ; l'agent `equilibreur` juge désormais le temps réel. Référence : `plan/PIVOT-TEMPS-REEL.md`.
 Exécution : **Gemini** · Évaluation : agent `equilibreur` · Dépend de : LBAL (fusionné)
 
 ## Constat (premier `node tools/balance/sim.ts --quick`, 13h45)
