@@ -128,6 +128,29 @@
         "montre": 6.88
       },
       "reprise": true
+    },
+    {
+      "n": 7,
+      "horodatage": "2026-09-26_17h06",
+      "changement": "LBENCH : épaisseur entre 8 et 15 % de la largeur (cible d'Adem, réglages LATK1) et bombé à 75 % de l'épaisseur ; mêmes réponses API que le n° 3",
+      "moyenne": 6.35,
+      "fidelite": 6.3,
+      "esthetique": 5.47,
+      "grille": 2,
+      "injouables": 3,
+      "notes": {
+        "tasse-verre": 6.25,
+        "chaise-bureau": 6.5,
+        "feutre-velleda": 6.25,
+        "telephone": 6.5,
+        "mocassin": 6.5,
+        "tabouret-rotin": 5.75,
+        "pendule-newton": 5.58,
+        "lampe-champignon": 7,
+        "roi-echecs": 6.5,
+        "montre": 6.63
+      },
+      "reprise": true
     }
   ]
 }
