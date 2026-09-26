@@ -645,7 +645,7 @@ export class FighterAnimator {
     if (this.victoryW > 0.01) {
       const pump = Math.sin(t * Math.PI * 2 * ANIM.victoire.hz) * ANIM.victoire.pompe;
       // bras grands ouverts (un V trop fermé disparaît derrière la grosse tête des persos chibi), poings qui pompent
-      const up = 0.7 + Math.sin(pump) * 1.4, out = 1;
+      const up = 0.2 + Math.sin(pump) * 0.8, out = 1; // bras courts : au-dessus de 30° ils se cachent derrière la tête
       this.point(armL, foreL, this.vd.set(out, up, 0.2), this.victoryW);
       this.point(foreL, handL, this.vd.set(out, up + 0.3, 0.2), this.victoryW); // bras tendus : dépassent de la silhouette
       this.point(armR, foreR, this.vd.set(-out, up, 0.2), this.victoryW);
