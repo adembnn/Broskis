@@ -1,14 +1,12 @@
 [
   { "nom": "graine-fixe", "hook": "setSeed", "arg": 260926, "attente": 300 },
-  { "nom": "lancement-match", "hook": "startMatch", "attente": 3000 },
-  { "nom": "scan-objet-scene", "hook": "scan", "arg": "coffee_mug", "attente": 3000 },
-  { "nom": "presentation-arme", "hook": "pickWeapon", "arg": 0, "attente": 2500 },
-  { "nom": "avance-vers-caisse", "hook": "move", "arg": 4, "attente": 1200 },
-  { "nom": "saut", "hook": "jump", "attente": 800 },
-  { "nom": "attrape-caisse-snap", "hook": "grabCrate", "attente": 800 },
-  { "nom": "scan-objet-jury", "hook": "scan", "arg": "jury_object", "attente": 3000 },
-  { "nom": "vise-et-tire", "hook": "fire", "arg": 80, "attente": 1500 },
-  { "nom": "parade-adverse", "hook": "parry", "arg": 90, "attente": 1000 },
+  { "nom": "lancement-match-scinde", "hook": "startMatch", "arg": { "split": true }, "attente": 3000 },
+  { "nom": "p1-avance", "hook": "input", "arg": [0, "move-forward", true], "attente": 600 },
+  { "nom": "p1-saut", "hook": "input", "arg": [0, "jump", true], "attente": 400 },
+  { "nom": "p1-tire", "hook": "input", "arg": [0, "fire", true], "attente": 500 },
+  { "nom": "p1-relache-tir", "hook": "input", "arg": [0, "fire", false], "attente": 200 },
+  { "nom": "p2-bloque", "hook": "input", "arg": [1, "block", true], "attente": 800 },
+  { "nom": "p2-relache-blocage", "hook": "input", "arg": [1, "block", false], "attente": 400 },
   { "nom": "ko-ralenti", "hook": "forcerVictoire", "arg": 0, "attente": 3500 },
   { "nom": "ecran-fin", "attente": 2000 }
 ]
