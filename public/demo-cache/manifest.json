@@ -1,6 +1,14 @@
 {
   "_comment": "Lot LI — lu par src/ia/demo-cache.ts en ?demo=1 (voir plan/lots/LI-pipeline-ia.md). Chaque clé d'objet est le nom (slugifié) tel que passé à scanObject/window.gameHooks.scan(...).",
   "objects": [
+    "coffee-mug",
+    "plush-toy",
+    "headphones",
+    "banana",
+    "smartphone",
+    "water-bottle",
+    "sneaker",
+    "hardcover-book",
     "rubber-duck",
     "electric-hand-mixer",
     "garden-hose-nozzle",
@@ -12,5 +20,16 @@
     "baguette"
   ],
   "commentary": "commentary/bank.json",
-  "stickers": "pas encore générés ici (pas d'accès réseau dans ce worktree) : stickerUrl est volontairement absent, la scène 3D (lot LS, makeFallbackSticker) dessine une forme de secours à partir de category+palette. À régénérer avec tools/test-ia.mjs une fois les clés .env disponibles, puis à déposer en PNG à côté de chaque objects/<nom>.json."
+  "stickers": "Lot LSCAN : stickers/<slug>.jpg (fond magenta, Nano Banana 2) pour les objets de demo/OBJETS.md, générés par tools/lscan/prefill-demo.mjs.",
+  "fallback": [
+    "coffee-mug",
+    "plush-toy",
+    "headphones",
+    "banana",
+    "smartphone",
+    "water-bottle",
+    "sneaker",
+    "hardcover-book"
+  ],
+  "_fallback": "Lot LSCAN : en ?demo=1, si le réseau tombe pendant un scan photo, la n-ième photo devient le n-ième objet de `fallback` (ordre de demo/OBJETS.md : mug, peluche, casque d'abord)."
 }

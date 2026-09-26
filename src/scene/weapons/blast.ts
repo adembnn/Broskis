@@ -225,7 +225,7 @@ export function installBlast(ctx: Ctx): BlastFx {
   // il n'apparaît que dans sa vue (jamais un mot géant collé sur la caméra de celui qui se fait toucher).
   const words: Word[] = [];
   for (let i = 0; i < 4; i++) {
-    const mat = new THREE.SpriteMaterial({ transparent: true, depthWrite: false, depthTest: false });
+    const mat = new THREE.SpriteMaterial({ transparent: true, depthWrite: false, depthTest: false, fog: false }); // vraie couleur de l'objet, même dans la brume
     const sprite = new THREE.Sprite(mat);
     sprite.visible = false; sprite.renderOrder = 30; noRay(sprite); root.add(sprite);
     const w: Word = { sprite, t: 0, dur: 0.75, active: false, size: 2, viewer: null, alpha: 1 };
@@ -305,7 +305,7 @@ export function installBlast(ctx: Ctx): BlastFx {
     w.active = true; w.t = 0; w.dur = 0.8; w.size = size;
     w.viewer = viewer ?? null;
     // Objet très sombre (téléphone noir…) : le mot prend la couleur claire de sa palette, sinon il disparaît.
-    w.sprite.material.map = wordTex(text, _c.set(color).getHSL({ h: 0, s: 0, l: 0 }).l < 0.18 ? palette.lumiere : color);
+    w.sprite.material.map = wordTex(text, _c.set(color).getHSL({ h: 0, s: 0, l: 0 }).l < 0.18 ? rendu.contour.vinyle : color); // vinyle : sous le seuil du bloom, reste lisible
     w.sprite.material.needsUpdate = true;
     w.alpha = 1;
     w.sprite.position.copy(pos);

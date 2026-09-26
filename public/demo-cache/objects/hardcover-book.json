@@ -1,0 +1,39 @@
+{
+  "id": "demo-hardcover-book",
+  "object": "hardcover book",
+  "name": "The Unread Tome",
+  "category": "shield",
+  "why": "It completely hides your face and deflects critical social interactions effortlessly.",
+  "stats": {
+    "a": 3,
+    "b": 5,
+    "c": 2
+  },
+  "trait": "heavy",
+  "palette": [
+    "#2e5c38",
+    "#dcd4b8"
+  ],
+  "lines": {
+    "intro": "Knowledge is power, but mostly it is just heavy!",
+    "hit": "Right in the cranium with mandatory reading!",
+    "miss": "A total blank! Did anyone even open it?",
+    "parried": "Denied! The paper fortress bounces back!"
+  },
+  "physics": {
+    "massKg": 1.2,
+    "sizeM": [
+      0.28,
+      0.2,
+      0.05
+    ],
+    "material": "paper",
+    "shape": "box",
+    "bounciness": 0.05,
+    "fragile": false,
+    "liquid": false
+  },
+  "stickerUrl": "/demo-cache/stickers/hardcover-book.jpg",
+  "source": "cache",
+  "cooldown": 0
+}

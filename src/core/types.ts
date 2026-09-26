@@ -220,6 +220,7 @@ export interface GameHooks {
    * le parcours complet photo -> carte d'arme sans piloter la webcam. */
   scanObjectFromUrl?(url: string, opts?: { category?: Category; player?: PlayerId }): Promise<Weapon>;
   skipCamera(): void;
+  debugColliders?(on: boolean): void;
   forcerVictoire(player?: PlayerId): void;
   setSeed(n: number): void;
   action(text: string): void;

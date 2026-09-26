@@ -10,7 +10,7 @@ import { createCommentary } from './commentary';
 import { el } from './dom';
 import { createFloaters } from './floaters';
 import { createControlsCard, createControlsMode, createParryRing } from './help';
-import { CATEGORY_DOES, categoryIconSvg } from './icons';
+import { categoryIconSvg } from './icons';
 import { kbd, onBindingsChange, weaponKeys } from './keys';
 import { fighterPortrait } from './portraits';
 import { weaponSticker } from './sticker2d';
@@ -145,8 +145,7 @@ function createWeaponCard() {
         total = 0;
         art.replaceChildren(weaponSticker(w, 'wcard-sticker'));
         name.textContent = w.name;
-        does.innerHTML = `<span class="wcard-ico" style="--accent:${LOCAL_TOKENS.category[w.category]}">${categoryIconSvg(w.category)}</span>`;
-        does.append(CATEGORY_DOES[w.category]);
+        does.innerHTML = `<span class="wcard-ico" style="--accent:${LOCAL_TOKENS.category[w.category]}">${categoryIconSvg(w.category)}</span><span class="wcard-does-text">${w.category.charAt(0).toUpperCase() + w.category.slice(1)} &middot; ${w.object}</span>`;
       }
       if (keyLabel !== lastKey) {
         lastKey = keyLabel;

@@ -1,0 +1,50 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>LE2E photo jouable</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{--fond:#f6f3ee;--encre:#1d1a22;--doux:#6b6470;--vert:#1f8a4c;--rouge:#c2362b;--carte:#fff;--trait:#e2dcd2}
+@media (prefers-color-scheme:dark){:root{--fond:#16141a;--encre:#f0ece6;--doux:#a39ca8;--vert:#43c47a;--rouge:#ff6b5e;--carte:#211e26;--trait:#35303b}}
+body{margin:0;background:var(--fond);color:var(--encre);font:15px/1.45 system-ui,Segoe UI,sans-serif}
+main{max-width:1200px;margin:0 auto;padding:24px 16px 64px}h1{font-size:26px;margin:0 0 4px}h2{margin:36px 0 10px;font-size:19px}
+.meta{color:var(--doux);font-size:13px}.score{font-size:18px;margin:14px 0}
+table{border-collapse:collapse;width:100%;background:var(--carte);font-size:13px}td,th{border-bottom:1px solid var(--trait);padding:6px 8px;text-align:left;vertical-align:top}
+th{font-weight:600;color:var(--doux)}td.na{color:var(--doux)}.wrap{overflow-x:auto}
+.v{font-weight:700;white-space:nowrap}.v.ok{color:var(--vert)}.v.ko{color:var(--rouge)}
+.gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}.gal figure{margin:0;background:var(--carte);border:1px solid var(--trait)}
+.gal img{width:100%;display:block}.gal figcaption{padding:6px 8px;font-size:12px;color:var(--doux)}
+ul.err{color:var(--rouge);font-size:13px}
+</style></head><body><main>
+<h1>Photo → objet jouable, dans le vrai jeu</h1>
+<p class="meta">26/09/2026 16:38:10 · branche worktree-agent-a5399d4fc3ca2735d @ 97150f7 · durée 202 s · test : tools/e2e/photo-jouable.mjs · photos d'Adem masquées sur les captures ; canette dessinée ; visages fictifs</p>
+<p class="score"><strong>0/11</strong> critères verts</p>
+<table><tr><th>Critère</th><th>Verdict</th><th>Mesure</th></tr>
+<tr><td>Arsenal : la carte se remplit (nom, catégorie, stats, physique) pour chaque photo</td><td class="v ko">ROUGE</td><td>0 cartes ; physique sur l'arme : 0 ; physique affichée sur la carte : 0</td></tr>
+<tr><td>On valide sans attendre le sticker ; le sticker arrive ensuite et passe sur l'arme en match</td><td class="v ko">ROUGE</td><td>validés avant le sticker : 0/0 ; stickers arrivés : 0 ; sur l'arme en match : 0</td></tr>
+<tr><td>2 persos tirés de photos (visages fictifs)</td><td class="v ko">ROUGE</td><td>match non atteint</td></tr>
+<tr><td>Match en écran scindé, chaque joueur avec SES objets</td><td class="v ko">ROUGE</td><td>match non atteint</td></tr>
+<tr><td>Chaque objet en main à sa taille réelle (bornée 0,35-1,6 m, ±35 %)</td><td class="v ko">ROUGE</td><td>0/0 à la bonne taille ; chaise ? m, canette ? m</td></tr>
+<tr><td>Chaise contre canette (toutes deux lancées) : plus de dégâts, plus de recul, plus lente, moins loin, recharge plus longue</td><td class="v ko">ROUGE</td><td>plus de dégâts NON · plus de recul NON · plus lente NON · moins loin NON · recharge plus longue NON</td></tr>
+<tr><td>Feutre, canette, tabouret, chaise : plus c'est lourd, plus ça frappe et recule, plus c'est lent et long à recharger</td><td class="v ko">ROUGE</td><td>objets manquants</td></tr>
+<tr><td>Un objet fragile se brise (éclats à l'impact)</td><td class="v ko">ROUGE</td><td>aucun objet fragile détecté</td></tr>
+<tr><td>Un liquide gicle (sol glissant)</td><td class="v ko">ROUGE</td><td>aucun objet liquide détecté</td></tr>
+<tr><td>Un objet rebondissant rebondit</td><td class="v ko">ROUGE</td><td>aucun objet rebondissant détecté</td></tr>
+<tr><td>Les 10 objets d'Adem : physique plausible, lancés en match avec LEUR masse</td><td class="v ko">ROUGE</td><td>tasse-verre ✗ pas de physique · chaise-bureau ✗ pas de physique · feutre-velleda ✗ pas de physique · telephone ✗ pas de physique · mocassin ✗ pas de physique · tabouret-rotin ✗ pas de physique · pendule-newton ✗ pas de physique · lampe-champignon ✗ pas de physique · roi-echecs ✗ pas de physique · montre ✗ pas de physique</td></tr>
+</table>
+<h2>Chaise contre canette (lancées toutes les deux)</h2>
+<table><tr><th>Mesure en jeu</th><th>Chaise de bureau</th><th>Canette</th><th>Rapport</th></tr>
+<tr><td>Masse (kg)</td><td class="na">—</td><td class="na">—</td><td>—</td></tr>
+<tr><td>Dégâts (%)</td><td class="na">—</td><td class="na">—</td><td>—</td></tr>
+<tr><td>Recul (m/s)</td><td class="na">—</td><td class="na">—</td><td>—</td></tr>
+<tr><td>Vitesse (m/s)</td><td class="na">—</td><td class="na">—</td><td>—</td></tr>
+<tr><td>Portée (m)</td><td class="na">—</td><td class="na">—</td><td>—</td></tr>
+<tr><td>Recharge (s)</td><td class="na">—</td><td class="na">—</td><td>—</td></tr>
+<tr><td>Taille en main (m)</td><td class="na">—</td><td class="na">—</td><td>—</td></tr>
+</table>
+<h2>Toutes les mesures (événements du bus)</h2>
+<div class="wrap"><table><tr><th>Objet</th><th>Arme</th><th>Cat.</th><th>Masse kg</th><th>Taille réelle m</th><th>Matière</th><th>Fragile</th><th>Liquide</th><th>Rebond</th><th>En main m</th><th>Vitesse m/s</th><th>Dégâts %</th><th>Recul m/s</th><th>Recharge s</th><th>Portée m</th><th>Rebonds</th><th>Flaques</th><th>Coups</th><th>Sticker</th></tr>
+
+</table></div>
+<h2>Maillons cassés relevés</h2><ul class="err"><li>arrêt du parcours : match 1 : persos : locator.click: Timeout 30000ms exceeded.</li></ul>
+<h2>Captures</h2>
+<h3>persos</h3><div class="gal"><figure><img loading="lazy" src="perso-p1.jpg" alt=""><figcaption>Perso P1 tiré d'un visage fictif (36 s)</figcaption></figure><figure><img loading="lazy" src="perso-p2.jpg" alt=""><figcaption>Perso P2 tiré d'un visage fictif (34 s)</figcaption></figure><figure><img loading="lazy" src="persos-photos.jpg" alt=""><figcaption>Choix des persos</figcaption></figure></div>
+<h3>échecs</h3><div class="gal"><figure><img loading="lazy" src="echec-match-1-persos.jpg" alt=""><figcaption>Échec : match 1 : persos</figcaption></figure></div>
+</main></body></html>

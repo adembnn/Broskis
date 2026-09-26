@@ -84,6 +84,10 @@ export function scanNote(weaponId: string): ScanNote | undefined {
 /** Chronologie des scans photo (débogage, tools/lscan) : window.__scans. */
 interface ScanTiming {
   id: string;
+  /** performance.now() au départ des appels IA (après la réduction de la photo). */
+  start: number;
+  /** Préparation de la photo (réduction et encodage) avant les appels, en ms. */
+  prep: number;
   object?: string;
   note?: ScanNote;
   json?: number;
@@ -250,7 +254,8 @@ async function looksLikeSticker(dataUrl: string): Promise<boolean> {
 }
 
 /** Un seul sticker par photo : relancer en catégorie imposée réutilise le dessin en cours (ou fini). Un dessin
- *  raté (pas de fond magenta) est redemandé une fois s'il reste le temps d'un second essai (~10 s). */
+ *  raté (pas de fond magenta) ou un appel bloqué (> TIMEOUTS.stickerTry, vu en test : un appel pendu 25 s) est
+ *  redemandé une fois s'il reste le temps d'un second essai (~10 s). */
 const stickerByImage = new Map<string, Promise<string | null>>();
 function stickerFor(imgKey: string, imageBase64: string, mimeType: string): Promise<string | null> {
   let p = stickerByImage.get(imgKey);
@@ -260,7 +265,7 @@ function stickerFor(imgKey: string, imageBase64: string, mimeType: string): Prom
       for (let tries = 0; tries < 2; tries++) {
         const left = TIMEOUTS.sticker - (performance.now() - t0);
         if (tries && left < 9000) break;
-        const r = await postJson<StickerApiResult>(ENDPOINTS.sticker, { imageBase64, mimeType }, left);
+        const r = await postJson<StickerApiResult>(ENDPOINTS.sticker, { imageBase64, mimeType }, tries ? left : Math.min(left, TIMEOUTS.stickerTry));
         if (r?.dataUrl && (await looksLikeSticker(r.dataUrl))) return r.dataUrl;
         if (r?.reason === 'IMAGE_SAFETY') break; // refus du modèle : redemander ne changera rien
       }
@@ -274,16 +279,29 @@ function stickerFor(imgKey: string, imageBase64: string, mimeType: string): Prom
   return p;
 }
 
-/** Démo (?demo=1) sans réseau : les objets de demo/OBJETS.md dans l'ordre du script, puis la banque. */
+/** Démo (?demo=1) sans réseau : les objets de demo/OBJETS.md dans l'ordre du script (en silence : sur scène, ça
+ *  doit avoir l'air d'avoir marché), puis la banque. `null` = arme du cache de démo, pas de note à afficher. */
 let demoFallbackIndex = 0;
-async function offlineWeapon(imgKey: string, category: Category | undefined): Promise<Weapon> {
+async function offlineWeapon(imgKey: string, category: Category | undefined): Promise<[Weapon, ScanNote | undefined]> {
   const ctx = getRuntimeCtx();
   if (ctx?.demo) {
     const demo = await loadDemoFallback(demoFallbackIndex++);
-    if (demo && (!category || demo.category === category)) return { ...demo, id: makeId('cache'), source: 'cache' };
-    return pickPreset(createRng(seedFromString(imgKey)), category);
+    if (demo && (!category || demo.category === category)) return [{ ...demo, id: makeId('cache'), source: 'cache' }, undefined];
+    return [pickPreset(createRng(seedFromString(imgKey)), category), 'offline'];
   }
-  return pickPreset(Math.random, category);
+  return [pickPreset(Math.random, category), 'offline'];
+}
+
+/** Une photo de la capture (src/ui/capture.ts) est DÉJÀ un JPEG réduit à 768 px : on l'envoie telle quelle, sans
+ *  la redécoder ni la réencoder (chemin critique du SNAP). Toute autre image passe par la réduction. */
+async function photoBase64(image: Blob | string): Promise<{ base64: string; mimeType: string }> {
+  if (typeof image !== 'string' && image.type === 'image/jpeg' && image.size < 350_000) {
+    const bytes = new Uint8Array(await image.arrayBuffer());
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    return { base64: btoa(bin), mimeType: 'image/jpeg' };
+  }
+  return toResizedJpegBase64(image);
 }
 
 /**
@@ -298,7 +316,8 @@ export async function scanObject(image: Blob | string, opts: ScanOptions = {}): 
     return weapon;
   }
 
-  const { base64, mimeType } = await toResizedJpegBase64(image);
+  const tEnter = performance.now();
+  const { base64, mimeType } = await photoBase64(image);
   const imgKey = hashImage(base64);
   const jsonKey = `${imgKey}:${opts.category ?? 'auto'}`; // une catégorie imposée = une autre arme
   const cached = getCached(jsonKey);
@@ -311,7 +330,7 @@ export async function scanObject(image: Blob | string, opts: ScanOptions = {}): 
   }
 
   const t0 = performance.now();
-  const timing: ScanTiming = { id: '', tries: 0 };
+  const timing: ScanTiming = { id: '', start: Math.round(t0), prep: Math.round(t0 - tEnter), tries: 0 };
   timings.push(timing);
   emitScanProgress(opts.player, 'reading');
   // Les deux appels partent dès que la photo est prête, en parallèle (le sticker n'attend jamais les stats).
@@ -320,9 +339,10 @@ export async function scanObject(image: Blob | string, opts: ScanOptions = {}): 
 
   let weapon: Weapon;
   let note: ScanNote | undefined;
+  let offline = false;
   if (!raw) {
-    weapon = await offlineWeapon(imgKey, opts.category);
-    note = 'offline';
+    [weapon, note] = await offlineWeapon(imgKey, opts.category);
+    offline = true;
   } else if (raw.substituted) {
     // Vraie arme ou personne seule : l'arme de secours garde SON sticker (celui de la photo montrerait l'original).
     weapon = pickPreset(Math.random, opts.category);
@@ -336,10 +356,10 @@ export async function scanObject(image: Blob | string, opts: ScanOptions = {}): 
   if (note) notes.set(weapon.id, note);
   timing.id = weapon.id;
   timing.object = weapon.object;
-  timing.note = note;
+  timing.note = note ?? (offline ? 'offline' : undefined);
   timing.json = Math.round(performance.now() - t0);
 
-  if (!note) {
+  if (!note && !offline) {
     setCached(jsonKey, weapon);
     setCached(weapon.object, weapon);
   }
@@ -347,7 +367,7 @@ export async function scanObject(image: Blob | string, opts: ScanOptions = {}): 
   emitScanResult(opts.player, weapon);
 
   // Le sticker de la photo ne vaut que pour une vraie lecture de la photo (pas pour une arme de secours).
-  if (note || weapon.stickerUrl) {
+  if (note || offline || weapon.stickerUrl) {
     if (weapon.stickerUrl) emitScanProgress(opts.player, 'sticker', weapon.id, weapon);
     else emitScanProgress(opts.player, 'sticker-failed', weapon.id);
     return weapon;
