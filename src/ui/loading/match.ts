@@ -8,10 +8,16 @@
 import type { Ctx, MapId } from '../../core/types';
 import { durees } from '../../art/tokens.js';
 import { compileScene, nextFrame as frame, pauseRender, preloadMap, setLoadingCurtainUp, waitSceneStable } from '../../core/preload';
+import { whenMapLoaded } from '../../scene/maps/engine';
 import { getCurtain } from './curtain';
 
 const STEPS = 3; // match lancé · scène posée · shaders compilés
 const MAX_SCENE_WAIT_MS = 3000;
+// LPERF3 : garde-fou pour la fin RÉELLE de buildVisuals (whenMapLoaded), au-delà du comptage de meshes
+// (waitSceneStable) qui pouvait se croire stable entre deux étapes async (catapulte de l'archipel, décor tardif).
+// Mesuré à froid (cache vide) : la map se stabilise vraiment vers 4.2-4.4 s, soit après le plafond de 3 s d'avant —
+// compileScene tournait alors sans la catapulte, qui compilait son shader en plein combat.
+const MAX_MAP_LOAD_MS = 20000;
 const MAX_COMPILE_MS = 2500;
 /** Rideau fermé au moins ce temps : le logo doit se lire, pas clignoter. */
 const MIN_CLOSED_MS = durees.dramatique * 0.55;
@@ -54,6 +60,9 @@ export async function coverMatchStart(ctx: Ctx, start: () => void, mapId?: MapId
     mark('matchLance');
     curtain.setProgress(1, STEPS);
     await waitSceneStable(ctx, MAX_SCENE_WAIT_MS);
+    // Le comptage de meshes ci-dessus peut se croire stable entre deux étapes de buildVisuals (LPERF3) : on
+    // attend en plus la fin réelle de la construction de la map (catapulte comprise), bornée pour ne jamais bloquer.
+    await Promise.race([whenMapLoaded(), sleep(MAX_MAP_LOAD_MS)]);
     mark('scenePosee');
     curtain.setProgress(2, STEPS);
     await compileScene(ctx, MAX_COMPILE_MS);

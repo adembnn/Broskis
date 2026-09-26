@@ -232,7 +232,7 @@ export async function createCtx(root: HTMLElement): Promise<Ctx> {
     if (qualite.niveau === 'basse') { drawer.draw(null); drawer.separator(); }
     else ctx.three.render();
   }, 1000);
-  installShaderWarmup(bus, three, () => qualite.niveau === 'basse');
+  installShaderWarmup(ctx);
 
   window.ctx = ctx; // débogage : ctx.bus.emit('hit', …) depuis la console
   return ctx;

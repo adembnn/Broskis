@@ -1040,6 +1040,18 @@ function unloadMap(ctx: Ctx) {
   current = null;
 }
 
+// LPERF3 : promesse de la construction (async) la plus récente, exposée pour que le rideau de chargement
+// (src/ui/loading/match.ts) attende la fin RÉELLE (catapulte de l'archipel, décor tardif) avant de compiler les
+// shaders. `waitSceneStable` seul (comptage de meshes) pouvait déclarer la scène stable entre deux étapes de
+// `buildVisuals`, pendant un plateau de 100-200 ms où la pièce suivante n'avait pas encore commencé à charger :
+// compileScene tournait alors sur une scène incomplète, et la pièce manquante compilait son shader en plein combat.
+let mapLoaded: Promise<void> = Promise.resolve();
+
+/** Résolue (jamais rejetée) quand `buildVisuals` de la map la plus récemment demandée est terminée. */
+export function whenMapLoaded(): Promise<void> {
+  return mapLoaded;
+}
+
 function loadMap(ctx: Ctx, mapId: MapId) {
   unloadMap(ctx);
   applySky(ctx.three.scene, mapId); // LSKY : panorama de la map (libère le précédent)
@@ -1064,7 +1076,9 @@ function loadMap(ctx: Ctx, mapId: MapId) {
   ctx.loop.later(0.05, () => removeFallbackGround(ctx));
   const spawns = getSpawnPoints();
   if (spawns) { ctx.state.players[0].pos = [...spawns[0]]; ctx.state.players[1].pos = [...spawns[1]]; }
-  return buildVisuals(ctx, map); // 2. asynchrone
+  const built = buildVisuals(ctx, map); // 2. asynchrone
+  mapLoaded = built.catch((e) => { console.warn('[maps] buildVisuals', e); });
+  return built;
 }
 
 // ---------------------------------------------------------------------------

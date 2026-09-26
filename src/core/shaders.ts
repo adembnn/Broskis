@@ -5,9 +5,10 @@
 // place ; en temps réel : le compte à rebours), on compile en tâche de fond toute la scène, même cachée.
 // Complète le préchargement des menus (lot LLOAD) : un shader déjà compilé ne coûte presque rien ici.
 import * as THREE from 'three';
-import type { Bus } from './bus';
+import type { Ctx } from './types';
+import { whenMapLoaded } from '../scene/maps/engine';
 import { PHASES_DE_JEU } from './quality';
-import type { Three } from './types';
+import { compileScene } from './preload';
 
 /**
  * Texture 1×1 à poser dès la création sur les matériaux qui recevront une image plus tard (décalques, mots,
@@ -18,21 +19,34 @@ export const TEXTURE_VIDE = new THREE.DataTexture(new Uint8Array([255, 255, 255,
 TEXTURE_VIDE.colorSpace = THREE.SRGBColorSpace;
 TEXTURE_VIDE.needsUpdate = true;
 
-/** `directVersEcran()` : vrai si le jeu dessine directement dans le canvas (qualité basse, sortie sRGB). */
-export function installShaderWarmup(bus: Bus, three: Three, directVersEcran: () => boolean): void {
-  // Cible linéaire factice : donne les mêmes shaders que la cible du post-traitement (sortie linéaire).
-  const lineaire = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
-  // 2 passes par match : à la 1re phase jouable (compte à rebours), puis au début du combat pour ce qui s'est
-  // chargé entre-temps (armes en main, stickers). Un shader déjà compilé ne coûte qu'une recherche en cache.
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+/** Garde-fou : le chargement de la map (catapulte de l'archipel comprise) ne doit jamais bloquer la préchauffe. */
+const MAX_MAP_WAIT_MS = 20000;
+
+/**
+ * Branché sur le bus. Réutilise `compileScene` (core/preload.ts) plutôt que de dupliquer sa logique : elle compile
+ * déjà les DEUX cibles (post-traitement et canvas direct, quelle que soit la qualité) et montre temporairement les
+ * pools d'effets `latk-*` (sinon invisibles tant qu'aucun coup n'a eu lieu, donc sautés par compileAsync — c'était
+ * la 2e cause des shaders d'impact compilés en plein combat, en plus de la carte pas encore complète, LPERF3).
+ * 2 passes par match : à la 1re phase jouable (compte à rebours), puis au début du combat pour ce qui s'est
+ * chargé entre-temps (armes en main, stickers). Un shader déjà compilé ne coûte qu'une recherche en cache.
+ */
+export function installShaderWarmup(ctx: Ctx): void {
   const passes = new Set<string>();
-  bus.on('match:start', () => { passes.clear(); });
-  bus.on('phase:change', ({ to }) => {
+  ctx.bus.on('match:start', () => { passes.clear(); });
+  ctx.bus.on('phase:change', ({ to }) => {
     if (!PHASES_DE_JEU.has(to) || passes.has(to) || passes.size >= 2) return;
+    const premierePasse = passes.size === 0;
     passes.add(to);
-    const { renderer, scene, camera } = three;
-    const avant = renderer.getRenderTarget();
-    renderer.setRenderTarget(directVersEcran() ? null : lineaire);
-    void renderer.compileAsync(scene, camera).catch(() => {}); // la partie synchrone lit la cible ci-dessus
-    renderer.setRenderTarget(avant);
+    void (async () => {
+      // LPERF3 : la 1re phase jouable arrive souvent AVANT que buildVisuals ait fini (catapulte de l'archipel,
+      // décor tardif) — compiler tout de suite manquait ces pièces, qui compilaient leur shader en plein combat
+      // au 1er rendu qui les montrait. On attend la fin réelle (bornée) avant de compiler, SANS geler le rendu
+      // (contrairement au rideau de chargement) : ce chemin sert aussi aux tests sans rideau (gameHooks.startMatch
+      // brut) où figer l'image perturbait la mesure automatique de qualité (quality.ts). Seule la 1re passe
+      // attend : la 2e sert à rattraper ce qui s'est chargé depuis (armes, stickers), pas la map.
+      if (premierePasse) await Promise.race([whenMapLoaded(), sleep(MAX_MAP_WAIT_MS)]);
+      await compileScene(ctx, 4000);
+    })();
   });
 }
