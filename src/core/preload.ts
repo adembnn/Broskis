@@ -21,7 +21,7 @@ type Status = 'queued' | 'loading' | 'ready' | 'failed';
 interface Job { key: string; priority: number; run: () => Promise<unknown> }
 
 /** Plus grand = plus urgent. */
-const PRIO = { hover: 30, chosen: 20, likely: 10, idle: 0 } as const;
+export const PRIO = { hover: 30, chosen: 20, likely: 10, idle: 0 } as const;
 const PRESET_MODELS: ModelId[] = ['barbarian', 'knight', 'mage', 'rogue_hooded'];
 /** Deux persos suffisent à la répétition générale : tous partagent les mêmes matériaux toon (mêmes programmes GPU). */
 const REHEARSAL_MODELS = PRESET_MODELS.slice(0, 2);
@@ -135,6 +135,20 @@ export async function compileScene(ctx: Ctx, timeoutMs = 3000): Promise<void> {
   offscreen ??= new WebGLRenderTarget(1, 1, { type: HalfFloatType });
   const previous = r.getRenderTarget();
   const jobs: Promise<unknown>[] = [];
+  // Pools d'effets de combat (latk-*) cachés tant qu'aucun impact n'a eu lieu : compileAsync saute les objets
+  // invisibles, et leurs programmes dépendent des lumières/brouillard de la map chargée → sans ça, le 1er impact
+  // de chaque match compilait en plein combat (56-97 ms mesurés, critique-perf 17h15).
+  const shown: { o: any; visible: boolean; count?: number; draw?: number }[] = [];
+  for (const child of scene.children) {
+    if (!child.name.startsWith('latk-')) continue;
+    child.traverse((o: any) => {
+      if (!(o.isMesh || o.isSprite || o.isPoints)) return;
+      shown.push({ o, visible: o.visible, count: o.isInstancedMesh ? o.count : undefined, draw: o.isPoints ? o.geometry?.drawRange?.count : undefined });
+      o.visible = true;
+      if (o.isInstancedMesh && o.count === 0) o.count = 1;
+      if (o.isPoints && o.geometry?.drawRange?.count === 0) o.geometry.setDrawRange(0, 1);
+    });
+  }
   try {
     for (const target of [offscreen, null]) {
       r.setRenderTarget(target);
@@ -142,6 +156,11 @@ export async function compileScene(ctx: Ctx, timeoutMs = 3000): Promise<void> {
     }
   } finally {
     r.setRenderTarget(previous);
+    for (const e of shown) {
+      e.o.visible = e.visible;
+      if (e.count !== undefined) e.o.count = e.count;
+      if (e.draw !== undefined) e.o.geometry.setDrawRange(0, e.draw);
+    }
   }
   await Promise.race([Promise.all(jobs).catch(() => undefined), new Promise((res) => setTimeout(res, timeoutMs))]);
 }
@@ -222,7 +241,9 @@ async function rehearse(ctx: Ctx): Promise<void> {
       ctx.three.scene.add(f);
       added.push(f);
     });
+
     await compileScene(ctx, 4000);
+
   } catch (e) {
     console.warn('[preload] répétition', e);
   } finally {
