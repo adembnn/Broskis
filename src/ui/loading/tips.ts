@@ -3,15 +3,16 @@
 // API : mountTips(el) remplit `el` et change d'astuce toutes les `everyMs` ; renvoie une fonction d'arrêt.
 import { durees } from '../../art/tokens.js';
 
+// Règles du temps réel (plan/PIVOT-TEMPS-REEL.md) ; aucune touche nommée : elles sont réglables (src/core/input.ts).
 export const TIPS: readonly string[] = [
   'The higher your <b>%</b>, the further you fly. Stay away from the edge!',
-  'Parry: <b>SPACE</b> for P1, <b>ENTER</b> for P2, right when the ring closes.',
-  'A <b>perfect parry</b> sends the shot straight back.',
+  'Block right before the hit lands: a <b>perfect parry</b> sends it straight back.',
+  'Hold <b>fire</b> to charge: stronger and further.',
   'Grenades lob over walls. Blasters stop at the first wall.',
-  'Grab the <b>Snap Crate</b>: scan a brand-new weapon mid-fight!',
-  'A weapon you just used needs one turn to reload.',
+  'Touch the <b>Snap Crate</b>: an instant bonus weapon!',
+  'Knocked off? <b>Double jump</b> back to the arena.',
   'Knock them off the arena: a ring-out beats any damage.',
-  'Shields block, and a perfect parry reflects the hit.',
+  'A shield wall blocks the line of fire for 5 seconds.',
 ];
 
 let cursor = 0;
