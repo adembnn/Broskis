@@ -1,14 +1,13 @@
 // Persos : place state.players[i].pos dans la scène (personne d'autre ne le fait), fait tourner l'anim/squash,
-// et accroche le sticker de l'arme sélectionnée (lot LS) à handslot.r. Écoute le bus pour les à-coups (un clip,
+// (l'objet en main est affiché par src/scene/weapons, lot LATK1). Écoute le bus pour les à-coups (un clip,
 // une impulsion de squash) ; lit ctx.state chaque image pour la position/orientation/idle-vs-run (architecture
 // du plan : "les modules lisent l'état central").
 import * as THREE from 'three';
 import { juice } from '../../art/tokens.js';
 import { LOCAL_TOKENS } from '../localTokens';
-import type { Category, Ctx, PlayerId, Weapon } from '../../core/types';
+import type { Category, Ctx, PlayerId } from '../../core/types';
 import { angleLerp, expFollow } from '../mathUtils';
 import { setFighterObject, setHandSlot } from '../registry';
-import { makeFallbackSticker, makeSticker } from '../sticker';
 import { applyVinylRank, buildFighterRig, defaultFighter, disposeFighterRig, type FighterRig } from './rig';
 
 const CATEGORY_ANIM: Record<Category, string> = {
@@ -50,29 +49,6 @@ export function installFighters(ctx: Ctx): FighterSystem {
     rig.animator.play(locomotionClip(rig, false), { fade });
   }
 
-  async function attachWeaponSticker(player: PlayerId): Promise<void> {
-    const rig = rigs[player];
-    const slot = rig?.handSlotR;
-    if (!rig || !slot) return;
-    for (const child of [...slot.children]) if (child.userData.isWeaponSticker) child.removeFromParent();
-    const ps = ctx.state.players[player];
-    const weapon: Weapon | undefined = ps.weapons[ps.selected];
-    if (!weapon) return;
-    let group: THREE.Object3D;
-    try {
-      group = weapon.stickerUrl
-        ? await makeSticker(weapon.stickerUrl, { height: 0.5 })
-        : makeFallbackSticker(weapon.category, weapon.palette);
-    } catch (e) {
-      console.error('[fighters] sticker', e);
-      group = makeFallbackSticker(weapon.category, weapon.palette);
-    }
-    group.userData.isWeaponSticker = true;
-    group.rotation.set(0, Math.PI / 2, -Math.PI / 2);
-    group.position.set(0, 0.06, 0.08);
-    slot.add(group);
-  }
-
   async function spawn(player: PlayerId): Promise<void> {
     const def = ctx.state.players[player].fighter ?? defaultFighter(player);
     const rig = await buildFighterRig(def, player, ctx);
@@ -84,8 +60,7 @@ export function installFighters(ctx: Ctx): FighterSystem {
     rig.container.rotation.y = rig.facing;
     ctx.three.scene.add(rig.container);
     setFighterObject(player, rig.container);
-    setHandSlot(player, rig.handSlotR);
-    await attachWeaponSticker(player);
+    setHandSlot(player, rig.handSlotR); // l'objet en main : src/scene/weapons (LATK1)
   }
 
   async function respawnAll(): Promise<void> {
@@ -126,10 +101,6 @@ export function installFighters(ctx: Ctx): FighterSystem {
     } else {
       rig.animator.play('jump', { loop: false, fade: 0.08, onFinished: () => resumeLocomotion(rig, 0.2) });
     }
-  });
-
-  ctx.bus.on('weapon:pick', ({ player }) => {
-    attachWeaponSticker(player).catch((e) => console.error('[fighters] weapon:pick', e));
   });
 
   ctx.bus.on('fire', ({ player, weapon }) => {
