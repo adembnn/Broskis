@@ -1,9 +1,10 @@
 # Harnais Voodoo-Hack — AI Gaming Hack (Paris)
 
-## Le jeu (à remplir dès que le concept est figé)
-- Concept en une phrase : …
-- Boucle de jeu (ce que le joueur fait toutes les 10 s) : …
-- Rôle de l'IA (ce qu'elle fait d'impossible sans elle) : …
+## Le jeu : BROSKIS (plan complet : `plan/README.md`, lots : `plan/lots/`, suivi : `plan/SUIVI.md`)
+- Concept en une phrase : « Snap any real object: it becomes your weapon. » Duels 3D cartoon au tour par tour à 2 sur le même PC, sur des maps qui s'effondrent (façon Smash), commentés par un animateur de ring IA.
+- Boucle de jeu (10 s) : la caméra tourne vers le joueur actif → il se déplace (6 m + 1 saut) → vise et tire avec une de ses 3 armes-objets → l'autre pare avec ESPACE au bon moment → impact, décor qui réagit, réplique vocale de l'animateur.
+- Rôle de l'IA (impossible sans elle) : n'importe quel objet photographié devient une arme jouable (Gemini : catégorie, stats, trait ; Nano Banana : sticker 3D) ; une photo devient un combattant ; l'animateur (Gemini + voix Gradium) connaît vos armes et commente vos coups.
+- Tout le texte du jeu est en **anglais**. Sous-agents : Sonnet (effort medium) par défaut, Opus seulement pour le design et le game design.
 
 Stack : jeu web 3D (Three.js + Vite, JavaScript ou TypeScript), IA Gemini au cœur du gameplay.
 Jury : Voodoo (jeu compris en 3 s) + Google DeepMind (IA indispensable). **Démo live 2 min à 20h. Opt-in avant 19h.**
