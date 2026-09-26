@@ -3,7 +3,9 @@
 // `gameHooks.input(player, action, down)`. Chaque image, `pollInputs` rend pour chaque joueur : direction
 // (stick ou touches), actions maintenues, fronts « appuyé » / « relâché » depuis l'image précédente
 // (un appui plus court qu'une image n'est jamais perdu) et l'heure exacte de l'appui (parade parfaite).
-import type { InputAction, PlayerId } from '../core/types';
+// En solo (vs IA), les DEUX jeux de touches et la 1re manette pilotent P1 ; le clavier ne pilote jamais P2,
+// joué par le bot (lot RTBOT) uniquement par `gameHooks.input`.
+import type { Ctx, InputAction, PlayerId } from '../core/types';
 import { actionsOf, getBindings } from '../core/input';
 
 export interface PlayerInput {
@@ -28,6 +30,11 @@ const prevHeld: [Set<InputAction>, Set<InputAction>] = [new Set(), new Set()];
 const PAD_BUTTONS: [number, InputAction][] = [[0, 'jump'], [2, 'fire'], [7, 'fire'], [5, 'parry'], [14, 'weapon1'], [12, 'weapon2'], [15, 'weapon3']];
 const DEADZONE = 0.2;
 
+/** Solo contre le bot ? (lu à chaque événement : le mode change entre deux matchs). */
+let solo = (): boolean => false;
+/** Joueur qui reçoit les touches du jeu de `player` : en solo, tout va à P1. */
+const target = (player: PlayerId): PlayerId => (solo() ? 0 : player);
+
 function pads(): (Gamepad | null)[] {
   try {
     return [...(navigator.getGamepads?.() ?? [])].filter((g): g is Gamepad => !!g && g.connected);
@@ -35,9 +42,12 @@ function pads(): (Gamepad | null)[] {
 }
 
 function keyboardHeld(player: PlayerId): Set<InputAction> {
-  const b = getBindings(player);
   const out = new Set<InputAction>();
-  for (const a of ACTIONS) if (b[a].some((code) => keysDown.has(code))) out.add(a);
+  if (solo() && player === 1) return out; // le bot ne se pilote pas au clavier
+  for (const set of solo() ? [0, 1] as const : [player]) {
+    const b = getBindings(set);
+    for (const a of ACTIONS) if (b[a].some((code) => keysDown.has(code))) out.add(a);
+  }
   return out;
 }
 
@@ -50,7 +60,7 @@ export function pollInputs(): [PlayerInput, PlayerInput] {
     for (const a of hookHeld[p]) held.add(a);
     let mx = (held.has('right') ? 1 : 0) - (held.has('left') ? 1 : 0);
     let my = (held.has('up') ? 1 : 0) - (held.has('down') ? 1 : 0);
-    const pad = connected[p];
+    const pad = solo() && p === 1 ? undefined : connected[p];
     if (pad) {
       for (const [i, a] of PAD_BUTTONS) if (pad.buttons[i]?.pressed) held.add(a);
       const ax = pad.axes[0] ?? 0, ay = pad.axes[1] ?? 0;
@@ -87,22 +97,23 @@ export function clearInputs(): void {
   }
 }
 
-export function installControls(): void {
+export function installControls(ctx: Ctx): void {
+  solo = () => ctx.state.vsAI;
   window.addEventListener('keydown', (e) => {
     if (e.repeat) return;
     let used = false;
     for (const p of [0, 1] as const) {
       for (const a of actionsOf(e.code, p)) {
         used = true;
-        pressedSince[p].add(a);
-        downAt[p].set(a, e.timeStamp); // même horloge que performance.now()
+        pressedSince[target(p)].add(a);
+        downAt[target(p)].set(a, e.timeStamp); // même horloge que performance.now()
       }
     }
     if (used) { keysDown.add(e.code); e.preventDefault(); }
   });
   window.addEventListener('keyup', (e) => {
     if (!keysDown.delete(e.code)) return;
-    for (const p of [0, 1] as const) for (const a of actionsOf(e.code, p)) releasedSince[p].add(a);
+    for (const p of [0, 1] as const) for (const a of actionsOf(e.code, p)) releasedSince[target(p)].add(a);
   });
   window.addEventListener('blur', () => clearInputs()); // change de fenêtre = relâche tout
 }
