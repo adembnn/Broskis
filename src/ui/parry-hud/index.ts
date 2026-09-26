@@ -1,163 +1,147 @@
-import * as THREE from 'three';
-import type { Ctx, PlayerId } from '../../core/types';
-import { PARRY_KEY_CODE } from '../../gameplay/tuning';
+import type { Ctx } from '../../core/types';
+import { el } from '../dom';
+import { ui, palette } from '../../art/tokens';
 
-export function installParryHud(ctx: Ctx, root: HTMLElement) {
-  const overlay = document.createElement('div');
-  overlay.className = 'parry-hud-overlay';
-  overlay.style.position = 'absolute';
-  overlay.style.inset = '0';
-  overlay.style.pointerEvents = 'none';
-  overlay.style.zIndex = '100'; // above others
-  root.appendChild(overlay);
+export function installParryHud(ctx: Ctx, root: HTMLElement): void {
+  const container = el('div', 'parry-hud-layer');
+  container.style.position = 'absolute';
+  container.style.inset = '0';
+  container.style.pointerEvents = 'none';
+  container.style.overflow = 'hidden';
+  root.appendChild(container);
 
-  const cues: Map<PlayerId, HTMLDivElement> = new Map();
-  const v = new THREE.Vector3();
+  const texts: HTMLElement[] = [];
+  let successes = 0;
+  let misses = 0;
 
-  function project(pos: [number, number, number], offsetY: number, el: HTMLElement) {
-    v.set(pos[0], pos[1] + offsetY, pos[2]);
-    v.project(ctx.three.camera);
-    if (v.z > 1) {
-      el.style.display = 'none';
-      return;
-    }
-    el.style.display = 'block';
-    const x = (v.x * 0.5 + 0.5) * window.innerWidth;
-    const y = (v.y * -0.5 + 0.5) * window.innerHeight;
-    el.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
-  }
-
-  // BRO Gauge per player
-  const broBars: HTMLDivElement[] = [];
-  for (let i = 0; i < 2; i++) {
-    const wrap = document.createElement('div');
-    wrap.style.position = 'absolute';
-    wrap.style.bottom = '100px';
-    wrap.style[i === 0 ? 'left' : 'right'] = '20px';
-    wrap.style.width = '180px';
-    wrap.style.display = 'flex';
-    wrap.style.flexDirection = 'column';
-    wrap.style.gap = '8px';
-    wrap.style.alignItems = i === 0 ? 'flex-start' : 'flex-end';
-
-    const bar = document.createElement('div');
-    bar.style.width = '100%';
-    bar.style.height = '18px';
-    bar.style.border = 'var(--b-trait) solid var(--b-encre)';
-    bar.style.backgroundColor = 'var(--b-carton)';
-    bar.style.borderRadius = 'var(--b-rayon)';
-    bar.style.boxShadow = 'var(--b-sticker-shadow)';
-    bar.style.overflow = 'hidden';
-    bar.style.display = 'flex';
+  // Jauges BRO
+  const gauges = [
+    el('div', 'bro-gauge p1'),
+    el('div', 'bro-gauge p2')
+  ];
+  
+  gauges.forEach((g, i) => {
+    g.style.position = 'absolute';
+    g.style.top = '20px';
+    g.style.width = '200px';
+    g.style.height = '20px';
+    g.style.backgroundColor = ui.carton;
+    g.style.border = `${ui.trait}px solid ${ui.encre}`;
+    g.style.borderRadius = `${ui.rayon}px`;
+    if (i === 0) g.style.left = '20px';
+    else g.style.right = '20px';
     
-    const fill = document.createElement('div');
+    const fill = el('div', 'fill');
     fill.style.width = '0%';
     fill.style.height = '100%';
-    fill.style.backgroundColor = 'var(--b-alerte)';
-    fill.style.transition = 'width 0.2s';
-    bar.appendChild(fill);
+    fill.style.backgroundColor = ui.alerte;
+    fill.style.transition = 'width 0.2s ease-out';
+    g.appendChild(fill);
     
-    const text = document.createElement('div');
-    text.className = 'stroke';
-    text.style.fontSize = '18px';
-    text.innerText = 'BRO';
+    const text = el('div', 'super-text');
+    text.textContent = 'SUPER READY!';
+    text.style.display = 'none';
+    text.style.position = 'absolute';
+    text.style.top = '100%';
+    text.style.left = '0';
+    text.style.color = ui.alerte;
+    text.style.fontFamily = 'Lilita One, sans-serif';
+    text.style.textShadow = `2px 2px 0 ${ui.encre}, -2px -2px 0 ${ui.encre}, 2px -2px 0 ${ui.encre}, -2px 2px 0 ${ui.encre}`;
+    g.appendChild(text);
     
-    wrap.appendChild(bar);
-    wrap.appendChild(text);
-    overlay.appendChild(wrap);
-    broBars.push(wrap);
-  }
+    container.appendChild(g);
+  });
 
-  let streakCount = 0;
-  let parrySuccesses = 0;
-  let parryMisses = 0;
-  let showHelper = true;
+  const createVinylText = (text: string, color: string = palette.lumiere) => {
+    const elNode = el('div', 'parry-text');
+    elNode.textContent = text;
+    elNode.style.position = 'absolute';
+    elNode.style.left = '50%';
+    elNode.style.top = '40%';
+    elNode.style.transform = 'translate(-50%, -50%)';
+    elNode.style.fontFamily = 'Lilita One, sans-serif';
+    elNode.style.fontSize = '48px';
+    elNode.style.color = color;
+    elNode.style.textShadow = `3px 3px 0 ${ui.encre}, -3px -3px 0 ${ui.encre}, 3px -3px 0 ${ui.encre}, -3px 3px 0 ${ui.encre}`;
+    elNode.style.padding = `${ui.marge}px`;
+    elNode.style.backgroundColor = ui.vinyle;
+    elNode.style.borderRadius = `${ui.rayon}px`;
+    elNode.style.border = `${ui.trait}px solid ${ui.encre}`;
+    elNode.style.animation = 'pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards';
+    return elNode;
+  };
+
+  const showFloatingText = (text: string, color?: string) => {
+    const node = createVinylText(text, color);
+    container.appendChild(node);
+    texts.push(node);
+    setTimeout(() => {
+      node.style.opacity = '0';
+      node.style.transform = 'translate(-50%, -100%)';
+      node.style.transition = 'all 0.3s ease-in';
+      setTimeout(() => {
+        if (node.parentElement) node.parentElement.removeChild(node);
+        const idx = texts.indexOf(node);
+        if (idx !== -1) texts.splice(idx, 1);
+      }, 300);
+    }, 1000);
+  };
+
+  const helperText = el('div', 'helper-text');
+  helperText.textContent = 'PRESS SPACE TO PARRY';
+  helperText.style.position = 'absolute';
+  helperText.style.bottom = '20%';
+  helperText.style.left = '50%';
+  helperText.style.transform = 'translateX(-50%)';
+  helperText.style.fontFamily = 'Nunito, sans-serif';
+  helperText.style.fontSize = '24px';
+  helperText.style.color = ui.vinyle;
+  helperText.style.textShadow = `1px 1px 0 ${ui.encre}, -1px -1px 0 ${ui.encre}, 1px -1px 0 ${ui.encre}, -1px 1px 0 ${ui.encre}`;
+  helperText.style.display = 'none';
+  container.appendChild(helperText);
+
+  ctx.bus.on('parry:cue', ({ defender }) => {
+    const key = defender === 0 ? 'SPACE' : 'ENTER';
+    showFloatingText(`!! ${key} !!`, palette.danger);
+    if (successes < 5 || misses >= 2) {
+      helperText.textContent = `PRESS ${key} TO PARRY`;
+      helperText.style.display = 'block';
+    }
+  });
+
+  ctx.bus.on('parry:result', ({ grade, deltaMs }) => {
+    helperText.style.display = 'none';
+    if (grade === 'perfect') {
+      showFloatingText('PERFECT!', palette.lumiere);
+      successes++;
+      misses = 0;
+    } else if (grade === 'good') {
+      showFloatingText('GOOD', palette.joueur);
+      successes++;
+      misses = 0;
+    } else {
+      if (deltaMs < 0) {
+        showFloatingText(`TOO EARLY ${deltaMs}ms`, palette.danger);
+      } else {
+        showFloatingText(`TOO LATE`, palette.danger);
+      }
+      misses++;
+    }
+  });
+
+  ctx.bus.on('parry:streak', ({ multiplier }) => {
+    if (multiplier > 1) {
+      showFloatingText(`x${multiplier}`, palette.lumiere);
+    }
+  });
 
   ctx.bus.on('bro:gauge', ({ player, value }) => {
-    const bar = broBars[player].children[0] as HTMLElement;
-    const fill = bar.children[0] as HTMLElement;
-    fill.style.width = `${Math.min(100, Math.max(0, value * 100))}%`;
+    const fill = gauges[player].querySelector('.fill') as HTMLElement;
+    if (fill) fill.style.width = `${Math.min(100, value * 100)}%`;
   });
 
   ctx.bus.on('super:ready', ({ player }) => {
-    const text = broBars[player].children[1] as HTMLElement;
-    text.innerText = 'SUPER READY!';
-    text.style.color = 'var(--b-lumiere)';
+    const text = gauges[player].querySelector('.super-text') as HTMLElement;
+    if (text) text.style.display = 'block';
   });
-
-  ctx.bus.on('parry:streak', ({ streak }) => {
-    streakCount = streak;
-  });
-
-  ctx.bus.on('parry:cue', ({ defender }) => {
-    let el = cues.get(defender);
-    if (!el) {
-      el = document.createElement('div');
-      el.style.position = 'absolute';
-      el.style.top = '0';
-      el.style.left = '0';
-      el.style.textAlign = 'center';
-      overlay.appendChild(el);
-      cues.set(defender, el);
-    }
-    
-    const key = PARRY_KEY_CODE[defender] === 'Space' ? 'SPACE' : 'ENTER';
-    
-    el.innerHTML = `
-      <div class="stroke" style="font-size: 40px; color: var(--b-alerte);">!!</div>
-      ${showHelper ? `<div style="font-family: var(--b-body); font-weight: 800; font-size: 14px; background: var(--b-vinyle); border: var(--b-trait) solid var(--b-encre); border-radius: var(--b-rayon); padding: 4px 10px; color: var(--b-encre); margin-top: -5px; box-shadow: var(--b-sticker-shadow);">PRESS ${key}</div>` : ''}
-    `;
-    el.style.display = 'block';
-  });
-
-  ctx.bus.on('parry:result', ({ player, grade, deltaMs }) => {
-    let el = cues.get(player);
-    if (!el) return;
-    
-    let text = '';
-    let color = 'white';
-    
-    if (grade === 'perfect') {
-      text = streakCount > 1 ? `PERFECT! ×${streakCount}` : 'PERFECT!';
-      color = 'var(--b-alerte)';
-      parrySuccesses++;
-      if (parrySuccesses >= 5) showHelper = false;
-    } else if (grade === 'good') {
-      text = 'GOOD';
-      color = '#A3E4D7';
-      parrySuccesses++;
-      if (parrySuccesses >= 5) showHelper = false;
-    } else {
-      parrySuccesses = 0;
-      parryMisses++;
-      if (parryMisses >= 2) showHelper = true;
-      if (Math.abs(deltaMs) < 20 && deltaMs >= 0) {
-        text = 'TOO LATE';
-      } else if (deltaMs < 0) {
-        text = `TOO EARLY ${Math.round(deltaMs)} ms`;
-      } else {
-        text = `TOO LATE +${Math.round(deltaMs)} ms`;
-      }
-      color = 'var(--b-p1-fonce)';
-    }
-
-    el.innerHTML = `
-      <div class="stroke" style="font-size: 32px; color: ${color}; transform: rotate(calc(var(--b-inclinaison) * -2)); background: var(--b-papier); border: var(--b-trait) solid var(--b-encre); border-radius: var(--b-rayon); padding: 4px 12px; box-shadow: var(--b-sticker-shadow);">
-        ${text}
-      </div>
-    `;
-
-    setTimeout(() => {
-      if (el) el.style.display = 'none';
-    }, 1500);
-  });
-
-  ctx.loop.addSystem('parry-hud-update', () => {
-    for (const [player, el] of cues.entries()) {
-      if (el.style.display !== 'none') {
-        const pos = ctx.state.players[player].pos;
-        project(pos, 2.0, el);
-      }
-    }
-  }, 1000);
 }
