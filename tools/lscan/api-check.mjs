@@ -24,7 +24,7 @@ await Promise.all(
     const body = { imageBase64, mimeType: file.endsWith('png') ? 'image/png' : 'image/jpeg' };
     const [scan, sticker] = await Promise.all([post('scan-object', body), post('sticker', body)]);
     const j = scan.json ?? {};
-    console.log(`${slug.padEnd(14)} scan ${scan.ms} ms ${j.object} -> ${j.weaponName} [${j.category}/${j.trait}] ${JSON.stringify(j.stats)}${j.substituted ? ' SUBSTITUÉ' : ''}`);
+    console.log(`${slug.padEnd(14)} scan ${scan.ms} ms ${j.object} -> ${j.weaponName} [${j.category}/${j.trait}] ${JSON.stringify(j.stats)} ${j.physics?.massKg} kg (Gemini ${j.geminiPhysics?.massKg} kg)${j.substituted ? ' SUBSTITUÉ' : ''}`);
     const m = /^data:image\/(\w+);base64,(.*)$/.exec(sticker.json?.dataUrl ?? '');
     if (m) writeFileSync(`${OUT}/${slug}.${m[1] === 'jpeg' ? 'jpg' : m[1]}`, Buffer.from(m[2], 'base64'));
     console.log(`${slug.padEnd(14)} sticker ${sticker.ms} ms ${m ? `${m[1]} ${Math.round(m[2].length * 0.75 / 1024)} Ko` : `null (${sticker.json?.reason})`}`);
