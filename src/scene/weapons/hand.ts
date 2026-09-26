@@ -195,12 +195,15 @@ export function installHands(ctx: Ctx) {
       h.aim.set(them[0] - me[0], 0, them[2] - me[2]);
       if (h.aim.lengthSq() < 1e-6) h.aim.set(1, 0, 0);
       h.aim.normalize();
+      // Un gros objet (chaise) ne rentre pas dans le corps : il déborde devant et sur le côté de la main droite.
+      _p.addScaledVector(h.aim, h.size * 0.2).addScaledVector(_o.crossVectors(h.aim, UP).normalize(), h.size * 0.12);
       h.pop = Math.min(1, h.pop + real * 1000 / WEAPON_FX.main.pop);
       const pop = h.pop < 1 ? 1 + 0.25 * Math.sin(h.pop * Math.PI) : 1;
       // Charge : tremble et luit. Temps réel : `charge` (0..1) dans l'état du joueur ; sinon charge du tour.
       const live = (ctx.state.players[p] as { charge?: number }).charge;
       const k = typeof live === 'number' ? Math.max(0, Math.min(1, live)) : rt?.charging ? h.power : 0;
-      m.glow(palette.lumiere, k * WEAPON_FX.main.lueur);
+      // Lueur qui pulse (la texture de l'objet reste lisible entre deux pulsations).
+      m.glow(palette.lumiere, k * WEAPON_FX.main.lueur * (0.55 + 0.45 * Math.sin(t * 18)));
       const amp = WEAPON_FX.main.tremble * k;
       if (amp > 0) _p.add(_o.set(Math.sin(t * 91) * amp, Math.sin(t * 77 + 1) * amp, Math.cos(t * 83) * amp));
       // Recul du blaster : l'objet part en arrière le long de la visée et se cabre.

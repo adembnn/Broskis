@@ -1,0 +1,39 @@
+{
+  "id": "demo-plush-toy",
+  "object": "teddy bear",
+  "name": "Mr. Cuddlesworth",
+  "category": "shield",
+  "why": "Nothing absorbs emotional damage and incoming artillery quite like synthetic fur and polyester stuff",
+  "stats": {
+    "a": 2,
+    "b": 6,
+    "c": 2
+  },
+  "trait": "healing",
+  "palette": [
+    "#8B5A2B",
+    "#D2B48C"
+  ],
+  "lines": {
+    "intro": "Brace yourselves, here comes pure unadulterated comfort!",
+    "hit": "Right in the face with soft, fuzzy trauma!",
+    "miss": "The bear flutters harmlessly to the carpet!",
+    "parried": "Rejected! Bear hug turned into a bear beatdown!"
+  },
+  "physics": {
+    "massKg": 0.15,
+    "sizeM": [
+      0.22,
+      0.14,
+      0.1
+    ],
+    "material": "fabric",
+    "shape": "irregular",
+    "bounciness": 0.2,
+    "fragile": false,
+    "liquid": false
+  },
+  "stickerUrl": "/demo-cache/stickers/plush-toy.jpg",
+  "source": "cache",
+  "cooldown": 0
+}

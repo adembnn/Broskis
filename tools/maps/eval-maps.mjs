@@ -34,7 +34,8 @@ await page.evaluate(() => {
 
 const rapport = { url: URL, date: new Date().toISOString(), maps: {} };
 for (const map of MAPS) {
-  await page.evaluate((m) => window.gameHooks.startMatch({ map: m, seed: 7 }), map);
+  await page.evaluate((m) => window.gameHooks.startMatch({ map: m, seed: 7, split: true }), map);
+  await page.waitForFunction(() => window.gameState.phase === 'fight', null, { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(5000);
   const r = { images: {} };
   // Vue « jeu » : caméra réelle du jeu, interface visible (ce que voit le jury).

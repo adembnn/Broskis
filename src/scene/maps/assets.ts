@@ -12,6 +12,9 @@ export const HEX = {
   mountainB: '/assets/packs/hexagon/decoration/nature/mountain_B_grass_trees.gltf',
   hillsTrees: '/assets/packs/hexagon/decoration/nature/hills_A_trees.gltf',
   ruin: '/assets/packs/hexagon/buildings/neutral/building_destroyed.gltf',
+  pebbleA: '/assets/packs/hexagon/decoration/nature/rock_single_A.gltf',
+  pebbleC: '/assets/packs/hexagon/decoration/nature/rock_single_C.gltf',
+  pebbleE: '/assets/packs/hexagon/decoration/nature/rock_single_E.gltf',
 };
 
 export const PIRATE = {
@@ -36,10 +39,27 @@ export const RESTAURANT = {
   floor: '/assets/packs/restaurant/floor_kitchen.gltf',
   wallWindow: '/assets/packs/restaurant/wall_window_open.gltf',
   pot: '/assets/packs/restaurant/pot_A.gltf',
+  stewPot: '/assets/packs/restaurant/pot_A_stew.gltf',
+  ketchup: '/assets/packs/restaurant/ketchup.gltf',
+  mustard: '/assets/packs/restaurant/mustard.gltf',
 };
 
 export const FURNITURE = {
   shelf: '/assets/packs/furniture/shelf_A_big.gltf',
+};
+
+/** Kit d'arène (lot LKIT, public/assets/arena-kit/kit.json) : pièces modélisées dans Blender, couleurs et
+ *  occlusion cuites dans les sommets. Ancre = centre du dessus marchable (plateformes) ou base au sol (couverts). */
+const KIT_DIR = '/assets/arena-kit/';
+export const KIT = {
+  socleHex4: `${KIT_DIR}socle_hex_4.glb`,
+  plateauCuisine: `${KIT_DIR}plateau_cuisine.glb`,
+  plateformePierreL: `${KIT_DIR}plateforme_pierre_L.glb`,
+  radeauL: `${KIT_DIR}radeau_L.glb`,
+  plancheL: `${KIT_DIR}planche_L.glb`,
+  caisse: `${KIT_DIR}caisse.glb`,
+  tonneau: `${KIT_DIR}tonneau.glb`,
+  muret: `${KIT_DIR}muret_ruine.glb`,
 };
 
 /** props.glb (KayKit tavern, meshopt) : tonneaux déjà à l'échelle des persos. */

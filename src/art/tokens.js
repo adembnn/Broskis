@@ -19,7 +19,7 @@ export const palette = {
 };
 
 export const rendu = {
-  exposition: 1.0,     // sans effet avec 'None'
+  exposition: 1.1,     // slightly higher for brightness
   toneMapping: 'ACES', // AgX mesuré : -35 à -41 % de chroma sur J1/J2, vinyle grisé (L* 93 -> 79)
   environnement: 0.3,  // RoomEnvironment : n'agit que sur Standard/Lambert/Phong, jamais sur le toon
   bloom: { force: 0.4, rayon: 0.3, seuil: 0.85 }, // seuls émissifs et VFX additifs le franchissent
@@ -37,7 +37,7 @@ export const rendu = {
   ruban: { largeur: 0.25, bord: 0.05 },       // anneau de déplacement = ruban adhésif couleur joueur, bord vinyle
   traces: { max: 16, taille: 2.0, alea: 20 }, // onomatopées collées au décor (m, rotation aléatoire en deg)
   rayures: { largeur: 0.3, angle: 45 },       // zones d'alerte : bandes ALERTE / ENCRE (m, deg)
-  ombres: { taille: 1024, biais: -0.0005, biaisNormal: 0.02, tache: 0.35 }, // tache : disque d'encre sous projectiles
+  ombres: { taille: 2048, biais: -0.0005, biaisNormal: 0.01, tache: 0.35 }, // ombre plus nette
 };
 
 export const polices = {

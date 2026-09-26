@@ -2,7 +2,7 @@
 // autour du centre du corps) > squashWrapper (échelle animée, pieds au sol) > modèle KayKit.
 import * as THREE from 'three';
 import { applyFighterLook } from '../fighter-custom';
-import type { FighterDef, PlayerId, Ctx } from '../../core/types';
+import type { Category, FighterDef, PlayerId, Ctx } from '../../core/types';
 import { LOCAL_TOKENS } from '../localTokens';
 import { setVinylRenderOrder } from '../render/toon';
 import { FighterAnimator } from './animator';
@@ -50,6 +50,8 @@ export interface BodyState {
   teeter: boolean;
   /** Ce que joue la couche haut du corps : pose de charge, attaque, garde tenue, réaction de garde. */
   upper: 'charge' | 'attack' | 'guard' | 'react' | null;
+  /** Catégorie de l'arme de la charge ou de l'attaque en cours. */
+  cat: Category | null;
   /** Fin de match : 'win' | 'lose' | null. */
   outcome: 'win' | 'lose' | null;
 }
@@ -121,7 +123,7 @@ export async function buildFighterRig(fighter: FighterDef, player: PlayerId, ctx
     groundedFor: 0,
     minVelY: 0,
     locked: false,
-    body: { spinRate: 0, spinAngle: 0, flipT: -1, climbT: -1, climbFromY: 0, burstUntil: 0, teeter: false, upper: null, outcome: null },
+    body: { spinRate: 0, spinAngle: 0, flipT: -1, climbT: -1, climbFromY: 0, burstUntil: 0, teeter: false, upper: null, cat: null, outcome: null },
   };
 }
 

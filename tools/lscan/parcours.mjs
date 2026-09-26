@@ -134,8 +134,14 @@ async function snapSlot(player, slot, slug, source, waitSticker) {
       return v && !v.hidden && v.videoWidth > 0;
     }, null, { timeout: 8000 });
     await page.waitForTimeout(400);
+    // Repères dans la page : clic sur SNAP et apparition de la carte (performance.now, comme window.__scans).
+    await page.evaluate(() => {
+      window.__lab = {};
+      document.addEventListener('click', (e) => { if (/^snap$/i.test(e.target.closest?.('button')?.textContent ?? '')) window.__lab.snap ??= performance.now(); }, true);
+      new MutationObserver(() => { if (!window.__lab.card && document.querySelector('.weapon-card')) window.__lab.card = performance.now(); }).observe(document.body, { subtree: true, childList: true });
+    });
     tClick = Date.now();
-    await clickText(/snap|capture/i);
+    await clickText(/^snap$/i);
   } else {
     tClick = Date.now();
     await page.setInputFiles('.capture input[type=file]', photoPath(slug));
@@ -161,6 +167,11 @@ async function snapSlot(player, slot, slug, source, waitSticker) {
     await card.screenshot({ path: `${OUT}/carte-p${player + 1}-${slot + 1}-${slug}.png` });
   }
   const aSticker = waitSticker ? await page.locator('.weapon-card .wsticker-img').count() > 0 : null;
+  if (source === 'cam') {
+    const lab = await page.evaluate(() => ({ ...window.__lab, scanStart: window.__scans?.at(-1)?.start }));
+    rapport.webcam = { snapVersAppelsMs: Math.round(lab.scanStart - lab.snap), snapVersCarteMs: Math.round(lab.card - lab.snap) };
+    log('webcam (dans la page) :', JSON.stringify(rapport.webcam));
+  }
   const r = {
     joueur: player + 1, slot: slot + 1, photo: slug, source, ...fiche,
     carteS: +((tCard - tClick) / 1000).toFixed(1),

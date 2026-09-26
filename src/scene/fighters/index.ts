@@ -68,12 +68,22 @@ export function installFighters(ctx: Ctx): FighterSystem {
   const lastPower: [number, number] = [0, 0];
   /** Garde tenue d'après l'événement `block` (temps réel). */
   const blockOn: [boolean, boolean] = [false, false];
+  /** Côté de la dernière torsion sur coup (alternance quand le recul est dans l'axe). */
+  const hitSide: [number, number] = [1, -1];
   const L = LOCAL_TOKENS.locomotion;
+  /** Banc LATK2 (tools/anim/latk2-lab.mjs) : position et charge imposées, sinon celles du jeu. */
+  const lab: { pos: [Vec3 | null, Vec3 | null]; charge: [number | null, number | null]; flying: [boolean | null, boolean | null] } = {
+    pos: [null, null], charge: [null, null], flying: [null, null],
+  };
+  /** Vol simulé (banc) : arc balistique de 1,1 s imposé à la position, pour voir la vrille sans le gameplay. */
+  const labFlight: ({ t: number; start: Vec3; dir: [number, number] } | null)[] = [null, null];
   loadPack().catch(() => { /* déjà journalisé : les clips du perso suffisent */ });
 
   // ------------------------------------------------------------------ lectures d'état
 
   function chargeOf(p: PlayerId): number {
+    const forced = lab.charge[p];
+    if (forced !== null) return forced;
     const ps = ctx.state.players[p] as unknown as { charge?: number };
     if (typeof ps.charge === 'number') return ps.charge;
     return runtimeOf(p)?.charging ? Math.max(0.05, lastPower[p]) : 0;
@@ -132,6 +142,7 @@ export function installFighters(ctx: Ctx): FighterSystem {
     rig.prevTarget.set(pos[0], pos[1], pos[2]);
     rig.facing = player === 0 ? Math.PI / 2 : -Math.PI / 2;
     rig.container.rotation.y = rig.facing;
+    rig.pivot.userData.baseY = rig.pivot.position.y;
     ctx.three.scene.add(rig.container);
     setFighterObject(player, rig.container);
     setHandSlot(player, rig.handSlotR);
@@ -172,7 +183,7 @@ export function installFighters(ctx: Ctx): FighterSystem {
     if (second) {
       // Double saut : salto avant en l'air, bras et jambes groupés.
       rig.body.flipT = 0;
-      if (!a.isBusy()) a.play(a.pick('dodgeF', 'jumpStart'), { loop: false, fade: 0.06, speed: 1.4, onFinished: () => resumeLocomotion(rig, 0.12) });
+      if (!a.isBusy()) a.play(a.pick('dodgeF', 'jumpStart'), { loop: false, fade: 0.08, speed: 1.4, onFinished: () => resumeLocomotion(rig, 0.12) });
       return;
     }
     if (a.has('jumpStart')) {
@@ -188,8 +199,13 @@ export function installFighters(ctx: Ctx): FighterSystem {
     const rig = rigs[player];
     ctx.bus.emit('anim:release', { player, weapon, handPos: hand });
     animMetricsImpl.addEvent({ t: Date.now(), player, kind: 'release', handPos: hand });
-    // Le corps se détend d'un coup : petit étirement (lancer) ou écrasement (objet planté au sol).
-    rig?.animator.bump(weapon.category === 'shield' ? juice.action.squash : 1.12);
+    if (!rig) return;
+    // Le corps se détend d'un coup et suit l'objet : fente vers l'avant + étirement (lancer), ou plongée vers
+    // le sol + écrasement (objet planté).
+    const fwd = tmpDir.set(Math.sin(rig.facing), 0, Math.cos(rig.facing));
+    const shield = weapon.category === 'shield';
+    rig.animator.kickWhip(fwd, shield ? ANIM.bouclier.plongee : ANIM.lancer.fente);
+    rig.animator.bump(shield ? juice.action.squash : 1.12);
   }
 
   function endAttack(rig: FighterRig): void {
@@ -202,6 +218,7 @@ export function installFighters(ctx: Ctx): FighterSystem {
   function startChargePose(rig: FighterRig, weapon: Weapon): void {
     const a = rig.animator;
     rig.body.upper = 'charge';
+    rig.body.cat = weapon.category;
     if (weapon.category === 'blaster') {
       a.playUpper(a.pick('aim1h', 'cast'), { loop: true, fade: 0.12 });
       return;
@@ -223,9 +240,10 @@ export function installFighters(ctx: Ctx): FighterSystem {
     if (!rig) return;
     const a = rig.animator;
     rig.body.upper = 'attack';
+    rig.body.cat = weapon.category;
     if (weapon.category === 'blaster') {
       // Bras tendu vers l'adversaire pendant toute la rafale ; le recul arrive à chaque projectile.
-      if (a.upperName !== 'aim1h') a.playUpper(a.pick('aim1h', 'cast'), { loop: true, fade: 0.06 });
+      if (a.upperName !== 'aim1h') a.playUpper(a.pick('aim1h', 'cast'), { loop: true, fade: ANIM.fondu.action });
       rig.body.burstUntil = performance.now() + 450 + ANIM.tir.tenueApres * 1000;
       return;
     }
@@ -236,7 +254,7 @@ export function installFighters(ctx: Ctx): FighterSystem {
       // Pack pas encore chargé : clip du perso, lâcher au pic habituel.
       const fallback = weapon.category === 'shield' ? 'block' : 'throw';
       const d = a.duration(fallback) || 1;
-      a.playUpper(fallback, { fade: 0.06, mark: { at: d * 0.42, fn: (h) => onRelease(player, weapon, h) }, onFinished: done });
+      a.playUpper(fallback, { fade: ANIM.fondu.action, mark: { at: d * 0.42, fn: (h) => onRelease(player, weapon, h) }, onFinished: done });
       return;
     }
     const mark = { at: keys.release, fn: (h: Vec3) => onRelease(player, weapon, h) };
@@ -246,19 +264,20 @@ export function installFighters(ctx: Ctx): FighterSystem {
     } else {
       // Tir sans charge : on reprend juste avant la fin de l'élan (≥ 140 ms d'élan avant le lâcher).
       const from = Math.max(0, Math.min(keys.windup, keys.release - ANIM.lancer.elanMin * ts));
-      a.playUpper(clip, { from, timeScale: ts, fade: 0.05, mark, onFinished: done });
+      a.playUpper(clip, { from, timeScale: ts, fade: ANIM.fondu.action, mark, onFinished: done });
     }
   });
 
   // Recul à chaque projectile du blaster (le tireur est celui qui possède l'arme).
   ctx.bus.on('projectile:spawn', ({ weapon }) => {
     if (weapon.category !== 'blaster') return;
-    for (const p of [0, 1] as const) {
-      const rig = rigs[p];
-      if (!rig || !ctx.state.players[p].weapons.includes(weapon)) continue;
-      rig.animator.kickRecoil(1);
-      rig.body.burstUntil = performance.now() + ANIM.tir.tenueApres * 1000;
-    }
+    let owner = ([0, 1] as const).find((p) => ctx.state.players[p].weapons.includes(weapon));
+    // arme recopiée (caisse, banc) : c'est celui qui est en train de tirer au blaster
+    owner ??= ([0, 1] as const).find((p) => rigs[p]?.body.upper === 'attack' && rigs[p]?.body.cat === 'blaster');
+    const rig = owner !== undefined ? rigs[owner] : null;
+    if (!rig) return;
+    rig.animator.kickRecoil(1);
+    rig.body.burstUntil = performance.now() + ANIM.tir.tenueApres * 1000;
   });
 
   ctx.bus.on('aim:update', ({ player, power }) => { lastPower[player] = power; });
@@ -282,10 +301,12 @@ export function installFighters(ctx: Ctx): FighterSystem {
     const back = () => { rig.body.upper = null; if (isBlocking(player)) startGuard(rig); else a.stopUpper(0.15); };
     if (grade === 'perfect') {
       // Contre : coup d'épaule sec vers l'attaquant, corps qui se ramasse puis se détend.
-      a.playUpper(a.pick('guardCounter', 'block'), { fade: 0.03, timeScale: 1.25, onFinished: back });
+      a.playUpper(a.pick('guardCounter', 'block'), { fade: ANIM.fondu.action, timeScale: 1.25, onFinished: back });
       a.bump(0.86);
+      const opp = rigs[opponentOf(player)];
+      if (opp) a.kickWhip(tmpDir.subVectors(opp.container.position, rig.container.position).setY(0).normalize(), ANIM.parade.contre);
     } else {
-      a.playUpper(a.pick('guardHit', 'block'), { fade: 0.03, onFinished: back });
+      a.playUpper(a.pick('guardHit', 'block'), { fade: ANIM.fondu.action, onFinished: back });
       const opp = rigs[opponentOf(player)];
       if (opp) a.kickWhip(tmpDir.subVectors(rig.container.position, opp.container.position).normalize(), ANIM.parade.recul);
     }
@@ -302,17 +323,21 @@ export function installFighters(ctx: Ctx): FighterSystem {
     const speed = kb.length();
     if (speed > 1e-4) kb.multiplyScalar(1 / speed);
     animMetricsImpl.addEvent({ t: Date.now(), player: target, kind: 'hit-react', durationMs: 0 });
-    const whip = Math.min(ANIM.coup.fouetMax, ANIM.coup.fouetParPct * Math.max(4, damage));
+    const whip = Math.min(ANIM.coup.fouetMax, ANIM.coup.fouetMin + ANIM.coup.fouetParPct * damage);
     if (isBlocking(target) && speed < ANIM.coup.vrilleDes) {
       // Coup encaissé en garde : la garde plie, les jambes tiennent.
       rig.body.upper = 'react';
-      a.playUpper(a.pick('guardHit', 'block'), { fade: 0.03, onFinished: () => { rig.body.upper = null; if (isBlocking(target)) startGuard(rig); else a.stopUpper(0.15); } });
+      a.playUpper(a.pick('guardHit', 'block'), { fade: ANIM.fondu.action, onFinished: () => { rig.body.upper = null; if (isBlocking(target)) startGuard(rig); else a.stopUpper(0.15); } });
       a.kickWhip(kb, whip * 0.5);
       return;
     }
     rig.body.upper = null;
     a.stopUpper(0.05);
     a.kickWhip(kb, whip);
+    // torsion sur l'épaule touchée : côté donné par la composante latérale du recul, sinon en alternance
+    const side = kb.x * Math.cos(rig.facing) - kb.z * Math.sin(rig.facing);
+    hitSide[target] = Math.abs(side) > 0.2 ? Math.sign(side) : -hitSide[target];
+    a.kickTwist(ANIM.coup.torsion * hitSide[target] * Math.min(1.6, whip / ANIM.coup.fouetMin));
     a.bump(juice.toucher.squash);
     if (speed > ANIM.coup.vrilleDes) {
       // Éjection : il part à reculons en vrille (salto arrière), plus vite si l'éjection est forte.
@@ -345,12 +370,13 @@ export function installFighters(ctx: Ctx): FighterSystem {
     if (!rig) return;
     rig.body.climbT = 0;
     rig.body.climbFromY = rig.container.position.y;
-    rig.animator.play(rig.animator.pick('jumpStart', 'jumpAir'), { loop: false, fade: 0.06, speed: 1.6 });
+    rig.animator.play(rig.animator.pick('jumpStart', 'jumpAir'), { loop: false, fade: 0.08, speed: 1.6 });
   });
 
   ctx.bus.on('teeter', ({ player, on }) => {
     const rig = rigs[player];
     if (rig) rig.body.teeter = on;
+    if (on) animMetricsImpl.addEvent({ t: Date.now(), player, kind: 'teeter' });
   });
 
   // ------------------------------------------------------------------ vies, réapparition, fin
@@ -405,7 +431,15 @@ export function installFighters(ctx: Ctx): FighterSystem {
       const b = rig.body;
       const ps = ctx.state.players[p];
       const rt = runtimeOf(p);
-      const pos = ps.pos;
+      const lf = labFlight[p];
+      if (lf) {
+        lf.t += dt;
+        const u = Math.min(lf.t, 1.1);
+        lab.pos[p] = [lf.start[0] + lf.dir[0] * 9 * u, lf.start[1] + 8 * u - 7.3 * u * u, lf.start[2] + lf.dir[1] * 9 * u];
+        lab.flying[p] = lf.t < 1.1;
+        if (lf.t > 1.8) { labFlight[p] = null; lab.pos[p] = null; lab.flying[p] = null; }
+      }
+      const pos = lab.pos[p] ?? ps.pos;
       tmpTarget.set(pos[0], pos[1], pos[2]);
 
       // Vitesse réelle (position physique d'une image à l'autre), lissée : pilote course, orientation, saut.
@@ -449,11 +483,11 @@ export function installFighters(ctx: Ctx): FighterSystem {
 
       // Fin de la vrille : le vol est fini (runtime) ou, sans runtime, il a repris pied.
       if (tumbling) {
-        const flying = rt ? !!rt.launch : rig.airborne;
+        const flying = lab.flying[p] ?? (rt ? !!rt.launch : rig.airborne);
         if (!flying && !hanging) {
           b.spinRate = 0;
           a.land(juice.toucher.squash);
-          a.play(a.pick('jumpLand', 'idle'), { loop: false, fade: 0.06, speed: L.landSpeed, onFinished: () => resumeLocomotion(rig) });
+          a.play(a.pick('jumpLand', 'idle'), { loop: false, fade: 0.08, speed: L.landSpeed, onFinished: () => resumeLocomotion(rig) });
         } else {
           b.spinAngle += b.spinRate * dt;
         }
@@ -490,7 +524,7 @@ export function installFighters(ctx: Ctx): FighterSystem {
         const u = Math.min(1, b.climbT / CLIMB_S);
         const overshoot = 1 + 2.2 * Math.pow(u - 1, 3) + 1.2 * Math.pow(u - 1, 2);
         cp.y = b.climbFromY + (tmpTarget.y - b.climbFromY) * overshoot;
-        if (u >= 1) { b.climbT = -1; cp.y = tmpTarget.y; a.land(0.8); a.play(a.pick('jumpLand', 'idle'), { loop: false, fade: 0.06, speed: L.landSpeed, onFinished: () => resumeLocomotion(rig) }); }
+        if (u >= 1) { b.climbT = -1; cp.y = tmpTarget.y; a.land(0.8); a.play(a.pick('jumpLand', 'idle'), { loop: false, fade: 0.08, speed: L.landSpeed, onFinished: () => resumeLocomotion(rig) }); }
       } else {
         cp.y += (tmpTarget.y - cp.y) * expFollow(dt, L.followY);
       }
@@ -506,11 +540,12 @@ export function installFighters(ctx: Ctx): FighterSystem {
         tau = 0.05;
       } else if (tumbling) {
         tau = 1e9; // cap figé pendant le vol (posé au coup)
-      } else if (rig.locked || (!rig.moving && !busy)) {
+      } else if (rig.locked || busy || !rig.moving) {
+        // visée verrouillée, réaction en cours (glissade du recul : il ne se retourne pas) ou à l'arrêt
         tmpOpponent.set(opp[0], pos[1], opp[2]);
         desired = Math.atan2(tmpOpponent.x - cp.x, tmpOpponent.z - cp.z);
         tau = rig.locked || busy ? L.turnAction : L.turnIdle;
-      } else if (rig.moving) {
+      } else {
         desired = Math.atan2(rig.velXZ.x, rig.velXZ.y);
         tau = L.turnRun;
       }
@@ -521,15 +556,18 @@ export function installFighters(ctx: Ctx): FighterSystem {
       if (!busy && !dead && !b.outcome && !tumbling && b.climbT < 0) {
         const want = hanging ? a.pick('jumpAir', 'idle') : locomotionClip(rig);
         if (a.current !== want && a.has(want)) a.play(want, { fade: want === 'run' ? 0.12 : 0.18 });
-        const rate = want === 'strafeL' || want === 'strafeR' || want === 'backpedal' ? directionalRate(want, speed) : null;
-        if (rate !== null) a.setBaseRate(rate);
+        const nat = want === 'strafeL' || want === 'strafeR' || want === 'backpedal' ? packData()?.speeds.get(want) : undefined;
+        if (nat) {
+          const rate = directionalRate(want, speed) ?? 1;
+          a.setBaseRate(rate, rate * nat * LOCAL_TOKENS.fighterScale);
+        }
       }
 
       // Charge : pose tenue qui tremble ; relâchée sans tir → retour.
       const weapon = selectedWeapon(p);
       if (charge > 0 && weapon && b.upper === null && !tumbling && !hanging) startChargePose(rig, weapon);
       if (charge <= 0 && b.upper === 'charge') { b.upper = null; a.stopUpper(0.15); }
-      if (weapon?.category === 'blaster' && b.upper === 'attack' && a.upperName === 'aim1h' && now > b.burstUntil) endAttack(rig);
+      if (b.cat === 'blaster' && b.upper === 'attack' && now > b.burstUntil) endAttack(rig);
 
       // Couche procédurale.
       const pr = a.proc;
@@ -539,8 +577,23 @@ export function installFighters(ctx: Ctx): FighterSystem {
       else look.set(opp[0], opp[1] + 1.15, opp[2]);
       pr.lookAt = look;
       pr.lookWeight = tumbling || hanging || b.outcome || b.teeter ? 0 : rig.locked ? 0.9 : rig.moving ? 0 : 0.55;
-      pr.charge = b.upper === 'charge' ? (weapon?.category === 'blaster' ? charge * 0.4 : charge) : 0;
+      pr.charge = b.upper === 'charge' ? (b.cat === 'blaster' ? charge * 0.4 : charge) : 0;
       pr.hang = hanging;
+      pr.grounded = !rig.airborne && !hanging && !tumbling && b.climbT < 0 && lab.flying[p] !== true && b.outcome !== 'win'; // victoire : il bondit
+      pr.victory = b.outcome === 'win' ? 1 : 0;
+      // bonds de joie : le pivot monte et retombe (écrasement à chaque réception)
+      const baseY = rig.pivot.userData.baseY as number;
+      if (b.outcome === 'win') {
+        const ph = Math.sin(a.clock * Math.PI * 2 * ANIM.victoire.bondHz);
+        const hop = Math.max(0, ph) * ANIM.victoire.bond;
+        if (ph < 0 && (rig.pivot.userData.lastPh ?? 0) >= 0) a.bump(0.82);
+        rig.pivot.userData.lastPh = ph;
+        rig.pivot.position.y = baseY + hop;
+      } else if (rig.pivot.position.y !== baseY) rig.pivot.position.y = baseY;
+      pr.guard = b.upper === 'guard' || b.upper === 'react' ? 1 : 0;
+      pr.aimArm = (b.upper === 'charge' || b.upper === 'attack') && b.cat === 'blaster' ? 1 : 0;
+      pr.cock = b.upper === 'charge' && (b.cat === 'grenade' || b.cat === 'throwable') ? 1 : 0;
+      pr.raise = b.upper === 'charge' && b.cat === 'shield' ? 1 : 0;
       if (b.teeter && !hanging && !rig.moving) {
         const c = arenaCenter();
         pr.teeter = voidDirs[p].set(cp.x - c[0], 0, cp.z - c[2]).normalize();
@@ -590,9 +643,29 @@ export function installFighters(ctx: Ctx): FighterSystem {
       case 'shield': if (w) ctx.bus.emit('fire', { player, weapon: { ...w, category: 'shield' }, dir: [0, 0, 1], power: 1 }); break;
       case 'hitFront': fakeHit(player, true, 3); break;
       case 'hitBack': fakeHit(player, false, 3); break;
-      case 'ko': case 'eject': fakeHit(player, true, 14); break;
+      case 'ko': case 'eject': {
+        const ps = ctx.state.players[player];
+        const opp = ctx.state.players[opponentOf(player)].pos;
+        const d = Math.hypot(ps.pos[0] - opp[0], ps.pos[2] - opp[2]) || 1;
+        labFlight[player] = { t: 0, start: [ps.pos[0], ps.pos[1], ps.pos[2]], dir: [(ps.pos[0] - opp[0]) / d, (ps.pos[2] - opp[2]) / d] };
+        lab.flying[player] = true;
+        fakeHit(player, true, 14);
+        break;
+      }
       case 'teeter': rig.body.teeter = true; break;
       case 'parry': blockOn[player] = true; startGuard(rig); break;
+      case 'parryPerfect':
+        blockOn[player] = true; startGuard(rig);
+        setTimeout(() => ctx.bus.emit('parry:result', { player, grade: 'perfect', deltaMs: 0 }), 300);
+        break;
+      case 'ledge': {
+        const ps = ctx.state.players[player];
+        lab.pos[player] = [ps.pos[0], ps.pos[1] - 1.3, ps.pos[2]];
+        ps.onLedge = true;
+        ctx.bus.emit('ledge:grab', { player, pos: ps.pos });
+        break;
+      }
+      case 'climb': ctx.state.players[player].onLedge = false; lab.pos[player] = null; ctx.bus.emit('ledge:climb', { player }); break;
       case 'victory': ctx.bus.emit('match:end', { winner: player }); break;
       case 'walk': case 'run': case 'idle': a.play(action, { fade: 0.1 }); break;
       default: if (a.has(action)) a.play(action, { loop: true, fade: 0.1 });
@@ -600,7 +673,7 @@ export function installFighters(ctx: Ctx): FighterSystem {
   };
 
   // Accès de mise au point (banc LATK2, tools/anim) : jamais utilisé par le jeu.
-  (window as unknown as { __fighters?: unknown }).__fighters = { rigs, fakeHit, blockOn };
+  (window as unknown as { __fighters?: unknown }).__fighters = { rigs, fakeHit, blockOn, lab, ctx, packData };
 
   return { getRig: (p) => rigs[p] };
 }
