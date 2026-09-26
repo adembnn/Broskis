@@ -6,15 +6,39 @@
 // événements du bus. Les images sont prises DANS la page juste après le rendu (système d'ordre 1001) ; tout
 // le déroulé est en TEMPS DE JEU (la boucle plafonne à 50 ms par image : sur une machine chargée, le jeu
 // ralentit au lieu de sauter des poses, et la planche reste complète).
+// Vidéos : si ffmpeg est dans le PATH, chaque planche a aussi sa vidéo en TEMPS DE JEU RÉEL (20 i/s, une image
+// toutes les 50 ms de jeu) dans captures/latk/video/, plus notes.json : le juge Gemini les note sans subir la
+// lenteur de la machine (node tools/anim/juge-gemini.mjs --videos captures/latk/video --notes captures/latk/video/notes.json).
 // Usage : node tools/anim/latk2-lab.mjs [--url http://localhost:5363] [--only lancer-course,tir-course] [--views 34]
 import { chromium } from 'playwright';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 
 const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
 const URL_BASE = opt('--url', 'http://localhost:5363');
 const ONLY = opt('--only', '')?.split(',').filter(Boolean) ?? [];
 const OUT = 'captures/latk';
+const OUT_VIDEO = `${OUT}/video`;
+mkdirSync(OUT_VIDEO, { recursive: true });
+const FFMPEG = spawnSync('ffmpeg', ['-version'], { stdio: 'ignore' }).status === 0;
+const NOTES = {
+  'lancer-course': "Lancer d'une grenade EN COURANT (visée verrouillée sur l'adversaire) : charge (bras armé derrière la tête, torse enroulé, tremblement), puis le bras part, l'objet quitte la main, fente et accompagnement ; les jambes continuent de courir.",
+  'lancer-arret': "Lancer d'un objet à l'arrêt : charge (bras armé derrière la tête, torse enroulé et cambré, tremblement), puis lancer par-dessus l'épaule, fente vers l'avant et accompagnement.",
+  'tir-course': 'Tir au blaster en courant de côté : bras tendu braqué sur la cible pendant la charge, rafale de 3 tirs avec recul du buste et du bras à chaque tir.',
+  'bouclier': "Pose du bouclier : l'objet brandi à deux mains au-dessus de la tête, puis planté au sol d'un coup sec (plongée du buste, écrasement).",
+  'garde-parfaite': "Garde levée (en moins de 50 ms) et tenue, buste voûté ; parade parfaite : contre (coup d'épaule vers l'attaquant), puis garde baissée.",
+  'garde-course': 'Garde levée en reculant, puis coup encaissé en garde : la garde plie, le buste recule.',
+  'coup-face': 'Coup reçu de face : tête et buste rejetés en arrière, écrasement, puis retour.',
+  'coup-dos': 'Coup reçu de dos : buste projeté vers l’avant, puis retour.',
+  'ejection': 'Coup fort : éjection à reculons en vrille (salto arrière façon Smash) le long de la trajectoire, puis remise droite.',
+  'double-saut': 'Saut puis double saut avec salto avant, réception écrasée.',
+  'bord': 'Rattrapé au bord : accroché sous le plateau, bras levés, corps qui se balance ; puis remontée en arc et réception.',
+  'desequilibre': 'Au bord du vide : moulinet des bras, buste qui bascule vers le vide puis se rattrape.',
+  'victoire': 'Fin de match : le gagnant exulte.',
+  'reapparition': 'Réapparition : tombe du ciel sur la plateforme, réception.',
+};
+const notesVideo = [];
 mkdirSync(OUT, { recursive: true });
 
 // Chaque scénario : acteur, déplacement simulé, étapes (ms de jeu, action, argument), durée (ms de jeu).
@@ -281,11 +305,23 @@ for (const sc of SCENARIOS) {
     await until(sc.ms);
     const frames = await page.evaluate(() => { const L = window.__lab; L.capture = false; return L.frames; });
     await planche(label, frames);
+    if (FFMPEG && frames.length > 3) {
+      const dir = `${OUT}/frames/${label}`;
+      rmSync(dir, { recursive: true, force: true });
+      mkdirSync(dir, { recursive: true });
+      frames.forEach((f, i) => writeFileSync(`${dir}/${String(i).padStart(3, '0')}.jpg`, Buffer.from(f.url.split(',')[1], 'base64')));
+      const r = spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', '20', '-i', `${dir}/%03d.jpg`,
+        '-c:v', 'libvpx-vp9', '-b:v', '1500k', '-pix_fmt', 'yuv420p', `${OUT_VIDEO}/${label}.webm`]);
+      if (r.status !== 0) console.log(`  ffmpeg : échec (${r.stderr?.toString().slice(0, 200)})`);
+      rmSync(dir, { recursive: true, force: true });
+      notesVideo.push({ name: label, player: sc.actor, camera: view === '34' ? 'vue 3/4 avant' : view === 'cote' ? 'profil' : 'vue du défenseur (derrière l\'adversaire)', note: NOTES[sc.name] ?? sc.name });
+    }
     const pick = frames.filter((_, i) => i % Math.max(1, Math.floor(frames.length / 6)) === 0).slice(0, 6);
     recap.push(...pick.map((f) => ({ ...f, t: `${sc.name} ${view} ${f.t}` })));
     console.log(`${label} : ${frames.length} images`);
   }
 }
 if (recap.length) await planche('recap', recap);
+if (notesVideo.length) writeFileSync(`${OUT_VIDEO}/notes.json`, JSON.stringify(notesVideo, null, 2));
 if (errors.length) console.log(`Erreurs console (${errors.length}) : ${[...new Set(errors)].slice(0, 5).join(' | ')}`);
 await browser.close();
