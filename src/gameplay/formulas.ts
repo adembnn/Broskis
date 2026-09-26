@@ -5,7 +5,7 @@ import type { Category, Trait, Vec3 } from '../core/types';
 import {
   BLASTER_BURST_DAMAGE_RATIO, CHARGE_DAMAGE_MIN, CHARGE_DAMAGE_SPAN, FIGHTER_POWER_PCT_FACTOR, HEAVY_LAUNCH_MULT,
   LAUNCH_AIR_DECEL, LAUNCH_ANGLE_DEG, LAUNCH_BASE, LAUNCH_BASE_CAP, LAUNCH_GRAVITY, LAUNCH_GROUND_DECEL, LAUNCH_K1,
-  LAUNCH_K2, MAX_PCT_PER_HIT, NICE_DAMAGE_MULT, PCT_PER_POWER, THROWABLE_DAMAGE_MULT, WEIGHT_EXP,
+  LAUNCH_K2, MAX_PCT_PER_HIT, NICE_DAMAGE_MULT, PCT_PER_POWER, SUPER_MIN_LAUNCH_BASE, THROWABLE_DAMAGE_MULT, WEIGHT_EXP,
 } from './tuning.ts';
 
 export interface WeaponLike { category: Category; stats: { a: number; b: number; c: number }; trait: Trait }
@@ -60,8 +60,10 @@ export function launchBase(w: WeaponLike, charge: number): number {
 /** Vitesse d'éjection (m/s) : (base + charge × k1) × (1 + %après/100 × k2), × poids, × multiplicateurs. */
 export function launchSpeed(w: WeaponLike, pctAfter: number, m: ShotMods, targetHpMax = 100): number {
   const weight = Math.pow(100 / Math.max(50, targetHpMax), WEIGHT_EXP);
+  // BRO SMASH : même une arme légère (tir de blaster) frappe au moins comme une grosse grenade, puis ×1,8.
+  const base = m.superLaunch > 1 ? Math.max(launchBase(w, m.charge), SUPER_MIN_LAUNCH_BASE) : launchBase(w, m.charge);
   // `m.mult` (parade GOOD, atténuation d'explosion) ne touche que les dégâts : le % après coup, plus bas, suffit.
-  return launchBase(w, m.charge) * (1 + (Math.max(0, pctAfter) / 100) * LAUNCH_K2) * weight * m.superLaunch * m.fragment;
+  return base * (1 + (Math.max(0, pctAfter) / 100) * LAUNCH_K2) * weight * m.superLaunch * m.fragment;
 }
 
 /** Vecteur d'éjection : direction horizontale du tir + LAUNCH_ANGLE_DEG vers le haut. */

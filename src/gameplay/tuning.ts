@@ -88,6 +88,8 @@ export const BLAST_SIDE_MARGIN = 8;
 export const BLAST_TOP = 16;
 /** BRO SMASH (« Final Smash ») : prochain tir après `super:ready`. */
 export const BRO_SMASH = { launchMult: 1.8, damageMult: 1.5 };
+/** Base de recul minimale d'un BRO SMASH (avant ×1,8) : même un tir de blaster devient spectaculaire. */
+export const SUPER_MIN_LAUNCH_BASE = 2.2;
 /** Jauge BRO (0 à 100) : gains par parade, NICE, % reçus et % infligés. */
 export const BRO_GAIN = { perfect: 12, good: 6, nice: 10, perPctTaken: 0.45, perPctDealt: 0.25 };
 /** Réapparition : au-dessus du centre, flotte un instant puis tombe. */
