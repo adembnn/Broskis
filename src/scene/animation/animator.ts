@@ -88,6 +88,8 @@ export interface ProcState {
   hang: boolean;
   /** Garde tenue (0/1, lissé) : buste voûté derrière les bras, menton rentré. */
   guard: number;
+  /** Bras droit braqué sur la cible (0/1, lissé) : visée du blaster, quelle que soit la pose du clip. */
+  aimArm: number;
 }
 
 const MX = new THREE.Vector3(1, 0, 0);
@@ -99,8 +101,9 @@ const DAMPING = 12;
 
 export class FighterAnimator {
   readonly mixer: THREE.AnimationMixer;
-  readonly proc: ProcState = { lookAt: null, lookWeight: 0.5, charge: 0, teeter: null, hang: false, guard: 0 };
+  readonly proc: ProcState = { lookAt: null, lookWeight: 0.5, charge: 0, teeter: null, hang: false, guard: 0, aimArm: 0 };
   private guardW = 0;
+  private aimW = 0;
   private readonly actions = new Map<string, THREE.AnimationAction>();
   private readonly clipsByName = new Map<string, THREE.AnimationClip>();
   private readonly root: THREE.Object3D;
@@ -140,6 +143,8 @@ export class FighterAnimator {
   private groundSpeed = 0;
   private externalSpeed: number | null = null;
   private animRate = 1;
+  private runRef = 1;
+  private implied: number | null = null;
   private lastYaw: number | null = null;
   private spineVar = 0;
   private readonly lastSpineQ = new THREE.Quaternion();
@@ -256,6 +261,7 @@ export class FighterAnimator {
     }
     this.currentAction = action;
     this.currentName = name;
+    this.implied = null;
     this.mark = opts.mark ?? null;
     this.markAction = opts.mark ? action : null;
 
@@ -269,9 +275,10 @@ export class FighterAnimator {
     }
   }
 
-  /** Vitesse de lecture du clip de base courant (course directionnelle). */
-  setBaseRate(rate: number): void {
+  /** Vitesse de lecture du clip de base courant (course directionnelle) et vitesse au sol qu'elle implique. */
+  setBaseRate(rate: number, impliedSpeed: number): void {
     if (this.currentAction && LOCOMOTION.has(this.currentName ?? '')) this.currentAction.timeScale = rate;
+    this.implied = impliedSpeed;
   }
 
   // ---------------------------------------------------------------- couche haut du corps
@@ -498,6 +505,20 @@ export class FighterAnimator {
       this.rot(head, MX, g * 0.3);
     }
 
+    // Bras braqué : l'épaule tourne pour que la main pointe exactement la cible (contrainte de visée sur un os).
+    this.aimW += (p.aimArm - this.aimW) * Math.min(1, dt * 20);
+    const hand = this.bones.hand;
+    if (this.aimW > 0.01 && p.lookAt && armR?.parent && hand) {
+      const sh = armR.getWorldPosition(this.va);
+      const cur = hand.getWorldPosition(this.vb).sub(sh).normalize();
+      const want = this.vc.copy(p.lookAt).sub(sh).normalize();
+      this.qb.setFromUnitVectors(cur, want);
+      this.qc.identity().slerp(this.qb, this.aimW); // rotation monde partielle
+      armR.getWorldQuaternion(this.qa).premultiply(this.qc); // nouvelle orientation monde
+      armR.parent.getWorldQuaternion(this.qb).invert();
+      armR.quaternion.copy(this.qb.multiply(this.qa));
+    }
+
     // Recul du tir : poitrine rejetée en arrière, bras qui remonte.
     this.recoil.step(dt, 900, 38);
     if (Math.abs(this.recoil.x) > 1e-4) {
@@ -555,9 +576,11 @@ export class FighterAnimator {
     if (this.externalSpeed !== null) this.groundSpeed = this.externalSpeed;
     else if (dt > 0) this.groundSpeed = Math.hypot(pos.x - this.lastPos.x, pos.z - this.lastPos.z) / dt;
     this.lastPos.copy(pos);
+    // Cadence de course : vitesse réelle / vitesse naturelle MESURÉE du cycle (pack.ts), plafonnée à ×2 (au-delà,
+    // les jambes deviennent un flou). À 6,5 m/s les pieds glissent encore un peu : KayKit court à ~1 m/s.
+    this.runRef = packData()?.runSpeed ? packData()!.runSpeed * this.baseScale : LOCAL_TOKENS.locomotion.runRefSpeed;
     if (this.groundSpeed > 0.1) {
-      const ref = packData()?.runSpeed ? packData()!.runSpeed * this.baseScale : LOCAL_TOKENS.locomotion.runRefSpeed;
-      this.animRate = THREE.MathUtils.clamp(this.groundSpeed / ref, LOCAL_TOKENS.locomotion.runRateMin, 2.2);
+      this.animRate = THREE.MathUtils.clamp(this.groundSpeed / this.runRef, LOCAL_TOKENS.locomotion.runRateMin, ANIM.course.cadenceMax);
       if (this.currentName === 'run' && this.currentAction) this.currentAction.timeScale = this.animRate;
     }
 
@@ -634,7 +657,8 @@ export class FighterAnimator {
       clip: this.upperName ?? this.currentName ?? '',
       weight: this.currentAction?.getEffectiveWeight() ?? 0,
       groundSpeed: this.groundSpeed,
-      animRate: this.animRate,
+      // vitesse au sol IMPLIQUÉE par les pieds (m/s) : rapport à groundSpeed ≈ 1 = pas de glissement
+      animRate: this.currentName === 'run' ? this.animRate * this.runRef : (this.implied ?? this.groundSpeed),
       footSlideCm: slide,
       footGapCm: gap,
       facingErrDeg: facingErr,
