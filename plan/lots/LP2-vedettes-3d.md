@@ -1,32 +1,50 @@
-# Lot LP2 · Vedettes 3D préparées (Adem et Titouan en vraie 3D) · SANS Tripo
-Responsable : **PC d'Adem** (piloté par Gemini, supervisé par Claude) · Coût Claude : faible · Bonus : abandon sans regret si ce n'est pas beau à 16h30
+# Lot LP2 · Vraie 3D à partir d'une photo (« vedettes »), sans Tripo
+Exécution : **Gemini** (PC d'Adem : Blender 5.0 y est installé) · Évaluation : `animateur-exigeant` + `directeur-artistique` · **Feature essentielle selon Adem**
 
-## Contexte
-En direct, un perso photo = un corps KayKit recoloré + visage cartoon (lot LP). Pour la démo et la vidéo, on veut **Adem et Titouan en vraie 3D cartoon**, préparés à l'avance, avec le même squelette que KayKit pour réutiliser toutes les animations.
+## Principe (ce qui doit marcher à la fin)
+Photo d'une personne → **perso 3D cartoon reconnaissable**, au **squelette KayKit « Rig_Medium »** (mêmes noms d'os), donc **toutes les animations du jeu marchent** : les 13 clips des persos + les 139 du pack `public/assets/packs/animations/`. Préparé à l'avance pour la démo (quelques minutes par perso).
 
-**Pas de Tripo** (payant, pas de clé). On passe par le **MCP Blender** du kit `C:\Users\Adem\repos\ai-gaming-hack`, qui intègre deux générateurs image vers 3D :
-- **Hyper3D Rodin**, avec une clé d'essai gratuite déjà dans l'addon ;
-- **Hunyuan3D** (Tencent).
+## CONFIDENTIALITÉ (dépôt GitHub PUBLIC)
+Photos, planches et GLB de vraies personnes **ne sont jamais commités**. Tout va dans des dossiers ignorés par git :
+- `tools/vedettes/input/` (photos) ;
+- `tools/vedettes/work/` (fichiers intermédiaires) ;
+- `public/assets/vedettes/` (GLB final, servi en local par Vite).
 
-Il n'est installé que sur le PC d'Adem, d'où le lot fait sur ce PC.
+Commite seulement le code et un `.gitignore` à jour.
 
 ## Tes chemins
-`tools/vedettes/**`, `public/assets/vedettes/**`
+`tools/vedettes/**`, `.gitignore` (ajout des 3 dossiers ci-dessus uniquement), `src/scene/fighter-custom/vedette.ts` (nouveau, voir étape 5).
 
-## Étapes (environ 5 min par perso)
-1. **Installer le MCP Blender une fois** : `C:\Users\Adem\repos\ai-gaming-hack\INSTALLER.bat`, avec Blender fermé ; journal dans `install.log`.
-2. **Planche du perso** : Nano Banana Pro (`gemini-3-pro-image`, clé Gemini du `.env`). Le perso cartoon en pied, en **T-pose**, vu de face, dans le style KayKit (tête un peu grosse, couleurs à plat, fond uni).
-3. **Image vers 3D dans Blender** via le MCP : génération Rodin (clé d'essai gratuite, nombre limité par jour), ou Hunyuan3D si Rodin est saturé.
-4. **Blender**, piloté par le MCP ou par un script Python `tools/vedettes/prepare.py` en ligne de commande (`blender.exe -b -P`) :
-   - décimation vers environ 5 000 triangles ;
-   - matériau simple ;
-   - **squelette automatique** (Rigify ou poids automatiques) ;
-   - **os renommés vers le squelette KayKit « Rig_Medium »** (`hips`, `spine`, `chest`, `head`, `upperarm.l`, `lowerarm.l`, `hand.l`, `handslot.r`…) ;
-   - export GLB.
-5. **Test** : charger le GLB avec une animation KayKit (`idle`, `throw`) et vérifier qu'il n'y a pas de déchirure. Sinon, on garde le corps KayKit.
+## Chaîne à livrer : `node tools/vedettes/build.mjs <photo> <nom>`
+1. **Planche T-pose** (`turnaround.mjs`) : Nano Banana Pro (`gemini-3-pro-image`, API REST `generateContent`, clé `GEMINI_API_KEY` lue dans `.env` par le script).
+   - Même personne, style de `plan/STYLE-PERSO.md` (proportions « jeu » : grosse tête, corps trapu, contour `#2B1D14`, aplats), en **T-pose stricte** (bras tendus à l'horizontale, jambes légèrement écartées).
+   - Vue de face ET vue de dos, fond gris clair uni.
+   - Découpe les 2 vues en 2 images (crop gauche et droite).
+2. **Image → 3D** (`rodin.mjs`) : API **Hyper3D Rodin**, avec la **clé d'essai gratuite `vibecoding`** fournie par l'addon Blender MCP d'Adem.
+   - Reprends EXACTEMENT les appels de `C:\Users\Adem\repos\ai-gaming-hack\tools\blender_mcp_addon.py` (lignes ~3340-3650 : `create_rodin_job_main_site`, statut, téléchargement), en Node, sans paquet :
+     - `POST https://hyperhuman.deemos.com/api/v2/rodin` (multipart : images face et dos, options) ;
+     - interrogation de `https://hyperhuman.deemos.com/api/v2/status` ;
+     - `https://hyperhuman.deemos.com/api/v2/download`, puis GLB dans `tools/vedettes/work/<nom>/`.
+   - Si l'essai gratuit est saturé : secours sur l'autre mode de l'addon (Hunyuan3D, lis comment l'addon l'appelle), sinon arrêt propre avec message.
+3. **Rig sur le squelette KayKit** (`rig.py`, lancé par `"C:\Program Files\Blender Foundation\Blender 5.0\blender.exe" -b -P tools/vedettes/rig.py -- <rodin.glb> <kaykit.glb> <out.glb>`) :
+   - importe `public/assets/characters/knight.glb` (armature Rig_Medium, meshopt ; si l'import meshopt échoue dans Blender, utilise le glTF d'un pack KayKit non compressé ou le mannequin `Mannequin_Medium.glb` du pack d'animations, présent dans le zip d'Adem : demande-le si besoin) ;
+   - importe le mesh Rodin ; nettoyage (fusion des sommets proches, normales recalculées), décimation vers **8 000 triangles** maximum, texture conservée ;
+   - échelle et alignement : hauteur ≈ celle du perso KayKit, pieds à y = 0, face vers +Z comme KayKit ;
+   - **ajustement de l'armature** à la silhouette : échelle uniforme sur la hauteur, puis ajustement de l'envergure des bras (os `upperarm/lowerarm/wrist/hand`) sur la largeur du mesh en T-pose ; les **noms d'os ne changent pas** ;
+   - parent avec poids automatiques ; les meshes KayKit d'origine sont supprimés, on ne garde qu'armature + nouveau mesh ;
+   - export GLB (armature + mesh skinné + texture), **sans animations** (le jeu applique les clips KayKit), moins de 4 Mo.
+4. **Contrôle automatique** (`check.mjs`, Playwright + page `tools/vedettes/preview.html` servie par Vite) :
+   - charge le GLB, lui applique `idle`, `run`, `throw`, `hit`, `death` (clips de `public/assets/characters/knight.glb`) ;
+   - produit une **planche** (8 images par clip, vues de face et de trois-quarts) dans `captures/vedettes/<nom>-planche.png` ;
+   - mesure : aucun os sans poids, aucun sommet non assigné, déformation maximale raisonnable, pas de T-pose pendant les clips.
+5. **Branchement jeu** (`src/scene/fighter-custom/vedette.ts`) : `loadVedette(nom)` renvoie le perso prêt, compatible avec le contrôleur d'animations du lot LA (mêmes noms d'os). Un `FighterDef` avec `glbUrl: '/assets/vedettes/<nom>.glb'` doit apparaître en jeu à la place d'un KayKit.
+6. **Premier essai** : la photo de Titouan. Sa planche trapue (A-pose) validée par Adem est dans `C:\Users\Adem\AppData\Local\Temp\claude\C--Users-Adem-Documents-Hackathon-Voodoo\637070cc-f9cc-4418-8504-22f0f58d4de0\scratchpad\titouan-kaykit.jpg`, et sa photo d'origine dans `C:\Users\Adem\AppData\Local\Temp\claude\C--Users-Adem-Documents-Hackathon-Voodoo-Voodoo-Hack\637070cc-f9cc-4418-8504-22f0f58d4de0\images\2.jpg`. Copie-les dans `tools/vedettes/input/` (ignoré par git) et régénère en T-pose. La photo d'Adem viendra plus tard.
+
+## Journal
+Appelle `log()` de `tools/dashboard/log.mjs` à chaque étape (`source: 'gemini'` pour Nano Banana, `source: 'rodin'` pour la 3D, `source: 'blender'` pour le rig ; `kind: 'generation'` ; titre en français). Adem suit sur le tableau de bord.
 
 ## Contrôles
-Chaque GLB fait moins de 3 Mo et s'anime proprement.
-
-## Commit
-Tes fichiers seulement, puis pull, push, et mise à jour de `plan/SUIVI.md`.
+- `node tools/vedettes/build.mjs … titouan` va au bout.
+- La planche montre un perso reconnaissable qui s'anime sans déchirure.
+- `npm run build` passe.
+- `git status` ne montre **aucune** photo ni aucun GLB de personne.
