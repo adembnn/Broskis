@@ -1,8 +1,8 @@
 // Match complet joué uniquement via `window.gameHooks` (aucune souris ni clavier), pour que la session
 // principale puisse le lancer dans le navigateur : `await window.__selftest()`. Ne throw jamais : les
-// erreurs sont collectées dans le résultat. PV des persos gonflés exprès pour ne pas dépendre du hasard
-// des critiques (sinon un K.O. prématuré casserait le script) ; la caisse Snap est forcée sous les pieds
-// plutôt que d'attendre le tirage aléatoire, pour un test court et reproductible.
+// erreurs sont collectées dans le résultat. Règles v2 (lot LSMASH) : les coups montent le %, une éjection
+// forcée (`window.__lsmash.launch`) fait perdre une vie puis réapparaître ; la caisse Snap est forcée sous
+// les pieds plutôt que d'attendre le tirage aléatoire, pour un test court et reproductible.
 import type { Ctx, FighterDef, Weapon } from '../core/types';
 import { defaultArsenal } from './tuning';
 
@@ -34,8 +34,8 @@ function assert(cond: unknown, msg: string): void {
 }
 
 const TEST_FIGHTERS: [FighterDef, FighterDef] = [
-  { id: 'selftest-p0', name: 'Selftest P0', model: 'knight', hpMax: 500, power: 5, agility: 5 },
-  { id: 'selftest-p1', name: 'Selftest P1', model: 'rogue_hooded', hpMax: 500, power: 5, agility: 5 },
+  { id: 'selftest-p0', name: 'Selftest P0', model: 'knight', hpMax: 100, power: 5, agility: 5 },
+  { id: 'selftest-p1', name: 'Selftest P1', model: 'rogue_hooded', hpMax: 100, power: 5, agility: 5 },
 ];
 
 /** Arsenal par défaut, mais avec le blaster réglé à précision maximale (budget toujours a+b+c=10) :
@@ -60,13 +60,17 @@ async function runSelftest(ctx: Ctx): Promise<SelftestResult> {
   console.error = (...args: unknown[]) => { errors.push(args.map(String).join(' ')); originalError(...args); };
 
   try {
-    ctx.hooks.startMatch({ seed: 20260926, fighters: TEST_FIGHTERS, weapons: testWeapons() });
-    step('startMatch({seed, fighters à 500 PV, blaster haute précision})');
+    const seen: string[] = [];
+    const offAny = ctx.bus.onAny((name) => { seen.push(name); });
+    ctx.hooks.startMatch({ seed: 20260926, fighters: TEST_FIGHTERS, weapons: testWeapons(), stocks: 2 });
+    step('startMatch({seed, 2 vies, blaster haute précision})');
     assert(ctx.state.phase === 'turn-intro', `phase attendue 'turn-intro', obtenu '${ctx.state.phase}'`);
     assert(ctx.state.players[0].weapons.length === 3 && ctx.state.players[1].weapons.length === 3, '3 armes par défaut par joueur');
+    assert(ctx.state.players[0].pct === 0 && ctx.state.players[1].stocks === 2, 'départ à 0 % et 2 vies');
 
-    await waitUntil(() => ctx.state.phase === 'move', 2000);
-    step("bandeau de tour passé → phase 'move'");
+    await waitUntil(() => ctx.state.phase === 'move', 15000); // GO! attend le chargement de la map
+    assert(seen.includes('match:banner'), 'READY?/GO! doivent être émis (match:banner)');
+    step("READY? GO! puis bandeau de tour → phase 'move'");
 
     // --- Tour 1 (P0) : déplacement, saut, visée, tir — personne ne pare, le coup doit toucher. ---
     assert(ctx.state.active === 0, 'le tour 1 doit être à P0');
@@ -84,30 +88,39 @@ async function runSelftest(ctx: Ctx): Promise<SelftestResult> {
     assert(ctx.state.phase === 'resolve', `fire() doit passer en 'resolve', obtenu '${ctx.state.phase}'`);
     step(`pickWeapon(0)=${ctx.state.players[0].weapons[0].category}, aim(90,0), fire(0.6)`);
 
-    const hpP1Before = ctx.state.players[1].hp;
-    await waitUntil(() => ctx.state.turn >= 2, 8000);
-    assert(ctx.state.players[1].hp < hpP1Before, 'P1 doit avoir perdu des PV (aucune parade au tour 1)');
+    const pctP1Before = ctx.state.players[1].pct;
+    await waitUntil(() => ctx.state.turn >= 2, 12000);
+    assert(ctx.state.players[1].pct > pctP1Before, 'P1 doit avoir pris des % (aucune parade au tour 1)');
     assert(ctx.state.players[0].weapons[0].cooldown > 0, "l'arme tirée doit recharger 1 tour");
-    step(`tour 2 atteint — P1 hp ${hpP1Before} → ${ctx.state.players[1].hp}, arme en recharge`);
+    step(`tour 2 atteint — P1 ${pctP1Before} % → ${ctx.state.players[1].pct} %, arme en recharge`);
 
     // --- Tour 2 (P1) : même arme ; chaque tir de la rafale est paré PARFAITEMENT via le hook. ---
     assert(ctx.state.active === 1, 'le tour 2 doit être à P1');
-    const hpP0Before = ctx.state.players[0].hp;
+    const pctP0Before = ctx.state.players[0].pct;
+    await waitUntil(() => ctx.state.phase === 'move', 4000);
     const offIncoming = ctx.bus.on('projectile:incoming', () => ctx.hooks.parry(0));
     ctx.hooks.pickWeapon(0);
     ctx.hooks.aim(-90, 0); // P1 (+x) vise vers -x, où se trouve P0
     ctx.hooks.fire(0.5);
     step('P1 : pickWeapon(0), aim(-90,0), fire(0.5) — parry(0) sur chaque projectile:incoming');
-    await waitUntil(() => ctx.state.turn >= 3, 8000);
+    await waitUntil(() => ctx.state.turn >= 3, 12000);
     offIncoming();
-    assert(ctx.state.players[0].hp === hpP0Before, 'une parade PARFAITE doit annuler tous les dégâts de la rafale');
+    assert(ctx.state.players[0].pct === pctP0Before, 'une parade PARFAITE doit annuler tous les dégâts de la rafale');
     assert(ctx.state.players[0].parryStreak > 0, 'parryStreak doit monter après des parades réussies');
-    step(`tour 3 atteint — P0 hp inchangé, parryStreak=${ctx.state.players[0].parryStreak}`);
+    step(`tour 3 atteint — P0 % inchangé, parryStreak=${ctx.state.players[0].parryStreak}`);
+
+    // --- Règles v2 : budget rendu à chaque tour, arme en recharge remplacée par une arme prête. ---
+    await waitUntil(() => ctx.state.phase === 'move', 4000);
+    const p0 = ctx.state.players[0];
+    assert(Math.abs(p0.moveLeft - 6) < 1e-6, `le budget de déplacement doit être rendu (6 m), obtenu ${p0.moveLeft}`);
+    assert(p0.weapons[p0.selected].cooldown === 0, "l'arme présélectionnée doit être prête");
+    step(`tour 3 : moveLeft=${p0.moveLeft}, arme prête présélectionnée (#${p0.selected + 1})`);
 
     // --- Caisse Snap : forcée sous les pieds du joueur actif (le tirage aléatoire prendrait trop longtemps). ---
     await waitUntil(() => ctx.state.phase === 'move', 2000);
     const grabber = ctx.state.active;
     const grabberPos = ctx.state.players[grabber].pos;
+    const slot1Before = ctx.state.players[grabber].weapons[1].id;
     ctx.state.crate = { pos: [...grabberPos], landsInTurns: 0, landed: true };
     ctx.hooks.grabCrate();
     assert(ctx.state.phase === 'snap-time', `grabCrate() doit passer en 'snap-time', obtenu '${ctx.state.phase}'`);
@@ -117,8 +130,18 @@ async function runSelftest(ctx: Ctx): Promise<SelftestResult> {
     step(`grabCrate() (caisse forcée) → snap-time, joueur ${grabber}`);
 
     await waitUntil(() => ctx.state.phase !== 'snap-time', 3000);
-    assert(ctx.state.players[grabber].weapons[1].object === 'rubber duck', "l'emplacement 1 doit recevoir l'arme scannée (stub IA)");
+    assert(ctx.state.players[grabber].weapons[1].id !== slot1Before, "l'emplacement 1 doit recevoir l'arme scannée (stub IA)");
     step(`snap-time résolu → phase '${ctx.state.phase}', arme scannée en place`);
+
+    // --- Règles v2 : éjection forcée hors de l'arène → stock:lost → respawn. ---
+    const victim = ctx.state.active === 0 ? 1 : 0;
+    const stocksBefore = ctx.state.players[victim].stocks;
+    window.__lsmash?.launch(victim, victim === 1 ? 1 : -1, 0, 30);
+    await waitUntil(() => ctx.state.players[victim].stocks < stocksBefore, 5000);
+    await waitUntil(() => seen.includes('respawn'), 5000);
+    assert(ctx.state.players[victim].pct === 0, 'réapparu à 0 %');
+    step(`éjection forcée de P${victim + 1} → stock:lost (${stocksBefore} → ${ctx.state.players[victim].stocks}) → respawn à 0 %`);
+    offAny();
 
     // --- Fin forcée : vérifie forcerVictoire indépendamment du déroulé naturel du match. ---
     ctx.hooks.forcerVictoire(0);
