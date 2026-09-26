@@ -1,4 +1,5 @@
 # Lot LUX · Interface et parcours pour un joueur occasionnel
+> **Obsolète depuis le pivot temps réel (15h25)** pour : barre d'armes « du joueur actif », messages « Your turn » ; le HUD devient scindé, un par joueur. Référence : `plan/PIVOT-TEMPS-REEL.md`.
 Exécution : **agent Claude (Opus, design UI/UX)** · Priorité 1 · Retours d'Adem et Titouan (14h) : « si on ne connaît pas le jeu, on ne peut pas jouer », « on ne sait pas sur quelle touche cliquer », « on ne comprend pas quelles attaques on peut lancer », « il faut épurer », « écrans de chargement avec un fond », « quand on génère les armes, voir le visuel de chaque arme qui se charge en direct ».
 
 ## Public
