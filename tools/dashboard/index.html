@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Broskis · Dashboard IA</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="header">
+        <h1>Broskis · Tableau de bord en direct</h1>
+        <div class="countdown-container">
+            <div class="countdown">
+                <span class="time" id="time-18h">--:--:--</span>
+                <span class="label">Gel (18h)</span>
+            </div>
+            <div class="countdown">
+                <span class="time" id="time-19h">--:--:--</span>
+                <span class="label">Opt-in (19h)</span>
+            </div>
+            <div class="countdown">
+                <span class="time" id="time-20h">--:--:--</span>
+                <span class="label">Démo (20h)</span>
+            </div>
+        </div>
+        <div class="focus">Ce qui compte maintenant : <span id="current-focus">Rendre le jeu jouable et beau !</span></div>
+    </header>
+
+    <div class="grid">
+        <!-- Colonne 1: Qui travaille -->
+        <section class="panel workers-panel">
+            <h2>Qui travaille en ce moment</h2>
+            <div class="workers-grid" id="workers-grid">
+                <!-- Rempli par JS -->
+            </div>
+        </section>
+
+        <!-- Colonne 2: Le fil -->
+        <section class="panel feed-panel">
+            <h2>Le fil</h2>
+            <div class="feed" id="feed">
+                <!-- Rempli par JS -->
+            </div>
+        </section>
+
+        <!-- Colonne 3: Les lots -->
+        <section class="panel lots-panel">
+            <h2>Les lots</h2>
+            <div class="lots-container">
+                <div class="lot-col" id="lots-todo">
+                    <h3>À prendre</h3>
+                </div>
+                <div class="lot-col" id="lots-doing">
+                    <h3>En cours</h3>
+                </div>
+                <div class="lot-col" id="lots-done">
+                    <h3>Fait</h3>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Section: Ce qui vient d'être produit -->
+        <section class="panel results-panel" style="grid-column: 1 / -1;">
+            <h2>Ce qui vient d'être produit</h2>
+            <div class="results-grid" id="results-grid">
+                <div id="latest-captures"></div>
+                <div id="latest-scores"></div>
+                <div id="latest-audio"></div>
+                <div id="latest-reports"></div>
+            </div>
+        </section>
+
+        <!-- Section: Comprendre -->
+        <section class="panel lexique-panel" style="grid-column: 1 / -1;">
+            <details>
+                <summary><h2>Comprendre (Lexique)</h2></summary>
+                <ul>
+                    <li><b>Lot</b> : Une tâche précise et isolée de développement.</li>
+                    <li><b>Worktree</b> : Une copie du code sur laquelle travaille un agent pour ne pas gêner les autres.</li>
+                    <li><b>Agent</b> : Une IA autonome (comme Gemini CLI) qui accomplit un lot.</li>
+                    <li><b>Fusion</b> : Intégration du code d'un agent dans le projet principal.</li>
+                    <li><b>Gemini CLI</b> : Notre outil IA en ligne de commande pour le code.</li>
+                    <li><b>Voice Design</b> : Génération de voix expressives via l'IA Gradium.</li>
+                    <li><b>Tokens</b> : Le système de design unifié (couleurs, polices, tailles).</li>
+                </ul>
+            </details>
+        </section>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

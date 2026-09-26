@@ -11,7 +11,8 @@
     "captures": "node tools/capture.mjs --parcours --demo",
     "video": "node tools/capture.mjs --parcours --demo --video",
     "planche": "node tools/planche.mjs",
-    "anim": "node tools/anim/anim-eval.mjs"
+    "anim": "node tools/anim/anim-eval.mjs",
+    "dashboard": "node tools/dashboard/server.mjs"
   },
   "devDependencies": {
     "@types/three": "^0.186.0",
