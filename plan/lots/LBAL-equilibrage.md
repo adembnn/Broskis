@@ -1,4 +1,5 @@
 # Lot LBAL · Simulateur d'équilibrage + niveaux de difficulté
+> **Obsolète depuis le pivot temps réel (15h25)** pour : simulation au tour par tour, feintes, KO compté en tours ; l'agent `equilibreur` juge désormais le temps réel. Référence : `plan/PIVOT-TEMPS-REEL.md`.
 Exécution : **Gemini** · Évaluation : agent `equilibreur` · Dépend de : LG (fusionné)
 
 ## Pourquoi

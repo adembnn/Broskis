@@ -3,10 +3,14 @@
 
 /** Abandon réseau : au-delà, on bascule sur la banque de secours (skill ia-en-jeu + plan/lots/LI). */
 export const TIMEOUTS = {
-  /** Scan JSON (api/scan-object). */
-  scan: 4000, // mesuré : 2,3 s avec gemini-3.8-flash
+  /** Scan JSON (api/scan-object), relance comprise. Mesuré : 2,3 à 2,7 s avec gemini-3.8-flash. Pas 2,5 s comme
+   *  une action en match : ici le joueur attend SA photo (forge + photo affichées), et un repli trop tôt colle
+   *  une arme sans rapport sur sa photo (vu en test : un mug devenu « Gnome Wrecker », lot LSCAN). */
+  scan: 9000,
   /** Sticker Nano Banana (plus lent : dessin d'image). */
-  sticker: 25000, // mesuré : 15 s avec Nano Banana Pro (affiché après la carte de stats)
+  sticker: 30000, // mesuré : 9,5 à 14 s avec Nano Banana 2 (lot LSCAN) ; laisse la place à un second essai
+  /** Premier essai du sticker : au-delà, l'appel est jugé bloqué et relancé une fois (dans TIMEOUTS.sticker). */
+  stickerTry: 17000,
   /** Répliques de l'animateur, préparées à l'avance : un peu de marge est tolérable. */
   commentary: 40000, // pré-génération avec gemini-3.1-pro-preview (12 à 33 s mesurés)
   /** Une ligne vocalisée (Gradium TTS). */

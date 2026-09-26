@@ -12,8 +12,8 @@ import { scanFighter } from './fighter';
 import { scanObject } from './scan';
 import { setRuntimeCtx } from './runtime';
 
-export type { ScanOptions, ScanStep } from './scan';
-export { scanObject } from './scan';
+export type { ScanNote, ScanOptions, ScanStep } from './scan';
+export { scanNote, scanObject } from './scan';
 export { prepareCommentary, primeWeapon } from './commentary';
 
 /**
@@ -26,6 +26,9 @@ export { prepareCommentary, primeWeapon } from './commentary';
  * `stickerUrl` en place ; si l'arme est équipée en ce moment (match en cours), on réémet `weapon:pick`
  * (index inchangé) pour que src/scene/fighters/index.ts réattache le vrai sticker sur-le-champ.
  */
+/** Stickers arrivés, par id d'arme d'origine : relus au lancement du match (voir match:start plus bas). */
+const arrivedStickers = new Map<string, string>();
+
 function patchLateSticker(ctx: Ctx, sourceId: string, stickerUrl: string): void {
   for (const player of [0, 1] as PlayerId[]) {
     const ps = ctx.state.players[player];
@@ -46,10 +49,25 @@ export const install: Install = (ctx) => {
   // initial (déjà couverts par la pesée, weigh_in — voir prepareCommentary).
   ctx.bus.on('scan:result', ({ weapon }) => {
     void sayScanReveal(ctx, weapon);
-    if (weapon.stickerUrl) patchLateSticker(ctx, weapon.id, weapon.stickerUrl);
+    if (weapon.stickerUrl) {
+      arrivedStickers.set(weapon.id, weapon.stickerUrl);
+      patchLateSticker(ctx, weapon.id, weapon.stickerUrl);
+    }
     // Lot LLOAD : pendant l'arsenal, la réplique de pesée d'une arme scannée se vocalise dès son arrivée
     // (la présentation la trouve prête au lieu d'attendre jusqu'à 6 s).
     if (ctx.state.phase === 'arsenal') void primeWeapon(weapon);
+  });
+
+  // Sticker arrivé ENTRE la validation de la carte (clone de l'arsenal) et le lancement du match : aucun clone
+  // n'était encore dans ctx.state, patchLateSticker n'a rien trouvé. Rattrapé ici, en synchrone : la scène
+  // (installée avant) n'a lancé que des chargements asynchrones et lira stickerUrl après ce patch.
+  ctx.bus.on('match:start', () => {
+    for (const ps of ctx.state.players) {
+      for (const w of ps.weapons) {
+        if (w.stickerUrl) continue;
+        for (const [id, url] of arrivedStickers) if (w.id.startsWith(`${id}-`)) w.stickerUrl = url;
+      }
+    }
   });
 
   // window.gameHooks.scan(objectKey) : personne d'autre ne le branche (LG énumère les siens sans lui,
@@ -66,6 +84,15 @@ export const install: Install = (ctx) => {
     ctx.bus.emit('scan:start', { player: opts.player ?? ctx.state.active, source: 'upload' });
     const res = await fetch(url);
     if (!res.ok) throw new Error(`scanObjectFromUrl: fetch ${url} failed (${res.status})`);
+    
+    if (url.endsWith('.json')) {
+      const weapon = await res.json();
+      weapon.id = 'scan-' + Date.now() + Math.random().toString(36).slice(2);
+      weapon.source = 'scan';
+      ctx.bus.emit('scan:result', { player: opts.player ?? ctx.state.active, weapon });
+      return weapon;
+    }
+
     const blob = await res.blob();
     return scanObject(blob, { category: opts.category, player: opts.player ?? ctx.state.active });
   };

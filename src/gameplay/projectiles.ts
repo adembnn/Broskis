@@ -1,230 +1,234 @@
-// Résout un `fire()` en projectile(s) réel(s) : rafale du blaster, cloche de la grenade, tir direct du
-// throwable, mur du shield. Choréo caméra/ralenti au lâcher, validée par Adem le 26/09 :
-//   lâcher → `camera:cue{turn-swing}` + `slowmo` (1er tir seulement) → vol à vitesse constante →
-//   fin de bascule → `projectile:incoming` → fenêtre de parade → impact.
-// Règles v2 : BRO SMASH (`super:fire` au tir, recul ×1,8, dégâts ×1,5), le tour ne passe qu'une fois
-// les éjections finies (`endTurnWhenSettled`).
-import type { Ctx, PlayerId, Vec3, Weapon } from '../core/types';
-import { consumeSuper } from './bro';
+// Projectiles temps réel : de vrais objets qui volent dans le monde à chaque image (on peut les esquiver),
+// touchent le décor (murs, boucliers, sol) ou la capsule d'un perso. Au contact d'un perso qui BLOQUE :
+// dégâts ÷ 3 et recul ÷ 2, ou PARADE PARFAITE si le blocage a commencé moins de 150 ms avant (renvoi,
+// ralenti ×0,3, `parry:result`). `projectile:incoming` part 400 ms avant l'impact prévu (anneau de repère).
+// Le visuel rejoue le même vol à partir de `projectile:spawn` (from, vel, gravity) et s'arrête à `projectile:end`.
+// Physique réelle (physics-feel.ts) : taille de contact = taille de l'objet, rebonds selon `bounciness`
+// (`projectile:bounce`), objet fragile = éclats autour de l'impact, objet liquide = flaque glissante 3 s.
+import type * as RAPIER from '@dimforge/rapier3d-compat';
+import type { Ctx, Material, PlayerId, Vec3, Weapon } from '../core/types';
+import { isGroundCollider } from './arena';
 import { applyHit, applySplash } from './damage';
 import type { ShotMods } from './formulas';
-import { emitPerfectReflectReward, registerIncoming } from './parry';
-import { endTurnWhenSettled, matchIsOver, setPhase } from './phases';
-import { addShieldBody, getRuntime, otherPlayer } from './runtime';
-import {
-  BLASTER_SHOTS_MAX, BLASTER_SHOTS_MIN, BLASTER_SHOT_INTERVAL_MS, BLASTER_SPREAD_DEG_MAX, BLASTER_SPREAD_DEG_MIN,
-  BRO_SMASH, CAMERA_SWING_MS, FIRE_SWING_SLOWMO, MIN_REMAINING_FLIGHT_MS, REFLECT_RETURN_MS, SHIELD_HEIGHT_MAX,
-  SHIELD_HEIGHT_MIN, SHIELD_PLACE_DISTANCE, SHIELD_THICKNESS, SHIELD_WIDTH_MAX, SHIELD_WIDTH_MIN, SHOT_ORIGIN_HEIGHT,
-  TRAIT_TUNING, WEAPON_COOLDOWN_TURNS,
-} from './tuning';
-import { lerp, predictTrajectory, type TrajectoryResult } from './trajectory';
-import { add, length, normalize, sub, yawQuaternion } from './vec3';
+import { inFight } from './phases';
+import { physicsFeel } from './physics-feel';
+import { getRuntime, otherPlayer } from './runtime';
+import { isInvulnerable } from './stocks';
+import { CHARACTER_HALF_HEIGHT, CHARACTER_RADIUS, GRENADE_RADIUS_MAX, GRENADE_RADIUS_MIN, RT, SHOT_ORIGIN_HEIGHT, TRAIT_TUNING } from './tuning';
+import { lerp } from './trajectory';
+
+interface Projectile {
+  id: string;
+  owner: PlayerId;
+  weapon: Weapon;
+  pos: Vec3;
+  vel: Vec3;
+  gravity: number;
+  radius: number;
+  age: number;
+  /** Rayon d'explosion (grenade, trait explosive), 0 sinon. */
+  splash: number;
+  mods: Partial<ShotMods>;
+  /** Durée de vol prévue jusqu'à la cible (grenade) : sert au repère `projectile:incoming`. */
+  flightS: number;
+  incomingSent: boolean;
+  /** L'objet lui-même vole (throwable, grenade) : sa physique compte (rebonds, éclats, giclée). */
+  isObject: boolean;
+  bouncesLeft: number;
+  restitution: number;
+  fragile: boolean;
+  liquid: boolean;
+  mass: number;
+  material: Material | null;
+  size: Vec3;
+}
 
 let seq = 0;
-function nextId(): string { return `proj-${++seq}`; }
-
-/** Le match a-t-il changé depuis le tir (revanche) ? Une minuterie périmée ne résout plus rien. */
-function stale(ctx: Ctx, matchSeq: number): boolean {
-  return matchIsOver(ctx) || getRuntime().matchSeq !== matchSeq;
-}
+const live: Projectile[] = [];
 
 export function aimOrigin(ctx: Ctx, player: PlayerId): Vec3 {
   const p = ctx.state.players[player].pos;
   return [p[0], p[1] + SHOT_ORIGIN_HEIGHT, p[2]];
 }
 
-function endTurnSoon(ctx: Ctx, matchSeq: number): void {
-  if (stale(ctx, matchSeq)) return;
-  void ctx.loop.wait(0.3).then(() => { if (!stale(ctx, matchSeq)) endTurnWhenSettled(ctx); });
+export function clearProjectiles(): void {
+  live.length = 0;
 }
 
-/** Un seul projectile volant (un tir de rafale, la grenade, ou le throwable). */
-function launchOne(
-  ctx: Ctx, shooter: PlayerId, weapon: Weapon, origin: Vec3, dir: Vec3, mods: Partial<ShotMods>,
-  isFirstOfAction: boolean, onDone: () => void, aimPoint: Vec3 | null,
-  index = 1, count = 1,
+export function liveProjectiles(): readonly { id: string; owner: PlayerId; pos: Vec3; vel: Vec3 }[] {
+  return live;
+}
+
+export function spawnProjectile(
+  ctx: Ctx, owner: PlayerId, weapon: Weapon, from: Vec3, vel: Vec3, gravity: number, mods: Partial<ShotMods>, flightS = 0,
 ): void {
-  const target = otherPlayer(shooter);
-  const matchSeq = getRuntime().matchSeq;
-  const traj = predictTrajectory(ctx, shooter, weapon, origin, dir, mods.charge ?? 0.5, aimPoint);
-  const id = nextId();
-
-  let rawTravelMs = Math.max(1, traj.travelMs);
-  if (weapon.trait === 'heavy') rawTravelMs /= TRAIT_TUNING.heavy.speedMult; // lourd = plus lent, donc plus long à voler
-  const totalTravelMs = Math.max(rawTravelMs, CAMERA_SWING_MS + MIN_REMAINING_FLIGHT_MS);
-  const distance = Math.max(0.01, length(sub(traj.impact, origin)));
-  const speed = distance / (totalTravelMs / 1000); // vel reporté cohérent avec le temps de vol réellement utilisé
-  const vdir = weapon.category === 'grenade' ? normalize(sub(traj.impact, origin)) : dir;
-
-  ctx.bus.emit('projectile:spawn', { id, weapon, from: origin, vel: [vdir[0] * speed, vdir[1] * speed, vdir[2] * speed] });
-  if (isFirstOfAction) {
-    ctx.bus.emit('camera:cue', { shot: 'turn-swing', target });
-    ctx.bus.emit('slowmo', FIRE_SWING_SLOWMO);
-  }
-
-  const tp = ctx.state.players[target].pos;
-  const splashReach = traj.splashRadius > 0
-    && Math.hypot(tp[0] - traj.impact[0], tp[2] - traj.impact[2]) <= traj.splashRadius + (weapon.trait === 'explosive' ? TRAIT_TUNING.explosive.bonusRadius : 0) + 0.4;
-  const threatensDefender = weapon.category === 'grenade' ? splashReach : traj.hitPlayer === target;
-  if (!threatensDefender) {
-    // Rate tout (mur, esquive de la trajectoire...) : pas de parade possible. On n'attend pas qu'un tir perdu
-    // finisse ses 40 m de vol pour rendre la main (4 s de vide) : le temps d'une bascule + d'un vol court.
-    setTimeout(() => { if (!stale(ctx, matchSeq)) onDone(); }, Math.min(totalTravelMs, CAMERA_SWING_MS + MIN_REMAINING_FLIGHT_MS));
-    return;
-  }
-  registerIncoming(ctx, {
-    id, player: target, attacker: shooter, weapon, index, count, totalTravelMs, incomingDelayMs: CAMERA_SWING_MS,
-    onResolve: (outcome) => {
-      if (stale(ctx, matchSeq)) return;
-      resolveImpact(ctx, shooter, target, weapon, origin, traj, outcome.grade, mods);
-      onDone();
-    },
+  const feel = physicsFeel(weapon);
+  const isObject = weapon.category === 'throwable' || weapon.category === 'grenade';
+  let splash = weapon.category === 'grenade'
+    ? lerp(GRENADE_RADIUS_MIN, GRENADE_RADIUS_MAX, weapon.stats.b) + (weapon.trait === 'explosive' ? TRAIT_TUNING.explosive.bonusRadius : 0)
+    : weapon.trait === 'explosive' ? TRAIT_TUNING.explosive.bonusRadius : 0;
+  if (weapon.category === 'grenade' && feel.fragile) splash *= RT.shards.grenadeRadiusMult;
+  const p: Projectile = {
+    id: `proj-${++seq}`, owner, weapon, pos: [...from], vel: [...vel], gravity,
+    radius: isObject && feel.radius > 0 ? feel.radius : RT.radius[weapon.category] || 0.3,
+    age: 0, splash, mods, flightS, incomingSent: false, isObject,
+    bouncesLeft: isObject ? feel.bounces + (weapon.trait === 'bouncy' ? TRAIT_TUNING.bouncy.extraBounces : 0) : 0,
+    restitution: feel.restitution, fragile: isObject && feel.fragile, liquid: isObject && feel.liquid,
+    mass: feel.massKg, material: feel.material, size: feel.sizeM,
+  };
+  live.push(p);
+  ctx.bus.emit('projectile:spawn', {
+    id: p.id, weapon, from: [...from], vel: [...vel], gravity, owner, mass: p.mass, material: p.material, size: [...p.size],
   });
 }
 
-function resolveImpact(
-  ctx: Ctx, shooter: PlayerId, target: PlayerId, weapon: Weapon, origin: Vec3, traj: TrajectoryResult,
-  grade: 'perfect' | 'good' | 'miss', mods: Partial<ShotMods>,
-): void {
-  if (grade === 'perfect') {
-    if (weapon.category === 'throwable' || weapon.category === 'shield') reflectBack(ctx, shooter, target, weapon, traj, mods);
-    return; // 0 dégât, blaster/grenade ne se renvoient pas (voir parry.ts)
+/** Objet fragile : éclats autour de l'impact (dégâts réduits, jamais au lanceur). */
+function shards(ctx: Ctx, p: Projectile, at: Vec3): void {
+  applySplash(ctx, { attacker: p.owner, weapon: p.weapon, impactPos: at, fromPos: at, center: at, radius: RT.shards.radius, mods: { ...p.mods, fragment: RT.shards.damage } });
+}
+
+/** Objet liquide : la giclée rend le sol glissant quelques secondes autour de l'impact. */
+function puddle(ctx: Ctx, at: Vec3): void {
+  getRuntime().puddles.push({ pos: [at[0], at[1], at[2]], radius: RT.puddle.radius, until: ctx.loop.time + RT.puddle.ms / 1000 });
+  ctx.bus.emit('ground:slippery', { pos: [at[0], at[1], at[2]], radius: RT.puddle.radius, ms: RT.puddle.ms });
+}
+
+/** Effets d'impact de l'objet lui-même (éclats, giclée), après le contact avec un perso ou le décor. */
+function objectImpact(ctx: Ctx, p: Projectile, at: Vec3): void {
+  if (p.fragile) shards(ctx, p, at);
+  if (p.liquid) puddle(ctx, at);
+}
+
+function end(ctx: Ctx, p: Projectile, reason: 'hit' | 'world' | 'parried' | 'expired'): void {
+  const i = live.indexOf(p);
+  if (i < 0) return;
+  live.splice(i, 1);
+  ctx.bus.emit('projectile:end', { id: p.id, pos: [...p.pos], reason });
+}
+
+/** Distance du segment [a, b] à l'axe vertical de la capsule d'un perso ; renvoie le paramètre t le plus proche. */
+function segmentToCapsule(a: Vec3, b: Vec3, feet: Vec3): { dist: number; t: number } {
+  const y0 = feet[1] + CHARACTER_RADIUS, y1 = feet[1] + CHARACTER_RADIUS + 2 * CHARACTER_HALF_HEIGHT;
+  let best = { dist: Infinity, t: 0 };
+  for (let k = 0; k <= 8; k++) {
+    const t = k / 8;
+    const x = a[0] + (b[0] - a[0]) * t, y = a[1] + (b[1] - a[1]) * t, z = a[2] + (b[2] - a[2]) * t;
+    const cy = Math.max(y0, Math.min(y1, y));
+    const d = Math.hypot(x - feet[0], y - cy, z - feet[2]);
+    if (d < best.dist) best = { dist: d, t };
   }
-  const damageMultiplier = grade === 'good' ? 0.5 : 1;
-  // Trait `explosive` : ajoute un souffle même à une catégorie qui n'en a normalement pas (blaster/throwable).
-  const radius = traj.splashRadius + (weapon.trait === 'explosive' ? TRAIT_TUNING.explosive.bonusRadius : 0);
-  // fromPos détermine la DIRECTION du recul : l'origine du tir pour un impact direct (loin du tireur),
-  // le centre de l'explosion pour une grenade/un souffle (loin du point d'impact).
-  const fromPos = radius > 0 && weapon.category === 'grenade' ? traj.impact : origin;
-  const resolved = { ...traj, splashRadius: radius };
-  const matchSeq = getRuntime().matchSeq;
-  // Trait `sticky` : le coup adhère un instant avant d'infliger ses dégâts (fusible), plutôt qu'à l'impact.
-  if (weapon.trait === 'sticky') {
-    setTimeout(() => { if (!stale(ctx, matchSeq)) resolveDamage(ctx, shooter, target, weapon, resolved, fromPos, damageMultiplier, mods); }, TRAIT_TUNING.sticky.fuseMs);
-  } else {
-    resolveDamage(ctx, shooter, target, weapon, resolved, fromPos, damageMultiplier, mods);
+  return best;
+}
+
+/** Temps avant l'impact prévu (s) sur la cible : cloche = durée prévue restante ; tir tendu = distance / vitesse. */
+function etaTo(p: Projectile, target: Vec3): number | null {
+  if (p.gravity > 0) return p.flightS > 0 ? Math.max(0, p.flightS - p.age) : null;
+  const sp = Math.hypot(p.vel[0], p.vel[1], p.vel[2]);
+  if (sp < 1e-3) return null;
+  const c: Vec3 = [target[0] - p.pos[0], target[1] + 0.9 - p.pos[1], target[2] - p.pos[2]];
+  const along = (c[0] * p.vel[0] + c[1] * p.vel[1] + c[2] * p.vel[2]) / sp;
+  if (along <= 0) return null;
+  const lateral = Math.sqrt(Math.max(0, c[0] ** 2 + c[1] ** 2 + c[2] ** 2 - along * along));
+  return lateral < 1.4 ? along / sp : null;
+}
+
+function explode(ctx: Ctx, p: Projectile, at: Vec3, mods: Partial<ShotMods> = p.mods, damageMultiplier = 1): void {
+  applySplash(ctx, { attacker: p.owner, weapon: p.weapon, impactPos: at, fromPos: at, center: at, radius: p.splash, mods, damageMultiplier });
+}
+
+/** Contact avec un perso : parade parfaite (renvoi), blocage (÷ 3 / ÷ 2) ou coup plein. */
+function hitPlayer(ctx: Ctx, p: Projectile, target: PlayerId, at: Vec3): 'hit' | 'parried' {
+  const ts = ctx.state.players[target];
+  const trt = getRuntime().players[target];
+  const shooterPos = ctx.state.players[p.owner].pos;
+  if (ts.blocking) {
+    const sinceBlock = performance.now() - trt.blockStartMs;
+    if (sinceBlock <= RT.block.perfectMs) {
+      // PARADE PARFAITE : renvoyé droit sur le tireur, un peu plus vite, au ralenti.
+      ctx.bus.emit('parry:result', { player: target, grade: 'perfect', deltaMs: Math.round(sinceBlock) });
+      ctx.bus.emit('slowmo', RT.parrySlowmo);
+      const dir: Vec3 = [shooterPos[0] - at[0], shooterPos[1] + 1 - at[1], shooterPos[2] - at[2]];
+      const dl = Math.hypot(dir[0], dir[1], dir[2]) || 1;
+      const sp = Math.max(RT.speed.throwable, Math.hypot(p.vel[0], p.vel[1], p.vel[2])) * RT.reflectSpeedMult;
+      spawnProjectile(ctx, target, p.weapon, at, [(dir[0] / dl) * sp, (dir[1] / dl) * sp, (dir[2] / dl) * sp], 0,
+        { ...p.mods, superDamage: 1, superLaunch: 1 });
+      return 'parried';
+    }
+    ctx.bus.emit('parry:result', { player: target, grade: 'good', deltaMs: Math.round(sinceBlock) });
+    const blocked = { ...p.mods, launchMult: (p.mods.launchMult ?? 1) * RT.block.launchMult };
+    if (p.splash > 0 && p.weapon.category === 'grenade') explode(ctx, p, at, blocked, RT.block.damageMult);
+    else applyHit(ctx, { attacker: p.owner, target, weapon: p.weapon, impactPos: at, fromPos: shooterPos, mods: blocked, damageMultiplier: RT.block.damageMult });
+    return 'hit';
   }
-}
-
-function resolveDamage(
-  ctx: Ctx, attacker: PlayerId, target: PlayerId, weapon: Weapon, traj: TrajectoryResult, fromPos: Vec3,
-  damageMultiplier: number, mods: Partial<ShotMods>,
-): void {
-  if (traj.splashRadius > 0) {
-    applySplash(ctx, { attacker, weapon, damageMultiplier, impactPos: traj.impact, fromPos, center: traj.impact, radius: traj.splashRadius, mods });
-  } else {
-    applyHit(ctx, { attacker, target, weapon, damageMultiplier, impactPos: traj.impact, fromPos, mods });
+  if (p.weapon.category === 'grenade') explode(ctx, p, at);
+  else {
+    applyHit(ctx, { attacker: p.owner, target, weapon: p.weapon, impactPos: at, fromPos: shooterPos, mods: p.mods });
+    if (p.splash > 0) explode(ctx, p, at, { ...p.mods, fragment: 0.5 });
   }
+  return 'hit';
 }
 
-/** Parade PARFAITE sur throwable/shield : renvoyé sur l'attaquant d'origine, plein dégât, récompense (ralenti). */
-function reflectBack(ctx: Ctx, shooter: PlayerId, target: PlayerId, weapon: Weapon, traj: TrajectoryResult, mods: Partial<ShotMods>): void {
-  emitPerfectReflectReward(ctx);
-  const returnId = nextId();
-  const backDir = normalize(sub(ctx.state.players[shooter].pos, traj.impact));
-  ctx.bus.emit('projectile:spawn', { id: returnId, weapon, from: traj.impact, vel: [backDir[0] * 12, backDir[1] * 12, backDir[2] * 12] });
-  const matchSeq = getRuntime().matchSeq;
-  setTimeout(() => {
-    if (stale(ctx, matchSeq)) return;
-    resolveDamage(ctx, target, shooter, weapon, { ...traj, splashRadius: 0 }, traj.impact, 1, { ...mods, superDamage: 1, superLaunch: 1 });
-  }, REFLECT_RETURN_MS);
-}
-
-function yawJitter(ctx: Ctx, dir: Vec3, spreadDeg: number): Vec3 {
-  const rad = (ctx.rng.range(-spreadDeg, spreadDeg) * Math.PI) / 180;
-  const cos = Math.cos(rad), sin = Math.sin(rad);
-  return normalize([dir[0] * cos + dir[2] * sin, dir[1], -dir[0] * sin + dir[2] * cos]);
-}
-
-export function blasterShots(weapon: Weapon): number {
-  return Math.round(lerp(BLASTER_SHOTS_MIN, BLASTER_SHOTS_MAX, weapon.stats.b));
-}
-
-function fireBlasterBurst(ctx: Ctx, shooter: PlayerId, weapon: Weapon, origin: Vec3, dir: Vec3, mods: Partial<ShotMods>, onAllDone: () => void): void {
-  const shots = blasterShots(weapon);
-  const spread = lerp(BLASTER_SPREAD_DEG_MAX, BLASTER_SPREAD_DEG_MIN, weapon.stats.c); // c = accuracy : plus haut = plus précis
-  const matchSeq = getRuntime().matchSeq;
-  let remaining = shots;
-  for (let i = 0; i < shots; i++) {
-    setTimeout(() => {
-      if (stale(ctx, matchSeq)) return;
-      // Le 1er tir part droit (visée calée) : la dispersion ne touche que les suivants.
-      const d = i === 0 ? dir : yawJitter(ctx, dir, spread);
-      launchOne(ctx, shooter, weapon, origin, d, { ...mods, burst: shots }, i === 0, () => {
-        remaining -= 1;
-        if (remaining <= 0) onAllDone();
-      }, null, i + 1, shots);
-    }, i * BLASTER_SHOT_INTERVAL_MS);
-  }
-}
-
-function placeShield(ctx: Ctx, shooter: PlayerId, weapon: Weapon, origin: Vec3, dir: Vec3): void {
-  const pos = add(origin, dir, SHIELD_PLACE_DISTANCE);
-  const width = lerp(SHIELD_WIDTH_MIN, SHIELD_WIDTH_MAX, weapon.stats.b);
-  const height = lerp(SHIELD_HEIGHT_MIN, SHIELD_HEIGHT_MAX, weapon.stats.a);
-  const yaw = Math.atan2(dir[0], dir[2]);
+/** Système : fait voler tous les projectiles (temps de jeu : le ralenti les ralentit). */
+export function stepProjectiles(ctx: Ctx, dt: number): void {
+  if (!inFight(ctx)) { for (const p of [...live]) end(ctx, p, 'expired'); return; }
+  if (dt <= 0) return;
   const { RAPIER: R, world } = ctx.physics;
-  const feetY = ctx.state.players[shooter].pos[1];
-  const groundPos: Vec3 = [pos[0], feetY + height / 2, pos[2]];
-  const body = world.createRigidBody(
-    R.RigidBodyDesc.fixed().setTranslation(groundPos[0], groundPos[1], groundPos[2])
-      .setRotation(yawQuaternion(yaw)).setUserData({ kind: 'shield', player: shooter }),
-  );
-  world.createCollider(R.ColliderDesc.cuboid(width / 2, height / 2, SHIELD_THICKNESS / 2).setFriction(0.8), body);
-  addShieldBody(body);
-  ctx.bus.emit('shield:placed', { player: shooter, weapon, pos: groundPos });
-}
-
-export interface FireOptions { nice?: boolean }
-
-/** Point d'entrée unique (souris, F, tir automatique ou `gameHooks.fire`) : résout l'arme sélectionnée. */
-export function performFire(ctx: Ctx, shooter: PlayerId, power: number, opts: FireOptions = {}): void {
-  if (ctx.state.phase !== 'move' && ctx.state.phase !== 'aim') return;
-  if (shooter !== ctx.state.active) return;
-  const state = ctx.state.players[shooter];
-  const rt = getRuntime().players[shooter];
-  if (rt.dead || rt.launch) return;
-  const weapon = state.weapons[state.selected];
-  if (!weapon || weapon.cooldown > 0) return;
-  rt.charging = false;
-  const clampedPower = Math.max(0, Math.min(1, power));
-  const origin = aimOrigin(ctx, shooter);
-  const dir = rt.aimDir;
-  const matchSeq = getRuntime().matchSeq;
-  const mods: Partial<ShotMods> = { charge: clampedPower, nice: !!opts.nice };
-
-  setPhase(ctx, 'resolve');
-  ctx.bus.emit('fire', { player: shooter, weapon, dir, power: clampedPower });
-  // BRO SMASH : le prochain tir offensif après `super:ready` (pas la pose d'un bouclier).
-  if (weapon.category !== 'shield' && consumeSuper(ctx, shooter)) {
-    mods.superDamage = BRO_SMASH.damageMult;
-    mods.superLaunch = BRO_SMASH.launchMult;
-    ctx.bus.emit('super:fire', { player: shooter });
-  }
-  // Recharge : indisponible au prochain tour de son propriétaire (décrémentée au début de chacun de ses tours).
-  weapon.cooldown = WEAPON_COOLDOWN_TURNS + 1;
-
-  if (weapon.category === 'shield') {
-    placeShield(ctx, shooter, weapon, origin, dir);
-    endTurnSoon(ctx, matchSeq);
-  } else if (weapon.category === 'blaster') {
-    fireBlasterBurst(ctx, shooter, weapon, origin, dir, mods, () => endTurnSoon(ctx, matchSeq));
-  } else {
-    launchOne(ctx, shooter, weapon, origin, dir, mods, true, () => endTurnSoon(ctx, matchSeq), rt.aimPoint, 1, 1);
-  }
-  fireSplitFragments(ctx, shooter, weapon, origin, dir, mods);
-}
-
-/** Trait `split` : quelques projectiles supplémentaires en éventail, en plus du tir principal ci-dessus.
- * Résolus indépendamment (ne retardent pas la fin du tour). */
-function fireSplitFragments(ctx: Ctx, shooter: PlayerId, weapon: Weapon, origin: Vec3, dir: Vec3, mods: Partial<ShotMods>): void {
-  if (weapon.trait !== 'split' || weapon.category === 'shield') return;
-  const matchSeq = getRuntime().matchSeq;
-  for (let i = 0; i < TRAIT_TUNING.split.fragments; i++) {
-    setTimeout(() => {
-      if (stale(ctx, matchSeq)) return;
-      const fragMods = { ...mods, superDamage: 1, superLaunch: 1, fragment: TRAIT_TUNING.split.fragmentDamageMult };
-      launchOne(ctx, shooter, weapon, origin, yawJitter(ctx, dir, TRAIT_TUNING.split.spreadDeg), fragMods, false, () => {}, null, i + 2, TRAIT_TUNING.split.fragments + 1);
-    }, 70 * (i + 1));
+  for (const p of [...live]) {
+    const target = otherPlayer(p.owner);
+    const tpos = ctx.state.players[target].pos;
+    const a: Vec3 = [p.pos[0], p.pos[1], p.pos[2]];
+    p.vel = [p.vel[0], p.vel[1] - p.gravity * dt, p.vel[2]];
+    const b: Vec3 = [a[0] + p.vel[0] * dt, a[1] + p.vel[1] * dt, a[2] + p.vel[2] * dt];
+    p.age += dt;
+    // Repère de parade : une seule fois, ~400 ms avant l'impact prévu sur la cible.
+    if (!p.incomingSent) {
+      const eta = etaTo(p, tpos);
+      if (eta != null && eta * 1000 <= RT.incomingLeadMs) {
+        p.incomingSent = true;
+        ctx.bus.emit('projectile:incoming', { id: p.id, target, etaMs: Math.round(eta * 1000) });
+      }
+    }
+    // Décor (sol, murs, boucliers) le long du segment.
+    const seg: Vec3 = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+    const len = Math.hypot(seg[0], seg[1], seg[2]);
+    let worldT = Infinity;
+    let normal: Vec3 = [0, 1, 0];
+    if (len > 1e-5) {
+      const ray = new R.Ray({ x: a[0], y: a[1], z: a[2] }, { x: seg[0] / len, y: seg[1] / len, z: seg[2] / len });
+      const hit = world.castRayAndGetNormal(ray, len, true, undefined, undefined, undefined, undefined, (c: RAPIER.Collider) => isGroundCollider(c));
+      if (hit) { worldT = hit.timeOfImpact / len; normal = [hit.normal.x, hit.normal.y, hit.normal.z]; }
+    }
+    // Perso visé (capsule), s'il est touchable.
+    let playerT = Infinity;
+    if (!getRuntime().players[target].dead && !isInvulnerable(ctx, target)) {
+      const c = segmentToCapsule(a, b, tpos);
+      if (c.dist <= CHARACTER_RADIUS + p.radius) playerT = c.t;
+    }
+    if (playerT < Infinity && playerT <= worldT) {
+      p.pos = [a[0] + seg[0] * playerT, a[1] + seg[1] * playerT, a[2] + seg[2] * playerT];
+      const how = hitPlayer(ctx, p, target, p.pos);
+      if (how === 'hit' && p.isObject) objectImpact(ctx, p, p.pos);
+      end(ctx, p, how);
+      continue;
+    }
+    if (worldT < Infinity) {
+      p.pos = [a[0] + seg[0] * worldT, a[1] + seg[1] * worldT, a[2] + seg[2] * worldT];
+      if (p.bouncesLeft > 0 && !p.fragile) {
+        // Rebond selon `bounciness` : vitesse réfléchie sur la normale, amortie.
+        p.bouncesLeft -= 1;
+        const vn = p.vel[0] * normal[0] + p.vel[1] * normal[1] + p.vel[2] * normal[2];
+        const k = p.restitution;
+        p.vel = [(p.vel[0] - 2 * vn * normal[0]) * k, (p.vel[1] - 2 * vn * normal[1]) * k, (p.vel[2] - 2 * vn * normal[2]) * k];
+        p.pos = [p.pos[0] + normal[0] * 0.05, p.pos[1] + normal[1] * 0.05, p.pos[2] + normal[2] * 0.05];
+        ctx.bus.emit('projectile:bounce', { id: p.id, pos: [...p.pos], vel: [...p.vel] });
+        if (Math.hypot(p.vel[0], p.vel[1], p.vel[2]) > 1.5) continue;
+      }
+      if (p.splash > 0) explode(ctx, p, p.pos);
+      if (p.isObject) objectImpact(ctx, p, p.pos);
+      end(ctx, p, 'world');
+      continue;
+    }
+    p.pos = b;
+    if (p.age > RT.projectileMaxLifeS || p.pos[1] < -20) end(ctx, p, 'expired');
   }
 }

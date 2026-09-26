@@ -1,7 +1,8 @@
-// Assemble un combattant : container (position/orientation) > squashWrapper (échelle animée) > modèle KayKit.
+// Assemble un combattant : container (position/orientation) > pivot (vrilles : éjection, double saut, tourne
+// autour du centre du corps) > squashWrapper (échelle animée, pieds au sol) > modèle KayKit.
 import * as THREE from 'three';
 import { applyFighterLook } from '../fighter-custom';
-import type { FighterDef, PlayerId, Ctx } from '../../core/types';
+import type { Category, FighterDef, PlayerId, Ctx } from '../../core/types';
 import { LOCAL_TOKENS } from '../localTokens';
 import { setVinylRenderOrder } from '../render/toon';
 import { FighterAnimator } from './animator';
@@ -9,6 +10,8 @@ import { instantiateFighterModel, loadMovementClips, type VinylMeshEntry } from 
 
 export interface FighterRig {
   container: THREE.Group;
+  /** Tourne autour du centre du corps (vrille d'éjection, salto du double saut) ; identité sinon. */
+  pivot: THREE.Group;
   squashWrapper: THREE.Group;
   root: THREE.Object3D;
   animator: FighterAnimator;
@@ -25,7 +28,36 @@ export interface FighterRig {
   airborne: boolean;
   groundedFor: number;
   minVelY: number;
+  /** Visée verrouillée sur l'adversaire (charge, attaque, garde) : course de côté ou à reculons. */
+  locked: boolean;
+  /** Lot LATK2 : états du corps (voir fighters/index.ts). */
+  body: BodyState;
 }
+
+/** États du corps pilotés par fighters/index.ts (lot LATK2). */
+export interface BodyState {
+  /** Vrille d'éjection : vitesse de rotation (rad/s) ; 0 = pas en vol. */
+  spinRate: number;
+  spinAngle: number;
+  /** Salto du double saut : temps écoulé (s) ; < 0 = aucun. */
+  flipT: number;
+  /** Remontée au bord : temps écoulé (s) ; < 0 = aucune. Hauteur de départ. */
+  climbT: number;
+  climbFromY: number;
+  /** Rafale du blaster : fin de la tenue (ms, performance.now). */
+  burstUntil: number;
+  /** Au bord du vide. */
+  teeter: boolean;
+  /** Ce que joue la couche haut du corps : pose de charge, attaque, garde tenue, réaction de garde. */
+  upper: 'charge' | 'attack' | 'guard' | 'react' | null;
+  /** Catégorie de l'arme de la charge ou de l'attaque en cours. */
+  cat: Category | null;
+  /** Fin de match : 'win' | 'lose' | null. */
+  outcome: 'win' | 'lose' | null;
+}
+
+/** Hauteur (m, avant échelle du perso) du centre de rotation des vrilles. */
+const PIVOT_Y = 1.25;
 
 /** Règle 2 (DA) : intercale les combattants du plus loin au plus proche (`rank` 0/1), sinon la marge vinyle
  * du perso de devant est mangée par le corps de celui de derrière. */
@@ -59,8 +91,13 @@ export async function buildFighterRig(fighter: FighterDef, player: PlayerId, ctx
 
   const squashWrapper = new THREE.Group();
   squashWrapper.add(root);
+  const pivotY = PIVOT_Y * LOCAL_TOKENS.fighterScale;
+  squashWrapper.position.y = -pivotY;
+  const pivot = new THREE.Group();
+  pivot.position.y = pivotY;
+  pivot.add(squashWrapper);
   const container = new THREE.Group();
-  container.add(squashWrapper);
+  container.add(pivot);
   container.name = `fighter-${fighter.id}`;
 
   const animator = new FighterAnimator(root, animations, LOCAL_TOKENS.fighterScale, player, ctx);
@@ -68,11 +105,13 @@ export async function buildFighterRig(fighter: FighterDef, player: PlayerId, ctx
 
   return {
     container,
+    pivot,
     squashWrapper,
     root,
     animator,
-    handSlotR: root.getObjectByName('handslot.r') ?? null,
-    handSlotL: root.getObjectByName('handslot.l') ?? null,
+    // GLTFLoader assainit les noms (les points disparaissent) : handslot.r → handslotr.
+    handSlotR: root.getObjectByName('handslotr') ?? root.getObjectByName('handslot.r') ?? null,
+    handSlotL: root.getObjectByName('handslotl') ?? root.getObjectByName('handslot.l') ?? null,
     vinylMeshes,
     moving: false,
     lastMoveAt: -Infinity,
@@ -83,6 +122,8 @@ export async function buildFighterRig(fighter: FighterDef, player: PlayerId, ctx
     airborne: false,
     groundedFor: 0,
     minVelY: 0,
+    locked: false,
+    body: { spinRate: 0, spinAngle: 0, flipT: -1, climbT: -1, climbFromY: 0, burstUntil: 0, teeter: false, upper: null, cat: null, outcome: null },
   };
 }
 

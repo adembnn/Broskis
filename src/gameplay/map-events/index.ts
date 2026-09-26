@@ -1,48 +1,74 @@
-// Lots LM puis LMAP2 : régie des dangers de map par tour + leurs effets physiques sur les joueurs.
-// 1. QUAND : `map:warn` puis `map:event` `leadTurns` tours plus tard (2 = chaque joueur a eu un tour pour
-//    fuir la zone qui clignote ; avant, l'anneau tombait au début du tour de celui qui n'avait pas pu bouger).
+// Lots LM, LMAP2 puis RTCORE (temps réel) : régie des dangers de map sur MINUTERIE + leurs effets physiques.
+// 1. QUAND : en combat, un danger toutes les 20 à 30 s (tiré au hasard), annoncé 3 s avant (`map:warn`, zone
+//    qui clignote) puis déclenché (`map:event`). Mort subite à 3:00 : `map:warn` 5 s avant, `map:event`
+//    `suddendeath`, puis un objet géant (`suddendeath-drop`) toutes les 12 s, annoncé par son ombre.
 // 2. EFFETS : engine.ts (src/scene/maps) décide de la géométrie et du moment, puis demande ici une poussée
-//    ou une chute ; on la joue avec le corps physique du perso (même chemin que le recul d'un coup).
+//    ou une chute ; on la joue avec le vol d'éjection des règles v2 (launch.ts).
 import { currentMapDef, onPlayerEffect, type PlayerEffect } from '../../scene/maps/engine';
 import type { Ctx, Install, PlayerId, Vec3 } from '../../core/types';
 import { startLaunch } from '../launch';
+import { inFight } from '../phases';
+import { getRuntime } from '../runtime';
+import { RT } from '../tuning';
 
-/** Tour à partir duquel la mort subite s'active (règle du jeu, plan/README.md). */
-const SUDDEN_DEATH_TURN = 7;
 /** Délai (temps de jeu) entre l'ombre de l'objet géant et sa chute, comme crate:warn -> crate:land. */
 const SUDDEN_DEATH_DROP_DELAY = 1.5;
-// Poussée (vague, pont qui gîte, éponge) ou chute (dalle qui tombe) : même chemin que le recul d'un coup en
-// règles v2 (launch.ts) : vol cinématique, glissade, rattrapage au bord, sortie de l'arène gérée par LSMASH.
+const SUDDEN_DEATH_WARN_S = 5;
+const SUDDEN_DEATH_DROP_EVERY_S = 12;
+
+// Poussée (vague, pont qui gîte, éponge) ou chute (dalle qui tombe) : même chemin que le recul d'un coup.
 function applyEffect(ctx: Ctx, e: PlayerEffect) {
   if (!ctx.state.players[e.player].alive) return;
   const vel: Vec3 = e.kind === 'push' ? [e.vel[0], e.vel[1], e.vel[2]] : [0, 0, 0];
   startLaunch(ctx, e.player, vel, (1 - e.player) as PlayerId);
 }
 
+interface Schedule { nextWarnAt: number; eventAt: number | null; sdWarned: boolean; sdStarted: boolean; nextDropAt: number; count: number }
+let sched: Schedule = { nextWarnAt: 0, eventAt: null, sdWarned: false, sdStarted: false, nextDropAt: 0, count: 0 };
+
+function nextInterval(ctx: Ctx): number {
+  return ctx.rng.range(RT.hazardEveryS[0], RT.hazardEveryS[1]);
+}
+
 export const install: Install = (ctx) => {
   onPlayerEffect((e) => applyEffect(ctx, e));
 
-  ctx.bus.on('turn:start', ({ turn }) => {
-    const def = currentMapDef();
-    if (def) {
-      const { kind, everyTurns, firstTurn, leadTurns, maxEvents = Infinity } = def.periodicEvent;
-      const since = turn - firstTurn;
-      if (since >= 0 && since % everyTurns === 0 && since / everyTurns < maxEvents) ctx.bus.emit('map:event', { mapId: ctx.state.mapId, kind });
-      const untilNext = turn + leadTurns - firstTurn;
-      if (untilNext >= 0 && untilNext % everyTurns === 0 && untilNext / everyTurns < maxEvents) ctx.bus.emit('map:warn', { mapId: ctx.state.mapId, kind, turnsLeft: leadTurns });
-    }
+  ctx.bus.on('match:start', () => {
+    sched = { nextWarnAt: nextInterval(ctx) - RT.hazardWarnS, eventAt: null, sdWarned: false, sdStarted: false, nextDropAt: 0, count: 0 };
+  });
 
-    if (turn === SUDDEN_DEATH_TURN - 1) {
-      ctx.bus.emit('map:warn', { mapId: ctx.state.mapId, kind: 'suddendeath', turnsLeft: 1 });
+  ctx.loop.addSystem('gameplay-map-events', () => {
+    if (!inFight(ctx)) return;
+    const t = getRuntime().fightTime;
+    const mapId = ctx.state.mapId;
+    const def = currentMapDef();
+    // `maxEvents` (lot LMAP2) : nombre maximal de déclenchements du danger de la map par match.
+    const allowed = def ? sched.count < (def.periodicEvent.maxEvents ?? Infinity) : false;
+    if (def && allowed && sched.eventAt == null && t >= sched.nextWarnAt) {
+      ctx.bus.emit('map:warn', { mapId, kind: def.periodicEvent.kind, turnsLeft: 0 });
+      sched.eventAt = t + RT.hazardWarnS;
     }
-    if (turn >= SUDDEN_DEATH_TURN) {
-      if (!ctx.state.suddenDeath) ctx.state.suddenDeath = true;
-      if (turn === SUDDEN_DEATH_TURN) ctx.bus.emit('map:event', { mapId: ctx.state.mapId, kind: 'suddendeath' });
-      // Objet géant : préavis court (ombre), comme la Caisse Snap.
-      ctx.bus.emit('map:warn', { mapId: ctx.state.mapId, kind: 'suddendeath-drop', turnsLeft: 0 });
+    if (def && sched.eventAt != null && t >= sched.eventAt) {
+      ctx.bus.emit('map:event', { mapId, kind: def.periodicEvent.kind });
+      sched.count += 1;
+      sched.eventAt = null;
+      sched.nextWarnAt = t + nextInterval(ctx) - RT.hazardWarnS;
+    }
+    if (!sched.sdWarned && t >= RT.suddenDeathS - SUDDEN_DEATH_WARN_S) {
+      sched.sdWarned = true;
+      ctx.bus.emit('map:warn', { mapId, kind: 'suddendeath', turnsLeft: 0 });
+    }
+    if (!sched.sdStarted && t >= RT.suddenDeathS) {
+      sched.sdStarted = true;
+      sched.nextDropAt = t + 3;
+      ctx.bus.emit('map:event', { mapId, kind: 'suddendeath' });
+    }
+    if (sched.sdStarted && t >= sched.nextDropAt) {
+      sched.nextDropAt = t + SUDDEN_DEATH_DROP_EVERY_S;
+      ctx.bus.emit('map:warn', { mapId, kind: 'suddendeath-drop', turnsLeft: 0 });
       ctx.loop.later(SUDDEN_DEATH_DROP_DELAY, () => {
-        ctx.bus.emit('map:event', { mapId: ctx.state.mapId, kind: 'suddendeath-drop' });
+        if (inFight(ctx)) ctx.bus.emit('map:event', { mapId: ctx.state.mapId, kind: 'suddendeath-drop' });
       });
     }
-  });
+  }, 75);
 };

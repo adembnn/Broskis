@@ -1,4 +1,5 @@
 # Lot LMAP2 · Level design : 3 arènes ouvertes, épurées, façon Smash
+> **Obsolète depuis le pivot temps réel (15h25)** pour : dangers comptés en tours ; ils passent sur minuterie. Référence : `plan/PIVOT-TEMPS-REEL.md`.
 Exécution : **agent Claude (Opus, level design)** · Priorité 1 · Retours d'Adem et Titouan (14h) : « la map n'est pas assez bien designée », « les arènes sont fermées alors qu'on a dit qu'on pouvait tomber », « trop cartoonesque », « il faut épurer », « l'univers de Smash et Brawlhalla ».
 
 ## Règles de level design (Smash « Battlefield » transposé en 3D, vu de 3/4)

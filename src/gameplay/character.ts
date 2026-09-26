@@ -4,11 +4,12 @@
 // Le recul (règles v2) est un vol cinématique intégré par launch.ts, qui passe aussi par `moveKinematic`.
 import type * as RAPIER from '@dimforge/rapier3d-compat';
 import type { Ctx, PlayerId, Vec3 } from '../core/types';
-import { groundYBelow } from './arena';
+import { groundYBelow, isFallingDebris } from './arena';
 import { isGroundReady } from './fallback-ground';
 import { getRuntime } from './runtime';
 import {
-  CHARACTER_HALF_HEIGHT, CHARACTER_RADIUS, EDGE_RAYCAST_AHEAD, EDGE_RAYCAST_DEPTH, GRAVITY, MOVE_SUBSTEP_M,
+  CHARACTER_HALF_HEIGHT, CHARACTER_RADIUS, DROP_THROUGH_S, EDGE_RAYCAST_AHEAD, EDGE_RAYCAST_DEPTH, GRAVITY, MOVE_SUBSTEP_M,
+  ONEWAY_SNAP_BELOW, ONEWAY_SNAP_MAX_VY,
 } from './tuning';
 
 const CONTROLLER_OFFSET = 0.04;
@@ -111,8 +112,8 @@ function controllerFilter(ctx: Ctx, player: PlayerId, rising: boolean): (c: RAPI
       const other = getRuntime().players[data.player === 0 ? 0 : 1];
       return !other.launch && !getRuntime().players[player].launch && !other.dead;
     }
-    if (!data?.oneWay) return true;
-    if (rising) return false;
+    if (!data?.oneWay) return !isFallingDebris(c);
+    if (rising || ctx.loop.time < getRuntime().players[player].dropUntil) return false; // on monte, ou on descend à travers
     return feetY >= colliderTopY(c) - 0.15;
   };
 }
@@ -183,14 +184,67 @@ export function stepVerticalMotion(ctx: Ctx, player: PlayerId, dt: number): void
   const rt = getRuntime().players[player];
   if (!rt.body || !rt.controller || !rt.collider || rt.launch || rt.dead || rt.ledge) return;
   if (!isGroundReady() || ctx.loop.time < rt.hoverUntil) { rt.vy = 0; return; }
+  const dropping = ctx.loop.time < rt.dropUntil;
   if (rt.grounded && rt.vy <= 0) {
-    // Le sol a pu disparaître (dalle qui tombe, gîte) : on vérifie avant de rester posé.
-    if (!isVoidAt(ctx, ctx.state.players[player].pos)) { rt.vy = 0; return; }
+    // Le sol a pu disparaître (dalle qui tombe, gîte) : on vérifie avant de rester posé (sauf descente à travers).
+    if (!dropping && !isVoidAt(ctx, ctx.state.players[player].pos)) { rt.vy = 0; return; }
     rt.grounded = false;
   }
+  // Intégration exacte à gravité constante (moyenne des vitesses) : l'apex vaut v²/2g quelle que soit la cadence.
+  const v0 = rt.vy;
   rt.vy -= GRAVITY * dt;
-  const r = moveKinematic(ctx, player, [0, rt.vy * dt, 0], rt.vy > 0);
+  const dy = ((v0 + rt.vy) / 2) * dt;
+  const r = moveKinematic(ctx, player, [0, dy, 0], rt.vy > 0);
   rt.grounded = r.grounded;
   if (rt.grounded && rt.vy < 0) rt.vy = 0;
-  if (rt.vy > 0 && r.moved[1] < rt.vy * dt * 0.5) rt.vy = 0; // tête contre un plafond
+  if (rt.vy > 0 && r.moved[1] < dy * 0.5) rt.vy = 0; // tête contre un plafond
+  if (!rt.grounded && !dropping && snapOntoOneWay(ctx, player)) rt.vy = 0;
+}
+
+/** Debout sur une plateforme traversable ? (pour « bas + saut » = descendre à travers, façon Smash). */
+export function standingOnOneWay(ctx: Ctx, player: PlayerId): boolean {
+  const [x, y, z] = ctx.state.players[player].pos;
+  return oneWayBoxes(ctx).some((b) => Math.abs(y - b.topY) < 0.2 && Math.abs(x - b.cx) <= b.hx + 0.2 && Math.abs(z - b.cz) <= b.hz + 0.2);
+}
+
+/** Descend à travers la plateforme traversable sous ses pieds. */
+export function dropThrough(ctx: Ctx, player: PlayerId): void {
+  const rt = getRuntime().players[player];
+  rt.dropUntil = ctx.loop.time + DROP_THROUGH_S;
+  rt.grounded = false;
+  rt.vy = -2;
+}
+
+// ---------- Lot LJUMP : atterrissage sur les plateformes traversables (le coyote time est dans movement.ts) ----------
+
+interface OneWayBox { topY: number; cx: number; cz: number; hx: number; hz: number }
+
+/** Plateformes traversables (userData.oneWay posé par les maps). Un collider désactivé (personne dessus) est
+ * invisible aux rayons : on lit donc sa boîte directement. */
+export function oneWayBoxes(ctx: Ctx): OneWayBox[] {
+  const out: OneWayBox[] = [];
+  ctx.physics.world.forEachCollider((c) => {
+    if (!(c.parent()?.userData as { oneWay?: boolean } | undefined)?.oneWay) return;
+    const he = c.halfExtents();
+    if (!he) return;
+    const t = c.translation();
+    out.push({ topY: colliderTopY(c), cx: t.x, cz: t.z, hx: he.x, hz: he.z });
+  });
+  return out;
+}
+
+/** Au sommet du saut ou en descente, pieds jusqu'à ONEWAY_SNAP_BELOW sous le dessus d'une plateforme traversable
+ * et corps dans son emprise : posé dessus (façon Smash, on ne « rate » pas une plateforme de quelques cm). */
+function snapOntoOneWay(ctx: Ctx, player: PlayerId): boolean {
+  const rt = getRuntime().players[player];
+  if (rt.vy > ONEWAY_SNAP_MAX_VY) return false;
+  const [x, y, z] = ctx.state.players[player].pos;
+  for (const b of oneWayBoxes(ctx)) {
+    if (y >= b.topY || y < b.topY - ONEWAY_SNAP_BELOW) continue;
+    if (Math.abs(x - b.cx) > b.hx || Math.abs(z - b.cz) > b.hz) continue;
+    teleport(ctx, player, [x, b.topY + 0.04, z]);
+    rt.grounded = true;
+    return true;
+  }
+  return false;
 }

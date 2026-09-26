@@ -34,7 +34,7 @@ async function renderBust(url: string): Promise<string | null> {
   const root = gltf.scene;
   root.traverse((o) => {
     const parent = o.parent?.name;
-    if (parent === 'handslot.l' || parent === 'handslot.r') o.visible = false; // pas d'arme d'origine : les armes, ce sont les objets
+    if (parent === 'handslot.l' || parent === 'handslot.r' || parent === 'handslotl' || parent === 'handslotr') o.visible = false; // GLTFLoader retire les points des noms d'os // pas d'arme d'origine : les armes, ce sont les objets
     const mesh = o as THREE.Mesh;
     if (mesh.isMesh && !Array.isArray(mesh.material)) {
       const src = mesh.material as THREE.MeshStandardMaterial;

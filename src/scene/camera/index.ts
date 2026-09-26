@@ -1,91 +1,130 @@
-// Branche le bus sur la caméra (director + shake + occlusion), fournit ctx.hooks.skipCamera, et déclenche
-// le hitstop/trauma/ralentis de la table `juice` de tokens.js (direction Vinyle, 26/09). Un clic ou une
-// touche pendant une transition la saute (contrat).
+// Caméras du temps réel (lot RTVIEW) : une caméra verrouillée par joueur (rig.ts), l'écran scindé choisi au début
+// du match, l'occlusion et les effets PAR VUE. Règle d'Adem : chaque vue reste sur son joueur du GO! au GAME!.
+// Les plans du tour par tour (turn-swing, overview, ko-orbit, follow-projectile) sont ignorés ; seul le zoom KO
+// (camera:cue 'impact', effets Smash) est gardé, dans la vue de la victime. Hitstop, trauma et ralentis : table
+// `juice` de tokens.js, comme avant.
 import * as THREE from 'three';
 import { juice } from '../../art/tokens.js';
-import type { Ctx } from '../../core/types';
+import type { Ctx, Phase, PlayerId, Vec3 } from '../../core/types';
 import { registry } from '../registry';
-import { CameraDirector } from './director';
-import { updateOcclusion } from './occlusion';
-import { createCameraShake } from './shake';
+import { applyOcclusion, clearOcclusion, raycastOcclusion, refreshOccluders, resetOcclusion, setOcclusionWarmer, stepOcclusion } from './occlusion';
+import { CameraRig } from './rig';
+import { RTVIEW } from './tokens';
 
-function msToSeconds(ms: number): number {
-  return ms / 1000;
+/** Écrans de menu : une seule vue plein écran (le décor derrière les menus). */
+const MENUS = new Set<Phase>(['title', 'fighter-select', 'arsenal', 'reveal', 'map-select']);
+
+declare global { interface Window { __rtviewRigs?: [CameraRig, CameraRig] } }
+
+let installed: [CameraRig, CameraRig] | null = null;
+
+/** Avant horizontal (y = 0, normé) de la caméra du joueur, comme ctx.three.forwardOf ; null avant l'installation.
+ * Lu par le cœur temps réel (gameplay/movement.ts) pour le déplacement relatif à la vue. */
+export function forwardOf(player: PlayerId): Vec3 | null {
+  return installed ? installed[player].forward() : null;
 }
 
-export function installCamera(ctx: Ctx): CameraDirector {
-  const director = new CameraDirector(ctx);
-  const shake = createCameraShake();
-  registry.shake = shake;
-  registry.camera = ctx.three.camera;
-  registry.renderer = ctx.three.renderer;
+export function installCamera(ctx: Ctx): [CameraRig, CameraRig] {
+  const three = ctx.three;
+  const rigs: [CameraRig, CameraRig] = [new CameraRig(ctx, 0), new CameraRig(ctx, 1)];
+  installed = rigs;
+  registry.three = three;
+  registry.camera = three.camera;
+  registry.renderer = three.renderer;
+  registry.shakes = [rigs[0].shake, rigs[1].shake];
+  registry.shake = { add: (t) => { rigs[0].shake.add(t); rigs[1].shake.add(t); } };
+  three.forwardOf = (p) => rigs[p].forward();
 
   const bumpHitstop = (seconds: number) => { ctx.loop.hitstop = Math.max(ctx.loop.hitstop, seconds); };
+  const other = (p: PlayerId): PlayerId => (p === 0 ? 1 : 0);
 
-  ctx.bus.on('match:start', () => director.reset());
-
-  ctx.bus.on('turn:start', ({ active }) => director.triggerTurnSwing(active));
-
-  ctx.bus.on('aim:update', ({ player, dir }) => director.setAimHint(player, dir));
-  ctx.bus.on('fire', ({ player }) => {
-    director.clearAimHint(player);
-    shake.add(juice.action.trauma); // hitstop 0 pour l'action du joueur : rien à geler, juste une secousse légère
+  let refreshAcc = 0;
+  ctx.bus.on('match:start', () => {
+    resetOcclusion();
+    refreshAcc = RTVIEW.occlusion.relectureS; // relit le décor à la prochaine image
+    const split = ctx.state.split ?? !ctx.state.vsAI;
+    three.setViewMode(split ? 'split' : 'solo', 0);
+    for (const r of rigs) { r.unforce(); r.endLaunch(); r.snap(); } // recalées à la 1re image (spawns posés)
   });
-  ctx.bus.on('move:jump', () => shake.add(juice.action.trauma * 0.5));
+  ctx.bus.on('transition:open', () => { refreshAcc = RTVIEW.occlusion.relectureS; }); // map construite (lot LLOAD)
+  ctx.bus.on('phase:change', ({ to }) => { if (MENUS.has(to)) three.setViewMode('solo', 0); });
+  ctx.bus.on('respawn', ({ player }) => { rigs[player].endLaunch(); rigs[player].snap(); });
+  ctx.bus.on('ledge:grab', ({ player }) => rigs[player].endLaunch());
 
-  ctx.bus.on('projectile:spawn', ({ weapon, from, vel }) => director.noteProjectile(from, vel, weapon.category));
-
-  ctx.bus.on('hit', ({ pos, crit }) => {
+  // Effets par vue : chacun dans la vue du joueur concerné, sans jamais quitter ce joueur.
+  ctx.bus.on('fire', ({ player }) => rigs[player].shake.add(juice.action.trauma));
+  ctx.bus.on('move:jump', ({ player }) => rigs[player].shake.add(juice.action.trauma * 0.5));
+  ctx.bus.on('hit', ({ target, attacker, crit, launch }) => {
     const j = crit ? juice.critique : juice.toucher;
-    shake.add(j.trauma);
-    bumpHitstop(msToSeconds(j.hitstop));
+    rigs[target].shake.add(j.trauma);
+    if (attacker !== target) rigs[attacker].shake.add(j.trauma * RTVIEW.attaquant);
+    bumpHitstop(j.hitstop / 1000);
     if (crit) ctx.bus.emit('slowmo', { factor: juice.critique.ralenti, ms: juice.critique.ralentiMs });
-    director.triggerImpact(pos, crit);
+    rigs[target].impact(crit);
+    if (launch && Math.hypot(launch[0], launch[1], launch[2]) >= RTVIEW.ejection.vitesseMin) rigs[target].startLaunch();
   });
-
-  ctx.bus.on('parry:result', ({ grade }) => {
+  ctx.bus.on('parry:result', ({ player, grade }) => {
     if (grade === 'miss') return;
     const j = grade === 'perfect' ? juice.parfaite : juice.parade;
-    shake.add(j.trauma);
-    bumpHitstop(msToSeconds(j.hitstop));
+    rigs[player].shake.add(j.trauma);
+    bumpHitstop(j.hitstop / 1000);
     if (grade === 'perfect') ctx.bus.emit('slowmo', { factor: juice.parfaite.ralenti, ms: juice.parfaite.ralentiMs });
   });
-
   ctx.bus.on('ko', ({ player }) => {
-    shake.add(juice.victoire.trauma);
-    bumpHitstop(msToSeconds(juice.victoire.hitstop));
+    rigs[player].shake.add(juice.victoire.trauma);
+    rigs[other(player)].shake.add(juice.victoire.trauma * RTVIEW.attaquant);
+    bumpHitstop(juice.victoire.hitstop / 1000);
     ctx.bus.emit('slowmo', { factor: juice.victoire.ralenti, ms: juice.victoire.ralentiMs });
-    director.triggerKoOrbit(player);
+    rigs[player].koZoom();
   });
-
-  // Le gameplay pilote la bascule principale via ce cue (voir director.triggerReleaseSwing). 'overview' est
-  // le seul autre shot sans déclencheur brut dédié ; les autres (impact, ko-orbit) sont déjà déclenchés
-  // directement par nos propres écouteurs ci-dessus — les ignorer ici évite un double déclenchement.
   ctx.bus.on('camera:cue', ({ shot, target }) => {
-    if (shot === 'turn-swing' && target != null) director.triggerReleaseSwing(target);
-    else if (shot === 'overview') director.triggerOverview();
+    if (shot === 'impact' && target != null) rigs[target].koZoom();
   });
 
-  // "Un clic ou une touche la saute" : skip() est un no-op hors transition, donc jamais de risque de gêner
-  // les autres lots qui écoutent aussi le clic/clavier (on ne consomme jamais l'évènement : pas de preventDefault).
-  ctx.hooks.skipCamera = () => director.skip();
-  ctx.hooks.animCamera = (player, shot) => director.forceAnimCamera(player, shot);
-  ctx.three.canvas.addEventListener('pointerdown', () => director.skip());
-  window.addEventListener('keydown', (e) => { if (!e.repeat) director.skip(); });
+  // Plus aucune transition à sauter ; le banc d'animation (LAN) garde sa pose fixe, en vue unique.
+  ctx.hooks.skipCamera = () => {};
+  ctx.hooks.animCamera = (player, shot) => { three.setViewMode('solo', player); rigs[player].force(shot); };
 
-  const p0 = new THREE.Vector3();
-  const p1 = new THREE.Vector3();
-  ctx.loop.addSystem('la-camera', (dt) => {
-    director.update(dt);
-    shake.apply(ctx.three.camera, dt);
-    
-    const s0 = ctx.state.players[0].pos;
-    const s1 = ctx.state.players[1].pos;
-    p0.set(s0[0], s0[1] + 1.2, s0[2]);
-    p1.set(s1[0], s1[1] + 1.2, s1[2]);
-    
-    updateOcclusion(ctx.three.scene, ctx.three.camera, [p0, p1], dt);
+  const chests = [new THREE.Vector3(), new THREE.Vector3()];
+  let rayAcc = 1;
+  ctx.loop.addSystem('la-camera', (_dt, real) => {
+    const fov = three.viewMode === 'split' ? RTVIEW.fovScinde : RTVIEW.fovSolo;
+    for (const r of rigs) r.update(real, fov); // les 2, même en solo : forwardOf sert aussi à l'IA
+
+    refreshAcc += real;
+    if (refreshAcc >= RTVIEW.occlusion.relectureS) { refreshAcc = 0; refreshOccluders(three.scene); }
+    rayAcc += real;
+    if (rayAcc >= 1 / RTVIEW.raycastHz) {
+      rayAcc = 0;
+      for (const p of [0, 1] as const) {
+        const s = ctx.state.players[p].pos;
+        chests[p].set(s[0], s[1] + RTVIEW.cibleHauteur, s[2]);
+      }
+      for (const p of [0, 1] as const) {
+        if (!three.viewOf(p).visible) { clearOcclusion(p); continue; }
+        raycastOcclusion(p, rigs[p].camera, chests);
+        rigs[p].probe();
+      }
+    }
+    stepOcclusion(real);
   }, 300);
 
-  return director;
+  // Juste avant chaque vue : ses opacités d'occlusion.
+  three.onBeforeView((v) => applyOcclusion(v.player));
+  // Shaders des fondus compilés en tâche de fond (même méthode que core/shaders.ts, lot LPERF) : une cible
+  // linéaire factice donne les shaders de la cible du post-traitement ; en qualité basse, ceux du canvas.
+  const lineaire = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
+  setOcclusionWarmer((mesh, clone) => {
+    const proxy = new THREE.Mesh(mesh.geometry, clone);
+    proxy.castShadow = mesh.castShadow;
+    proxy.receiveShadow = mesh.receiveShadow;
+    const r = three.renderer;
+    const avant = r.getRenderTarget();
+    r.setRenderTarget(window.__qualite?.niveau === 'basse' ? null : lineaire);
+    const done = r.compileAsync(proxy, three.camera, three.scene); // la partie synchrone lit la cible ci-dessus
+    r.setRenderTarget(avant);
+    return done;
+  });
+  window.__rtviewRigs = rigs; // débogage et bancs : rigs[p].lastHit, rigs[p].yaw
+  return rigs;
 }

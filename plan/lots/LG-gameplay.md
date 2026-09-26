@@ -1,4 +1,5 @@
 # Lot LG · Gameplay
+> **Obsolète depuis le pivot temps réel (15h25)** pour : tours, budget de déplacement, visée à la souris, parade du défenseur. Référence : `plan/PIVOT-TEMPS-REEL.md`.
 Responsable : Adem (sous-agent Sonnet) · Coût : élevé · Dépend de : L0
 
 ## Tes chemins

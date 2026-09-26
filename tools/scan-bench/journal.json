@@ -1,0 +1,225 @@
+{
+  "iterations": [
+    {
+      "n": 1,
+      "horodatage": "2026-09-26_16h26",
+      "changement": "référence : pipeline actuel de main (sans physique LSCAN)",
+      "moyenne": 4.92,
+      "injouables": 4,
+      "notes": {
+        "tasse-verre": 5.4,
+        "chaise-bureau": 4.68,
+        "feutre-velleda": 5.48,
+        "telephone": 3.68,
+        "mocassin": 5.88,
+        "tabouret-rotin": 3,
+        "pendule-newton": 4.6,
+        "lampe-champignon": 5.68,
+        "roi-echecs": 5.08,
+        "montre": 5.68
+      },
+      "reprise": true
+    },
+    {
+      "n": 2,
+      "horodatage": "2026-09-26_16h37",
+      "changement": "main à jour : physique LSCAN, consigne sticker « objet seul » de LSCAN, taille et épaisseur selon la physique (LATK1)",
+      "moyenne": 6.85,
+      "injouables": 5,
+      "notes": {
+        "tasse-verre": 6.8,
+        "chaise-bureau": 7.6,
+        "feutre-velleda": 6.72,
+        "telephone": 7,
+        "mocassin": 6.6,
+        "tabouret-rotin": 5.8,
+        "pendule-newton": 5.82,
+        "lampe-champignon": 7,
+        "roi-echecs": 7.2,
+        "montre": 8
+      },
+      "reprise": false
+    },
+    {
+      "n": 3,
+      "horodatage": "2026-09-26_16h49",
+      "changement": "LBENCH : consigne Nano Banana (face ou profil, objet entier sans main ni câble, trous en magenta, jouet chunky, pas de violet), 2e essai Nano Banana 2 Lite après 14 s, catégorie selon la forme réelle et ordre des champs (objet, physique, puis catégorie), trous gardés dans le volume, despill du bord, tranche à la couleur de l'objet",
+      "moyenne": 6.95,
+      "injouables": 3,
+      "notes": {
+        "tasse-verre": 6.8,
+        "chaise-bureau": 7.6,
+        "feutre-velleda": 7.4,
+        "telephone": 7.4,
+        "mocassin": 7.2,
+        "tabouret-rotin": 6,
+        "pendule-newton": 4.92,
+        "lampe-champignon": 7.2,
+        "roi-echecs": 7.4,
+        "montre": 7.6
+      },
+      "reprise": false
+    },
+    {
+      "n": 4,
+      "horodatage": "2026-09-26_16h58",
+      "changement": "grille v2 du juge (retour d'Adem) : fidélité à la photo comptée double et volume 3D ; même code et mêmes réponses API que le n° 3",
+      "moyenne": 5.98,
+      "fidelite": 5.4,
+      "esthetique": 5.43,
+      "grille": 2,
+      "injouables": 6,
+      "notes": {
+        "tasse-verre": 5.38,
+        "chaise-bureau": 6.25,
+        "feutre-velleda": 5.88,
+        "telephone": 6.25,
+        "mocassin": 6.63,
+        "tabouret-rotin": 6.13,
+        "pendule-newton": 4.33,
+        "lampe-champignon": 6.5,
+        "roi-echecs": 5.75,
+        "montre": 6.75
+      },
+      "reprise": true
+    },
+    {
+      "n": 5,
+      "horodatage": "2026-09-26_17h01",
+      "changement": "main à jour, LATK1 : épaisseur plafonnée (×3 et 25 % de la largeur), tranche à la couleur de l'objet, taille minimale 0,5 m ; mêmes réponses API que le n° 3",
+      "moyenne": 6.19,
+      "fidelite": 5.7,
+      "esthetique": 5.47,
+      "grille": 2,
+      "injouables": 3,
+      "notes": {
+        "tasse-verre": 6.5,
+        "chaise-bureau": 6,
+        "feutre-velleda": 6.25,
+        "telephone": 6.13,
+        "mocassin": 6.38,
+        "tabouret-rotin": 6.5,
+        "pendule-newton": 5.33,
+        "lampe-champignon": 6.75,
+        "roi-echecs": 5.88,
+        "montre": 6.13
+      },
+      "reprise": true
+    },
+    {
+      "n": 6,
+      "horodatage": "2026-09-26_17h03",
+      "changement": "LBENCH : gonflage (faces bombées selon la distance au bord, épaisseur totale inchangée) + dos uni à la couleur de l'objet avec liseré blanc ; mêmes réponses API que le n° 3",
+      "moyenne": 6.24,
+      "fidelite": 5.8,
+      "esthetique": 5.43,
+      "grille": 2,
+      "injouables": 3,
+      "notes": {
+        "tasse-verre": 6.5,
+        "chaise-bureau": 5.63,
+        "feutre-velleda": 6.13,
+        "telephone": 6.75,
+        "mocassin": 6.75,
+        "tabouret-rotin": 5.63,
+        "pendule-newton": 4.83,
+        "lampe-champignon": 7.13,
+        "roi-echecs": 6.13,
+        "montre": 6.88
+      },
+      "reprise": true
+    },
+    {
+      "n": 7,
+      "horodatage": "2026-09-26_17h06",
+      "changement": "LBENCH : épaisseur entre 8 et 15 % de la largeur (cible d'Adem, réglages LATK1) et bombé à 75 % de l'épaisseur ; mêmes réponses API que le n° 3",
+      "moyenne": 6.35,
+      "fidelite": 6.3,
+      "esthetique": 5.47,
+      "grille": 2,
+      "injouables": 3,
+      "notes": {
+        "tasse-verre": 6.25,
+        "chaise-bureau": 6.5,
+        "feutre-velleda": 6.25,
+        "telephone": 6.5,
+        "mocassin": 6.5,
+        "tabouret-rotin": 5.75,
+        "pendule-newton": 5.58,
+        "lampe-champignon": 7,
+        "roi-echecs": 6.5,
+        "montre": 6.63
+      },
+      "reprise": true
+    },
+    {
+      "n": 8,
+      "horodatage": "2026-09-26_17h10",
+      "changement": "DA n° 1 : épaisseur indépendante de la physique (facteur 1 pour tous) ; mêmes réponses API que le n° 3",
+      "moyenne": 6.46,
+      "fidelite": 6.3,
+      "esthetique": 5.83,
+      "grille": 2,
+      "injouables": 6,
+      "notes": {
+        "tasse-verre": 6.38,
+        "chaise-bureau": 6.38,
+        "feutre-velleda": 6.63,
+        "telephone": 6.5,
+        "mocassin": 6,
+        "tabouret-rotin": 6.63,
+        "pendule-newton": 5.7,
+        "lampe-champignon": 7.13,
+        "roi-echecs": 6.75,
+        "montre": 6.5
+      },
+      "reprise": true
+    },
+    {
+      "n": 9,
+      "horodatage": "2026-09-26_17h15",
+      "changement": "DA n° 2 et 3 : vinyle gonflé (tranche 5 %, bombé 5/8/10 % selon la forme, plafond local), faces opaques MeshStandard à rugosité selon la matière, tranche vinyle, marge vinyle par le code, encre 0,03 ; mêmes réponses API que le n° 3",
+      "moyenne": 6.32,
+      "fidelite": 5.7,
+      "esthetique": 5.67,
+      "grille": 2,
+      "injouables": 1,
+      "notes": {
+        "tasse-verre": 6.5,
+        "chaise-bureau": 6.13,
+        "feutre-velleda": 6.25,
+        "telephone": 6.88,
+        "mocassin": 6.75,
+        "tabouret-rotin": 6.38,
+        "pendule-newton": 5.83,
+        "lampe-champignon": 6.25,
+        "roi-echecs": 6.13,
+        "montre": 6.13
+      },
+      "reprise": true
+    },
+    {
+      "n": 10,
+      "horodatage": "2026-09-26_17h18",
+      "changement": "marge vinyle et trait d'encre plats (seul l'art se bombe), dôme parabolique au lieu du quart de cercle ; mêmes réponses API que le n° 3",
+      "moyenne": 6.32,
+      "fidelite": 6.1,
+      "esthetique": 5.53,
+      "grille": 2,
+      "injouables": 4,
+      "notes": {
+        "tasse-verre": 6.75,
+        "chaise-bureau": 6.63,
+        "feutre-velleda": 6.38,
+        "telephone": 6.13,
+        "mocassin": 6.5,
+        "tabouret-rotin": 5.75,
+        "pendule-newton": 4.83,
+        "lampe-champignon": 6.88,
+        "roi-echecs": 6.63,
+        "montre": 6.75
+      },
+      "reprise": true
+    }
+  ]
+}

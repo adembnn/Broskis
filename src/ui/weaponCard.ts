@@ -30,6 +30,18 @@ function pipRow(label: string, value: number): HTMLDivElement {
   return row;
 }
 
+/** Physique réelle estimée de l'objet (lot LE2E) : « 15 kg · 1.1 m · plastic · fragile ». La chaise n'est pas la canette. */
+function physicsLine(weapon: Weapon): HTMLParagraphElement | null {
+  const ph = weapon.physics;
+  if (!ph) return null;
+  const kg = ph.massKg;
+  const mass = kg < 1 ? `${Math.round(kg * 1000)} g` : `${kg < 10 ? kg.toFixed(1) : Math.round(kg)} kg`;
+  const dim = Math.max(...ph.sizeM);
+  const size = dim < 1 ? `${Math.round(dim * 100)} cm` : `${dim.toFixed(1)} m`;
+  const flags = [ph.fragile && 'fragile', ph.liquid && 'splashes', ph.bounciness > 0.3 && 'bouncy'].filter(Boolean);
+  return el('p', 'wc-physics', [mass, size, ph.material, ...flags].join(' · '));
+}
+
 function buildFront(weapon: Weapon, opts: WeaponCardOptions): HTMLDivElement {
   const player = opts.player ?? 0;
   const front = el('div', 'weapon-card-face wc-front');
@@ -64,7 +76,10 @@ function buildFront(weapon: Weapon, opts: WeaponCardOptions): HTMLDivElement {
 
   const stamp = el('div', 'wc-stamp', weapon.trait);
 
-  front.append(band, illustration, nameBand, objectLine, pips, stamp);
+  front.append(band, illustration, nameBand, objectLine);
+  const physics = physicsLine(weapon);
+  if (physics) front.append(physics);
+  front.append(pips, stamp);
 
   if (opts.onCategoryChange) {
     const pillsRow = el('div', 'category-pills');

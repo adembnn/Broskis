@@ -14,8 +14,10 @@
     "anim": "node tools/anim/anim-eval.mjs",
     "dashboard": "node tools/dashboard/server.mjs",
     "perf": "node tools/perf/bench.mjs",
+    "scan-bench": "node tools/scan-bench/run.mjs",
     "demo": "vite build && vite preview --port 4173 --strictPort",
-    "demo:chrome": "node tools/perf/chrome-nvidia.mjs"
+    "demo:chrome": "node tools/perf/chrome-nvidia.mjs",
+    "e2e:photo": "node tools/e2e/photo-jouable.mjs"
   },
   "devDependencies": {
     "@types/three": "^0.186.0",

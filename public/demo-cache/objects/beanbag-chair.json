@@ -4,9 +4,16 @@
   "name": "The Comfy Wall",
   "category": "shield",
   "why": "Filled with beans. And something that shouldn't be in there.",
-  "stats": { "a": 3, "b": 5, "c": 2 },
+  "stats": {
+    "a": 3,
+    "b": 6,
+    "c": 1
+  },
   "trait": "explosive",
-  "palette": ["#7a3b3b", "#caa46d"],
+  "palette": [
+    "#7a3b3b",
+    "#caa46d"
+  ],
   "lines": {
     "intro": "Sit on it, or hide behind it. Your call.",
     "hit": "Reflected — and it POPPED a little.",
@@ -14,5 +21,18 @@
     "parried": "It finally bursts. Beans everywhere."
   },
   "source": "preset",
-  "cooldown": 0
+  "cooldown": 0,
+  "physics": {
+    "massKg": 5,
+    "sizeM": [
+      0.8,
+      0.9,
+      0.9
+    ],
+    "material": "fabric",
+    "shape": "round",
+    "bounciness": 0,
+    "fragile": false,
+    "liquid": false
+  }
 }

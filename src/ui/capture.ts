@@ -1,5 +1,8 @@
 // Capture d'image partagée : webcam (getUserMedia), import de fichier ou glisser-déposer. Toujours réduite à
 // 768 px max (le plus long côté) et réencodée en JPEG avant de partir vers scanObject/scanFighter.
+// Lot LSCAN : la webcam démarre seule à l'ouverture, un seul gros bouton SNAP (ou ESPACE), petit flash à la
+// prise ; sans caméra, un message clair et l'import de photo restent disponibles.
+import { durees } from '../art/tokens.js';
 import { button, el } from './dom';
 
 export interface CaptureResult {
@@ -9,15 +12,17 @@ export interface CaptureResult {
 
 const MAX_SIDE = 768;
 
-function downscale(source: CanvasImageSource, w: number, h: number): Promise<CaptureResult> {
-  const scale = Math.min(1, MAX_SIDE / Math.max(w, h));
-  const cw = Math.max(1, Math.round(w * scale));
-  const ch = Math.max(1, Math.round(h * scale));
+/** `crop` (lot LFACE) : ne garde que ce rectangle de la source (visage recadré serré). */
+function downscale(source: CanvasImageSource, w: number, h: number, crop?: { x: number; y: number; w: number; h: number }): Promise<CaptureResult> {
+  const c = crop ?? { x: 0, y: 0, w, h };
+  const scale = Math.min(1, MAX_SIDE / Math.max(c.w, c.h));
+  const cw = Math.max(1, Math.round(c.w * scale));
+  const ch = Math.max(1, Math.round(c.h * scale));
   const canvas = document.createElement('canvas');
   canvas.width = cw;
   canvas.height = ch;
   const g = canvas.getContext('2d')!;
-  g.drawImage(source, 0, 0, cw, ch);
+  g.drawImage(source, c.x, c.y, c.w, c.h, 0, 0, cw, ch);
   return new Promise((resolve, reject) => {
     canvas.toBlob(
       (blob) => (blob ? resolve({ blob, url: URL.createObjectURL(blob) }) : reject(new Error('toBlob failed'))),
@@ -44,8 +49,13 @@ export interface CaptureWidget {
   dispose(): void;
 }
 
-/** Monte le widget de capture (aperçu webcam + import + glisser-déposer) et attend une image. */
-export function mountCapture(hint: string): CaptureWidget {
+/** Part de la hauteur de l'image gardée autour du visage (carré centré), avec `face` : recherche R3, le visage
+ * doit remplir le cadre envoyé à Nano Banana pour être ressemblant. */
+const FACE_CROP = 0.8;
+
+/** Monte le widget de capture (aperçu webcam + import + glisser-déposer) et attend une image.
+ * `face` (lot LFACE) : ovale de cadrage sur l'aperçu webcam et recadrage carré serré sur cet ovale. */
+export function mountCapture(hint: string, opts: { face?: boolean } = {}): CaptureWidget {
   const root = el('div', 'capture');
   const zone = el('div', 'capture-zone');
   const video = el('video', 'capture-video');
@@ -55,10 +65,14 @@ export function mountCapture(hint: string): CaptureWidget {
   video.hidden = true;
   const dropHint = el('p', 'capture-hint', hint);
   zone.append(video, dropHint);
+  const oval = el('div', 'capture-oval');
+  oval.hidden = true;
+  if (opts.face) zone.append(oval);
 
   const row = el('div', 'capture-row');
   const camBtn = button('Use webcam', 'b-btn small');
-  const shotBtn = button('Capture', 'b-btn small alt');
+  camBtn.hidden = true; // seulement pour réessayer si le démarrage automatique a échoué
+  const shotBtn = button('SNAP', 'b-btn');
   shotBtn.hidden = true;
   const fileBtn = button('Import a photo', 'b-btn small alt');
   const fileInput = el('input', 'capture-file-input');
@@ -85,31 +99,55 @@ export function mountCapture(hint: string): CaptureWidget {
   const result = new Promise<CaptureResult>((resolve) => {
     resolveResult = resolve;
   });
+  const onKey = (e: KeyboardEvent) => {
+    if (e.code !== 'Space' || shotBtn.hidden || !root.isConnected) return;
+    if ((e.target as HTMLElement | null)?.closest?.('button, input, textarea')) return; // le bouton gère déjà ESPACE
+    e.preventDefault();
+    shotBtn.click();
+  };
   const settle = (r: CaptureResult) => {
     if (settled) return;
     settled = true;
     stopStream();
+    window.removeEventListener('keydown', onKey);
     resolveResult(r);
   };
 
-  camBtn.addEventListener('click', async () => {
+  const startCamera = async () => {
     errorEl.hidden = true;
+    camBtn.hidden = true;
+    if (!navigator.mediaDevices?.getUserMedia) {
+      showError('No camera here. Import a photo or drop one in.');
+      return;
+    }
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } });
+      if (settled) return stopStream(); // photo importée pendant que la caméra démarrait
       video.srcObject = stream;
       video.hidden = false;
+      oval.hidden = !opts.face;
       dropHint.hidden = true;
       shotBtn.hidden = false;
-      camBtn.hidden = true;
-    } catch {
-      showError('Camera unavailable — try importing a photo instead.');
+    } catch (e) {
+      const name = (e as DOMException)?.name;
+      camBtn.hidden = false;
+      if (name === 'NotAllowedError') showError('Camera blocked. Allow it in the address bar, or import a photo.');
+      else if (name === 'NotReadableError') showError('Camera busy in another app. Close it, or import a photo.');
+      else showError('No camera found. Import a photo or drop one in.');
     }
-  });
+  };
+  camBtn.addEventListener('click', () => void startCamera());
+  window.addEventListener('keydown', onKey);
+  void startCamera();
 
   shotBtn.addEventListener('click', async () => {
-    const w = video.videoWidth || 1280;
-    const h = video.videoHeight || 720;
-    const r = await downscale(video, w, h);
+    if (settled || !video.videoWidth) return;
+    zone.animate([{ filter: 'brightness(2.4)' }, { filter: 'brightness(1)' }], { duration: durees.snap * 2, easing: 'ease-out' });
+    const w = video.videoWidth;
+    const h = video.videoHeight;
+    const cote = Math.round(Math.min(w, h) * FACE_CROP);
+    const crop = opts.face ? { x: Math.round((w - cote) / 2), y: Math.round((h - cote) / 2), w: cote, h: cote } : undefined;
+    const r = await downscale(video, w, h, crop);
     settle(r);
   });
 
@@ -152,6 +190,7 @@ export function mountCapture(hint: string): CaptureWidget {
     result,
     dispose() {
       stopStream();
+      window.removeEventListener('keydown', onKey);
     },
   };
 }

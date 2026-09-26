@@ -4,9 +4,16 @@
   "name": "The Blizzard Bomb",
   "category": "grenade",
   "why": "Shakes once, shatters into a tiny angry winter.",
-  "stats": { "a": 3, "b": 4, "c": 3 },
+  "stats": {
+    "a": 4,
+    "b": 5,
+    "c": 1
+  },
   "trait": "split",
-  "palette": ["#4a90c4", "#eef3f6"],
+  "palette": [
+    "#4a90c4",
+    "#eef3f6"
+  ],
   "lines": {
     "intro": "Careful — it's got a whole season bottled up.",
     "hit": "A blizzard, indoors!",
@@ -14,5 +21,18 @@
     "parried": "Batted back before it could snow."
   },
   "source": "preset",
-  "cooldown": 0
+  "cooldown": 0,
+  "physics": {
+    "massKg": 0.75,
+    "sizeM": [
+      0.12,
+      0.1,
+      0.1
+    ],
+    "material": "glass",
+    "shape": "round",
+    "bounciness": 0,
+    "fragile": true,
+    "liquid": true
+  }
 }

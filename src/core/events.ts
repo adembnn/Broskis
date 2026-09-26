@@ -1,5 +1,5 @@
 // Noms et données des événements du bus — figés (plan/README.md). Un nouvel événement = une ligne ici + une note dans plan/SUIVI.md.
-import type { MapId, ParryGrade, Phase, PlayerId, Vec3, Weapon } from './types';
+import type { Category, MapId, Material, ParryGrade, Phase, PlayerId, Vec3, Weapon } from './types';
 
 export interface EventMap {
   'phase:change': { from: Phase; to: Phase };
@@ -13,7 +13,17 @@ export interface EventMap {
   /** Aides de visée : trajectoire prévue, point d'impact, recul prévu, éjection probable. */
   'aim:update': { player: PlayerId; dir: Vec3; power: number; path?: Vec3[]; impact?: Vec3; knockback?: Vec3; ejects?: boolean };
   'fire': { player: PlayerId; weapon: Weapon; dir: Vec3; power: number };
-  'projectile:spawn': { id: string; weapon: Weapon; from: Vec3; vel: Vec3 };
+  /** Temps réel : `gravity` (m/s², 0 = tir tendu) et `owner` permettent de rejouer exactement le vol côté rendu. */
+  'projectile:spawn': { id: string; weapon: Weapon; from: Vec3; vel: Vec3; gravity?: number; owner?: PlayerId; mass?: number; material?: Material | null; size?: Vec3 };
+  /** Temps réel : fin d'un projectile (touché, mur, sol, paré-renvoyé, trop loin), pour retirer son visuel. */
+  'projectile:end': { id: string; pos: Vec3; reason: 'hit' | 'world' | 'parried' | 'expired' };
+  /** Lot LATK1 : un objet-arme touche un joueur ou le décor, avec sa matière et sa masse RÉELLES (pour le son :
+   *  clang du métal, crash du verre, splash du liquide…). Émis par src/scene/weapons au moment de l'impact visible. */
+  'weapon:impact': { pos: Vec3; weaponId: string; category: Category; material: Material; massKg: number; fragile: boolean; liquid: boolean; on: 'player' | 'world' };
+  /** Temps réel : rebond d'un objet lancé sur le décor (selon sa `bounciness`), pour le « tok » et la poussière. */
+  'projectile:bounce': { id: string; pos: Vec3; vel: Vec3 };
+  /** Temps réel : un objet LIQUIDE a giclé, le sol est glissant `ms` millisecondes dans ce rayon (visuel de flaque). */
+  'ground:slippery': { pos: Vec3; radius: number; ms: number };
   /** Part ~1,2 s avant l'impact : déclenche les repères de parade. */
   'projectile:incoming': { id: string; target: PlayerId; etaMs: number };
   'parry:cue': { defender: PlayerId; attacker: PlayerId };
@@ -25,7 +35,7 @@ export interface EventMap {
   'feint': { player: PlayerId };
   'parry:result': { player: PlayerId; grade: ParryGrade; deltaMs: number };
   /** pct = % du défenseur après le coup ; launch = vitesse d'éjection (m/s) ; willKo = l'éjection sortira de l'arène (déclenche le zoom KO). */
-  'hit': { target: PlayerId; attacker: PlayerId; weapon: Weapon; damage: number; knockback: Vec3; crit: boolean; pos: Vec3; pct?: number; launch?: Vec3; willKo?: boolean };
+  'hit': { target: PlayerId; attacker: PlayerId; weapon: Weapon; damage: number; knockback: Vec3; crit: boolean; pos: Vec3; pct?: number; launch?: Vec3; willKo?: boolean; mass?: number; material?: Material | null; size?: Vec3 };
   'shield:placed': { player: PlayerId; weapon: Weapon; pos: Vec3 };
   'map:warn': { mapId: MapId; kind: string; turnsLeft: number; area?: Vec3[] };
   'map:event': { mapId: MapId; kind: string };
@@ -39,6 +49,9 @@ export interface EventMap {
    *  Lot LLOAD : 'partial' = champs de la réponse Gemini arrivés au fil de l'eau (flux), dans `preview` (objet reconnu,
    *  nom, phrase, déjà nettoyés) ; `preview` porte aussi l'arme complète à 'stats' et 'sticker'. */
   'scan:progress': { player: PlayerId; step: 'reading' | 'partial' | 'stats' | 'sticker' | 'sticker-failed'; weaponId?: string; preview?: Partial<Weapon> };
+  /** Lot LE2E : portrait d'un perso photo arrivé APRÈS le délai d'écran (réseau lent) ; `look.faceUrl` est déjà posé sur
+   *  le FighterDef. La scène pose la grosse tête en plein match, l'interface met le portrait à jour. */
+  'fighter:portrait': { fighterId: string; faceUrl: string; backUrl?: string };
   'ringout': { player: PlayerId };
   /** Règles v2 (LSMASH) : perte d'une vie, point de sortie de l'arène et côté (bas = chute, haut = éjection vers le ciel). */
   'stock:lost': { player: PlayerId; stocksLeft: number; exitPos: Vec3; side: 'side' | 'top' | 'bottom' };
@@ -50,6 +63,12 @@ export interface EventMap {
   'super:fire': { player: PlayerId };
   /** Début (READY?/GO!) et fin (GAME!) de match, pour les bandeaux et la voix. */
   'match:banner': { kind: 'ready' | 'go' | 'game' };
+  /** Temps réel : blocage maintenu (G / K par défaut) qui commence ou s'arrête. */
+  'block': { player: PlayerId; on: boolean };
+  /** Temps réel : une arme a fini de recharger. */
+  'weapon:ready': { player: PlayerId; index: number };
+  /** Temps réel : compte à rebours avant le combat (3, 2, 1), puis `match:banner { go }`. */
+  'countdown': { n: number };
   'ko': { player: PlayerId; cause: 'hp' | 'ringout' };
   'match:end': { winner: PlayerId };
   'commentary:line': { text: string; priority: number; audioUrl?: string; at?: number };

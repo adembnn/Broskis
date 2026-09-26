@@ -1,6 +1,28 @@
 # Nouvelles de l'orchestration (à lire en premier, surtout pour le Claude de Titouan)
 Fil tenu par la session principale (Claude, PC d'Adem). Le plus récent en haut. Fais `git pull` avant chaque tâche.
 
+## 16h35 · Bug repéré par Titouan (pas dans mon périmètre, je ne le corrige pas) — pour RTVIEW
+- **`src/scene/camera/occlusion.ts`** spamme une erreur à CHAQUE image, dès l'écran-titre (423 lignes
+  de console en quelques secondes de test) : `TypeError: Cannot read properties of null (reading
+  'matrixWorld')` dans `raycastHits` → `Raycaster.intersectObjects` → `Sprite.raycast`, avec
+  l'avertissement Three.js `"Raycaster.camera" needs to be set in order to raycast against sprites`.
+- **Cause probable** : `raycastHits` (ligne ~32) fait `raycaster.set(camera.position, dir)` puis
+  `raycaster.intersectObjects(decor, true)`, mais ne règle jamais `raycaster.camera` — nécessaire
+  dès que la liste `decor` (= `scene.children` moins `registry.occlusionExcluded`) contient un
+  `THREE.Sprite`. Plusieurs créateurs de sprites ne s'excluent pas de l'occlusion (contrairement à
+  `src/scene/fx/impact.ts:104` qui appelle bien `excludeFromOcclusion(...)`) : voir
+  `src/scene/weapons/blast.ts:218`, `flight.ts:159` et `:175`, `hand.ts:63`.
+- **Piste de correction** (à faire côté RTVIEW, pas moi) : soit régler `raycaster.camera = camera`
+  avant `intersectObjects` dans `occlusion.ts` (défensif, corrige tous les cas), soit appeler
+  `excludeFromOcclusion(...)` sur ces sprites d'armes à la création (plus propre, évite aussi de les
+  faire disparaître en fondu par erreur). Idéalement les deux.
+- Pas urgent pour le gameplay (le jeu tourne quand même), mais ça pollue la console pendant la démo
+  live et coûte un peu de perf à chaque image (raycast qui échoue en boucle).
+
+## 16h10 · Jury sur ses propres ordinateurs, hébergement itch.io (plus tard)
+- Les jurés testent sur LEURS ordinateurs : perf adaptative en cours (LPERF, paliers de qualité + résolution dynamique, ≥ 50 i/s en écran scindé sur une puce Intel), et **mode vs AI temps réel** (RTBOT) pour un juré seul.
+- Hébergement : **itch.io** (décision d'Adem), pas encore lancé. Hébergement statique : les appels IA auront besoin d'un petit serveur séparé ou d'une clé restreinte au domaine, et la page est limitée à 1 000 fichiers. Emballage à préparer plus tard.
+
 ## 15h45 · À la session « Map design et assets 3D » (et toute autre session Claude d'Adem)
 - Lis `plan/PIVOT-TEMPS-REEL.md` : temps réel, 1v1, écran scindé. Arènes : 22 à 28 m, bords ouverts, plateformes flottantes, couverts à hauteur de torse, 120 appels de dessin par vue.
 - Deux agents de la session principale travaillent déjà sur les maps : **LMAP2** (`src/scene/maps/**`, `src/gameplay/map-events/**`) et **LKIT** (`public/assets/arena-kit/**`, `tools/blender/**`, `tools/assets/**`). Pour éviter les conflits, ne modifie pas ces chemins. Dépose tes assets dans `public/assets/<ton-dossier>/` avec un `LISEZMOI.md` (échelle, usage), et écris ce que tu fais dans ce fichier : la session principale les fera intégrer.
