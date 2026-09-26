@@ -134,6 +134,68 @@ async function testerEnJeu(dossier, port) {
   }
 }
 
+/** Parcours joueur par l'interface : titre → Snap yourself P1 (dépôt de photo) → Snap yourself P2 pendant la forge
+ * de P1 → noms tapés → READY → écrans suivants jusqu'au match. */
+async function testerParcours(dossier, port) {
+  const url = `http://localhost:${port}`;
+  let serveur = null;
+  if (!(await up(url))) {
+    serveur = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--port', String(port), '--strictPort'], { stdio: 'ignore' });
+    console.log(`Vite lancé (PID ${serveur.pid}) sur ${url}`);
+    for (let i = 0; i < 60 && !(await up(url)); i++) await new Promise((r) => setTimeout(r, 500));
+  }
+  const browser = await chromium.launch({ args: ['--ignore-gpu-blocklist', '--enable-webgl', '--use-angle=default'] });
+  const page = await browser.newPage({ viewport: { width: 1600, height: 900 } });
+  const erreurs = [];
+  page.on('console', (m) => { if (m.type() === 'error' && !/Sprite|matrixWorld|Failed to load/.test(m.text())) erreurs.push(m.text().slice(0, 200)); });
+  page.on('pageerror', (e) => erreurs.push(String(e).slice(0, 200)));
+  const t = { debut: Date.now() };
+  try {
+    await page.goto(url, { waitUntil: 'load', timeout: 30000 });
+    await page.click('.title-play', { timeout: 20000 });
+    for (const i of [1, 2]) {
+      await page.click('.snap-tile');
+      await page.setInputFiles('.capture-file-input', join(dossier, `visage-fictif-${i}.jpg`));
+      t[`photo${i}`] = Date.now();
+      await page.waitForSelector(`.fighter-panel.p${i} .forge`, { timeout: 10000 });
+    }
+    await page.screenshot({ path: join(OUT, 'parcours-1-forges.png') });
+    for (const i of [1, 2]) {
+      await page.waitForFunction((i) => !!document.querySelector(`.fighter-panel.p${i} input.name-input`), i, { timeout: 45000, polling: 250 })
+        .catch(async (e) => {
+          await page.screenshot({ path: join(OUT, `parcours-echec-p${i}.png`) });
+          console.log('panneaux :', await page.evaluate(() => document.querySelector('.fighter-panels')?.innerText));
+          throw e;
+        });
+      t[`pret${i}`] = Date.now();
+    }
+    console.log(`photo → perso prêt : P1 ${t.pret1 - t.photo1} ms, P2 ${t.pret2 - t.photo2} ms (P2 a pris sa photo ${t.photo2 - t.photo1} ms après P1)`);
+    await page.fill('.fighter-panel.p1 input.name-input', 'Tom');
+    await page.fill('.fighter-panel.p2 input.name-input', 'Jade');
+    await page.screenshot({ path: join(OUT, 'parcours-2-prets.png') });
+    await page.click('.ready-bar', { force: true });
+    // Écrans suivants (arsenal, map, présentation) : on valide jusqu'au match.
+    for (let i = 0; i < 25; i++) {
+      const phase = await page.evaluate(() => window.gameState?.phase);
+      if (['countdown', 'fight', 'move', 'turn-intro', 'aim'].includes(phase)) break;
+      const cta = await page.$('.b-btn.cta:not([disabled]), .b-btn.go:not([disabled])');
+      if (cta) await cta.click({ force: true }).catch(() => {});
+      await page.waitForTimeout(800);
+    }
+    await page.waitForFunction(() => { let n = 0; window.ctx.three.scene.traverse((o) => { if (o.name === 'grosse-tete') n++; }); return n >= 2; }, null, { timeout: 40000 })
+      .catch(() => console.log('!! grosses têtes absentes du match'));
+    await page.waitForTimeout(3500);
+    await page.screenshot({ path: join(OUT, 'parcours-3-match.png') });
+    const noms = await page.evaluate(() => window.gameState?.players?.map((p) => p.fighter?.name));
+    console.log('noms en match :', noms, '· phase :', await page.evaluate(() => window.gameState?.phase));
+    console.log('erreurs console :', erreurs.length ? erreurs : 'aucune');
+  } finally {
+    await browser.close();
+    if (serveur) serveur.kill();
+  }
+}
+
 const args = process.argv.slice(2);
 if (args[0] === '--visages') await genererVisages(resolve(args[1]));
+else if (args[0] === '--parcours') await testerParcours(resolve(args[1]), Number(args[2] ?? 5351));
 else await testerEnJeu(resolve(args[0]), Number(args[1] ?? 5351));
