@@ -40,6 +40,11 @@ if (!(await up())) {
   for (let i = 0; i < 60 && !(await up()); i++) await new Promise((r) => setTimeout(r, 500));
 }
 
+// Un banc interrompu ne laisse ni serveur ni navigateur derrière lui.
+const cleanup = () => { try { server?.kill(); } catch { /* déjà arrêté */ } };
+process.on('exit', cleanup);
+for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => { cleanup(); process.exit(130); });
+
 const browser = await chromium.launch({ args: ['--ignore-gpu-blocklist', '--enable-webgl', '--use-angle=default', '--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows'] });
 
 async function newPage() {
@@ -112,9 +117,16 @@ async function worker(w) {
   for (;;) {
     const job = jobs.shift();
     if (!job) break;
-    const rt0 = await page.evaluate(() => window.ctx.loop.realTime);
+    let res;
     const t0 = Date.now();
-    const res = await playMatch(page, job.d, job.seed, job.map, job.tag);
+    let rt0 = 0;
+    try {
+      rt0 = await page.evaluate(() => window.ctx.loop.realTime);
+      res = await playMatch(page, job.d, job.seed, job.map, job.tag);
+    } catch (e) {
+      console.log(`[p${w}] ${job.d} ${job.map} : match perdu (${String(e).slice(0, 120)})`);
+      continue;
+    }
     res.fps = null;
     res.gameSpeed = +((res.realTime - rt0) / ((Date.now() - t0) / 1000)).toFixed(2);
     results.push(res);
