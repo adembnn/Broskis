@@ -14,7 +14,7 @@ Réserver une ligne **avant** de commencer : nom + heure, commit + push de ce fi
 | LU | Interface | moyen | Adem (sous-agent) | L0, DA | en cours | Adem (sous-agent) 12h10 | |
 | LP | Perso photo en direct | moyen | Adem (sous-agent) | LI | à prendre | | |
 | LS | Sticker 3D | faible | **Titouan** | — | fait | Titouan (Claude) 11h26 → 12h45 | Voir rendu dans plan/lots/LS-sticker-3d.md. Pas encore poussé (accès GitHub en lecture seule). |
-| LV | Audio et voix | faible | **Titouan** | L0 | en cours | Titouan (Claude, sous-agent) 12h46 | |
+| LV | Audio et voix | faible | **Titouan** | L0 | fait | Titouan (Claude, sous-agent) 12h46 | `npx tsc --noEmit` et `npm run build` OK. Ajout de l'événement `ui:click` dans `src/core/events.ts` (absent du contrat, nécessaire pour les clics d'interface — voir détails dans plan/lots/LV-audio.md). Test à l'oreille non fait (agent sans sortie audio) : vérifié à la place par `ctx.bus.emit(...)` en console sur tous les événements, aucune exception. |
 | LP2 | Vedettes 3D préparées (sans Tripo : MCP Blender + Rodin gratuit) | faible | PC d'Adem (Gemini) | MCP Blender | à prendre | | |
 | LD | Démo, vidéo, bande-annonce | faible | **Titouan** (+ Adem) | — | en cours | Titouan (Claude, sous-agent) 12h46 | Références visuelles dès maintenant |
 | LK | Parade avancée (validée par Adem) | moyen | Adem (Gemini) | LG, LA, LU, LV | à prendre | | Spéc complète : plan/lots/LK-parade.md |

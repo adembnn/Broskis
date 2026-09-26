@@ -35,6 +35,8 @@ export interface EventMap {
   'slowmo': { factor: number; ms: number };
   /** Régie de démo (?demo=1) : F1 à F5, F9 = panique. */
   'demo:cue': { key: 'F1' | 'F2' | 'F3' | 'F4' | 'F5' | 'F9' };
+  /** Clic d'interface (bouton, onglet…) ; émis par le lot LU. `kind` optionnel pour varier le son (ex. 'confirm'). */
+  'ui:click': { kind?: string };
 }
 
 export type EventName = keyof EventMap;
