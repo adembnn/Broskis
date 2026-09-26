@@ -178,8 +178,10 @@ export class RealtimeBot {
     // Tir vu : on change de sens de pas chassé (l'avance de visée de l'adversaire suppose qu'on continue).
     if (r() < L.defendRate) { this.strafe = -this.strafe; this.strafeFlipAt = now + 0.8 + r() * 0.8; }
     const eta = t.impactAt - now;
-    if (eta <= 0.02 || r() >= Math.min(0.97, L.defendRate * M.defendMult)) { t.plan = 'ignore'; return; }
     const me = this.ctx.state.players[this.me];
+    // Survie : plus notre % est haut, plus on défend (un coup de trop nous éjecte).
+    const care = 1 + 0.4 * Math.max(0, Math.min(1, (me.pct - 60) / 80));
+    if (eta <= 0.02 || r() >= Math.min(0.97, L.defendRate * M.defendMult * care)) { t.plan = 'ignore'; return; }
     const grounded = getRuntime().players[this.me].grounded;
     if (t.gravity > 0) {
       // Grenade : sortir du rayon si on a le temps, sinon bloquer (dégâts ÷ 3).
@@ -366,8 +368,8 @@ export class RealtimeBot {
     let mx: number, mz: number;
     if (blind) { mx = perp[0] + (tl > 1.2 ? tx / tl : 0) * 0.4; mz = perp[1] + (tl > 1.2 ? tz / tl : 0) * 0.4; }
     // Pas chassés dominants (une course droite vers l'adversaire se fait toucher : l'avance de visée tombe juste).
-    else if (tl > 1.2) { mx = (tx / tl) * 0.7 + perp[0] * 0.75; mz = (tz / tl) * 0.7 + perp[1] * 0.75; }
-    else { mx = perp[0] * 0.95 + tx * 0.4; mz = perp[1] * 0.95 + tz * 0.4; }
+    else if (tl > 1.2) { mx = (tx / tl) * 0.7 + perp[0] * L.strafe; mz = (tz / tl) * 0.7 + perp[1] * L.strafe; }
+    else { const k = 0.5 + 0.45 * L.strafe; mx = perp[0] * k + tx * 0.4; mz = perp[1] * k + tz * 0.4; }
     // Survie : plus son % monte, plus il revient vers le centre.
     const pull = Math.max(0, Math.min(0.6, (me.pct - 50) / 120)) + M.centerPull * 0.4 + (this.edgeMe < 2 ? 0.5 : 0);
     mx += toCenter[0] * pull; mz += toCenter[1] * pull;
