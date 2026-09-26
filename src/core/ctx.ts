@@ -11,6 +11,7 @@ import { createState, exposeState } from './state';
 import type { Ctx, Three } from './types';
 
 const TONE_MAPPING: Record<string, THREE.ToneMapping> = {
+  None: THREE.NoToneMapping, // choix du DA : les hex des tokens sortent tels quels à l'écran
   AgX: THREE.AgXToneMapping,
   ACES: THREE.ACESFilmicToneMapping,
   Neutral: THREE.NeutralToneMapping,
@@ -21,7 +22,7 @@ function createThree(root: HTMLElement): Three {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = TONE_MAPPING[rendu.toneMapping] ?? THREE.AgXToneMapping;
+  renderer.toneMapping = TONE_MAPPING[rendu.toneMapping] ?? THREE.NoToneMapping;
   renderer.toneMappingExposure = rendu.exposition;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
