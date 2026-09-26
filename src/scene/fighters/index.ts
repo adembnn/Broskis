@@ -68,6 +68,8 @@ export function installFighters(ctx: Ctx): FighterSystem {
   const lastPower: [number, number] = [0, 0];
   /** Garde tenue d'après l'événement `block` (temps réel). */
   const blockOn: [boolean, boolean] = [false, false];
+  /** Côté de la dernière torsion sur coup (alternance quand le recul est dans l'axe). */
+  const hitSide: [number, number] = [1, -1];
   const L = LOCAL_TOKENS.locomotion;
   /** Banc LATK2 (tools/anim/latk2-lab.mjs) : position et charge imposées, sinon celles du jeu. */
   const lab: { pos: [Vec3 | null, Vec3 | null]; charge: [number | null, number | null]; flying: [boolean | null, boolean | null] } = {
@@ -140,6 +142,7 @@ export function installFighters(ctx: Ctx): FighterSystem {
     rig.prevTarget.set(pos[0], pos[1], pos[2]);
     rig.facing = player === 0 ? Math.PI / 2 : -Math.PI / 2;
     rig.container.rotation.y = rig.facing;
+    rig.pivot.userData.baseY = rig.pivot.position.y;
     ctx.three.scene.add(rig.container);
     setFighterObject(player, rig.container);
     setHandSlot(player, rig.handSlotR);
@@ -331,6 +334,10 @@ export function installFighters(ctx: Ctx): FighterSystem {
     rig.body.upper = null;
     a.stopUpper(0.05);
     a.kickWhip(kb, whip);
+    // torsion sur l'épaule touchée : côté donné par la composante latérale du recul, sinon en alternance
+    const side = kb.x * Math.cos(rig.facing) - kb.z * Math.sin(rig.facing);
+    hitSide[target] = Math.abs(side) > 0.2 ? Math.sign(side) : -hitSide[target];
+    a.kickTwist(ANIM.coup.torsion * hitSide[target] * Math.min(1.6, whip / ANIM.coup.fouetMin));
     a.bump(juice.toucher.squash);
     if (speed > ANIM.coup.vrilleDes) {
       // Éjection : il part à reculons en vrille (salto arrière), plus vite si l'éjection est forte.
@@ -573,6 +580,16 @@ export function installFighters(ctx: Ctx): FighterSystem {
       pr.charge = b.upper === 'charge' ? (b.cat === 'blaster' ? charge * 0.4 : charge) : 0;
       pr.hang = hanging;
       pr.grounded = !rig.airborne && !hanging && !tumbling && b.climbT < 0 && lab.flying[p] !== true;
+      pr.victory = b.outcome === 'win' ? 1 : 0;
+      // bonds de joie : le pivot monte et retombe (écrasement à chaque réception)
+      const baseY = rig.pivot.userData.baseY as number;
+      if (b.outcome === 'win') {
+        const ph = Math.sin(a.clock * Math.PI * 2 * ANIM.victoire.bondHz);
+        const hop = Math.max(0, ph) * ANIM.victoire.bond;
+        if (ph < 0 && (rig.pivot.userData.lastPh ?? 0) >= 0) a.bump(0.82);
+        rig.pivot.userData.lastPh = ph;
+        rig.pivot.position.y = baseY + hop;
+      } else if (rig.pivot.position.y !== baseY) rig.pivot.position.y = baseY;
       pr.guard = b.upper === 'guard' || b.upper === 'react' ? 1 : 0;
       pr.aimArm = (b.upper === 'charge' || b.upper === 'attack') && b.cat === 'blaster' ? 1 : 0;
       pr.cock = b.upper === 'charge' && (b.cat === 'grenade' || b.cat === 'throwable') ? 1 : 0;
