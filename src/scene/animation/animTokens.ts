@@ -14,8 +14,6 @@ export const ANIM = {
     tremblement: 2.2 * DEG,
     /** Torse qui s'enroule en arrière pendant la charge, puis se déroule (rad). */
     torsion: 32 * DEG,
-    /** Bras armé : rotation arrière de l'épaule pendant la charge (lancer par-dessus l'épaule). */
-    bras: 95 * DEG,
     /** Buste rejeté en arrière à pleine charge (poids sur le pied arrière). */
     cambre: 10 * DEG,
     /** Fente vers l'avant au lâcher : le haut du corps suit l'objet (rad, ressort). */
@@ -26,7 +24,7 @@ export const ANIM = {
     /** Coup planté : le buste plonge vers le sol à l'impact. */
     plongee: 26 * DEG,
     /** Objet brandi au-dessus de la tête pendant la charge. */
-    leve: 80 * DEG,
+    leve: 55 * DEG,
   },
   parade: {
     /** Garde levée : fondu très court (< 50 ms exigés) ; buste voûté derrière la garde. */
@@ -38,15 +36,19 @@ export const ANIM = {
   coup: {
     /** Fouet du torse dans le sens du recul, par point de % encaissé (rad), plafonné. */
     fouetMin: 16 * DEG, fouetParPct: 1.1 * DEG, fouetMax: 40 * DEG,
+    /** Torsion du buste sur un coup (rad) : le corps tourne sur l'épaule touchée. */
+    torsion: 24 * DEG,
     /** Vitesse d'éjection (m/s) au-delà de laquelle le perso part en vrille. */
     vrilleDes: 6,
     /** Tours par seconde de la vrille à 10 m/s. */
     vrilleTours: 1.6,
   },
   bord: { moulinetHz: 1.7, moulinet: 1, penche: 16 * DEG },
-  accroche: { bras: 165 * DEG, balancement: 7 * DEG },
+  accroche: { balancement: 7 * DEG },
   course: { /** Cadence maximale du cycle de course (×). */ cadenceMax: 2 },
   regard: { colonne: 0.3, poitrine: 0.4, tete: 0.3, max: 55 * DEG },
-  respiration: { hz: 0.45, amplitude: 1.6 * DEG, /** transfert de poids à l'arrêt */ hanche: { hz: 0.33, amplitude: 3 * DEG } },
+  respiration: { hz: 0.45, amplitude: 2.6 * DEG, /** transfert de poids à l'arrêt */ hanche: { hz: 0.33, amplitude: 5 * DEG } },
+  /** Victoire : bras en V (rad depuis le bas), pompage, tête levée ; bonds du corps (m, Hz). */
+  victoire: { pompe: 22 * DEG, hz: 2.2, tete: 18 * DEG, bond: 0.28, bondHz: 1.6 },
   ressort: { raideur: 220, amortissement: 16 },
 } as const;
