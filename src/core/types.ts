@@ -39,6 +39,27 @@ export const STAT_NAMES: Record<Category, readonly [string, string, string]> = {
 
 export interface WeaponLines { intro: string; hit: string; miss: string; parried: string }
 
+/** Physique RÉELLE de l'objet scanné (demande d'Adem, 15h50 : « une chaise n'est pas une canette »). Gemini l'estime
+ *  à partir de la photo, le code la borne et en déduit le comportement (dégâts, recul, vitesse, portée, recharge,
+ *  rebond, visuel). L'IA interprète, le code arbitre. */
+export type Material = 'metal' | 'wood' | 'plastic' | 'glass' | 'ceramic' | 'fabric' | 'paper' | 'rubber' | 'food' | 'stone';
+export type ObjectShape = 'long' | 'flat' | 'round' | 'box' | 'irregular';
+export interface WeaponPhysics {
+  /** Masse réelle estimée (kg), bornée par le code entre 0,02 et 25. */
+  massKg: number;
+  /** Dimensions réelles estimées (m) : hauteur, largeur, profondeur. */
+  sizeM: [number, number, number];
+  material: Material;
+  /** Forme dominante : pilote la rotation en vol (long = tourne sur lui-même, flat = frisbee, round = roule). */
+  shape: ObjectShape;
+  /** 0 = mou, 1 = très rebondissant. */
+  bounciness: number;
+  /** Se brise à l'impact (verre, céramique, œuf…). */
+  fragile: boolean;
+  /** Contient un liquide qui gicle à l'impact (canette, bouteille, tasse…). */
+  liquid: boolean;
+}
+
 export interface Weapon {
   id: string;
   /** Objet réel reconnu, ex. « coffee mug ». */
@@ -57,6 +78,8 @@ export interface Weapon {
   source: 'preset' | 'scan' | 'cache';
   /** Tours de recharge restants (0 = prête). */
   cooldown: number;
+  /** Physique réelle de l'objet (scan Gemini, bornée par le code). Absente sur les vieilles armes : valeurs par défaut de la catégorie. */
+  physics?: WeaponPhysics;
 }
 
 export interface FighterLook { primary: string; secondary: string; hair?: string; accessory?: Accessory; faceUrl?: string }
