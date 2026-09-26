@@ -4,9 +4,16 @@
   "name": "The Batter Blaster",
   "category": "blaster",
   "why": "Whisks so fast it forgets it isn't a gun.",
-  "stats": { "a": 2, "b": 6, "c": 2 },
+  "stats": {
+    "a": 4,
+    "b": 3,
+    "c": 3
+  },
   "trait": "loud",
-  "palette": ["#c9c9c9", "#d63447"],
+  "palette": [
+    "#c9c9c9",
+    "#d63447"
+  ],
   "lines": {
     "intro": "Look out — fully charged and full of batter!",
     "hit": "Whipped clean!",
@@ -14,5 +21,18 @@
     "parried": "Sent back, still spinning."
   },
   "source": "preset",
-  "cooldown": 0
+  "cooldown": 0,
+  "physics": {
+    "massKg": 1.1,
+    "sizeM": [
+      0.18,
+      0.1,
+      0.22
+    ],
+    "material": "plastic",
+    "shape": "irregular",
+    "bounciness": 0.05,
+    "fragile": true,
+    "liquid": false
+  }
 }

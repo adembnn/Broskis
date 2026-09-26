@@ -4,9 +4,16 @@
   "name": "Sticky Situation",
   "category": "throwable",
   "why": "Fixes everything. Especially your opponent's shoes to the floor.",
-  "stats": { "a": 2, "b": 5, "c": 3 },
+  "stats": {
+    "a": 3,
+    "b": 5,
+    "c": 2
+  },
   "trait": "sticky",
-  "palette": ["#b6b6b6", "#8a5a34"],
+  "palette": [
+    "#b6b6b6",
+    "#8a5a34"
+  ],
   "lines": {
     "intro": "Silver, sticky, and deeply unfair.",
     "hit": "Stuck! That's going to peel.",
@@ -14,5 +21,18 @@
     "parried": "Bounced back, somehow still sticky."
   },
   "source": "preset",
-  "cooldown": 0
+  "cooldown": 0,
+  "physics": {
+    "massKg": 0.35,
+    "sizeM": [
+      0.05,
+      0.12,
+      0.12
+    ],
+    "material": "plastic",
+    "shape": "round",
+    "bounciness": 0.2,
+    "fragile": false,
+    "liquid": false
+  }
 }
