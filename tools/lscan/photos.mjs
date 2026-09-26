@@ -18,11 +18,13 @@ export const OBJETS = {
   'hardcover-book': 'a thick hardcover book with a plain green cover held up by a hand',
   'water-bottle': 'an opaque orange reusable plastic water bottle standing on a desk',
   smartphone: 'a smartphone with its screen off, held up by a hand',
+  // Robustesse : doit donner une arme de secours (couteau réel) avec la note « Nice try ».
+  'kitchen-knife': 'a large steel kitchen chef knife lying on a cutting board',
 };
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const wanted = process.argv.slice(2);
-const slugs = wanted.length ? wanted : Object.keys(OBJETS);
+const slugs = wanted.length ? wanted : Object.keys(OBJETS).filter((k) => k !== 'kitchen-knife');
 
 await Promise.all(
   slugs.map(async (slug) => {
