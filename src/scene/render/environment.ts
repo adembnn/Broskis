@@ -4,6 +4,7 @@
 // Règle DA (26/09) : PAS de contre-jour — c'est la marge vinyle des contours qui détache les combattants.
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { Sky } from 'three/addons/objects/Sky.js';
 import { maps, rendu } from '../../art/tokens.js';
 import type { Ctx, MapId } from '../../core/types';
 import { LOCAL_TOKENS } from '../localTokens';
@@ -78,6 +79,54 @@ export function installEnvironment(ctx: Ctx): EnvironmentHandles {
   let flickerKey = 1;
   let flickerPractical = 1;
   let flickerAmount = 0.08;
+  
+  // Custom environment elements
+  const sky = new Sky();
+  sky.scale.setScalar(450000);
+  scene.add(sky);
+  const sun = new THREE.Vector3();
+
+  // Archipel: islands
+  const islandsGroup = new THREE.Group();
+  const coneGeo = new THREE.ConeGeometry(5, 12, 5);
+  const islandMat = new THREE.MeshBasicMaterial({ color: maps.archipel.palette.matiere, fog: true });
+  for (let i = 0; i < 8; i++) {
+    const mesh = new THREE.Mesh(coneGeo, islandMat);
+    const angle = (i / 8) * Math.PI * 2 + Math.random() * 0.5;
+    const dist = 30 + Math.random() * 20;
+    mesh.position.set(Math.cos(angle) * dist, -6, Math.sin(angle) * dist);
+    islandsGroup.add(mesh);
+  }
+  scene.add(islandsGroup);
+
+  // Galion: sea and rain
+  const seaGeo = new THREE.PlaneGeometry(150, 150, 32, 32);
+  seaGeo.rotateX(-Math.PI / 2);
+  const seaMat = new THREE.MeshStandardMaterial({ color: maps.galion.palette.accent, roughness: 0.1, metalness: 0.8 });
+  const sea = new THREE.Mesh(seaGeo, seaMat);
+  sea.position.y = -3;
+  scene.add(sea);
+
+  const rainCount = 1500;
+  const rainGeo = new THREE.BufferGeometry();
+  const rainPos = new Float32Array(rainCount * 3);
+  for (let i = 0; i < rainCount; i++) {
+    rainPos[i * 3] = (Math.random() - 0.5) * 60;
+    rainPos[i * 3 + 1] = Math.random() * 30;
+    rainPos[i * 3 + 2] = (Math.random() - 0.5) * 60;
+  }
+  rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPos, 3));
+  const rainMat = new THREE.PointsMaterial({ color: 0xaaaaaa, size: 0.15, transparent: true, opacity: 0.6 });
+  const rain = new THREE.Points(rainGeo, rainMat);
+  scene.add(rain);
+
+  // Cuisine: blurry background
+  const kitchenBg = new THREE.Mesh(
+    new THREE.CylinderGeometry(40, 40, 40, 24, 1, true),
+    new THREE.MeshBasicMaterial({ color: maps.cuisine.palette.fond, side: THREE.BackSide, fog: false })
+  );
+  kitchenBg.position.y = 5;
+  scene.add(kitchenBg);
 
   function applyMap(mapId: MapId): void {
     ground.visible = false;
@@ -130,18 +179,87 @@ export function installEnvironment(ctx: Ctx): EnvironmentHandles {
     practical.position.set(2, 2.4, 2); // générique : les vraies torches/lanternes viendront du décor (lot LM)
     flickerPractical = m.pratique.intensite;
     flickerAmount = m.pratique.vacillement;
+    
+    // Toggle specific elements
+    sky.visible = mapId === 'archipel' || mapId === 'galion';
+    islandsGroup.visible = mapId === 'archipel';
+    sea.visible = mapId === 'galion';
+    rain.visible = mapId === 'galion';
+    kitchenBg.visible = mapId === 'cuisine';
+
+    if (sky.visible) {
+      const uniforms = sky.material.uniforms;
+      uniforms['turbidity'].value = mapId === 'archipel' ? 10 : 2;
+      uniforms['rayleigh'].value = mapId === 'archipel' ? 3 : 0.5;
+      uniforms['mieCoefficient'].value = mapId === 'archipel' ? 0.005 : 0.05;
+      uniforms['mieDirectionalG'].value = 0.8;
+      
+      const phi = THREE.MathUtils.degToRad(90 - (mapId === 'archipel' ? 5 : 45));
+      const theta = THREE.MathUtils.degToRad(mapId === 'archipel' ? 180 : 0);
+      sun.setFromSphericalCoords(1, phi, theta);
+      uniforms['sunPosition'].value.copy(sun);
+    }
   }
 
   applyMap(ctx.state.mapId);
   ctx.bus.on('match:start', ({ mapId }) => applyMap(mapId));
 
+  let time = 0;
+  let nextLightning = time + 5;
+  let isLightning = false;
+
   // Bruit sur l'intensité des lumières (±vacillement, jamais fixe) — rendu-premium §3.
-  ctx.loop.addSystem('la-light-flicker', (_dt, real) => {
+  ctx.loop.addSystem('la-light-flicker', (dt, real) => {
+    time = real;
     const n = Math.sin(real * 3.1) * Math.sin(real * 1.14 + 1.7);
-    hemi.intensity = flickerHemi * (1 + flickerAmount * 0.6 * n);
+    
+    // Lightning logic for Galion
+    let lightningMult = 1;
+    if (ctx.state.mapId === 'galion') {
+      if (time > nextLightning) {
+        isLightning = true;
+        nextLightning = time + 8 + Math.random() * 8;
+      }
+      if (isLightning) {
+        if (time < nextLightning - 7.9) {
+          lightningMult = 3.0;
+          scene.background = new THREE.Color((maps as any).galion.eclair?.fond || '#8FA39B');
+        } else {
+          isLightning = false;
+          scene.background = new THREE.Color((maps as any).galion.brouillard.couleur);
+        }
+      }
+    }
+
+    hemi.intensity = flickerHemi * (1 + flickerAmount * 0.6 * n) * (isLightning ? 1.5 : 1);
     const activeKey = spot?.visible ? spot : key;
-    activeKey.intensity = flickerKey * (1 + flickerAmount * 0.5 * n);
+    activeKey.intensity = flickerKey * (1 + flickerAmount * 0.5 * n) * lightningMult;
     if (practical) practical.intensity = flickerPractical * (1 + flickerAmount * n);
+    
+    // Animate Rain
+    if (rain.visible) {
+      const pos = rainGeo.attributes.position.array as Float32Array;
+      for (let i = 0; i < rainCount; i++) {
+        pos[i * 3 + 1] -= dt * 25;
+        if (pos[i * 3 + 1] < -3) {
+          pos[i * 3 + 1] = 25 + Math.random() * 10;
+          pos[i * 3] = (Math.random() - 0.5) * 60;
+          pos[i * 3 + 2] = (Math.random() - 0.5) * 60;
+        }
+      }
+      rainGeo.attributes.position.needsUpdate = true;
+    }
+
+    // Animate Sea
+    if (sea.visible) {
+      const pos = seaGeo.attributes.position.array as Float32Array;
+      for (let i = 0; i < pos.length; i += 3) {
+        const x = pos[i];
+        const z = pos[i + 2];
+        pos[i + 1] = Math.sin(x * 0.3 + time * 1.5) * 0.5 + Math.cos(z * 0.2 + time) * 0.5;
+      }
+      seaGeo.attributes.position.needsUpdate = true;
+    }
   }, 40);
 
   return { ground, applyMap };

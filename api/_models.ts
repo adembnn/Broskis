@@ -14,7 +14,16 @@ export const GEMINI_COMMENTARY_MODEL = 'gemini-3.1-pro-preview'; // meilleur mod
 /** Image (sticker cartoon) : Nano Banana 2 Lite, ~4 s. */
 export const GEMINI_IMAGE_MODEL = 'gemini-3-pro-image'; // Nano Banana Pro : meilleur rendu, ~16 s, affiché après la carte de stats
 
-/** Voix Gradium de l'animateur : Marcus par défaut, Russell en secours si l'appel échoue. */
+/** Voix UNIQUE de l'animateur (décision d'Adem, lot LVOX, 26/09 14h) : Gemini 3.8 Flash TTS, voix Fenrir —
+ *  même modèle/voix que tools/voices/generate-barks.mjs (rôle "announcer"). Texte envoyé SANS préfixe de
+ *  ton : un préfixe fait lire la consigne à voix haute au lieu de s'en servir comme direction d'acteur
+ *  (découverte du lot LBK, voir tools/voices/LISEZMOI.md). */
+export const GEMINI_TTS_MODEL = 'gemini-3.8-flash-tts';
+export const GEMINI_TTS_VOICE = 'Fenrir';
+
+/** Voix Gradium : secours de l'animateur (Gemini en échec ou > GEMINI_TTS_DEADLINE_MS), et chemin utilisé
+ *  quand `voiceId` est un identifiant de voix clonée d'un joueur (lot LW2 — Gemini ne clone pas de voix).
+ *  Marcus par défaut, Russell en secours si l'appel Gradium lui-même échoue. */
 export const GRADIUM_VOICE_PRIMARY = 'r2sIQdqqoqgRJuXw'; // Marcus
 export const GRADIUM_VOICE_FALLBACK = '_6Aslh2DxfmnRLmP'; // Russell
 

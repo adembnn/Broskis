@@ -1,5 +1,5 @@
-// Arsenal, 3 emplacements par joueur : râtelier de presets, ou « Snap an object » (webcam/import/glisser-déposer),
-// animation de forge, puis carte d'arme avec pastilles de catégorie (relance scanObject en catégorie imposée).
+// Arsenal, 3 emplacements par joueur (touches 1 2 3 du combat) : râtelier des 8 vraies armes (stickers), ou
+// « Snap a real object » (webcam/import/glisser-déposer), forge, puis carte d'arme (relance en catégorie imposée).
 // La photo réellement capturée est gardée à part (photos, par id d'arme) : le contrat Weapon ne la porte pas,
 // mais la présentation (règle 5 du DA) veut la vraie preuve webcam sur la carte.
 import type { Category, PlayerId, Weapon } from '../core/types';
@@ -7,9 +7,9 @@ import { scanObject } from '../ia';
 import { mountCapture } from './capture';
 import { button, clear, el, menuScreen } from './dom';
 import { mountForge } from './forge';
-import { categoryBadge } from './icons';
-import { WEAPON_PRESETS } from './presets';
-import { LOCAL_TOKENS } from './theme';
+import { CAMERA_SVG, categoryTag } from './icons';
+import { presetsReady, weaponPresets } from './presets';
+import { weaponSticker } from './sticker2d';
 import { renderWeaponCard } from './weaponCard';
 
 export interface ArsenalResult {
@@ -19,13 +19,11 @@ export interface ArsenalResult {
 
 function slotTile(index: number, weapon: Weapon | null, active: boolean, onClick: () => void): HTMLDivElement {
   const tile = el('div', `arsenal-slot${active ? ' active' : ''}${weapon ? '' : ' empty'}`);
-  tile.append(el('span', 'slot-index', `Slot ${index + 1}`));
+  tile.append(el('kbd', 'key slot-key', String(index + 1)));
   if (weapon) {
-    const head = el('div', 'slot-head');
-    head.append(categoryBadge(weapon.category, LOCAL_TOKENS.category[weapon.category]), el('strong', 'slot-name', weapon.name));
-    tile.append(head);
+    tile.append(weaponSticker(weapon, 'slot-sticker'), el('strong', 'slot-name', weapon.name), categoryTag(weapon));
   } else {
-    tile.append(el('p', 'slot-empty-hint', 'Pick a weapon below'));
+    tile.append(el('div', 'slot-hole'), el('p', 'slot-empty-hint', active ? 'Pick below' : 'Empty'));
   }
   tile.addEventListener('click', onClick);
   return tile;
@@ -34,15 +32,30 @@ function slotTile(index: number, weapon: Weapon | null, active: boolean, onClick
 function rackTile(weapon: Weapon, onClick: () => void): HTMLDivElement {
   const tile = el('div', 'rack-tile');
   tile.tabIndex = 0;
-  const head = el('div', 'slot-head');
-  head.append(categoryBadge(weapon.category, LOCAL_TOKENS.category[weapon.category]), el('strong', 'slot-name', weapon.name));
-  tile.append(head, el('p', 'rack-object', weapon.object));
+  tile.append(weaponSticker(weapon, 'rack-sticker'), el('strong', 'rack-name', weapon.name), categoryTag(weapon));
   const pick = () => onClick();
   tile.addEventListener('click', pick);
   tile.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       pick();
+    }
+  });
+  return tile;
+}
+
+/** Tuile « photographie un vrai objet » : le cœur du jeu, mise en avant dans la grille. */
+function snapTile(onClick: () => void): HTMLDivElement {
+  const tile = el('div', 'rack-tile snap-tile');
+  tile.tabIndex = 0;
+  const icon = el('div', 'snap-icon');
+  icon.innerHTML = CAMERA_SVG;
+  tile.append(icon, el('strong', 'rack-name', 'Snap a real object'), el('span', 'snap-sub', 'It becomes a weapon'));
+  tile.addEventListener('click', onClick);
+  tile.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClick();
     }
   });
   return tile;
@@ -103,20 +116,22 @@ async function snapObjectFlow(
 
 function pickArsenal(screenLayer: HTMLElement, player: PlayerId, photos: Map<string, string>): Promise<Weapon[]> {
   clear(screenLayer);
-  const { root, card } = menuScreen('arsenal-card');
+  const { root, card } = menuScreen(`arsenal-card p${player + 1}`);
   const label = `Player ${player + 1}`;
-  card.append(el('h2', 'b-title', `${label}: build your arsenal`));
-  card.append(el('p', 'b-lede', 'Pick 3 weapons — presets from the rack, or snap your own objects.'));
+  const head = el('div', 'screen-head');
+  head.append(el('span', `ptoken p${player + 1}`, `P${player + 1}`), el('h2', 'b-title', 'Pick 3 weapons'));
+  card.append(head);
 
   const slots: (Weapon | null)[] = [null, null, null];
   let current = 0;
   const slotsRow = el('div', 'arsenal-slots');
   const rack = el('div', 'weapon-rack');
   const snapArea = el('div', 'weapon-snap-area');
-  const snapBtn = button('Snap an object', 'b-btn alt');
-  const confirmBtn = button('Confirm arsenal', 'b-btn');
+  const confirmBtn = button('', 'b-btn cta');
   confirmBtn.disabled = true;
-  card.append(slotsRow, rack, snapArea, snapBtn, confirmBtn);
+  const foot = el('div', 'screen-foot');
+  foot.append(confirmBtn);
+  card.append(slotsRow, rack, snapArea, foot);
   screenLayer.append(root);
 
   function renderSlots() {
@@ -129,7 +144,9 @@ function pickArsenal(screenLayer: HTMLElement, player: PlayerId, photos: Map<str
         }),
       ),
     );
-    confirmBtn.disabled = slots.some((w) => !w);
+    const filled = slots.filter(Boolean).length;
+    confirmBtn.disabled = filled < 3;
+    confirmBtn.textContent = filled < 3 ? `Pick ${3 - filled} more` : 'Ready!';
   }
   function assign(weapon: Weapon, photoUrl?: string) {
     const slotIndex = current;
@@ -140,16 +157,16 @@ function pickArsenal(screenLayer: HTMLElement, player: PlayerId, photos: Map<str
     if (next !== -1) current = next;
     renderSlots();
     rack.hidden = false;
-    snapBtn.hidden = false;
     clear(snapArea);
   }
   renderSlots();
-  for (const preset of WEAPON_PRESETS) rack.append(rackTile(preset, () => assign(preset)));
-  snapBtn.addEventListener('click', () => {
-    rack.hidden = true;
-    snapBtn.hidden = true;
-    snapObjectFlow(snapArea, label, player, current + 1).then(({ weapon, photoUrl }) => assign(weapon, photoUrl));
-  });
+  rack.append(
+    snapTile(() => {
+      rack.hidden = true;
+      snapObjectFlow(snapArea, label, player, current + 1).then(({ weapon, photoUrl }) => assign(weapon, photoUrl));
+    }),
+  );
+  for (const preset of weaponPresets()) rack.append(rackTile(preset, () => assign(preset)));
 
   return new Promise((resolve) => {
     confirmBtn.addEventListener('click', () => {
@@ -159,6 +176,7 @@ function pickArsenal(screenLayer: HTMLElement, player: PlayerId, photos: Map<str
 }
 
 export async function runArsenal(screenLayer: HTMLElement): Promise<ArsenalResult> {
+  await presetsReady; // les 8 vraies armes (stickers) : fichier local, déjà là en pratique
   const photos = new Map<string, string>();
   const p0 = await pickArsenal(screenLayer, 0, photos);
   const p1 = await pickArsenal(screenLayer, 1, photos);

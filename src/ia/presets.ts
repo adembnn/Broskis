@@ -219,7 +219,8 @@ async function tryLoadRemotePresets(): Promise<void> {
   }
 }
 
-if (typeof window !== 'undefined') void tryLoadRemotePresets();
+/** Résolue une fois la banque des 8 vraies armes (stickers + voix) chargée, ou abandonnée : l'arsenal l'attend (lot LUX). */
+export const presetsReady: Promise<void> = typeof window !== 'undefined' ? tryLoadRemotePresets() : Promise.resolve();
 
 function cloneWithFreshId(w: Weapon, rng: () => number): Weapon {
   // Copie : chaque scan raté doit renvoyer sa propre instance (id unique), pas l'objet partagé du bank.

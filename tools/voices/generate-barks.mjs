@@ -1,17 +1,4 @@
 #!/usr/bin/env node
-// Lot LBK · Génère la banque de voix pré-générées ("barks") : répliques écrites par gemini-3.1-pro-preview,
-// vocalisées par gemini-3.8-flash-tts. AUCUN paquet npm : seulement fs, path, url, et fetch (natif Node 24).
-//
-// Étape A : écriture des répliques (JSON contraint) — un appel par rôle (5 rôles), tous les événements et
-//           variantes de ce rôle demandés dans un seul appel, pour limiter le nombre de requêtes.
-// Étape B : synthèse vocale — un appel par réplique (jusqu'à 4 en parallèle, 3 essais, attente croissante).
-//
-// Reprise : si public/assets/voices/<role>/<event>-<n>.wav existe déjà, on saute l'appel TTS correspondant.
-// Les répliques écrites (étape A) sont mises en cache dans tools/voices/scripts-cache.json pour que le texte
-// d'une variante ne change pas d'une relance à l'autre (le manifeste doit rester cohérent avec l'audio déjà sur disque).
-//
-// Relancer : `node tools/voices/generate-barks.mjs` (à la racine du dépôt). Voir tools/voices/LISEZMOI.md.
-
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -22,10 +9,8 @@ const ENV_PATH = path.join(ROOT, '.env');
 const VOICES_DIR = path.join(ROOT, 'public', 'assets', 'voices');
 const MANIFEST_PATH = path.join(VOICES_DIR, 'manifest.json');
 const CACHE_PATH = path.join(ROOT, 'tools', 'voices', 'scripts-cache.json');
+const GRADIUM_DONE_PATH = path.join(ROOT, 'tools', 'voices', 'gradium-done.json');
 
-// ---------------------------------------------------------------------------
-// .env — parsé à la main, pas de dépendance `dotenv`.
-// ---------------------------------------------------------------------------
 function loadEnv(envPath) {
   const out = {};
   if (!fs.existsSync(envPath)) return out;
@@ -47,8 +32,9 @@ function loadEnv(envPath) {
 
 const ENV = loadEnv(ENV_PATH);
 const GEMINI_API_KEY = ENV.GEMINI_API_KEY || process.env.GEMINI_API_KEY;
-if (!GEMINI_API_KEY) {
-  console.error('[generate-barks] GEMINI_API_KEY introuvable dans .env — abandon.');
+const GRADIUM_API_KEY = ENV.GRADIUM_API_KEY || process.env.GRADIUM_API_KEY;
+if (!GEMINI_API_KEY || !GRADIUM_API_KEY) {
+  console.error('[generate-barks] GEMINI_API_KEY ou GRADIUM_API_KEY introuvable dans .env — abandon.');
   process.exit(1);
 }
 
@@ -56,40 +42,42 @@ const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 const TEXT_MODEL = 'gemini-3.1-pro-preview';
 const TTS_MODEL = 'gemini-3.8-flash-tts';
 
-// ---------------------------------------------------------------------------
-// Rôles, voix, ton (décision d'Adem, 26/09 13h — voir plan/lots/LBK-banque-voix.md).
-// ---------------------------------------------------------------------------
 const ROLES = {
   announcer: {
     voice: 'Fenrir',
+    engine: 'gemini',
     tone: 'hyped-up stadium announcer SCREAMING into the mic over a roaring crowd, very fast, explosive, stretch the capitalized words, pro wrestling energy',
     persona: 'a hyped-up pro-wrestling-style stadium ring announcer',
     events: ['match_intro', 'weigh_in', 'hit', 'crit', 'perfect', 'feint', 'ringout', 'ko', 'sudden_death', 'crate_drop', 'comeback', 'victory'],
     variants: 5,
   },
   barbarian: {
-    voice: 'Algenib',
+    engine: 'gradium',
+    gradium: { id: "vox_emb_ydTmlMAUNCO2vbmT", config: { temp: 1.4, padding_bonus: -2.0 } },
     tone: 'huge cartoon barbarian ROARING, very deep gravelly, laughs maniacally, aggressive and fast',
     persona: 'a huge cartoon barbarian warrior',
-    events: null, // rempli plus bas (FIGHTER_EVENTS)
+    events: null,
     variants: 3,
   },
   knight: {
-    voice: 'Alnilam',
+    engine: 'gradium',
+    gradium: { id: "vox_emb_06GtztKKMwJUunyK", config: { temp: 1.25, padding_bonus: -1.5 } },
     tone: 'pompous cartoon British knight SHOUTING heroic lines, booming, theatrical, fired up, fast',
     persona: 'a pompous, theatrical cartoon British knight',
     events: null,
     variants: 3,
   },
   mage: {
-    voice: 'Puck',
+    engine: 'gradium',
+    gradium: { id: "vox_emb_lXuuPMv87ugtRCS7", config: { temp: 1.35, padding_bonus: -1.5 } },
     tone: 'hyperactive cartoon old wizard SCREECHING with glee, high-pitched, crackly, frantic, cackles',
     persona: 'a hyperactive, cackling old cartoon wizard',
     events: null,
     variants: 3,
   },
   rogue: {
-    voice: 'Zephyr',
+    engine: 'gradium',
+    gradium: { id: "vox_emb_LbemuKLtMYt3PuVJ", config: { temp: 1.4, padding_bonus: -2.0 } },
     tone: 'cocky cartoon trickster YELLING taunts, fast, bratty, mocking laughter',
     persona: 'a cocky, bratty cartoon trickster rogue',
     events: null,
@@ -104,7 +92,6 @@ const FIGHTER_EVENTS = [
 ];
 for (const role of ['barbarian', 'knight', 'mage', 'rogue']) ROLES[role].events = FIGHTER_EVENTS;
 
-// Description courte de chaque événement, pour guider l'écriture (anglais, en jeu uniquement).
 const EVENT_HINTS = {
   hit_light: 'got hit by a light attack, a short pained grunt/yell',
   hit_heavy: 'got hit hard by a heavy attack, a big pained shout',
@@ -137,9 +124,6 @@ const EVENT_HINTS = {
   victory: 'announcing the winner of the match, huge celebratory energy',
 };
 
-// ---------------------------------------------------------------------------
-// Utilitaires réseau : essais + attente croissante sur 429/5xx.
-// ---------------------------------------------------------------------------
 const BACKOFFS_MS = [1000, 3000, 9000];
 
 function sleep(ms) {
@@ -154,6 +138,12 @@ async function fetchWithRetry(url, options, label) {
       if (res.ok) return res;
       const retryable = res.status === 429 || res.status >= 500;
       const bodyText = await res.text().catch(() => '');
+      if (res.status === 400 && bodyText.includes("Concurrency limit")) {
+        lastErr = new Error(`${label}: Concurrency limit`);
+        console.warn(`[generate-barks] ${label} : retry (Concurrency limit)`);
+        await sleep(BACKOFFS_MS[attempt] || 9000);
+        continue;
+      }
       lastErr = new Error(`${label}: HTTP ${res.status} ${bodyText.slice(0, 300)}`);
       if (!retryable || attempt === BACKOFFS_MS.length) throw lastErr;
     } catch (err) {
@@ -167,9 +157,6 @@ async function fetchWithRetry(url, options, label) {
   throw lastErr;
 }
 
-// ---------------------------------------------------------------------------
-// Petit pool de concurrence (pas de dépendance p-limit).
-// ---------------------------------------------------------------------------
 async function runPool(items, concurrency, worker) {
   const results = new Array(items.length);
   let cursor = 0;
@@ -184,9 +171,6 @@ async function runPool(items, concurrency, worker) {
   return results;
 }
 
-// ---------------------------------------------------------------------------
-// Étape A : écriture des répliques (JSON contraint).
-// ---------------------------------------------------------------------------
 function buildResponseSchema(events) {
   const properties = {};
   for (const ev of events) {
@@ -236,7 +220,6 @@ async function generateRoleLines(roleKey, role) {
   } catch (err) {
     throw new Error(`texte:${roleKey} — JSON illisible: ${err.message} — brut: ${text.slice(0, 200)}`);
   }
-  // Normalise et tronque/complète au nombre de variantes attendu.
   const out = {};
   for (const ev of role.events) {
     let arr = Array.isArray(parsed[ev]) ? parsed[ev].filter((s) => typeof s === 'string' && s.trim()) : [];
@@ -263,11 +246,6 @@ async function loadOrGenerateScripts() {
   return cache;
 }
 
-// ---------------------------------------------------------------------------
-// Étape B : synthèse vocale (Gemini TTS) + emballage WAV.
-// ---------------------------------------------------------------------------
-
-/** Emballe un buffer PCM 16 bits mono en WAV valide (en-tête RIFF 44 octets). */
 function pcmToWav(pcmBuffer, sampleRate = 24000, numChannels = 1, bitsPerSample = 16) {
   const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
   const blockAlign = numChannels * (bitsPerSample / 8);
@@ -277,8 +255,8 @@ function pcmToWav(pcmBuffer, sampleRate = 24000, numChannels = 1, bitsPerSample 
   header.writeUInt32LE(36 + dataSize, 4);
   header.write('WAVE', 8, 'ascii');
   header.write('fmt ', 12, 'ascii');
-  header.writeUInt32LE(16, 16); // taille du sous-bloc fmt
-  header.writeUInt16LE(1, 20); // format PCM
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
   header.writeUInt16LE(numChannels, 22);
   header.writeUInt32LE(sampleRate, 24);
   header.writeUInt32LE(byteRate, 28);
@@ -289,17 +267,35 @@ function pcmToWav(pcmBuffer, sampleRate = 24000, numChannels = 1, bitsPerSample 
   return Buffer.concat([header, pcmBuffer]);
 }
 
-async function synthesizeLine(roleKey, role, text) {
+function trimWavSilence(wavBuffer, thresholdDb = -45) {
+  const headerSize = 44;
+  if (wavBuffer.length <= headerSize) return wavBuffer;
+  const threshold = 32768 * Math.pow(10, thresholdDb / 20);
+  let startOffset = headerSize;
+  for (let i = headerSize; i < wavBuffer.length - 1; i += 2) {
+    const sample = Math.abs(wavBuffer.readInt16LE(i));
+    if (sample > threshold) {
+      startOffset = i;
+      break;
+    }
+  }
+  if (startOffset === headerSize) return wavBuffer;
+  
+  const newLength = wavBuffer.length - startOffset + headerSize;
+  const newWav = Buffer.alloc(newLength);
+  wavBuffer.copy(newWav, 0, 0, headerSize); // copy header
+  wavBuffer.copy(newWav, headerSize, startOffset); // copy data
+  
+  newWav.writeUInt32LE(newLength - 8, 4);
+  newWav.writeUInt32LE(newLength - 44, 40);
+  
+  return newWav;
+}
+
+async function synthesizeLineGemini(roleKey, role, text) {
   const url = `${GEMINI_BASE}/${TTS_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
-  // IMPORTANT (vérifié empiriquement le 26/09) : préfixer le texte envoyé au TTS par la consigne de ton
-  // (comme demandé initialement dans le lot) fait que gemini-3.8-flash-tts LIT LA CONSIGNE À VOIX HAUTE au
-  // lieu de s'en servir comme simple direction d'acteur — un test A/B direct montre des clips de 10 à 16 s
-  // (au lieu de 2 à 4 s) contenant la consigne elle-même déclamée. On envoie donc uniquement la réplique
-  // brute (déjà en MAJUSCULES/« !!! »/voyelles étirées, donc porteuse du ton) ; le ton du personnage vient de
-  // la voix prébuilt (role.voice) et du style d'écriture, pas d'un préfixe parlé. Voir tools/voices/LISEZMOI.md.
-  const spokenText = text;
   const body = {
-    contents: [{ role: 'user', parts: [{ text: spokenText }] }],
+    contents: [{ role: 'user', parts: [{ text }] }],
     generationConfig: {
       responseModalities: ['AUDIO'],
       speechConfig: {
@@ -311,18 +307,36 @@ async function synthesizeLine(roleKey, role, text) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-  }, `tts:${roleKey}`);
+  }, `tts-gemini:${roleKey}`);
   const json = await res.json();
   const part = json?.candidates?.[0]?.content?.parts?.find((p) => p.inlineData?.data);
   const b64 = part?.inlineData?.data;
-  if (!b64) throw new Error(`tts:${roleKey} — pas d'audio dans la réponse: ${JSON.stringify(json).slice(0, 300)}`);
+  if (!b64) throw new Error(`tts-gemini:${roleKey} — pas d'audio dans la réponse`);
   const pcm = Buffer.from(b64, 'base64');
   return pcmToWav(pcm, 24000, 1, 16);
 }
 
-// ---------------------------------------------------------------------------
-// Orchestration.
-// ---------------------------------------------------------------------------
+async function synthesizeLineGradium(roleKey, role, text) {
+  const url = 'https://api.gradium.ai/api/post/speech/tts';
+  const body = {
+    text: text,
+    voice_id: role.gradium.id,
+    output_format: "wav",
+    only_audio: true,
+    model_name: "gradium-tts-beta",
+    json_config: role.gradium.config
+  };
+  const res = await fetchWithRetry(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': GRADIUM_API_KEY },
+    body: JSON.stringify(body)
+  }, `tts-gradium:${roleKey}`);
+  const buf = await res.arrayBuffer();
+  let wav = Buffer.from(buf);
+  wav = trimWavSilence(wav, -45);
+  return wav;
+}
+
 async function main() {
   const startedAt = Date.now();
   log({ source: 'gemini', kind: 'generation', status: 'en-cours', title: 'Banque de voix (barks) : démarrage', lot: 'LBK' });
@@ -331,7 +345,11 @@ async function main() {
 
   const scripts = await loadOrGenerateScripts();
 
-  // Construit la liste plate de toutes les répliques à synthétiser.
+  let gradiumDone = {};
+  if (fs.existsSync(GRADIUM_DONE_PATH)) {
+    try { gradiumDone = JSON.parse(fs.readFileSync(GRADIUM_DONE_PATH, 'utf8')); } catch { gradiumDone = {}; }
+  }
+
   const jobs = [];
   for (const [roleKey, role] of Object.entries(ROLES)) {
     for (const ev of role.events) {
@@ -357,13 +375,29 @@ async function main() {
   let failed = 0;
   const failures = [];
 
-  await runPool(jobs, 4, async (job) => {
-    if (fs.existsSync(job.abs)) {
-      done++;
-      return;
+  // 2 max pour Gradium
+  await runPool(jobs, 2, async (job) => {
+    if (job.role.engine === 'gradium') {
+      if (gradiumDone[job.rel] && fs.existsSync(job.abs)) {
+        done++;
+        return;
+      }
+    } else {
+      if (fs.existsSync(job.abs)) {
+        done++;
+        return;
+      }
     }
+
     try {
-      const wav = await synthesizeLine(job.roleKey, job.role, job.text);
+      let wav;
+      if (job.role.engine === 'gradium') {
+        wav = await synthesizeLineGradium(job.roleKey, job.role, job.text);
+        gradiumDone[job.rel] = true;
+        fs.writeFileSync(GRADIUM_DONE_PATH, JSON.stringify(gradiumDone, null, 2));
+      } else {
+        wav = await synthesizeLineGemini(job.roleKey, job.role, job.text);
+      }
       fs.writeFileSync(job.abs, wav);
       generated++;
       done++;
@@ -379,7 +413,6 @@ async function main() {
     }
   });
 
-  // Manifeste : ne liste que les fichiers réellement présents sur disque (reprise = cohérence garantie).
   const manifest = {};
   for (const [roleKey, role] of Object.entries(ROLES)) {
     manifest[roleKey] = {};

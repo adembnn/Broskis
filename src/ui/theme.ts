@@ -4,6 +4,7 @@
 // 4 couleurs de catégorie d'arme, absentes du token). À reporter au DA — voir le rendu de fin de lot.
 import { durees, joueurs, polices, ui } from '../art/tokens.js';
 import { CSS_TEXT } from './styles';
+import { LUX_CSS } from './stylesLux';
 
 export const LOCAL_TOKENS = {
   // Pas de token de catégorie d'arme : 4 teintes plates dérivées de la palette vinyle, aucun néon.
@@ -13,6 +14,15 @@ export const LOCAL_TOKENS = {
     throwable: '#B04A32',
     shield: '#3E6E77',
   } as Record<string, string>,
+  // Couleur du % façon Smash (paliers en %) : vinyle → alerte → orange → coin rouge → rouge foncé. Seul l'orange
+  // n'est pas dans tokens.js (reprend la teinte blaster ci-dessus). À reporter au DA.
+  pct: [
+    [0, '#F0E9DC'],
+    [50, '#F7C325'],
+    [100, '#EE8A2A'],
+    [150, '#E0452B'],
+    [220, '#A32A17'],
+  ] as [number, string][],
   // Texte secondaire / erreur : tokens.js n'a que encre/vinyle/papier/carton/alerte, pas de gris atténué ni de rouge.
   color: {
     muted: '#6B5A45',
@@ -87,6 +97,6 @@ export function injectStyles(uiRoot: HTMLElement): void {
 }`;
   const style = document.createElement('style');
   style.id = 'broskis-ui-style';
-  style.textContent = vars + CSS_TEXT;
+  style.textContent = vars + CSS_TEXT + LUX_CSS;
   uiRoot.prepend(style);
 }
