@@ -34,6 +34,9 @@ export interface PhysicsFeel {
 
 /** Objet « moyen » de référence (≈ une tasse pleine) : tous les multiplicateurs valent 1. */
 const REF_MASS = 0.5;
+/** Lot LE2E : gravité minimale (m/s²) d'un objet lancé REBONDISSANT. Sans elle, un objet léger (feutre, balle) file
+ *  tout droit sans jamais toucher le sol, donc ne rebondit jamais ; la visée relève le tir juste ce qu'il faut. */
+const BOUNCY_MIN_GRAVITY = 6;
 const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x));
 
 const DEFAULTS: Record<Category, { massKg: number; sizeM: Vec3 }> = {
@@ -57,7 +60,7 @@ export function physicsFeel(w: Pick<Weapon, 'category' | 'physics'>): PhysicsFee
     material: ph?.material ?? null,
     sizeM,
     speedMult,
-    throwGravity: ph ? clamp((massKg - 0.3) * 1.6, 0, 9.81) : 0,
+    throwGravity: ph ? clamp((massKg - 0.3) * 1.6, bounciness > 0.3 ? BOUNCY_MIN_GRAVITY : 0, 9.81) : 0,
     rangeMult: ph ? clamp(Math.pow(m, -0.2), 0.55, 1.2) : 1,
     lobGravityMult: ph ? clamp(Math.pow(m, 0.12), 0.8, 1.4) : 1,
     radius: ph ? clamp(0.1 + 0.35 * maxDim, 0.15, 0.7) : 0,
