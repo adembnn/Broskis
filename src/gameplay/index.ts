@@ -9,6 +9,7 @@ import { install as installHooks } from './hooks';
 import { install as installMovement } from './movement';
 import { install as installParry } from './parry';
 import { installSelftest } from './selftest';
+import { install as installAI } from './ai/index';
 
 export const install: Install = (ctx) => {
   installFallbackGround(ctx);
@@ -19,4 +20,5 @@ export const install: Install = (ctx) => {
   installCrate(ctx);
   installHooks(ctx);
   installSelftest(ctx);
+  installAI(ctx);
 };

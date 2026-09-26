@@ -33,6 +33,8 @@ export function createState(seed: number, demo: boolean): GameState {
     winner: null,
     lastEvent: null,
     demo,
+    vsAI: false,
+    difficulty: 'medium',
   };
 }
 

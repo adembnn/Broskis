@@ -101,6 +101,8 @@ export interface GameState {
   winner: PlayerId | null;
   lastEvent: string | null;
   demo: boolean;
+  vsAI: boolean;
+  difficulty: 'easy' | 'medium' | 'hard' | 'hardcore';
 }
 
 export interface Three {
@@ -119,6 +121,8 @@ export interface StartMatchOptions {
   weapons?: [Weapon[], Weapon[]];
   map?: MapId;
   seed?: number;
+  vsAI?: boolean;
+  difficulty?: 'easy' | 'medium' | 'hard' | 'hardcore';
 }
 
 /** Pilotage du jeu par script (agents du harnais, régie de démo). Chaque lot remplace les fonctions qui le concernent. */

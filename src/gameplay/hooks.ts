@@ -11,6 +11,8 @@ import { CRATE_INTERVAL_TURNS, defaultArsenal, defaultFighters } from './tuning'
 function startMatch(ctx: Ctx, opts: StartMatchOptions = {}): void {
   if (opts.seed != null) { ctx.rng.setSeed(opts.seed); ctx.state.seed = opts.seed; }
   if (opts.map) ctx.state.mapId = opts.map;
+  if (opts.vsAI !== undefined) ctx.state.vsAI = opts.vsAI;
+  if (opts.difficulty !== undefined) ctx.state.difficulty = opts.difficulty;
 
   resetRuntime(ctx);
   resetParryState();
