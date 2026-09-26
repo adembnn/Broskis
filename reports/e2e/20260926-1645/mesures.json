@@ -1,0 +1,590 @@
+{
+ "meta": {
+  "date": "26/09/2026 16:50:54",
+  "branch": "worktree-agent-a5399d4fc3ca2735d",
+  "commit": "a9db3a2",
+  "dureeS": 351
+ },
+ "verdicts": [
+  {
+   "id": "arsenal",
+   "label": "Arsenal : la carte se remplit (nom, catégorie, stats, physique) pour chaque photo",
+   "ok": false,
+   "detail": "6 cartes ; physique sur l'arme : 6 ; physique affichée sur la carte : 6"
+  },
+  {
+   "id": "sticker",
+   "label": "On valide sans attendre le sticker ; le sticker arrive ensuite et passe sur l'arme en match",
+   "ok": false,
+   "detail": "validés avant le sticker : 5/6 ; stickers arrivés : 0 ; sur l'arme en match : 6"
+  },
+  {
+   "id": "persos",
+   "label": "2 persos tirés de photos (visages fictifs)",
+   "ok": true,
+   "detail": "Green Hood (knight, visage) · Yellow Rain (rogue_hooded, visage)"
+  },
+  {
+   "id": "match",
+   "label": "Match en écran scindé, chaque joueur avec SES objets",
+   "ok": true,
+   "detail": "split=true, phase=fight"
+  },
+  {
+   "id": "en-main",
+   "label": "Chaque objet en main à sa taille réelle (bornée 0,35-1,6 m, ±35 %)",
+   "ok": false,
+   "detail": "6/6 à la bonne taille ; chaise 0.96 m, canette 0.43 m"
+  },
+  {
+   "id": "chaise-canette",
+   "label": "Chaise contre canette (toutes deux lancées) : plus de dégâts, plus de recul, plus lente, moins loin, recharge plus longue",
+   "ok": true,
+   "detail": "plus de dégâts oui · plus de recul oui · plus lente oui · moins loin oui · recharge plus longue oui"
+  },
+  {
+   "id": "quatre",
+   "label": "Feutre, canette, tabouret, chaise : plus c'est lourd, plus ça frappe et recule, plus c'est lent et long à recharger",
+   "ok": true,
+   "detail": "feutre-velleda 0.02 kg < canette 0.35 kg < tabouret-rotin 3.2 kg < chaise-bureau 9.5 kg"
+  },
+  {
+   "id": "fragile",
+   "label": "Un objet fragile se brise (éclats à l'impact)",
+   "ok": true,
+   "detail": "tasse-verre : 2 coup(s) 6+2"
+  },
+  {
+   "id": "liquide",
+   "label": "Un liquide gicle (sol glissant)",
+   "ok": true,
+   "detail": "canette : 1 flaque(s)"
+  },
+  {
+   "id": "rebond",
+   "label": "Un objet rebondissant rebondit",
+   "ok": false,
+   "detail": "aucun objet rebondissant détecté"
+  },
+  {
+   "id": "dix",
+   "label": "Les 10 objets d'Adem : physique plausible, lancés en match avec LEUR masse",
+   "ok": false,
+   "detail": "tasse-verre ✓ 0.25 kg · chaise-bureau ✓ 9.5 kg · feutre-velleda ✓ 0.02 kg · telephone ✓ 0.2 kg · mocassin ✗ pas de physique · tabouret-rotin ✓ 3.2 kg · pendule-newton ✗ pas de physique · lampe-champignon ✗ pas de physique · roi-echecs ✗ pas de physique · montre ✗ pas de physique"
+  }
+ ],
+ "matches": [
+  {
+   "split": true,
+   "fighters": [
+    {
+     "name": "Green Hood",
+     "model": "knight",
+     "face": true
+    },
+    {
+     "name": "Yellow Rain",
+     "model": "rogue_hooded",
+     "face": true
+    }
+   ],
+   "phase": "fight"
+  }
+ ],
+ "objets": [
+  {
+   "key": "chaise-bureau",
+   "player": 0,
+   "slot": 0,
+   "cardS": 13.128,
+   "weapon": {
+    "id": "scan-muii7gbd-1",
+    "object": "office chair",
+    "name": "The Ergonomic Menace",
+    "category": "throwable",
+    "why": "Nothing disrupts a formal quarterly review faster than hurling the seating arrangement directly acro",
+    "stats": {
+     "a": 5,
+     "b": 1,
+     "c": 4
+    },
+    "trait": "heavy",
+    "palette": [
+     "#D2B48C",
+     "#222222"
+    ],
+    "lines": {
+     "intro": "Wheeling straight out of middle management, it's the Ergonomic Menace!",
+     "hit": "Lumbar support applied with maximum blunt force trauma!",
+     "miss": "It rolled past without even filing an incident report!",
+     "parried": "Rejected and sent right back to HR for review!"
+    },
+    "physics": {
+     "massKg": 9.5,
+     "sizeM": [
+      0.85,
+      0.6,
+      0.6
+     ],
+     "material": "fabric",
+     "shape": "irregular",
+     "bounciness": 0.15,
+     "fragile": false,
+     "liquid": false
+    },
+    "source": "scan",
+    "cooldown": 0
+   },
+   "card": {
+    "name": "The Ergonomic Menace",
+    "category": "throwable",
+    "object": "From: office chair",
+    "pips": 10,
+    "physicsText": "9.5 kg · 85 cm · fabric",
+    "text": "BROSKISthrowable#01The Ergonomic MenaceFrom: office chair9.5 kg · 85 cm · fabricpowerspeedknockbackheavyblastergrenadethrowableshield\"Nothing disrupts a formal quarterly review faster than hurling the seating arrangement directly acro\""
+   },
+   "stickerAtConfirm": false,
+   "confirmAt": 1790434069041,
+   "held": [
+    0.82,
+    0.61,
+    0.96
+   ],
+   "stickerInMatch": true,
+   "physicsInMatch": true,
+   "cooldown": 7.2,
+   "category": "throwable",
+   "speed": 11.7,
+   "gravity": 9.81,
+   "massSpawn": 9.5,
+   "materialSpawn": "fabric",
+   "flying": [
+    1.24
+   ],
+   "endReason": "hit",
+   "damage": 31,
+   "crit": false,
+   "launch": 9.42,
+   "massHit": 9.5,
+   "hits": [
+    31
+   ],
+   "bouncesNear": 0,
+   "splashNear": 0,
+   "range": 12.55,
+   "rangeEnd": "world",
+   "bounces": 0,
+   "splash": 0
+  },
+  {
+   "key": "feutre-velleda",
+   "player": 0,
+   "slot": 1,
+   "cardS": 9.357,
+   "categoryScan": "blaster",
+   "weapon": {
+    "id": "scan-muii89bz-3",
+    "object": "dry erase marker",
+    "name": "The Boardroom Javelin",
+    "category": "throwable",
+    "why": "Nothing disrupts an important quarterly presentation faster than hurlable office supplies.",
+    "stats": {
+     "a": 2,
+     "b": 6,
+     "c": 2
+    },
+    "trait": "sticky",
+    "palette": [
+     "#162547",
+     "#f3f6fa"
+    ],
+    "lines": {
+     "intro": "Uncapped and fully loaded with corporate fury!",
+     "hit": "Direct hit! That is definitely non-washable!",
+     "miss": "Sails wide and dries out instantly on the carpet!",
+     "parried": "Cap deflected right back into the presenter's teeth!"
+    },
+    "physics": {
+     "massKg": 0.02,
+     "sizeM": [
+      0.14,
+      0.03,
+      0.03
+     ],
+     "material": "plastic",
+     "shape": "long",
+     "bounciness": 0.3,
+     "fragile": false,
+     "liquid": false
+    },
+    "source": "scan",
+    "cooldown": 0,
+    "stickerUrl": "475959c"
+   },
+   "card": {
+    "name": "The Boardroom Javelin",
+    "category": "throwable",
+    "object": "From: dry erase marker",
+    "pips": 10,
+    "physicsText": "20 g · 14 cm · plastic",
+    "text": "BROSKISthrowable#02The Boardroom JavelinFrom: dry erase marker20 g · 14 cm · plasticpowerspeedknockbackstickyblastergrenadethrowableshield\"Nothing disrupts an important quarterly presentation faster than hurlable office supplies.\""
+   },
+   "stickerAtConfirm": true,
+   "confirmAt": 1790434091502,
+   "held": [
+    0.39,
+    0.23,
+    0.42
+   ],
+   "stickerInMatch": true,
+   "physicsInMatch": true,
+   "cooldown": 2.4,
+   "category": "throwable",
+   "speed": 24.3,
+   "gravity": 0,
+   "massSpawn": 0.02,
+   "materialSpawn": "plastic",
+   "flying": [
+    0.47
+   ],
+   "endReason": "hit",
+   "damage": 4.44,
+   "crit": true,
+   "launch": 1.28,
+   "massHit": 0.02,
+   "hits": [
+    6
+   ],
+   "bouncesNear": 0,
+   "splashNear": 0,
+   "range": 85.25,
+   "rangeEnd": "expired",
+   "bounces": 0,
+   "splash": 0
+  },
+  {
+   "key": "tasse-verre",
+   "player": 0,
+   "slot": 2,
+   "cardS": 8.434,
+   "weapon": {
+    "id": "scan-muii8h6d-4",
+    "object": "glass mug",
+    "name": "The Double-Walled Dissolver",
+    "category": "throwable",
+    "why": "It was designed to keep tea warm, but works best when hurled aggressively at someone's forehead.",
+    "stats": {
+     "a": 2,
+     "b": 6,
+     "c": 2
+    },
+    "trait": "split",
+    "palette": [
+     "#d8e5e8",
+     "#bfa77e"
+    ],
+    "lines": {
+     "intro": "Look out, it's double-insulated for your smashing pleasure!",
+     "hit": "Direct hit! Shards everywhere!",
+     "miss": "Clattered into the wall, completely wasted!",
+     "parried": "Caught by the handle and sent right back!"
+    },
+    "physics": {
+     "massKg": 0.25,
+     "sizeM": [
+      0.11,
+      0.12,
+      0.08
+     ],
+     "material": "glass",
+     "shape": "round",
+     "bounciness": 0.05,
+     "fragile": true,
+     "liquid": false
+    },
+    "source": "scan",
+    "cooldown": 0
+   },
+   "card": {
+    "name": "The Double-Walled Dissolver",
+    "category": "throwable",
+    "object": "From: glass mug",
+    "pips": 10,
+    "physicsText": "250 g · 12 cm · glass · fragile",
+    "text": "BROSKISthrowable#03 The Double-Walled DissolverFrom: glass mug250 g · 12 cm · glass · fragilepowerspeedknockbacksplitblastergrenadethrowableshield\"It was designed to keep tea warm, but works best when hurled aggressively at someone's forehead.\""
+   },
+   "stickerAtConfirm": false,
+   "confirmAt": 1790434114413,
+   "held": [
+    0.46,
+    0.37,
+    0.42
+   ],
+   "stickerInMatch": true,
+   "physicsInMatch": true,
+   "cooldown": 3.25,
+   "category": "throwable",
+   "speed": 21.41,
+   "gravity": 0,
+   "massSpawn": 0.25,
+   "materialSpawn": "glass",
+   "flying": [
+    0.57,
+    0.36,
+    0.36
+   ],
+   "endReason": "hit",
+   "damage": 6,
+   "crit": false,
+   "launch": 1.74,
+   "massHit": 0.25,
+   "hits": [
+    6,
+    2
+   ],
+   "bouncesNear": 0,
+   "splashNear": 0,
+   "range": 75.01,
+   "rangeEnd": "expired",
+   "bounces": 0,
+   "splash": 0
+  },
+  {
+   "key": "canette",
+   "player": 1,
+   "slot": 0,
+   "cardS": 3.185,
+   "categoryScan": "grenade",
+   "weapon": {
+    "id": "scan-muii8xwz-6",
+    "object": "soda can",
+    "name": "The Carbonated Clunker",
+    "category": "throwable",
+    "why": "It is aerodynamic, dangerously cold, and delivers blunt force trauma with a hint of caramel color.",
+    "stats": {
+     "a": 3,
+     "b": 5,
+     "c": 2
+    },
+    "trait": "sticky",
+    "palette": [
+     "#c4121a",
+     "#f4f4f4"
+    ],
+    "lines": {
+     "intro": "Fresh from the vending machine, it's pure aluminum fury!",
+     "hit": "Right in the teeth! Now that's what I call high fructose!",
+     "miss": "A total whiff! Just dented the arena floor!",
+     "parried": "Batted back like a foul ball! Crack it open on the rebound!"
+    },
+    "physics": {
+     "massKg": 0.35,
+     "sizeM": [
+      0.12,
+      0.066,
+      0.066
+     ],
+     "material": "metal",
+     "shape": "round",
+     "bounciness": 0.2,
+     "fragile": false,
+     "liquid": true
+    },
+    "source": "scan",
+    "cooldown": 0
+   },
+   "card": {
+    "name": "The Carbonated Clunker",
+    "category": "throwable",
+    "object": "From: soda can",
+    "pips": 10,
+    "physicsText": "350 g · 12 cm · metal · splashes",
+    "text": "BROSKISthrowable#01 The Carbonated ClunkerFrom: soda can350 g · 12 cm · metal · splashespowerspeedknockbackstickyblastergrenadethrowableshield\"It is aerodynamic, dangerously cold, and delivers blunt force trauma with a hint of caramel color.\""
+   },
+   "stickerAtConfirm": false,
+   "confirmAt": 1790434121951,
+   "held": [
+    0.39,
+    0.3,
+    0.43
+   ],
+   "stickerInMatch": true,
+   "physicsInMatch": true,
+   "cooldown": 3.59,
+   "category": "throwable",
+   "speed": 19.68,
+   "gravity": 0.08,
+   "massSpawn": 0.35,
+   "materialSpawn": "metal",
+   "flying": [
+    0.53
+   ],
+   "endReason": "hit",
+   "damage": 11,
+   "crit": false,
+   "launch": 2.4,
+   "massHit": 0.35,
+   "hits": [
+    11
+   ],
+   "bouncesNear": 0,
+   "splashNear": 1,
+   "range": 69,
+   "rangeEnd": "expired",
+   "bounces": 0,
+   "splash": 0
+  },
+  {
+   "key": "tabouret-rotin",
+   "player": 1,
+   "slot": 1,
+   "cardS": 4.042,
+   "weapon": {
+    "id": "scan-muii91d8-7",
+    "object": "wooden stool",
+    "name": "The Cane Crusher",
+    "category": "throwable",
+    "why": "Nothing says conflict resolution quite like hurling an entire wicker-topped piece of furniture acros",
+    "stats": {
+     "a": 4,
+     "b": 2,
+     "c": 4
+    },
+    "trait": "heavy",
+    "palette": [
+     "#c49a5b",
+     "#8b5a2b"
+    ],
+    "lines": {
+     "intro": "Take a seat, folks! Or rather, have one violently tossed at your skull!",
+     "hit": "Right in the ribs! That stool provided zero lumbar support!",
+     "miss": "Airball! It landed upright and looks rather inviting.",
+     "parried": "Rejected! That stool just bounced straight back at sender!"
+    },
+    "physics": {
+     "massKg": 3.2,
+     "sizeM": [
+      0.5,
+      0.38,
+      0.38
+     ],
+     "material": "wood",
+     "shape": "irregular",
+     "bounciness": 0.15,
+     "fragile": false,
+     "liquid": false
+    },
+    "source": "scan",
+    "cooldown": 0
+   },
+   "card": {
+    "name": "The Cane Crusher",
+    "category": "throwable",
+    "object": "From: wooden stool",
+    "pips": 10,
+    "physicsText": "3.2 kg · 50 cm · wood",
+    "text": "BROSKISthrowable#02 The Cane CrusherFrom: wooden stool3.2 kg · 50 cm · woodpowerspeedknockbackheavyblastergrenadethrowableshield\"Nothing says conflict resolution quite like hurling an entire wicker-topped piece of furniture acros\""
+   },
+   "stickerAtConfirm": false,
+   "confirmAt": 1790434126686,
+   "held": [
+    0.56,
+    0.47,
+    0.57
+   ],
+   "stickerInMatch": true,
+   "physicsInMatch": true,
+   "cooldown": 6.98,
+   "category": "throwable",
+   "speed": 11.7,
+   "gravity": 4.64,
+   "massSpawn": 3.2,
+   "materialSpawn": "wood",
+   "flying": [
+    0.76
+   ],
+   "endReason": "hit",
+   "damage": 26,
+   "crit": false,
+   "launch": 8.64,
+   "massHit": 3.2,
+   "hits": [
+    26
+   ],
+   "bouncesNear": 0,
+   "splashNear": 0,
+   "range": 40.1,
+   "rangeEnd": "expired",
+   "bounces": 0,
+   "splash": 0
+  },
+  {
+   "key": "telephone",
+   "player": 1,
+   "slot": 2,
+   "cardS": 4.272,
+   "weapon": {
+    "id": "scan-muii9539-8",
+    "object": "smartphone",
+    "name": "Doomscroller 3000",
+    "category": "shield",
+    "why": "It creates an impenetrable barrier between you and reality while draining your sanity.",
+    "stats": {
+     "a": 4,
+     "b": 3,
+     "c": 3
+    },
+    "trait": "loud",
+    "palette": [
+     "#1e1e1e",
+     "#ffffff"
+    ],
+    "lines": {
+     "intro": "Heads down, here comes endless digital paralysis!",
+     "hit": "Direct hit! Enjoy that cracked screen repair fee!",
+     "miss": "Dropped straight between the couch cushions!",
+     "parried": "Call declined right straight back into your face!"
+    },
+    "physics": {
+     "massKg": 0.2,
+     "sizeM": [
+      0.15,
+      0.075,
+      0.03
+     ],
+     "material": "glass",
+     "shape": "flat",
+     "bounciness": 0.1,
+     "fragile": true,
+     "liquid": false
+    },
+    "source": "scan",
+    "cooldown": 0
+   },
+   "card": {
+    "name": "Doomscroller 3000",
+    "category": "shield",
+    "object": "From: smartphone",
+    "pips": 10,
+    "physicsText": "200 g · 15 cm · glass · fragile",
+    "text": "BROSKISshield#03Doomscroller 3000From: smartphone200 g · 15 cm · glass · fragileguardsizereflectloudblastergrenadethrowableshield\"It creates an impenetrable barrier between you and reality while draining your sanity.\""
+   },
+   "stickerAtConfirm": false,
+   "confirmAt": 1790434131572,
+   "held": [
+    0.35,
+    0.08,
+    0.41
+   ],
+   "stickerInMatch": true,
+   "physicsInMatch": true,
+   "cooldown": 6.08,
+   "category": "shield",
+   "shield": true
+  }
+ ],
+ "erreurs": [
+  "capture carte-tasse-verre : page.screenshot: Protocol error (Page.captureScreenshot): Unable to capture screenshot\nCall log:\n\u001b[2m  - taking page screenshot\u001b[22m\n\u001b[2m  - waiting for fonts to load...\u001b[22m\n\u001b[2m  - fonts loaded\u001b[22m\n",
+  "arrêt du parcours : match 2 : persos : locator.waitFor: Timeout 30000ms exceeded."
+ ]
+}

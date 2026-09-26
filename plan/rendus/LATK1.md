@@ -99,6 +99,19 @@ les caméras RTVIEW), écran scindé pas encore activé sur main.
 - `src/scene/fighters/index.ts` : l'ancien sticker en main avait été retiré ici ; LATK2 l'a aussi retiré sur main
   (sa version a été gardée à la fusion).
 
+## Banc LBENCH (17h) : tranche noire, briques, objets trop petits
+- **Cause de la tranche noire** : `src/scene/sticker/index.ts` range les 2 groupes de l'extrusion (faces ET côtés)
+  sur le matériau texturé (`idx < 2 ? 0 : 1` alors qu'il n'y a que 2 groupes) : les côtés étirent le trait
+  d'encre du contour sur toute l'épaisseur. Corrigé pour nos objets dans `weapons/visual.ts` (côtés rebranchés
+  sur un matériau toon à la couleur DOMINANTE de l'objet, jamais plus sombre qu'un anthracite). Le même défaut
+  existe pour les autres stickers du jeu (visage du perso personnalisé, décor des maps) : correction d'une ligne
+  à faire par le lot LS si on veut une tranche carton partout (`g.materialIndex = idx === 0 ? 0 : 1`).
+- Valeurs du banc LBENCH appliquées ici (leurs commits n'étaient pas encore arrivés) : épaisseur ×3 au plus et
+  au plus 25 % de la largeur (`WEAPON_FX.epaisseur`), `WEAPON_FX.physique.tailleMin` = 0,5 m. Si leurs commits
+  arrivent sur les mêmes lignes, garder ces valeurs (conflit sans enjeu).
+- Vérifié en capture (un seul navigateur, `vite preview`), objet en main vu de côté : agrafeuse à tranche rouge,
+  nain à tranche crème, chaise noire à tranche anthracite, distincte du trait d'encre.
+
 ## Pour la fusion et les autres lots
 - Lectures seules du gameplay : `liveProjectiles()` (projectiles.ts), `lerp` (trajectory.ts), `GRENADE_RADIUS_*`,
   `TRAIT_TUNING`, `SHOT_ORIGIN_HEIGHT`, `RT.shieldLifeS`, `SHIELD_*` (tuning.ts), `getRuntime()` : si RTCORE les

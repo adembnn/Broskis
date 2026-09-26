@@ -84,6 +84,15 @@ export const install: Install = (ctx) => {
     ctx.bus.emit('scan:start', { player: opts.player ?? ctx.state.active, source: 'upload' });
     const res = await fetch(url);
     if (!res.ok) throw new Error(`scanObjectFromUrl: fetch ${url} failed (${res.status})`);
+    
+    if (url.endsWith('.json')) {
+      const weapon = await res.json();
+      weapon.id = 'scan-' + Date.now() + Math.random().toString(36).slice(2);
+      weapon.source = 'scan';
+      ctx.bus.emit('scan:result', { player: opts.player ?? ctx.state.active, weapon });
+      return weapon;
+    }
+
     const blob = await res.blob();
     return scanObject(blob, { category: opts.category, player: opts.player ?? ctx.state.active });
   };

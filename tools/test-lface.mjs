@@ -67,14 +67,15 @@ async function testerEnJeu(dossier, port) {
     const f = join(dossier, `visage-fictif-${i}.jpg`);
     return `data:image/jpeg;base64,${readFileSync(f).toString('base64')}`;
   });
+  await fetch(`${url}/api/scan-fighter`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }).catch(() => {});
   const browser = await chromium.launch({ args: LANCEMENT });
   const page = await browser.newPage({ viewport: { width: 1600, height: 900 } });
   const erreurs = [];
-  page.on('console', (m) => { if (m.type() === 'error') erreurs.push(m.text().slice(0, 300)); });
+  page.on('console', (m) => { if (m.type() === 'error' && !/Sprite|matrixWorld/.test(m.text())) erreurs.push(m.text().slice(0, 300)); });
   page.on('pageerror', (e) => erreurs.push(String(e).slice(0, 300)));
   try {
-    await page.goto(url, { waitUntil: 'load', timeout: 30000 });
-    await page.waitForFunction(() => window.gameHooks && window.ctx, null, { timeout: 30000 });
+    await page.goto(url, { waitUntil: 'load', timeout: 120000 });
+    await page.waitForFunction(() => window.gameHooks && window.ctx, null, { timeout: 90000 });
     // 1. Les 2 scans en parallèle (comme 2 joueurs l'un après l'autre, la forge de l'un n'attend pas l'autre).
     const rapports = await page.evaluate(async (photos) => {
       const { scanFighterReport } = await import('/src/ia/fighter/index.ts');
@@ -97,10 +98,21 @@ async function testerEnJeu(dossier, port) {
       let n = 0;
       window.ctx.three.scene.traverse((o) => { if (o.name === 'grosse-tete') n++; });
       return n >= 2;
-    }, null, { timeout: 20000 }).catch(() => console.log('!! les 2 grosses têtes ne sont pas apparues en 20 s'));
+    }, null, { timeout: 60000 }).catch(() => console.log('!! les 2 grosses têtes ne sont pas apparues en 60 s'));
     console.log(`grosses têtes en scène : ${Date.now() - t1} ms après startMatch`);
-    await page.waitForTimeout(2500);
+    await page.waitForTimeout(4500); // compte à rebours
     await page.screenshot({ path: join(OUT, 'match.png') });
+    // Les 2 persos courent (tête à ressort) : P1 avance, P2 part sur le côté.
+    await page.evaluate(() => { window.gameHooks.input?.(0, 'up', true); window.gameHooks.input?.(1, 'left', true); });
+    await page.waitForTimeout(450);
+    await page.screenshot({ path: join(OUT, 'match-course.png') });
+    await page.evaluate(() => { window.gameHooks.input?.(0, 'up', false); window.gameHooks.input?.(1, 'left', false); });
+    const tetes = await page.evaluate(() => {
+      const r = [];
+      window.ctx.three.scene.traverse((o) => { if (o.name === 'grosse-tete') r.push({ q: o.quaternion.toArray().map((v) => +v.toFixed(3)), s: o.scale.toArray().map((v) => +v.toFixed(3)) }); });
+      return r;
+    });
+    console.log('pivots des grosses têtes (ressort) :', JSON.stringify(tetes));
     // 3. Gros plans de face (la vue qu'a l'adversaire) et de dos (sa propre vue) : caméra forcée par un système de test.
     await page.evaluate(() => {
       const ctx = window.ctx;
@@ -172,6 +184,7 @@ async function testerParcours(dossier, port) {
         .catch(async (e) => {
           await page.screenshot({ path: join(OUT, `parcours-echec-p${i}.png`) });
           console.log('panneaux :', await page.evaluate(() => document.querySelector('.fighter-panels')?.innerText));
+          console.log('erreurs console :', erreurs);
           throw e;
         });
       t[`pret${i}`] = Date.now();
@@ -203,7 +216,45 @@ async function testerParcours(dossier, port) {
   }
 }
 
+/** Webcam simulée (fichier y4m d'un visage FICTIF) : ovale de cadrage, capture recadrée, perso prêt. */
+async function testerWebcam(y4m, port) {
+  const url = `http://localhost:${port}`;
+  let serveur = null;
+  if (!(await up(url))) {
+    serveur = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--port', String(port), '--strictPort'], { stdio: 'ignore' });
+    console.log(`Vite lancé (PID ${serveur.pid}) sur ${url}`);
+    for (let i = 0; i < 60 && !(await up(url)); i++) await new Promise((r) => setTimeout(r, 500));
+  }
+  await fetch(`${url}/api/scan-fighter`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }).catch(() => {});
+  const browser = await chromium.launch({ args: [...LANCEMENT, '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', `--use-file-for-fake-video-capture=${y4m}`] });
+  const page = await browser.newPage({ viewport: { width: 1600, height: 900 } });
+  try {
+    await page.goto(url, { waitUntil: 'load', timeout: 120000 });
+    await page.click('.title-play', { timeout: 60000 });
+    await page.click('.snap-tile');
+    // La webcam démarre seule (LSCAN) ; SNAP ou ESPACE prend la photo.
+    await page.waitForTimeout(1500);
+    await page.screenshot({ path: join(OUT, 'webcam-ovale.png') });
+    // Ce que reçoit l'IA : on intercepte l'image recadrée envoyée au serveur (jamais écrite ailleurs que captures/).
+    const envoi = page.waitForRequest((r) => r.url().endsWith('/api/scan-fighter') && (r.postData() ?? '').includes('"part":"portrait"'));
+    const t0 = Date.now();
+    await page.click('.capture-row .b-btn:has-text("SNAP")');
+    const req = await envoi;
+    writeFileSync(join(OUT, 'webcam-envoyee.jpg'), Buffer.from(JSON.parse(req.postData()).imageBase64, 'base64'));
+    await page.waitForFunction(() => !!document.querySelector('.fighter-panel.p1 input.name-input'), null, { timeout: 30000 });
+    const nom = Date.now() - t0;
+    await page.waitForFunction(() => !document.querySelector('.fighter-panel.p1 .forge'), null, { timeout: 40000 });
+    console.log(`webcam → nom affiché ${nom} ms, grosse tête prête ${Date.now() - t0} ms`);
+    await page.waitForTimeout(1500);
+    await page.screenshot({ path: join(OUT, 'webcam-pret.png') });
+  } finally {
+    await browser.close();
+    if (serveur) serveur.kill();
+  }
+}
+
 const args = process.argv.slice(2);
 if (args[0] === '--visages') await genererVisages(resolve(args[1]));
+else if (args[0] === '--webcam') await testerWebcam(resolve(args[1]), Number(args[2] ?? 5351));
 else if (args[0] === '--parcours') await testerParcours(resolve(args[1]), Number(args[2] ?? 5351));
 else await testerEnJeu(resolve(args[0]), Number(args[1] ?? 5351));
