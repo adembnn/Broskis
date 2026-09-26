@@ -51,17 +51,18 @@ export interface VinylMeshEntry { mesh: THREE.Mesh; shells: VinylShells }
 function toonify(root: THREE.Object3D, player: PlayerId): VinylMeshEntry[] {
   const team = teamColor(player);
   const entries: VinylMeshEntry[] = [];
-  root.traverse((obj) => {
-    const mesh = obj as THREE.Mesh;
-    if (!mesh.isMesh) return;
+  // On liste d'abord : addVinylShells ajoute des coques enfants que traverse() visiterait (et contourerait) à l'infini.
+  const meshes: THREE.Mesh[] = [];
+  root.traverse((obj) => { if ((obj as THREE.Mesh).isMesh && !obj.userData.isOutline) meshes.push(obj as THREE.Mesh); });
+  for (const mesh of meshes) {
     const src = mesh.material as THREE.MeshStandardMaterial;
-    if (Array.isArray(src)) return; // props/persos KayKit : jamais de multi-matériau
+    if (Array.isArray(src)) continue; // props/persos KayKit : jamais de multi-matériau
     const isTorso = /_Body$/.test(mesh.name);
     mesh.material = createToonMaterial(isTorso ? team : (src.color ?? '#ffffff'), { map: src.map ?? undefined });
     mesh.castShadow = true;
     mesh.receiveShadow = false;
     entries.push({ mesh, shells: addVinylShells(mesh) });
-  });
+  }
   return entries;
 }
 
