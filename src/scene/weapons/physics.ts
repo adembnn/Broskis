@@ -61,7 +61,7 @@ export function guessPhysics(w: Weapon): WeaponPhysics {
 
 export interface ObjectLook {
   phys: WeaponPhysics;
-  /** Taille affichée (m, plus grande dimension) : la vraie, bornée pour rester lisible (0,35 à 1,6 m). */
+  /** Taille affichée (m, plus grande dimension) : loi logarithmique de la taille réelle, bornée (0,62 à 1,45 m). */
   size: number;
   /** 0 (≈ 50 g) → 1 (≈ 20 kg), échelle logarithmique : pilote traînée, ombre, secousse, poussière. */
   weight: number;
@@ -77,7 +77,9 @@ export function lookOf(w: Weapon): ObjectLook {
   const phys = physicsOf(w);
   const [h, wd, d] = phys.sizeM;
   const largest = Math.max(h, wd, d, 0.01);
-  const size = Math.min(WEAPON_FX.physique.tailleMax, Math.max(WEAPON_FX.physique.tailleMin, largest));
+  // Loi de taille (DA « vinyle gonflé » §4, banc LBENCH) : lisible en vol en écran scindé, ordre des tailles gardé.
+  const P = WEAPON_FX.physique;
+  const size = Math.min(P.tailleMax, Math.max(P.tailleMin, P.tailleBase + P.taillePente * Math.log10(largest / P.tailleRef)));
   const m = Math.max(0.02, phys.massKg);
   const weight = Math.min(1, Math.max(0, (Math.log(m) - Math.log(0.05)) / (Math.log(20) - Math.log(0.05))));
   // Le sticker montre la face (hauteur × largeur) : l'extrusion, c'est la profondeur réelle.

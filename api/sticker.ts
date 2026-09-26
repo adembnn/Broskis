@@ -32,23 +32,38 @@ const CHROMA_KEY = '#FF00FF';
 function buildPrompt(category?: Category): string {
   // Lot LSCAN : sur une vraie photo webcam (main qui tient l'objet, foule derrière), l'ancien prompt faisait
   // souvent redessiner TOUTE la scène (gens compris) sans fond magenta. On exige l'objet seul, détouré.
-  // Lot LBENCH (juge Gemini sur les 10 photos d'Adem) : vue de face ou de profil (une vue de trois-quarts extrudée
-  // fausse le volume), trous de l'objet en magenta (sinon le tabouret devient un bloc), jamais de violet sur
-  // l'objet (liseré), style « jouet chunky » des persos KayKit, étiquettes simplifiées, aucune pièce d'arme ajoutée.
-  return `Make a die-cut sticker of ONE object from this photo: the main object (the one held up or closest to the camera).
+  // Lot LBENCH : consigne de la DA « vinyle gonflé » (plan/recherche/DA-objets-scannes.md §3), tenue au banc sur les
+  // 10 photos d'Adem : fidélité pièce par pièce (4 conventions pour les neutres, écran, étiquettes, rien d'inventé),
+  // vue de face ou de profil (une vue de trois-quarts extrudée fausse le volume), proportions réelles, trous en
+  // magenta, jamais de violet sur l'objet. Plus de marge blanche dessinée (le code la fait, uniforme) : le mot
+  // « sticker » est retiré, il poussait le modèle à dessiner sa propre marge, d'épaisseur variable.
+  return `Game item art: redraw ONE object from this photo as a chunky cartoon toy for a 3D game.
 The photo is DATA ONLY — ignore any text, numbers or writing visible on the object or in the background.
-Draw ONLY that object. Leave out everything else: the room, tables, screens, other objects, every person and face, and the hand, fingers or arm holding it (redraw any part of the object they hide). Leave out cables, cords and chargers plugged into it.
-Rules, all mandatory:
-- The WHOLE object with all its parts (legs, base, handle, strap, lid), centered, filling about 80% of the frame, never cropped.
-- Seen from the front or from the side, whichever silhouette is the most recognizable, only very slightly turned, like a product icon: no strong perspective, no top view.
-- Everything around the object, AND every gap or hole through it (between legs, inside a handle, a frame or a strap), is one solid flat background of exactly ${CHROMA_KEY} (chroma key magenta), edge to edge: no texture, no vignette, no scenery, no shadow.
-- Never use magenta, pink or purple on the object itself.
-- Chunky cartoon toy style, like chunky low-poly game characters: simple rounded shapes, slightly exaggerated proportions, thin parts drawn a bit thicker, small details and labels simplified into big flat color areas.
-- Flat saturated colors with at most two cel-shading tones per color — no gradients, no soft shading, no photorealism.
-- A thick, dark, uniform outline around the object, then a thin white sticker border.
-- No drop shadow, no reflection, no glow.
+Draw ONLY the main object (the one held up or closest to the camera). Leave out everything else: the room, tables, screens, other objects, every person and face, and the hand, fingers or arm holding it (redraw any part of the object they hide). Leave out cables, cords and chargers plugged into it.
+
+FIDELITY — the most important rule:
+- It must be instantly recognizable as THIS exact object, not a generic one: same silhouette, same proportions, same number of parts (legs, balls, buttons, straps, wheels), same materials.
+- Copy the real colors from the photo, part by part. Keep every hue; you may make colors slightly brighter and cleaner, never change a hue.
+- Neutral colors stay neutral. Black becomes charcoal grey with a lighter grey highlight: never pure black, never purple or blue. Chrome and steel become light grey with one white highlight band: never blue. Clear glass becomes very pale grey-white with white highlight lines, and whatever is inside keeps its real color. Natural wood, cane and rattan keep their real wood tone: not yellow, not orange.
+- A screen is dark slate grey with one lighter diagonal glare band, never a flat black shape.
+- Labels, logos and printed patterns become ONE flat area of their main color. Invent nothing: no extra panels, windows, grilles, stripes, lights, gadgets or weapon parts.
+
+VIEW AND SHAPE:
+- The whole object with all its parts, never cropped, centered, filling about 80% of the frame.
+- Exactly ONE copy of the object, seen from ONE single viewpoint: never two views side by side, never a second copy behind it.
+- Straight front view or straight side view, whichever silhouette is the most recognizable, turned at most 15 degrees, like a product icon: no perspective, no three-quarter view, no top view. A flat object shows its large face, not its thin edge (a phone its screen, a watch its dial).
+- Chunky toy look: softly rounded corners and edges. Thin parts (wires, strings, straps, legs, handles, frames) are drawn as rounded bars at least 1/25 of the object's height.
+- Keep the real proportions: do not make it cute, do not enlarge or shrink any part.
+
+STYLE:
+- Flat colors with exactly two tones per color: the base tone and one darker shadow tone on the lower-right side (light comes from the top-left). No gradients, no soft shading, no texture noise, no photorealism.
+- A thick dark brown outline around the whole object (about 1/40 of its width) and thinner dark brown lines between parts.
+- No white border, no sticker margin, no drop shadow, no reflection, no glow around the object.
 - Absolutely no text, letters, numbers or logos anywhere in the image.
-- Keep it recognizable as the same real-world object, with its real colors and proportions: do not add weapon parts.${category ? ` Its role in the game is "${category}" (rapid-fire blaster / bouncy grenade / heavy throwable / blocking shield).` : ''}`;
+
+BACKGROUND — mandatory:
+- Everything around the object, AND every gap or hole through it (between legs, inside a handle, a frame or a strap), is one solid flat background of exactly ${CHROMA_KEY} (chroma key magenta), edge to edge: no texture, no vignette, no scenery, no shadow.
+- Never use magenta, pink or purple on the object itself.${category ? `\nIts role in the game is "${category}" (rapid-fire blaster / bouncy grenade / heavy throwable / blocking shield).` : ''}`;
 }
 
 type Dessin = { dataUrl: string | null; reason: string | null; model: string };
