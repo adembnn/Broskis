@@ -35,6 +35,8 @@ export interface EventMap {
   'crate:grab': { player: PlayerId };
   'scan:start': { player: PlayerId; source: 'webcam' | 'upload' | 'crate' | 'cache' };
   'scan:result': { player: PlayerId; weapon: Weapon };
+  /** Étapes réelles d'un scan photo (lot LUX, génération « en direct ») : lecture Gemini, stats reçues, sticker prêt ou raté. */
+  'scan:progress': { player: PlayerId; step: 'reading' | 'stats' | 'sticker' | 'sticker-failed'; weaponId?: string };
   'ringout': { player: PlayerId };
   /** Règles v2 (LSMASH) : perte d'une vie, point de sortie de l'arène et côté (bas = chute, haut = éjection vers le ciel). */
   'stock:lost': { player: PlayerId; stocksLeft: number; exitPos: Vec3; side: 'side' | 'top' | 'bottom' };
@@ -49,6 +51,10 @@ export interface EventMap {
   'ko': { player: PlayerId; cause: 'hp' | 'ringout' };
   'match:end': { winner: PlayerId };
   'commentary:line': { text: string; priority: number; audioUrl?: string; at?: number };
+  /** Lot LVOX (une seule voix) : émis par src/audio/barks.ts quand une réplique démarre RÉELLEMENT (que ce
+   *  soit un bark pré-généré ou une ligne Gemini). Le sous-titre affiché doit toujours venir d'ici, jamais
+   *  de `commentary:line` (qui ne garantit pas que la ligne est effectivement jouée à voix haute). */
+  'voice:line': { text: string; speaker: 'announcer' | PlayerId };
   'camera:cue': { shot: 'turn-swing' | 'follow-projectile' | 'impact' | 'ko-orbit' | 'overview'; target?: PlayerId };
   /** Demande de ralenti : facteur (0,3 = ×0,3) pendant ms millisecondes de temps réel. */
   'slowmo': { factor: number; ms: number };

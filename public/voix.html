@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Banque de voix Broskis</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;700;800&display=swap">
+<style>
+  /* Page d'écoute de toute la banque de voix (lit /assets/voices/manifest.json : se met à jour seule après chaque régénération). */
+  :root {
+    --encre: #2B1D14; --vinyle: #F0E9DC; --papier: #F3E3C3; --carton: #C49A6C; --alerte: #F7C325;
+    --p1: #E0452B; --p2: #2F7DE1;
+    --titre: "Lilita One", "Arial Rounded MT Bold", sans-serif; --texte: "Nunito", "Segoe UI", system-ui, sans-serif;
+  }
+  body { margin: 0; background: var(--carton); color: var(--encre); font: 700 15px/1.4 var(--texte); padding: 28px max(16px, 3vw) 60px; }
+  h1 { font: 400 clamp(40px, 7vw, 72px)/1 var(--titre); color: var(--vinyle); -webkit-text-stroke: 7px var(--encre); paint-order: stroke fill; margin: 0 0 10px; }
+  .chapo { max-width: 70ch; margin: 0 0 18px; }
+  .barre { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; margin-bottom: 26px; }
+  .interrupteur, .filtre { display: inline-flex; align-items: center; gap: 10px; background: var(--papier); border: 3px solid var(--encre); border-radius: 12px; box-shadow: 0 4px 0 var(--encre); padding: 8px 14px; }
+  .filtre select { font: inherit; border: 0; background: transparent; }
+  .roles { display: grid; gap: 34px; }
+  .role h2 { font: 400 34px/1 var(--titre); color: var(--vinyle); -webkit-text-stroke: 5px var(--encre); paint-order: stroke fill; margin: 0 0 6px; }
+  .role .meta { margin: 0 0 12px; font-size: 14px; }
+  .evenements { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 16px; }
+  .ev { background: var(--papier); border: 3px solid var(--encre); border-radius: 12px; padding: 10px 12px; display: grid; gap: 6px; align-content: start; }
+  .ev h3 { margin: 0; font: 800 12px/1.2 var(--texte); text-transform: uppercase; letter-spacing: .07em; opacity: .75; }
+  .prise { text-align: left; font: 700 15px/1.3 var(--texte); color: var(--encre); background: var(--vinyle); border: 2px solid var(--encre); border-radius: 9px; padding: 6px 10px; cursor: pointer; }
+  .prise:hover { transform: translateY(-1px); }
+  .prise.joue { background: var(--alerte); }
+  .role.announcer .prise { background: #DCE8FB; }
+  .role.announcer .prise.joue { background: var(--alerte); }
+  .vide { font-size: 13px; opacity: .7; }
+  @media (max-width: 500px) { .evenements { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<h1>BANQUE DE VOIX</h1>
+<p class="chapo">Toutes les répliques du jeu, telles que le jeu les joue. L'animateur est Fenrir (Gemini TTS), avec l'effet stade. Les combattants sont joués sans effet stade. Leurs voix passent en Gradium : les fichiers sont remplacés au fil de la régénération (lot LBK2), cette page lit toujours la dernière version.</p>
+<div class="barre">
+  <label class="interrupteur"><input type="checkbox" id="stade" checked> Effet stade sur l'animateur</label>
+  <label class="filtre">Rôle <select id="filtre"><option value="">tous</option></select></label>
+  <span id="compte"></span>
+</div>
+<div class="roles" id="roles"></div>
+<script>
+(async () => {
+  const NOMS = { announcer: "L'animateur · Fenrir", barbarian: 'Le barbare', knight: 'Le chevalier', mage: 'Le mage', rogue: 'Le voleur' };
+  const racine = '/assets/voices/';
+  let manifest = {};
+  try { manifest = await (await fetch(racine + 'manifest.json', { cache: 'no-store' })).json(); } catch (e) { document.getElementById('roles').textContent = 'Manifeste introuvable : lance le jeu (npm run dev).'; return; }
+  const roles = document.getElementById('roles');
+  const filtre = document.getElementById('filtre');
+  let total = 0;
+  for (const [role, evs] of Object.entries(manifest)) {
+    const opt = document.createElement('option'); opt.value = role; opt.textContent = NOMS[role] || role; filtre.appendChild(opt);
+    const sec = document.createElement('section'); sec.className = `role ${role}`; sec.dataset.role = role;
+    const n = Object.values(evs).reduce((a, l) => a + l.length, 0); total += n;
+    sec.innerHTML = `<h2>${NOMS[role] || role}</h2><p class="meta">${n} répliques · ${Object.keys(evs).length} événements</p>`;
+    const grille = document.createElement('div'); grille.className = 'evenements';
+    for (const [ev, lignes] of Object.entries(evs)) {
+      const carte = document.createElement('div'); carte.className = 'ev';
+      carte.innerHTML = `<h3>${ev.replace(/_/g, ' ')}</h3>`;
+      for (const l of lignes) {
+        const b = document.createElement('button'); b.className = 'prise'; b.type = 'button';
+        b.dataset.src = racine + l.file; b.dataset.role = role; b.textContent = l.text;
+        carte.appendChild(b);
+      }
+      grille.appendChild(carte);
+    }
+    sec.appendChild(grille); roles.appendChild(sec);
+  }
+  document.getElementById('compte').textContent = `${total} répliques`;
+  filtre.addEventListener('change', () => { for (const s of roles.children) s.hidden = !!filtre.value && s.dataset.role !== filtre.value; });
+
+  // Lecture WebAudio, un son à la fois. Effet stade (chaîne validée pour l'animateur) : passe-haut 120 Hz,
+  // présence 3,2 kHz +6 dB, saturation douce, compresseur, gain, écho 110 ms, accéléré ×1,1.
+  let ac = null, source = null, bouton = null; const tampons = new Map();
+  const stop = () => { if (source) { try { source.stop(); } catch (e) {} source = null; } if (bouton) { bouton.classList.remove('joue'); bouton = null; } };
+  const courbe = (() => { const n = 1024, c = new Float32Array(n); for (let i = 0; i < n; i++) { const x = (i / (n - 1)) * 2 - 1; c[i] = Math.tanh(2.2 * x) / Math.tanh(2.2); } return c; })();
+  const stade = (entree) => {
+    const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 120;
+    const pres = ac.createBiquadFilter(); pres.type = 'peaking'; pres.frequency.value = 3200; pres.Q.value = 0.9; pres.gain.value = 6;
+    const sat = ac.createWaveShaper(); sat.curve = courbe;
+    const comp = ac.createDynamicsCompressor(); comp.threshold.value = -22; comp.ratio.value = 6; comp.attack.value = 0.003; comp.release.value = 0.15;
+    const g = ac.createGain(); g.gain.value = 1.2;
+    const d = ac.createDelay(1); d.delayTime.value = 0.11; const ret = ac.createGain(); ret.gain.value = 0.22; const hum = ac.createGain(); hum.gain.value = 0.25;
+    entree.connect(hp).connect(pres).connect(sat).connect(comp).connect(g); g.connect(ac.destination);
+    g.connect(d); d.connect(ret).connect(d); d.connect(hum).connect(ac.destination);
+  };
+  document.addEventListener('click', async (e) => {
+    const b = e.target.closest('button.prise'); if (!b) return;
+    const meme = b === bouton; stop(); if (meme) return;
+    try {
+      ac = ac || new AudioContext(); if (ac.state === 'suspended') await ac.resume();
+      let buf = tampons.get(b.dataset.src);
+      if (!buf) { buf = await ac.decodeAudioData(await (await fetch(b.dataset.src, { cache: 'no-store' })).arrayBuffer()); tampons.set(b.dataset.src, buf); }
+      const s = ac.createBufferSource(); s.buffer = buf;
+      if (b.dataset.role === 'announcer' && document.getElementById('stade').checked) { s.playbackRate.value = 1.1; stade(s); } else s.connect(ac.destination);
+      s.onended = () => { if (source === s) stop(); };
+      s.start(); source = s; bouton = b; b.classList.add('joue');
+    } catch (err) { stop(); }
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { el } from '../../ui/dom';
 import type { Ctx, PlayerId } from '../../core/types';
+import { playBark } from '../../audio/barks';
 
 export function installTauntBubble(_ctx: Ctx) {
   // Rien de spécial à l'installation.
@@ -35,6 +36,10 @@ export function showTauntBubble(ctx: Ctx, aiId: PlayerId, text: string) {
     
     return true; // Keep ticking
   });
-  
-  ctx.bus.emit('commentary:line', { text, priority: 1 });
+
+  // Lot LVOX (une seule voix) : avant, ceci émettait `commentary:line`, ce qui faisait passer la provocation
+  // de l'IA pour de l'animateur (mauvaise voix, mauvaise carte HUD). Le son vient maintenant d'un bark du
+  // perso IA lui-même (voix pré-générée, src/audio/barks.ts) ; le texte Gemini reste affiché dans la bulle
+  // ci-dessus, seule la source du SON a changé.
+  playBark(ctx, aiId, 'taunt_turn');
 }

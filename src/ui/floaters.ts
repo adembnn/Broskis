@@ -7,6 +7,8 @@ import { LOCAL_TOKENS } from './theme';
 export interface Floaters {
   root: HTMLDivElement;
   spawnWorld(pos: Vec3, text: string, cls?: string): void;
+  /** Position en fraction de l'écran (0..1), ex. multiplicateur de série de parades. */
+  spawnScreen(fx: number, fy: number, text: string, cls?: string): void;
   dispose(): void;
 }
 
@@ -39,6 +41,9 @@ export function createFloaters(ctx: Ctx): Floaters {
       const s = worldToScreen(ctx.three.camera, pos, tmp);
       if (s.behind) return;
       spawnAt(s.x, s.y, text, cls);
+    },
+    spawnScreen(fx, fy, text, cls = '') {
+      spawnAt(fx * window.innerWidth, fy * window.innerHeight, text, cls);
     },
     dispose() {
       for (const id of timers) window.clearTimeout(id);

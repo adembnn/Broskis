@@ -6,6 +6,7 @@ import { installAimHelpers } from './aim';
 import { installCamera } from './camera';
 import { installFighters } from './fighters';
 import { installFx } from './fx';
+import { installSmashFx } from './fx/smash';
 import { installMovementRing } from './movementRing';
 import { installEnvironment } from './render/environment';
 import { installPostFx } from './render/postfx';
@@ -24,5 +25,6 @@ export const install: Install = (ctx) => {
   installAimHelpers(ctx);
   installMovementRing(ctx);
   installFx(ctx);
+  installSmashFx(ctx);
   installParryFx(ctx);
 };

@@ -1,45 +1,33 @@
-// Lot LU — interface. install(ctx) assemble tous les écrans : titre → perso → arsenal → présentation → map → HUD
-// → fin. Chaque écran vit dans son propre fichier (src/ui/screen*.ts) ; celui-ci ne fait qu'enchaîner les phases,
-// comme src/main.ts le fait pour les lots. Ne JAMAIS `await` la partie longue ici : `install` doit rendre la main
-// tout de suite, sinon ctx.loop.start() (appelé après tous les install() dans main.ts) ne serait jamais atteint.
-import { MOVE_BUDGET } from '../core/state';
-import type { Ctx, FighterDef, Install, MapId, PlayerId, Weapon } from '../core/types';
+// Lot LU/LUX — interface. install(ctx) assemble tout : titre → persos → arsenal → présentation → map → match (HUD,
+// aide, tutoriel) → fin → revanche ou menu. Chaque écran vit dans son propre fichier ; celui-ci ne fait qu'enchaîner.
+// Ne JAMAIS `await` la partie longue ici : `install` doit rendre la main tout de suite, sinon ctx.loop.start()
+// (appelé après tous les install() dans main.ts) ne serait jamais atteint.
+import { durees } from '../art/tokens.js';
+import type { Install, StartMatchOptions, Weapon } from '../core/types';
 import { clear, el } from './dom';
-import { runEndScreen } from './endscreen';
+import { showEndScreen } from './endscreen';
 import { mountHud } from './hud';
 import { createMatchLog } from './matchLog';
+import { preloadPortraits } from './portraits';
+import { FIGHTER_PRESETS, presetsReady } from './presets';
+import { installScandexCollector } from './scandex/store';
 import { runArsenal } from './screenArsenal';
 import { runFighterSelect } from './screenFighters';
 import { runMapSelect } from './screenMap';
 import { runReveal } from './screenReveal';
 import { mountTitle } from './screenTitle';
-import { installScandexCollector } from './scandex/store';
 import { installSnapTime } from './snapTime';
+import { installStickers, preloadPresetStickers } from './sticker2d';
 import { injectGoogleFonts, injectStyles } from './theme';
-import { installParryHud } from './parry-hud';
+import { installTutorial } from './tutorial';
 
-interface Picks {
-  fighters: [FighterDef, FighterDef];
-  weapons: [Weapon[], Weapon[]];
-  map: MapId;
-}
+type Difficulty = NonNullable<StartMatchOptions['difficulty']>;
 
-/** hooks.startMatch (src/core/hooks.ts, lot L0) ne pose pas fighters/weapons dans state.players : on le fait ici. */
-function applyPicksToState(ctx: Ctx, picks: Picks): void {
-  ctx.state.mapId = picks.map;
-  for (const player of [0, 1] as PlayerId[]) {
-    const ps = ctx.state.players[player];
-    ps.fighter = picks.fighters[player];
-    ps.hp = ps.fighter.hpMax;
-    // Clone à cooldown 0 : une revanche avec les mêmes armes ne doit pas hériter du cooldown du match précédent.
-    ps.weapons = picks.weapons[player].map((w) => ({ ...w, cooldown: 0 }));
-    ps.selected = 0;
-    ps.alive = true;
-    ps.parryStreak = 0;
-    ps.jumpUsed = false;
-    ps.moveLeft = MOVE_BUDGET;
-  }
-}
+/** Armes neuves (recharge 0) : une revanche ne doit pas hériter des recharges du match précédent. */
+const freshWeapons = (list: Weapon[]): Weapon[] => list.map((w) => ({ ...w, stats: { ...w.stats }, cooldown: 0 }));
+
+/** Laisse « GAME! » (bandeau + ralenti) se lire avant de couvrir la scène avec l'écran de fin. */
+const END_DELAY_MS = durees.dramatique + 500;
 
 export const install: Install = (ctx) => {
   injectGoogleFonts();
@@ -55,14 +43,56 @@ export const install: Install = (ctx) => {
   root.append(hud.root, screenLayer);
   ctx.three.uiRoot.append(root);
   installSnapTime(ctx, screenLayer);
-  installParryHud(ctx, hud.root);
+  installTutorial(ctx, hud.root);
+  installStickers(ctx); // stickers arrivés en route → recopiés sur les armes du match
+  void presetsReady.then(preloadPresetStickers);
+  void preloadPortraits(FIGHTER_PRESETS);
   installScandexCollector(ctx); // Lot LW (Scandex) : enregistre chaque scan:result dans localStorage.
 
-  ctx.bus.on('match:start', () => clear(screenLayer));
+  let settings: { vsAI: boolean; difficulty: Difficulty } = { vsAI: false, difficulty: 'medium' };
+  // Dernier match lancé, QUEL QUE SOIT le point d'entrée (parcours, hooks, labo) : la revanche le rejoue tel quel.
+  let last: StartMatchOptions | null = null;
+  let endPending = false;
 
-  async function runPreMatch(): Promise<Picks> {
+  ctx.bus.on('match:start', () => {
+    clear(screenLayer);
+    endPending = false;
+    const [a, b] = ctx.state.players;
+    if (!a.fighter || !b.fighter) return;
+    last = {
+      fighters: [a.fighter, b.fighter],
+      weapons: [freshWeapons(a.weapons), freshWeapons(b.weapons)],
+      map: ctx.state.mapId,
+      vsAI: ctx.state.vsAI,
+      difficulty: ctx.state.difficulty,
+    };
+  });
+
+  ctx.bus.on('match:end', ({ winner }) => {
+    if (endPending) return;
+    endPending = true;
+    window.setTimeout(async () => {
+      if (!endPending) return; // un nouveau match a démarré entre-temps (hooks, labo)
+      if (ctx.state.phase !== 'end') ctx.bus.emit('phase:change', { from: ctx.state.phase, to: 'end' });
+      const action = await showEndScreen(ctx, screenLayer, matchLog, winner);
+      endPending = false;
+      if (action === 'rematch' && last) startMatch(last);
+      else if (action === 'menu') void toTitle();
+    }, END_DELAY_MS);
+  });
+
+  function startMatch(opts: StartMatchOptions): void {
+    const weapons = opts.weapons && ([freshWeapons(opts.weapons[0]), freshWeapons(opts.weapons[1])] as [Weapon[], Weapon[]]);
+    ctx.hooks.startMatch({ ...opts, weapons });
+  }
+
+  async function toTitle(): Promise<void> {
+    if (ctx.state.phase !== 'title') ctx.bus.emit('phase:change', { from: ctx.state.phase, to: 'title' });
+    const titleOpts = await mountTitle(screenLayer);
+    settings = { vsAI: !!titleOpts?.vsAI, difficulty: titleOpts?.difficulty ?? settings.difficulty };
+
     ctx.bus.emit('phase:change', { from: ctx.state.phase, to: 'fighter-select' });
-    const fighters = await runFighterSelect(screenLayer);
+    const fighters = await runFighterSelect(screenLayer, settings.vsAI);
 
     ctx.bus.emit('phase:change', { from: 'fighter-select', to: 'arsenal' });
     const arsenal = await runArsenal(screenLayer);
@@ -73,34 +103,8 @@ export const install: Install = (ctx) => {
     ctx.bus.emit('phase:change', { from: 'reveal', to: 'map-select' });
     const map = await runMapSelect(screenLayer);
     clear(screenLayer);
-    return { fighters, weapons: arsenal.weapons, map };
+    startMatch({ fighters, weapons: arsenal.weapons, map, vsAI: settings.vsAI, difficulty: settings.difficulty });
   }
 
-  let globalVsAI = false;
-  let globalDifficulty: 'easy' | 'medium' | 'hard' | 'hardcore' = 'medium';
-
-  async function playMatch(picks: Picks): Promise<void> {
-    applyPicksToState(ctx, picks);
-    ctx.hooks.startMatch({ fighters: picks.fighters, weapons: picks.weapons, map: picks.map, vsAI: globalVsAI, difficulty: globalDifficulty });
-    const action = await runEndScreen(ctx, screenLayer, matchLog);
-    if (action === 'rematch') return playMatch(picks);
-    return preMatchLoop();
-  }
-
-  async function preMatchLoop(): Promise<void> {
-    return playMatch(await runPreMatch());
-  }
-
-  async function boot() {
-    const titleOpts = await mountTitle(screenLayer);
-    if (titleOpts && titleOpts.vsAI) {
-      globalVsAI = titleOpts.vsAI;
-      if (titleOpts.difficulty) globalDifficulty = titleOpts.difficulty;
-    } else {
-      globalVsAI = false;
-    }
-    await preMatchLoop();
-  }
-
-  void boot();
+  void toTitle();
 };

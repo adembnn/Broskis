@@ -1,0 +1,2116 @@
+{
+ "lot": "LKIT",
+ "genere": "2026-09-26T13:02",
+ "unites": "mètres, Y vers le haut ; ancre = centre du dessus marchable à y = 0 (sauf mention « ancre » dans la pièce)",
+ "chargement": "GLTFLoader.setMeshoptDecoder(MeshoptDecoder) (EXT_meshopt_compression + KHR_mesh_quantization, déjà géré par src/scene/maps/loader.ts)",
+ "matiere": {
+  "nom": "arena_kit",
+  "type": "MeshStandardMaterial",
+  "vertexColors": true,
+  "roughness": 0.85,
+  "metalness": 0,
+  "note": "toute la couleur et l'occlusion ambiante sont dans COLOR_0 ; ne pas re-teinter (grade {} ou saturation 1)"
+ },
+ "regenerer": "node tools/assets/build-kit.mjs",
+ "pieces": [
+  {
+   "role": "socle",
+   "variante": "roche sous tuiles hex",
+   "map": "archipel",
+   "surface": {
+    "forme": "hexagone (sommets sur ±X)",
+    "apotheme": 3.767,
+    "y": 0
+   },
+   "ancre": "centre du dessus du socle : le poser SOUS les tuiles (y = dessus des tuiles - 1, soit le bas des tuiles KayKit)",
+   "collider": {
+    "type": "aucun",
+    "conseil": "les tuiles gardent leurs colliders ; quand un anneau tombe, passer au socle k-1 (ou échelle (k-1)/k en X/Z)"
+   },
+   "usage": "Transforme le disque de tuiles hex en île céleste : dessous en strates rocheuses, invisible depuis le dessus.",
+   "nom": "socle_hex_2",
+   "fichier": "socle_hex_2.glb",
+   "boite": {
+    "min": [
+     -4.211,
+     -4.4,
+     -3.767
+    ],
+    "max": [
+     4.211,
+     0,
+     3.767
+    ],
+    "taille": [
+     8.422,
+     4.4,
+     7.534
+    ]
+   },
+   "trianglesSource": 1144,
+   "triangles": 1144,
+   "ko": 18.9
+  },
+  {
+   "role": "socle",
+   "variante": "roche sous tuiles hex",
+   "map": "archipel",
+   "surface": {
+    "forme": "hexagone (sommets sur ±X)",
+    "apotheme": 5.499,
+    "y": 0
+   },
+   "ancre": "centre du dessus du socle : le poser SOUS les tuiles (y = dessus des tuiles - 1, soit le bas des tuiles KayKit)",
+   "collider": {
+    "type": "aucun",
+    "conseil": "les tuiles gardent leurs colliders ; quand un anneau tombe, passer au socle k-1 (ou échelle (k-1)/k en X/Z)"
+   },
+   "usage": "Transforme le disque de tuiles hex en île céleste : dessous en strates rocheuses, invisible depuis le dessus.",
+   "nom": "socle_hex_3",
+   "fichier": "socle_hex_3.glb",
+   "boite": {
+    "min": [
+     -6.211,
+     -5.5,
+     -5.499
+    ],
+    "max": [
+     6.211,
+     0,
+     5.499
+    ],
+    "taille": [
+     12.422,
+     5.5,
+     10.999
+    ]
+   },
+   "trianglesSource": 1290,
+   "triangles": 1290,
+   "ko": 20.7
+  },
+  {
+   "role": "socle",
+   "variante": "roche sous tuiles hex",
+   "map": "archipel",
+   "surface": {
+    "forme": "hexagone (sommets sur ±X)",
+    "apotheme": 7.231,
+    "y": 0
+   },
+   "ancre": "centre du dessus du socle : le poser SOUS les tuiles (y = dessus des tuiles - 1, soit le bas des tuiles KayKit)",
+   "collider": {
+    "type": "aucun",
+    "conseil": "les tuiles gardent leurs colliders ; quand un anneau tombe, passer au socle k-1 (ou échelle (k-1)/k en X/Z)"
+   },
+   "usage": "Transforme le disque de tuiles hex en île céleste : dessous en strates rocheuses, invisible depuis le dessus.",
+   "nom": "socle_hex_4",
+   "fichier": "socle_hex_4.glb",
+   "boite": {
+    "min": [
+     -8.211,
+     -6.6,
+     -7.231
+    ],
+    "max": [
+     8.211,
+     0,
+     7.231
+    ],
+    "taille": [
+     16.422,
+     6.6,
+     14.463
+    ]
+   },
+   "trianglesSource": 1394,
+   "triangles": 1394,
+   "ko": 21.8
+  },
+  {
+   "role": "plateau",
+   "variante": "plan de travail carrelé",
+   "map": "cuisine",
+   "surface": {
+    "forme": "rectangle arrondi",
+    "demiX": 9.5,
+    "demiZ": 7,
+    "rayonCoins": 1.4,
+    "y": 0,
+    "liseré": 0.45,
+    "contour": [
+     [
+      9.5,
+      0
+     ],
+     [
+      9.5,
+      -1.987
+     ],
+     [
+      9.5,
+      -3.975
+     ],
+     [
+      9.453,
+      -5.958
+     ],
+     [
+      7.949,
+      -7
+     ],
+     [
+      5.962,
+      -7
+     ],
+     [
+      3.975,
+      -7
+     ],
+     [
+      1.987,
+      -7
+     ],
+     [
+      0,
+      -7
+     ],
+     [
+      -1.987,
+      -7
+     ],
+     [
+      -3.975,
+      -7
+     ],
+     [
+      -5.962,
+      -7
+     ],
+     [
+      -7.949,
+      -7
+     ],
+     [
+      -9.453,
+      -5.958
+     ],
+     [
+      -9.5,
+      -3.975
+     ],
+     [
+      -9.5,
+      -1.987
+     ],
+     [
+      -9.5,
+      0
+     ],
+     [
+      -9.5,
+      1.987
+     ],
+     [
+      -9.5,
+      3.975
+     ],
+     [
+      -9.453,
+      5.958
+     ],
+     [
+      -7.949,
+      7
+     ],
+     [
+      -5.962,
+      7
+     ],
+     [
+      -3.975,
+      7
+     ],
+     [
+      -1.987,
+      7
+     ],
+     [
+      0,
+      7
+     ],
+     [
+      1.987,
+      7
+     ],
+     [
+      3.975,
+      7
+     ],
+     [
+      5.962,
+      7
+     ],
+     [
+      7.949,
+      7
+     ],
+     [
+      9.453,
+      5.958
+     ],
+     [
+      9.5,
+      3.975
+     ],
+     [
+      9.5,
+      1.987
+     ]
+    ]
+   },
+   "collider": {
+    "type": "convexe",
+    "conseil": "ColliderDesc.convexHull des points du contour à y=0 et y=-0.6"
+   },
+   "usage": "Îlot de cuisine géant (carreaux de 1,5 m : les persos sont minuscules), tiroirs tout autour, le sol de la cuisine loin dessous.",
+   "nom": "plateau_cuisine",
+   "fichier": "plateau_cuisine.glb",
+   "boite": {
+    "min": [
+     -9.52,
+     -4.9,
+     -7.02
+    ],
+    "max": [
+     9.52,
+     0.039,
+     7.02
+    ],
+    "taille": [
+     19.04,
+     4.939,
+     14.04
+    ]
+   },
+   "trianglesSource": 2694,
+   "triangles": 2694,
+   "ko": 37.7
+  },
+  {
+   "role": "plateau",
+   "variante": "herbe et pierre",
+   "map": "archipel",
+   "surface": {
+    "forme": "superellipse",
+    "demiX": 9.5,
+    "demiZ": 7.5,
+    "exposant": 2.6,
+    "y": 0,
+    "liseré": 0.75,
+    "contour": [
+     [
+      9.5,
+      0
+     ],
+     [
+      9.416,
+      -1.752
+     ],
+     [
+      8.993,
+      -3.45
+     ],
+     [
+      8.098,
+      -4.951
+     ],
+     [
+      6.779,
+      -6.099
+     ],
+     [
+      5.2,
+      -6.854
+     ],
+     [
+      3.499,
+      -7.28
+     ],
+     [
+      1.754,
+      -7.464
+     ],
+     [
+      0,
+      -7.5
+     ],
+     [
+      -1.754,
+      -7.464
+     ],
+     [
+      -3.499,
+      -7.28
+     ],
+     [
+      -5.2,
+      -6.854
+     ],
+     [
+      -6.779,
+      -6.099
+     ],
+     [
+      -8.098,
+      -4.951
+     ],
+     [
+      -8.993,
+      -3.45
+     ],
+     [
+      -9.416,
+      -1.752
+     ],
+     [
+      -9.5,
+      0
+     ],
+     [
+      -9.416,
+      1.752
+     ],
+     [
+      -8.993,
+      3.45
+     ],
+     [
+      -8.098,
+      4.951
+     ],
+     [
+      -6.779,
+      6.099
+     ],
+     [
+      -5.2,
+      6.854
+     ],
+     [
+      -3.499,
+      7.28
+     ],
+     [
+      -1.754,
+      7.464
+     ],
+     [
+      0,
+      7.5
+     ],
+     [
+      1.754,
+      7.464
+     ],
+     [
+      3.499,
+      7.28
+     ],
+     [
+      5.2,
+      6.854
+     ],
+     [
+      6.779,
+      6.099
+     ],
+     [
+      8.098,
+      4.951
+     ],
+     [
+      8.993,
+      3.45
+     ],
+     [
+      9.416,
+      1.752
+     ]
+    ]
+   },
+   "collider": {
+    "type": "convexe",
+    "conseil": "ColliderDesc.convexHull des points du contour à y=0 et y=-0.6 (jamais de trimesh du mesh entier)"
+   },
+   "usage": "Plateau principal flottant façon Battlefield : dessus d'herbe net, liseré de pierres claires = bord du vide.",
+   "nom": "plateau_pierre",
+   "fichier": "plateau_pierre.glb",
+   "boite": {
+    "min": [
+     -9.55,
+     -6.6,
+     -7.548
+    ],
+    "max": [
+     9.55,
+     0.067,
+     7.55
+    ],
+    "taille": [
+     19.1,
+     6.667,
+     15.098
+    ]
+   },
+   "trianglesSource": 2689,
+   "triangles": 2689,
+   "ko": 41.1
+  },
+  {
+   "role": "plateau",
+   "variante": "planches de pont",
+   "map": "galion",
+   "surface": {
+    "forme": "superellipse",
+    "demiX": 9.5,
+    "demiZ": 6.6,
+    "exposant": 2.2,
+    "y": 0,
+    "liseré": 0.5,
+    "contour": [
+     [
+      9.5,
+      0
+     ],
+     [
+      9.305,
+      -1.604
+     ],
+     [
+      8.648,
+      -3.079
+     ],
+     [
+      7.59,
+      -4.301
+     ],
+     [
+      6.266,
+      -5.231
+     ],
+     [
+      4.787,
+      -5.89
+     ],
+     [
+      3.224,
+      -6.314
+     ],
+     [
+      1.619,
+      -6.538
+     ],
+     [
+      0,
+      -6.6
+     ],
+     [
+      -1.619,
+      -6.538
+     ],
+     [
+      -3.224,
+      -6.314
+     ],
+     [
+      -4.787,
+      -5.89
+     ],
+     [
+      -6.266,
+      -5.231
+     ],
+     [
+      -7.59,
+      -4.301
+     ],
+     [
+      -8.648,
+      -3.079
+     ],
+     [
+      -9.305,
+      -1.604
+     ],
+     [
+      -9.5,
+      0
+     ],
+     [
+      -9.305,
+      1.604
+     ],
+     [
+      -8.648,
+      3.079
+     ],
+     [
+      -7.59,
+      4.301
+     ],
+     [
+      -6.266,
+      5.231
+     ],
+     [
+      -4.787,
+      5.89
+     ],
+     [
+      -3.224,
+      6.314
+     ],
+     [
+      -1.619,
+      6.538
+     ],
+     [
+      0,
+      6.6
+     ],
+     [
+      1.619,
+      6.538
+     ],
+     [
+      3.224,
+      6.314
+     ],
+     [
+      4.787,
+      5.89
+     ],
+     [
+      6.266,
+      5.231
+     ],
+     [
+      7.59,
+      4.301
+     ],
+     [
+      8.648,
+      3.079
+     ],
+     [
+      9.305,
+      1.604
+     ]
+    ]
+   },
+   "collider": {
+    "type": "convexe",
+    "conseil": "ColliderDesc.convexHull des points du contour à y=0 et y=-0.6"
+   },
+   "usage": "Pont ouvert sans bastingage (lames le long de X, l'axe du duel) ; mât Kenney à poser au fond (z négatif).",
+   "nom": "plateau_pont",
+   "fichier": "plateau_pont.glb",
+   "boite": {
+    "min": [
+     -9.511,
+     -4.3,
+     -6.648
+    ],
+    "max": [
+     9.55,
+     0.074,
+     6.646
+    ],
+    "taille": [
+     19.061,
+     4.374,
+     13.294
+    ]
+   },
+   "trianglesSource": 2272,
+   "triangles": 2272,
+   "ko": 34.1
+  },
+  {
+   "role": "plateforme",
+   "variante": "planche à découper",
+   "map": "cuisine",
+   "surface": {
+    "forme": "rectangle arrondi",
+    "demiX": 3.1,
+    "demiZ": 1.4,
+    "y": 0,
+    "contour": [
+     [
+      3.1,
+      0
+     ],
+     [
+      3.098,
+      -0.848
+     ],
+     [
+      2.545,
+      -1.398
+     ],
+     [
+      1.697,
+      -1.4
+     ],
+     [
+      0.848,
+      -1.4
+     ],
+     [
+      0,
+      -1.4
+     ],
+     [
+      -0.848,
+      -1.4
+     ],
+     [
+      -1.697,
+      -1.4
+     ],
+     [
+      -2.545,
+      -1.398
+     ],
+     [
+      -3.098,
+      -0.848
+     ],
+     [
+      -3.1,
+      0
+     ],
+     [
+      -3.098,
+      0.848
+     ],
+     [
+      -2.545,
+      1.398
+     ],
+     [
+      -1.697,
+      1.4
+     ],
+     [
+      -0.848,
+      1.4
+     ],
+     [
+      0,
+      1.4
+     ],
+     [
+      0.848,
+      1.4
+     ],
+     [
+      1.697,
+      1.4
+     ],
+     [
+      2.545,
+      1.398
+     ],
+     [
+      3.098,
+      0.848
+     ]
+    ]
+   },
+   "collider": {
+    "type": "box traversable par le dessous (one-way)",
+    "conseil": "box hx 3.05 hy 0.12 hz 1.35 centrée y=-0.12"
+   },
+   "usage": "Plateforme flottante de la cuisine : planche en hêtre de 24 cm, rainure sombre = bord lisible.",
+   "nom": "planche_L",
+   "fichier": "planche_L.glb",
+   "boite": {
+    "min": [
+     -3.1,
+     -0.24,
+     -1.4
+    ],
+    "max": [
+     3.1,
+     0,
+     1.4
+    ],
+    "taille": [
+     6.2,
+     0.24,
+     2.8
+    ]
+   },
+   "trianglesSource": 448,
+   "triangles": 448,
+   "ko": 6.1
+  },
+  {
+   "role": "plateforme",
+   "variante": "planche à découper",
+   "map": "cuisine",
+   "surface": {
+    "forme": "rectangle arrondi",
+    "demiX": 2.3,
+    "demiZ": 1.2,
+    "y": 0,
+    "contour": [
+     [
+      2.3,
+      0
+     ],
+     [
+      2.298,
+      -0.648
+     ],
+     [
+      1.939,
+      -1.15
+     ],
+     [
+      1.297,
+      -1.2
+     ],
+     [
+      0.648,
+      -1.2
+     ],
+     [
+      0,
+      -1.2
+     ],
+     [
+      -0.648,
+      -1.2
+     ],
+     [
+      -1.297,
+      -1.2
+     ],
+     [
+      -1.939,
+      -1.15
+     ],
+     [
+      -2.298,
+      -0.648
+     ],
+     [
+      -2.3,
+      0
+     ],
+     [
+      -2.298,
+      0.648
+     ],
+     [
+      -1.939,
+      1.15
+     ],
+     [
+      -1.297,
+      1.2
+     ],
+     [
+      -0.648,
+      1.2
+     ],
+     [
+      0,
+      1.2
+     ],
+     [
+      0.648,
+      1.2
+     ],
+     [
+      1.297,
+      1.2
+     ],
+     [
+      1.939,
+      1.15
+     ],
+     [
+      2.298,
+      0.648
+     ]
+    ]
+   },
+   "collider": {
+    "type": "box traversable par le dessous (one-way)",
+    "conseil": "box hx 2.25 hy 0.12 hz 1.15 centrée y=-0.12"
+   },
+   "usage": "Plateforme flottante de la cuisine : planche en hêtre de 24 cm, rainure sombre = bord lisible.",
+   "nom": "planche_M",
+   "fichier": "planche_M.glb",
+   "boite": {
+    "min": [
+     -2.3,
+     -0.24,
+     -1.2
+    ],
+    "max": [
+     2.3,
+     0,
+     1.2
+    ],
+    "taille": [
+     4.6,
+     0.24,
+     2.4
+    ]
+   },
+   "trianglesSource": 448,
+   "triangles": 448,
+   "ko": 6.5
+  },
+  {
+   "role": "plateforme",
+   "variante": "planche à découper",
+   "map": "cuisine",
+   "surface": {
+    "forme": "rectangle arrondi",
+    "demiX": 1.6,
+    "demiZ": 1,
+    "y": 0,
+    "contour": [
+     [
+      1.6,
+      0
+     ],
+     [
+      1.596,
+      -0.468
+     ],
+     [
+      1.375,
+      -0.868
+     ],
+     [
+      0.937,
+      -1
+     ],
+     [
+      0.468,
+      -1
+     ],
+     [
+      0,
+      -1
+     ],
+     [
+      -0.468,
+      -1
+     ],
+     [
+      -0.937,
+      -1
+     ],
+     [
+      -1.375,
+      -0.868
+     ],
+     [
+      -1.596,
+      -0.468
+     ],
+     [
+      -1.6,
+      0
+     ],
+     [
+      -1.596,
+      0.468
+     ],
+     [
+      -1.375,
+      0.868
+     ],
+     [
+      -0.937,
+      1
+     ],
+     [
+      -0.468,
+      1
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      0.468,
+      1
+     ],
+     [
+      0.937,
+      1
+     ],
+     [
+      1.375,
+      0.868
+     ],
+     [
+      1.596,
+      0.468
+     ]
+    ]
+   },
+   "collider": {
+    "type": "box traversable par le dessous (one-way)",
+    "conseil": "box hx 1.55 hy 0.12 hz 0.95 centrée y=-0.12"
+   },
+   "usage": "Plateforme flottante de la cuisine : planche en hêtre de 24 cm, rainure sombre = bord lisible.",
+   "nom": "planche_S",
+   "fichier": "planche_S.glb",
+   "boite": {
+    "min": [
+     -1.6,
+     -0.24,
+     -1
+    ],
+    "max": [
+     1.6,
+     0,
+     1
+    ],
+    "taille": [
+     3.2,
+     0.24,
+     2
+    ]
+   },
+   "trianglesSource": 448,
+   "triangles": 448,
+   "ko": 6.5
+  },
+  {
+   "role": "plateforme",
+   "variante": "herbe et pierre",
+   "map": "archipel",
+   "surface": {
+    "forme": "rectangle arrondi",
+    "demiX": 3.1,
+    "demiZ": 1.4,
+    "y": 0,
+    "contour": [
+     [
+      3.1,
+      0
+     ],
+     [
+      3.067,
+      -0.828
+     ],
+     [
+      2.492,
+      -1.377
+     ],
+     [
+      1.663,
+      -1.4
+     ],
+     [
+      0.831,
+      -1.4
+     ],
+     [
+      0,
+      -1.4
+     ],
+     [
+      -0.831,
+      -1.4
+     ],
+     [
+      -1.663,
+      -1.4
+     ],
+     [
+      -2.492,
+      -1.377
+     ],
+     [
+      -3.067,
+      -0.828
+     ],
+     [
+      -3.1,
+      0
+     ],
+     [
+      -3.067,
+      0.828
+     ],
+     [
+      -2.492,
+      1.377
+     ],
+     [
+      -1.663,
+      1.4
+     ],
+     [
+      -0.831,
+      1.4
+     ],
+     [
+      0,
+      1.4
+     ],
+     [
+      0.831,
+      1.4
+     ],
+     [
+      1.663,
+      1.4
+     ],
+     [
+      2.492,
+      1.377
+     ],
+     [
+      3.067,
+      0.828
+     ]
+    ]
+   },
+   "collider": {
+    "type": "box traversable par le dessous (one-way)",
+    "conseil": "box hx 3.05 hy 0.15 hz 1.35 centrée y=-0.15"
+   },
+   "usage": "Plateforme flottante fine (2,2 à 2,8 m au-dessus du plateau), traversable en sautant.",
+   "nom": "plateforme_pierre_L",
+   "fichier": "plateforme_pierre_L.glb",
+   "boite": {
+    "min": [
+     -3.14,
+     -1.15,
+     -1.44
+    ],
+    "max": [
+     3.14,
+     0.057,
+     1.44
+    ],
+    "taille": [
+     6.28,
+     1.207,
+     2.88
+    ]
+   },
+   "trianglesSource": 1224,
+   "triangles": 1224,
+   "ko": 20.9
+  },
+  {
+   "role": "plateforme",
+   "variante": "herbe et pierre",
+   "map": "archipel",
+   "surface": {
+    "forme": "rectangle arrondi",
+    "demiX": 2.3,
+    "demiZ": 1.2,
+    "y": 0,
+    "contour": [
+     [
+      2.3,
+      0
+     ],
+     [
+      2.267,
+      -0.628
+     ],
+     [
+      1.878,
+      -1.105
+     ],
+     [
+      1.263,
+      -1.2
+     ],
+     [
+      0.631,
+      -1.2
+     ],
+     [
+      0,
+      -1.2
+     ],
+     [
+      -0.631,
+      -1.2
+     ],
+     [
+      -1.263,
+      -1.2
+     ],
+     [
+      -1.878,
+      -1.105
+     ],
+     [
+      -2.267,
+      -0.628
+     ],
+     [
+      -2.3,
+      0
+     ],
+     [
+      -2.267,
+      0.628
+     ],
+     [
+      -1.878,
+      1.105
+     ],
+     [
+      -1.263,
+      1.2
+     ],
+     [
+      -0.631,
+      1.2
+     ],
+     [
+      0,
+      1.2
+     ],
+     [
+      0.631,
+      1.2
+     ],
+     [
+      1.263,
+      1.2
+     ],
+     [
+      1.878,
+      1.105
+     ],
+     [
+      2.267,
+      0.628
+     ]
+    ]
+   },
+   "collider": {
+    "type": "box traversable par le dessous (one-way)",
+    "conseil": "box hx 2.25 hy 0.15 hz 1.15 centrée y=-0.15"
+   },
+   "usage": "Plateforme flottante fine (2,2 à 2,8 m au-dessus du plateau), traversable en sautant.",
+   "nom": "plateforme_pierre_M",
+   "fichier": "plateforme_pierre_M.glb",
+   "boite": {
+    "min": [
+     -2.34,
+     -1.05,
+     -1.24
+    ],
+    "max": [
+     2.34,
+     0.058,
+     1.24
+    ],
+    "taille": [
+     4.68,
+     1.108,
+     2.48
+    ]
+   },
+   "trianglesSource": 1152,
+   "triangles": 1152,
+   "ko": 19.9
+  },
+  {
+   "role": "plateforme",
+   "variante": "herbe et pierre",
+   "map": "archipel",
+   "surface": {
+    "forme": "rectangle arrondi",
+    "demiX": 1.6,
+    "demiZ": 1,
+    "y": 0,
+    "contour": [
+     [
+      1.6,
+      0
+     ],
+     [
+      1.561,
+      -0.447
+     ],
+     [
+      1.311,
+      -0.816
+     ],
+     [
+      0.902,
+      -0.993
+     ],
+     [
+      0.451,
+      -1
+     ],
+     [
+      0,
+      -1
+     ],
+     [
+      -0.451,
+      -1
+     ],
+     [
+      -0.902,
+      -0.993
+     ],
+     [
+      -1.311,
+      -0.816
+     ],
+     [
+      -1.561,
+      -0.447
+     ],
+     [
+      -1.6,
+      0
+     ],
+     [
+      -1.561,
+      0.447
+     ],
+     [
+      -1.311,
+      0.816
+     ],
+     [
+      -0.902,
+      0.993
+     ],
+     [
+      -0.451,
+      1
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      0.451,
+      1
+     ],
+     [
+      0.902,
+      0.993
+     ],
+     [
+      1.311,
+      0.816
+     ],
+     [
+      1.561,
+      0.447
+     ]
+    ]
+   },
+   "collider": {
+    "type": "box traversable par le dessous (one-way)",
+    "conseil": "box hx 1.55 hy 0.15 hz 0.95 centrée y=-0.15"
+   },
+   "usage": "Plateforme flottante fine (2,2 à 2,8 m au-dessus du plateau), traversable en sautant.",
+   "nom": "plateforme_pierre_S",
+   "fichier": "plateforme_pierre_S.glb",
+   "boite": {
+    "min": [
+     -1.639,
+     -0.95,
+     -1.04
+    ],
+    "max": [
+     1.64,
+     0.056,
+     1.04
+    ],
+    "taille": [
+     3.279,
+     1.006,
+     2.08
+    ]
+   },
+   "trianglesSource": 1008,
+   "triangles": 1008,
+   "ko": 18.3
+  },
+  {
+   "role": "plateforme",
+   "variante": "radeau de planches",
+   "map": "galion",
+   "surface": {
+    "forme": "rectangle arrondi",
+    "demiX": 3.1,
+    "demiZ": 1.4,
+    "y": 0,
+    "contour": [
+     [
+      3.1,
+      0
+     ],
+     [
+      3.086,
+      -0.839
+     ],
+     [
+      2.519,
+      -1.39
+     ],
+     [
+      1.68,
+      -1.4
+     ],
+     [
+      0.84,
+      -1.4
+     ],
+     [
+      0,
+      -1.4
+     ],
+     [
+      -0.84,
+      -1.4
+     ],
+     [
+      -1.68,
+      -1.4
+     ],
+     [
+      -2.519,
+      -1.39
+     ],
+     [
+      -3.086,
+      -0.839
+     ],
+     [
+      -3.1,
+      0
+     ],
+     [
+      -3.086,
+      0.839
+     ],
+     [
+      -2.519,
+      1.39
+     ],
+     [
+      -1.68,
+      1.4
+     ],
+     [
+      -0.84,
+      1.4
+     ],
+     [
+      0,
+      1.4
+     ],
+     [
+      0.84,
+      1.4
+     ],
+     [
+      1.68,
+      1.4
+     ],
+     [
+      2.519,
+      1.39
+     ],
+     [
+      3.086,
+      0.839
+     ]
+    ]
+   },
+   "collider": {
+    "type": "box traversable par le dessous (one-way)",
+    "conseil": "box hx 3.05 hy 0.15 hz 1.35 centrée y=-0.15"
+   },
+   "usage": "Plateforme flottante du galion (débris de pont), traversable en sautant.",
+   "nom": "radeau_L",
+   "fichier": "radeau_L.glb",
+   "boite": {
+    "min": [
+     -3.13,
+     -0.72,
+     -1.43
+    ],
+    "max": [
+     3.13,
+     0.064,
+     1.43
+    ],
+    "taille": [
+     6.26,
+     0.784,
+     2.86
+    ]
+   },
+   "trianglesSource": 1007,
+   "triangles": 1007,
+   "ko": 16.8
+  },
+  {
+   "role": "plateforme",
+   "variante": "radeau de planches",
+   "map": "galion",
+   "surface": {
+    "forme": "rectangle arrondi",
+    "demiX": 2.3,
+    "demiZ": 1.2,
+    "y": 0,
+    "contour": [
+     [
+      2.3,
+      0
+     ],
+     [
+      2.286,
+      -0.639
+     ],
+     [
+      1.909,
+      -1.128
+     ],
+     [
+      1.28,
+      -1.2
+     ],
+     [
+      0.64,
+      -1.2
+     ],
+     [
+      0,
+      -1.2
+     ],
+     [
+      -0.64,
+      -1.2
+     ],
+     [
+      -1.28,
+      -1.2
+     ],
+     [
+      -1.909,
+      -1.128
+     ],
+     [
+      -2.286,
+      -0.639
+     ],
+     [
+      -2.3,
+      0
+     ],
+     [
+      -2.286,
+      0.639
+     ],
+     [
+      -1.909,
+      1.128
+     ],
+     [
+      -1.28,
+      1.2
+     ],
+     [
+      -0.64,
+      1.2
+     ],
+     [
+      0,
+      1.2
+     ],
+     [
+      0.64,
+      1.2
+     ],
+     [
+      1.28,
+      1.2
+     ],
+     [
+      1.909,
+      1.128
+     ],
+     [
+      2.286,
+      0.639
+     ]
+    ]
+   },
+   "collider": {
+    "type": "box traversable par le dessous (one-way)",
+    "conseil": "box hx 2.25 hy 0.15 hz 1.15 centrée y=-0.15"
+   },
+   "usage": "Plateforme flottante du galion (débris de pont), traversable en sautant.",
+   "nom": "radeau_M",
+   "fichier": "radeau_M.glb",
+   "boite": {
+    "min": [
+     -2.33,
+     -0.72,
+     -1.23
+    ],
+    "max": [
+     2.33,
+     0.064,
+     1.23
+    ],
+    "taille": [
+     4.66,
+     0.784,
+     2.46
+    ]
+   },
+   "trianglesSource": 997,
+   "triangles": 997,
+   "ko": 17.3
+  },
+  {
+   "role": "plateforme",
+   "variante": "radeau de planches",
+   "map": "galion",
+   "surface": {
+    "forme": "rectangle arrondi",
+    "demiX": 1.6,
+    "demiZ": 1,
+    "y": 0,
+    "contour": [
+     [
+      1.6,
+      0
+     ],
+     [
+      1.582,
+      -0.459
+     ],
+     [
+      1.343,
+      -0.842
+     ],
+     [
+      0.92,
+      -1
+     ],
+     [
+      0.46,
+      -1
+     ],
+     [
+      0,
+      -1
+     ],
+     [
+      -0.46,
+      -1
+     ],
+     [
+      -0.92,
+      -1
+     ],
+     [
+      -1.343,
+      -0.842
+     ],
+     [
+      -1.582,
+      -0.459
+     ],
+     [
+      -1.6,
+      0
+     ],
+     [
+      -1.582,
+      0.459
+     ],
+     [
+      -1.343,
+      0.842
+     ],
+     [
+      -0.92,
+      1
+     ],
+     [
+      -0.46,
+      1
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      0.46,
+      1
+     ],
+     [
+      0.92,
+      1
+     ],
+     [
+      1.343,
+      0.842
+     ],
+     [
+      1.582,
+      0.459
+     ]
+    ]
+   },
+   "collider": {
+    "type": "box traversable par le dessous (one-way)",
+    "conseil": "box hx 1.55 hy 0.15 hz 0.95 centrée y=-0.15"
+   },
+   "usage": "Plateforme flottante du galion (débris de pont), traversable en sautant.",
+   "nom": "radeau_S",
+   "fichier": "radeau_S.glb",
+   "boite": {
+    "min": [
+     -1.63,
+     -0.72,
+     -1.03
+    ],
+    "max": [
+     1.63,
+     0.064,
+     1.03
+    ],
+    "taille": [
+     3.26,
+     0.784,
+     2.06
+    ]
+   },
+   "trianglesSource": 887,
+   "triangles": 887,
+   "ko": 16.1
+  },
+  {
+   "role": "bord",
+   "variante": "poutre",
+   "map": "galion",
+   "surface": {
+    "forme": "segment droit",
+    "longueur": 2,
+    "largeur": 0.5,
+    "y": 0.07
+   },
+   "ancre": "milieu de l'arête extérieure, dessus à y=0 ; le vide est côté -Z",
+   "collider": {
+    "type": "aucun (visuel)"
+   },
+   "usage": "Liseré clair pour les bords du pont Kenney (remplace le bastingage enlevé).",
+   "nom": "bord_bois",
+   "fichier": "bord_bois.glb",
+   "boite": {
+    "min": [
+     -0.99,
+     -0.24,
+     -0.04
+    ],
+    "max": [
+     0.99,
+     0.07,
+     0.5
+    ],
+    "taille": [
+     1.98,
+     0.31,
+     0.54
+    ]
+   },
+   "trianglesSource": 18,
+   "triangles": 18,
+   "ko": 2.5
+  },
+  {
+   "role": "bord",
+   "variante": "pierre",
+   "map": "toutes",
+   "surface": {
+    "forme": "segment droit",
+    "longueur": 2,
+    "largeur": 0.75,
+    "y": 0.05
+   },
+   "ancre": "milieu de l'arête extérieure, dessus à y=0 ; le vide est côté -Z",
+   "collider": {
+    "type": "aucun (visuel)",
+    "conseil": "garder le collider du sol existant"
+   },
+   "usage": "Liseré clair à poser le long de n importe quel bord (tuiles hex, pont) pour montrer où commence le vide.",
+   "nom": "bord_pierre",
+   "fichier": "bord_pierre.glb",
+   "boite": {
+    "min": [
+     -0.983,
+     -0.3,
+     -0.05
+    ],
+    "max": [
+     0.983,
+     0.06,
+     0.75
+    ],
+    "taille": [
+     1.965,
+     0.36,
+     0.8
+    ]
+   },
+   "trianglesSource": 36,
+   "triangles": 36,
+   "ko": 2.9
+  },
+  {
+   "role": "couvert",
+   "variante": "caisse",
+   "map": "toutes",
+   "ancre": "centre de la base, au sol (y=0)",
+   "collider": {
+    "type": "box",
+    "conseil": "box hx 0.55 hy 0.55 hz 0.55 centrée y=0.55"
+   },
+   "usage": "Couvert ou élément « knockable » (poussée) ; cadre clair lisible de loin.",
+   "nom": "caisse",
+   "fichier": "caisse.glb",
+   "boite": {
+    "min": [
+     -0.55,
+     0,
+     -0.55
+    ],
+    "max": [
+     0.55,
+     1.105,
+     0.55
+    ],
+    "taille": [
+     1.1,
+     1.105,
+     1.1
+    ]
+   },
+   "trianglesSource": 234,
+   "triangles": 234,
+   "ko": 5.8
+  },
+  {
+   "role": "couvert",
+   "variante": "muret de ruine",
+   "map": "archipel",
+   "ancre": "centre de la base, au sol (y=0)",
+   "collider": {
+    "type": "box",
+    "conseil": "box hx 1.6 hy 0.55 hz 0.31 centrée y=0.55 (le haut cassé est plus bas à droite)"
+   },
+   "usage": "Couvert bas (1,1 m : on voit la tête du perso derrière), jamais au centre de la ligne de tir.",
+   "nom": "muret_ruine",
+   "fichier": "muret_ruine.glb",
+   "boite": {
+    "min": [
+     -1.58,
+     -0.05,
+     -0.943
+    ],
+    "max": [
+     2.143,
+     1.121,
+     0.92
+    ],
+    "taille": [
+     3.723,
+     1.171,
+     1.863
+    ]
+   },
+   "trianglesSource": 216,
+   "triangles": 216,
+   "ko": 6.2
+  },
+  {
+   "role": "couvert",
+   "variante": "tonneau",
+   "map": "toutes",
+   "ancre": "centre de la base, au sol (y=0)",
+   "collider": {
+    "type": "cylindre",
+    "conseil": "cylinder radius 0.47 halfHeight 0.55 centré y=0.55"
+   },
+   "usage": "Couvert rond ou tonneau explosif (même collider que props.glb barrel_small).",
+   "nom": "tonneau",
+   "fichier": "tonneau.glb",
+   "boite": {
+    "min": [
+     -0.49,
+     0,
+     -0.478
+    ],
+    "max": [
+     0.49,
+     1.1,
+     0.478
+    ],
+    "taille": [
+     0.98,
+     1.1,
+     0.955
+    ]
+   },
+   "trianglesSource": 210,
+   "triangles": 210,
+   "ko": 4.7
+  },
+  {
+   "role": "fond",
+   "variante": "île lointaine A",
+   "map": "archipel",
+   "collider": {
+    "type": "aucun"
+   },
+   "usage": "Silhouette de fond, à placer à 30-60 m, échelle 1 à 3, le brouillard fait le reste.",
+   "nom": "ile_lointaine_A",
+   "fichier": "ile_lointaine_A.glb",
+   "boite": {
+    "min": [
+     -3.2,
+     -4.2,
+     -2.385
+    ],
+    "max": [
+     3.2,
+     2.741,
+     2.385
+    ],
+    "taille": [
+     6.4,
+     6.941,
+     4.77
+    ]
+   },
+   "trianglesSource": 562,
+   "triangles": 562,
+   "ko": 11.2
+  },
+  {
+   "role": "fond",
+   "variante": "île lointaine B",
+   "map": "archipel",
+   "collider": {
+    "type": "aucun"
+   },
+   "usage": "Silhouette de fond, à placer à 30-60 m, échelle 1 à 3, le brouillard fait le reste.",
+   "nom": "ile_lointaine_B",
+   "fichier": "ile_lointaine_B.glb",
+   "boite": {
+    "min": [
+     -2.2,
+     -3.2,
+     -1.788
+    ],
+    "max": [
+     2.2,
+     2.41,
+     1.788
+    ],
+    "taille": [
+     4.4,
+     5.61,
+     3.576
+    ]
+   },
+   "trianglesSource": 504,
+   "triangles": 504,
+   "ko": 10.3
+  },
+  {
+   "role": "fond",
+   "variante": "nuage A",
+   "map": "archipel",
+   "ancre": "centre du dessous (plat)",
+   "collider": {
+    "type": "aucun"
+   },
+   "usage": "Nuage de fond (5 m à l'échelle 1) : échelle 2 à 5, sous et autour du plateau, sans ombre portée.",
+   "nom": "nuage_A",
+   "fichier": "nuage_A.glb",
+   "boite": {
+    "min": [
+     -2.9,
+     0,
+     -1.36
+    ],
+    "max": [
+     3,
+     1.719,
+     1.3
+    ],
+    "taille": [
+     5.9,
+     1.719,
+     2.66
+    ]
+   },
+   "trianglesSource": 400,
+   "triangles": 400,
+   "ko": 11.3
+  },
+  {
+   "role": "fond",
+   "variante": "nuage B",
+   "map": "archipel",
+   "ancre": "centre du dessous (plat)",
+   "collider": {
+    "type": "aucun"
+   },
+   "usage": "Nuage de fond (5 m à l'échelle 1) : échelle 2 à 5, sous et autour du plateau, sans ombre portée.",
+   "nom": "nuage_B",
+   "fichier": "nuage_B.glb",
+   "boite": {
+    "min": [
+     -2.25,
+     0,
+     -1.14
+    ],
+    "max": [
+     2.3,
+     1.506,
+     0.9
+    ],
+    "taille": [
+     4.55,
+     1.506,
+     2.04
+    ]
+   },
+   "trianglesSource": 320,
+   "triangles": 320,
+   "ko": 9.3
+  },
+  {
+   "role": "fond",
+   "variante": "rocher flottant L",
+   "map": "archipel",
+   "collider": {
+    "type": "aucun"
+   },
+   "usage": "Rocher flottant de décor, hors du plateau (5 à 25 m), léger mouvement de flottaison conseillé.",
+   "nom": "rocher_L",
+   "fichier": "rocher_L.glb",
+   "boite": {
+    "min": [
+     -2.3,
+     -3.91,
+     -1.84
+    ],
+    "max": [
+     2.3,
+     0,
+     1.84
+    ],
+    "taille": [
+     4.6,
+     3.91,
+     3.68
+    ]
+   },
+   "trianglesSource": 288,
+   "triangles": 288,
+   "ko": 6.4
+  },
+  {
+   "role": "fond",
+   "variante": "rocher flottant M",
+   "map": "archipel",
+   "collider": {
+    "type": "aucun"
+   },
+   "usage": "Rocher flottant de décor, hors du plateau (5 à 25 m), léger mouvement de flottaison conseillé.",
+   "nom": "rocher_M",
+   "fichier": "rocher_M.glb",
+   "boite": {
+    "min": [
+     -1.5,
+     -2.55,
+     -1.2
+    ],
+    "max": [
+     1.5,
+     0,
+     1.2
+    ],
+    "taille": [
+     3,
+     2.55,
+     2.4
+    ]
+   },
+   "trianglesSource": 288,
+   "triangles": 288,
+   "ko": 6.5
+  },
+  {
+   "role": "fond",
+   "variante": "rocher flottant S",
+   "map": "archipel",
+   "collider": {
+    "type": "aucun"
+   },
+   "usage": "Rocher flottant de décor, hors du plateau (5 à 25 m), léger mouvement de flottaison conseillé.",
+   "nom": "rocher_S",
+   "fichier": "rocher_S.glb",
+   "boite": {
+    "min": [
+     -0.9,
+     -1.53,
+     -0.72
+    ],
+    "max": [
+     0.9,
+     0,
+     0.72
+    ],
+    "taille": [
+     1.8,
+     1.53,
+     1.44
+    ]
+   },
+   "trianglesSource": 216,
+   "triangles": 216,
+   "ko": 5.4
+  }
+ ]
+}

@@ -1,70 +1,137 @@
-// HUD persistant pendant le match : PV segmentés (P1 gauche / P2 droite, miroir), budget de déplacement,
-// 3 armes + recharge (pip retourné = carte retournée), chrono, bandeau de tour, sous-titres de l'animateur,
-// PERFECT/GOOD/MISS, RING OUT!/K.O. Monter AVANT ctx.hooks.startMatch(...) : sinon le tout premier `turn:start`
-// (émis en synchrone) est manqué.
+// HUD du match façon Smash (lot LUX) : en bas, un encart par joueur (portrait, nom, % énorme qui saute et change de
+// couleur, vies, jauge BRO), au centre la barre des 3 armes du joueur actif (sticker, nom, catégorie, touche,
+// recharge), au-dessus l'aide contextuelle (help.ts). Bandeaux READY? / GO! / GAME!, bandeau de tour, notes de
+// parade, sous-titres de l'animateur en haut. Monter AVANT ctx.hooks.startMatch (le 1er turn:start est synchrone).
 import { durees } from '../art/tokens.js';
-import { MOVE_BUDGET } from '../core/state';
 import type { Ctx, PlayerId, Weapon } from '../core/types';
 import { createCommentary } from './commentary';
-import { el, fmtSeconds, makeBar, strokeNum } from './dom';
+import { el } from './dom';
+import { categoryTag } from './icons';
 import { createFloaters } from './floaters';
-import { createHpBar } from './hpBar';
-import { categoryIconSvg } from './icons';
+import { mountHelp } from './help';
+import { kbd } from './keys';
+import { fighterPortrait } from './portraits';
+import { weaponSticker } from './sticker2d';
 import { LOCAL_TOKENS } from './theme';
 
-const TICKING_PHASES = new Set(['turn-intro', 'move', 'aim', 'resolve']);
+const MATCH_PHASES = new Set(['turn-intro', 'move', 'aim', 'resolve', 'snap-time', 'ko']);
 const ARSENAL_SIZE = 3;
 
-// Pip persistant (pas recréé à chaque sync) : sinon `.cooling` bascule sur un nœud tout neuf et la transition
-// CSS de retournement (durees.glisse) ne joue jamais — on ne verrait qu'un instantané, jamais le mouvement.
-function createWeaponPip() {
-  const pip = el('div', 'weapon-pip');
-  const flip = el('div', 'weapon-pip-flip');
-  const front = el('div', 'weapon-pip-face front');
-  const back = el('div', 'weapon-pip-face back');
-  const cd = strokeNum('', 'pip-cd');
-  back.append(cd);
-  flip.append(front, back);
-  pip.append(flip);
-  let lastCategory = '';
+/** Couleur du % façon Smash : blanc → jaune → orange → rouge → rouge sombre (paliers LOCAL_TOKENS.pct). */
+function pctColor(pct: number): string {
+  const ramp = LOCAL_TOKENS.pct;
+  if (pct <= ramp[0][0]) return ramp[0][1];
+  for (let i = 1; i < ramp.length; i++) {
+    const [p1, c1] = ramp[i];
+    const [p0, c0] = ramp[i - 1];
+    if (pct <= p1) return mix(c0, c1, (pct - p0) / (p1 - p0));
+  }
+  return ramp[ramp.length - 1][1];
+}
+
+function mix(a: string, b: string, t: number): string {
+  const pa = parseInt(a.slice(1), 16);
+  const pb = parseInt(b.slice(1), 16);
+  const ch = (shift: number) => Math.round(((pa >> shift) & 255) * (1 - t) + ((pb >> shift) & 255) * t);
+  return `rgb(${ch(16)},${ch(8)},${ch(0)})`;
+}
+
+function replay(node: HTMLElement, cls: string): void {
+  node.classList.remove(cls);
+  void node.offsetWidth;
+  node.classList.add(cls);
+}
+
+// ---------- Encart joueur ----------
+function createPlate(player: PlayerId) {
+  const root = el('div', `plate p${player + 1}`);
+  const portrait = el('div', 'plate-portrait');
+  const body = el('div', 'plate-body');
+  const name = el('div', 'plate-name');
+  const pct = el('div', 'plate-pct');
+  const pctNum = el('span', 'pct-num', '0');
+  pct.append(pctNum, el('span', 'pct-sign', '%'));
+  const stocks = el('div', 'plate-stocks');
+  const bro = el('div', 'plate-bro');
+  const broFill = el('i');
+  const broLabel = el('span', 'bro-label', 'BRO');
+  bro.append(broFill, broLabel);
+  body.append(name, pct, stocks);
+  root.append(portrait, body, bro);
+
+  let lastPct = -1;
+  let lastStocks = -1;
+  let lastFighter = '';
   return {
-    root: pip,
-    update(weapon: Weapon, active: boolean) {
-      pip.hidden = false;
-      if (weapon.category !== lastCategory) {
-        front.innerHTML = categoryIconSvg(weapon.category);
-        pip.style.setProperty('--accent', LOCAL_TOKENS.category[weapon.category]);
-        lastCategory = weapon.category;
+    root,
+    sync(ctx: Ctx) {
+      const ps = ctx.state.players[player];
+      const f = ps.fighter;
+      const fid = f?.id ?? '';
+      if (fid !== lastFighter) {
+        lastFighter = fid;
+        name.textContent = f?.name ?? `Player ${player + 1}`;
+        portrait.replaceChildren(fighterPortrait(f, player));
       }
-      pip.title = weapon.name;
-      pip.classList.toggle('active', active);
-      pip.classList.toggle('cooling', weapon.cooldown > 0);
-      cd.textContent = weapon.cooldown > 0 ? String(weapon.cooldown) : '';
+      const p = Math.max(0, Math.round(ps.pct ?? 0));
+      if (p !== lastPct) {
+        if (lastPct >= 0 && p > lastPct) replay(pct, 'hit');
+        pctNum.textContent = String(p);
+        pct.style.setProperty('--pct-color', pctColor(p));
+        lastPct = p;
+      }
+      const s = Math.max(0, ps.stocks ?? 0);
+      if (s !== lastStocks) {
+        const total = Math.max(s, ctx.state.demo ? 1 : 2, lastStocks);
+        stocks.replaceChildren(
+          ...Array.from({ length: total }, (_, i) => el('span', `stock${i < s ? '' : ' lost'}`)),
+        );
+        if (lastStocks > s) replay(stocks, 'lost-one');
+        lastStocks = s;
+      }
+      root.classList.toggle('active', ctx.state.active === player && MATCH_PHASES.has(ctx.state.phase));
+      root.classList.toggle('ledge', !!ps.onLedge);
+    },
+    setBro(value: number, ready: boolean) {
+      broFill.style.transform = `scaleX(${Math.max(0, Math.min(1, value))})`;
+      bro.classList.toggle('ready', ready);
+      broLabel.textContent = ready ? 'BRO SMASH READY' : 'BRO';
+    },
+    reset() {
+      lastPct = -1;
+      lastStocks = -1;
     },
   };
 }
 
-function renderPlayerPanel(player: PlayerId) {
-  const root = el('div', `hud-side p${player + 1}`);
-  const name = el('div', 'hud-name');
-  const hp = createHpBar(player);
-  const weaponsRow = el('div', 'hud-weapons');
-  const pips = Array.from({ length: ARSENAL_SIZE }, () => createWeaponPip());
-  weaponsRow.append(...pips.map((p) => p.root));
-  root.append(name, hp.root, weaponsRow);
-  return { root, name, hp, pips };
-}
-type PlayerPanel = ReturnType<typeof renderPlayerPanel>;
-
-function syncPlayerPanel(ctx: Ctx, player: PlayerId, panel: PlayerPanel) {
-  const ps = ctx.state.players[player];
-  panel.name.textContent = ps.fighter?.name ?? `Player ${player + 1}`;
-  panel.hp.set(ps.hp, ps.fighter?.hpMax ?? 100);
-  panel.pips.forEach((pip, i) => {
-    const weapon = ps.weapons[i];
-    if (weapon) pip.update(weapon, i === ps.selected);
-    else pip.root.hidden = true;
-  });
+// ---------- Barre d'armes du joueur actif ----------
+function createWeaponCard(index: number) {
+  const root = el('div', 'wcard');
+  const key = kbd(String(index + 1), 'wcard-key');
+  const art = el('div', 'wcard-art');
+  const name = el('div', 'wcard-name');
+  const tagSlot = el('div', 'wcard-tag');
+  const cd = el('div', 'wcard-cd', 'READY IN 1 TURN');
+  root.append(key, art, name, tagSlot, cd);
+  let lastId = '';
+  let lastSticker = '';
+  return {
+    root,
+    update(w: Weapon | undefined, selected: boolean) {
+      root.hidden = !w;
+      if (!w) return;
+      if (w.id !== lastId || (w.stickerUrl ?? '') !== lastSticker) {
+        lastId = w.id;
+        lastSticker = w.stickerUrl ?? '';
+        art.replaceChildren(weaponSticker(w, 'wcard-sticker'));
+        name.textContent = w.name;
+        tagSlot.replaceChildren(categoryTag(w, true));
+      }
+      root.classList.toggle('selected', selected);
+      root.classList.toggle('cooling', w.cooldown > 0);
+      cd.textContent = w.cooldown > 1 ? `READY IN ${w.cooldown} TURNS` : 'READY IN 1 TURN';
+    },
+  };
 }
 
 export interface Hud {
@@ -74,53 +141,51 @@ export interface Hud {
 
 export function mountHud(ctx: Ctx): Hud {
   const root = el('div', 'hud-root');
-  const p1 = renderPlayerPanel(0);
-  const p2 = renderPlayerPanel(1);
-  const top = el('div', 'hud-top');
-  top.append(p1.root, p2.root);
+  root.hidden = true;
+  const plates = [createPlate(0), createPlate(1)];
+  const wbar = el('div', 'wbar');
+  const cards = Array.from({ length: ARSENAL_SIZE }, (_, i) => createWeaponCard(i));
+  wbar.append(...cards.map((c) => c.root));
 
   const turnBanner = el('div', 'turn-banner');
   turnBanner.hidden = true;
   const centerBanner = el('div', 'center-banner');
   centerBanner.hidden = true;
-
-  const timerBar = makeBar('mini', 'hud-timer-bar');
-  const timerNum = strokeNum('', 'hud-timer-num');
-  const timerWrap = el('div', 'hud-timer');
-  timerWrap.append(timerBar.root, timerNum);
-  const moveBar = makeBar('mini', 'hud-move-bar');
-  const moveNum = el('span', 'num hud-move-num');
-  const moveWrap = el('div', 'hud-move');
-  moveWrap.append(el('span', 'hud-move-label', 'Move'), moveBar.root, moveNum);
-  const dock = el('div', 'hud-dock');
-  dock.append(timerWrap, moveWrap);
+  const bigBanner = el('div', 'big-banner');
+  bigBanner.hidden = true;
 
   const commentary = createCommentary();
-
   const floaters = createFloaters(ctx);
-  root.append(top, turnBanner, centerBanner, dock, commentary.root, floaters.root);
+  const help = mountHelp(ctx);
+  // Colonne du bas, au centre : sous-titre de l'animateur (2 s), aide à touches, barre d'armes. Rien d'autre.
+  const bottom = el('div', 'hud-bottom');
+  bottom.append(commentary.root, help.root, wbar);
+  root.append(help.world, plates[0].root, plates[1].root, bottom, turnBanner, centerBanner, bigBanner, floaters.root, help.defend);
+
+  const bro = [
+    { value: 0, ready: false },
+    { value: 0, ready: false },
+  ];
 
   const sync = () => {
-    syncPlayerPanel(ctx, 0, p1);
-    syncPlayerPanel(ctx, 1, p2);
+    plates[0].sync(ctx);
+    plates[1].sync(ctx);
+    const active = ctx.state.players[ctx.state.active];
+    cards.forEach((c, i) => c.update(active.weapons[i], i === active.selected));
+    wbar.classList.toggle('p1', ctx.state.active === 0);
+    wbar.classList.toggle('p2', ctx.state.active === 1);
+    // La barre n'est utile qu'au joueur qui agit : estompée pendant le vol et la parade.
+    const phase = ctx.state.phase;
+    wbar.classList.toggle('idle', (phase !== 'move' && phase !== 'aim') || !help.defend.hidden);
   };
-  sync();
-
-  let turnStartTimer = ctx.state.timerLeft || 1;
-  function renderMove(player: PlayerId, moveLeft: number) {
-    moveBar.set(moveLeft / MOVE_BUDGET);
-    moveNum.textContent = `P${player + 1} · ${moveLeft.toFixed(1)}m`;
-  }
-  renderMove(ctx.state.active, ctx.state.players[ctx.state.active].moveLeft);
 
   let turnBannerTimer = 0;
   function showTurnBanner(active: PlayerId) {
+    const ai = ctx.state.vsAI && active === 1;
     turnBanner.className = `turn-banner p${active + 1}`;
-    turnBanner.textContent = `P${active + 1} — YOUR TURN!`;
+    turnBanner.textContent = ai ? "AI'S TURN" : `P${active + 1}'S TURN`;
     turnBanner.hidden = false;
-    turnBanner.classList.remove('enter');
-    void turnBanner.offsetWidth;
-    turnBanner.classList.add('enter');
+    replay(turnBanner, 'enter');
     window.clearTimeout(turnBannerTimer);
     turnBannerTimer = window.setTimeout(() => {
       turnBanner.hidden = true;
@@ -132,61 +197,114 @@ export function mountHud(ctx: Ctx): Hud {
     centerBanner.className = `center-banner ${cls}`;
     centerBanner.textContent = text;
     centerBanner.hidden = false;
-    centerBanner.classList.remove('enter');
-    void centerBanner.offsetWidth;
-    centerBanner.classList.add('enter');
+    replay(centerBanner, 'enter');
     window.clearTimeout(centerBannerTimer);
     centerBannerTimer = window.setTimeout(() => {
       centerBanner.hidden = true;
     }, ms);
   }
 
+  // READY? → GO! → (match) → GAME! Émis par les règles (match:banner) ; repli local si elles ne le font pas.
+  let bigTimer = 0;
+  let lastBannerAt = 0;
+  let gameShown = false;
+  function showBig(kind: 'ready' | 'go' | 'game') {
+    lastBannerAt = performance.now();
+    if (kind === 'game') gameShown = true;
+    bigBanner.className = `big-banner ${kind}`;
+    bigBanner.textContent = kind === 'ready' ? 'READY?' : kind === 'go' ? 'GO!' : 'GAME!';
+    bigBanner.hidden = false;
+    replay(bigBanner, 'slam');
+    window.clearTimeout(bigTimer);
+    const hold = kind === 'go' ? durees.dramatique : kind === 'ready' ? durees.bandeau * 2 : durees.ko * 2;
+    bigTimer = window.setTimeout(() => {
+      bigBanner.classList.add('leave');
+      bigTimer = window.setTimeout(() => {
+        bigBanner.hidden = true;
+      }, durees.decolle);
+    }, hold);
+  }
+
   function commentaryNames(): { name: string; color: string }[] {
     const names: { name: string; color: string }[] = [];
     for (const p of ctx.state.players) {
-      if (p.fighter) names.push({ name: p.fighter.name, color: p.id === 0 ? 'var(--b-p1-fonce)' : 'var(--b-p2-fonce)' });
-      for (const wpn of p.weapons) names.push({ name: wpn.name, color: p.id === 0 ? 'var(--b-p1-fonce)' : 'var(--b-p2-fonce)' });
+      const color = p.id === 0 ? 'var(--b-p1-fonce)' : 'var(--b-p2-fonce)';
+      if (p.fighter) names.push({ name: p.fighter.name, color });
+      for (const wpn of p.weapons) names.push({ name: wpn.name, color });
     }
     return names;
   }
 
   const offs = [
+    ctx.bus.on('phase:change', ({ to }) => {
+      root.hidden = !MATCH_PHASES.has(to) && to !== 'end';
+      sync();
+    }),
+    ctx.bus.on('match:start', () => {
+      gameShown = false;
+      plates.forEach((p) => p.reset());
+      bro.forEach((b, i) => {
+        b.value = 0;
+        b.ready = false;
+        plates[i].setBro(0, false);
+      });
+      root.hidden = false;
+      sync();
+      const startedAt = performance.now();
+      // Repli : sans match:banner des règles dans les 150 ms, on joue READY? / GO! nous-mêmes (affichage seul).
+      window.setTimeout(() => {
+        if (lastBannerAt >= startedAt) return;
+        showBig('ready');
+        window.setTimeout(() => showBig('go'), 1200);
+      }, 150);
+    }),
+    ctx.bus.on('match:banner', ({ kind }) => showBig(kind)),
+    ctx.bus.on('match:end', () => {
+      if (!gameShown) showBig('game');
+    }),
     ctx.bus.on('turn:start', ({ active }) => {
-      turnStartTimer = ctx.state.timerLeft || turnStartTimer;
       showTurnBanner(active);
-      renderMove(active, ctx.state.players[active].moveLeft);
       sync();
     }),
-    ctx.bus.on('hit', ({ damage, crit, pos }) => {
+    // Pas de chiffre flottant (désencombrement) : c'est le % de l'encart qui saute, tremble et change de couleur.
+    ctx.bus.on('hit', () => sync()),
+    ctx.bus.on('stock:lost', ({ player, stocksLeft }) => {
       sync();
-      floaters.spawnWorld(pos, `-${Math.round(damage)}`, crit ? 'crit' : '');
+      const label = stocksLeft <= 0 ? `P${player + 1} — OUT!` : stocksLeft === 1 ? `P${player + 1} — LAST LIFE!` : `P${player + 1} — ${stocksLeft} LIVES LEFT`;
+      showCenterBanner(label, `ko p${player + 1}`, durees.ko);
     }),
-    ctx.bus.on('weapon:pick', ({ player, index }) => {
-      ctx.state.players[player].selected = index;
-      sync();
-    }),
+    ctx.bus.on('respawn', () => sync()),
+    ctx.bus.on('ledge:grab', () => sync()),
+    ctx.bus.on('ledge:climb', () => sync()),
+    ctx.bus.on('weapon:pick', () => sync()),
     ctx.bus.on('fire', () => sync()),
-    ctx.bus.on('move:update', ({ player, moveLeft }) => renderMove(player, moveLeft)),
-    ctx.bus.on('parry:result', ({ grade }) => {
-      const label = grade === 'perfect' ? 'PERFECT!' : grade === 'good' ? 'GOOD' : 'MISS';
+    ctx.bus.on('scan:result', () => sync()),
+    ctx.bus.on('parry:window', () => sync()),
+    ctx.bus.on('parry:result', ({ grade, deltaMs }) => {
+      const label = grade === 'perfect' ? 'PERFECT!' : grade === 'good' ? 'GOOD!' : deltaMs < 0 ? 'TOO EARLY' : 'TOO LATE';
       showCenterBanner(label, `grade-${grade}`, durees.dramatique);
     }),
-    ctx.bus.on('ringout', ({ player }) => showCenterBanner(`P${player + 1} — RING OUT!`, 'ko', durees.ko)),
-    ctx.bus.on('ko', ({ player }) => showCenterBanner(`P${player + 1} — K.O.!`, 'ko', durees.ko)),
-    ctx.bus.on('commentary:line', ({ text }) => commentary.show(text, commentaryNames())),
+    ctx.bus.on('bro:gauge', ({ player, value }) => {
+      bro[player].value = value;
+      plates[player].setBro(value, bro[player].ready);
+    }),
+    ctx.bus.on('super:ready', ({ player }) => {
+      bro[player].ready = true;
+      plates[player].setBro(1, true);
+    }),
+    ctx.bus.on('super:fire', ({ player }) => {
+      bro[player].ready = false;
+      bro[player].value = 0;
+      plates[player].setBro(0, false);
+    }),
+    // Lot LVOX (une seule voix) : le sous-titre de la carte animateur = ce qui est RÉELLEMENT entendu
+    // (`voice:line`, émis par src/audio/barks.ts au démarrage d'une réplique), jamais `commentary:line`.
+    // Seulement l'animateur : un bark de perso ou la provocation de l'IA n'ont rien à faire sur sa carte.
+    ctx.bus.on('voice:line', ({ text, speaker }) => {
+      if (speaker !== 'announcer') return;
+      commentary.show(text, commentaryNames());
+    }),
   ];
-
-  ctx.loop.addSystem(
-    'ui-hud-timer',
-    (_dt, real) => {
-      // Ne défile que pendant un tour actif : sinon les écrans de choix (perso/arsenal/présentation/map, qui
-      // n'ont pas de limite de temps) videraient le chrono avant même le premier match:start.
-      if (TICKING_PHASES.has(ctx.state.phase)) ctx.state.timerLeft = Math.max(0, ctx.state.timerLeft - real);
-      timerBar.set(ctx.state.timerLeft / turnStartTimer);
-      timerNum.textContent = fmtSeconds(ctx.state.timerLeft);
-    },
-    900,
-  );
 
   return {
     root,
@@ -194,8 +312,10 @@ export function mountHud(ctx: Ctx): Hud {
       for (const off of offs) off();
       window.clearTimeout(turnBannerTimer);
       window.clearTimeout(centerBannerTimer);
+      window.clearTimeout(bigTimer);
       commentary.dispose();
       floaters.dispose();
+      help.dispose();
     },
   };
 }
