@@ -318,7 +318,7 @@ export function installFlights(ctx: Ctx, deps: FlightDeps) {
     const gy = groundBelow(at);
     const g = new THREE.Vector3(at.x, at.y - gy < 3 ? gy : at.y, at.z);
     // Pour le son (clang, crash, splash…) : matière et masse réelles de l'objet.
-    ctx.bus.emit('weapon:impact', { pos: [at.x, at.y, at.z], weaponId: w.id, category: w.category, material: p.material, massKg: p.massKg, fragile: p.fragile, liquid: p.liquid, on });
+    if (f.kind !== 'bolt') ctx.bus.emit('weapon:impact', { pos: [at.x, at.y, at.z], weaponId: w.id, category: w.category, material: p.material, massKg: p.massKg, fragile: p.fragile, liquid: p.liquid, on });
     if (p.liquid) lastLiquid = { pos: at.clone(), color: w.palette[0], t: performance.now() };
     if (f.kind === 'grenade') {
       // L'explosion part du point d'impact ; son anneau au sol montre le VRAI rayon de dégâts. La matière s'y
