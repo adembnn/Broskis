@@ -53,4 +53,6 @@ Les 4 objets comparés, du plus léger au plus lourd : feutre 20 g < canette 0,3
 | 17h01 | `reports/e2e/20260926-1701` | 9/11 (3D blanche : contexte WebGL perdu) |
 | 17h08 | `reports/e2e/20260926-1708` (carte NVIDIA) | 9/11 |
 | 17h15 | `reports/e2e/20260926-1715` | **11/11** |
-| 17h41 | `reports/e2e/20260926-1741` (nouvelle caméra, objet face caméra, échelle vinyle gonflé) | 10/11 (rebond : feutre tiré hors de l'arène par le test, corrigé) |
+| 17h41 | `reports/e2e/20260926-1741` (nouvelle caméra, objet face caméra, échelle vinyle gonflé) | 10/11 (rebond : feutre tiré hors de l'arène par le test) |
+| 18h05 | `reports/e2e/20260926-1805` (main à jour : RTFIX, LPERF) | 10/11, aucune régression ; seul rouge = protocole du rebond du feutre (léger et rapide, il retombait hors de l'arène), corrigé dans le test après ce passage ; pendule de Newton 1 rebond, canard 4 |
+| 18h01 | `reports/e2e/attente-20260926-1801` (film des attentes, contextes neufs) | 5/13 ; au réseau ralenti de 8 s, l'objet tombe sur une arme de secours ; planches vides dans ce passage (corrigé : images intégrées) |
