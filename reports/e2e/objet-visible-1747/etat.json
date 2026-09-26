@@ -1,0 +1,162 @@
+{
+ "armes": [
+  {
+   "name": "The Ergonomic Yeet",
+   "object": "office chair",
+   "sticker": true,
+   "physics": {
+    "massKg": 9.5,
+    "sizeM": [
+     0.85,
+     0.55,
+     0.55
+    ],
+    "material": "fabric",
+    "shape": "irregular",
+    "bounciness": 0.15,
+    "fragile": false,
+    "liquid": false
+   }
+  },
+  {
+   "name": "The Carbonated Clobberer",
+   "object": "soda can",
+   "sticker": true,
+   "physics": {
+    "massKg": 0.35,
+    "sizeM": [
+     0.12,
+     0.066,
+     0.066
+    ],
+    "material": "metal",
+    "shape": "round",
+    "bounciness": 0.15,
+    "fragile": false,
+    "liquid": true
+   }
+  }
+ ],
+ "enMain": [
+  {
+   "p": 0,
+   "arme": "The Ergonomic Yeet",
+   "trouve": true,
+   "racineVisible": true,
+   "echelle": 1.12,
+   "meshes": 4,
+   "visibles": 4,
+   "materiaux": [
+    {
+     "type": "MeshStandardMaterial",
+     "opacite": 1,
+     "transparent": false,
+     "alphaTest": 0.5,
+     "map": true,
+     "visible": true,
+     "couches": 1
+    },
+    {
+     "type": "MeshStandardMaterial",
+     "opacite": 1,
+     "transparent": false,
+     "alphaTest": 0,
+     "map": false,
+     "visible": true,
+     "couches": 1
+    },
+    {
+     "type": "MeshBasicMaterial",
+     "opacite": 1,
+     "transparent": false,
+     "alphaTest": 0,
+     "map": false,
+     "visible": true,
+     "couches": 1
+    },
+    {
+     "type": "MeshStandardMaterial",
+     "opacite": 1,
+     "transparent": false,
+     "alphaTest": 0.5,
+     "map": true,
+     "visible": true,
+     "couches": 1
+    }
+   ],
+   "camCouches": 3,
+   "ecartMain": 0.76,
+   "ecran": {
+    "x": 0.01,
+    "y": -0.32,
+    "devant": true
+   }
+  },
+  {
+   "p": 1,
+   "arme": "The Carbonated Clobberer",
+   "trouve": true,
+   "racineVisible": true,
+   "echelle": 0.74,
+   "meshes": 4,
+   "visibles": 4,
+   "materiaux": [
+    {
+     "type": "MeshStandardMaterial",
+     "opacite": 1,
+     "transparent": false,
+     "alphaTest": 0.5,
+     "map": true,
+     "visible": true,
+     "couches": 1
+    },
+    {
+     "type": "MeshStandardMaterial",
+     "opacite": 1,
+     "transparent": false,
+     "alphaTest": 0,
+     "map": false,
+     "visible": true,
+     "couches": 1
+    },
+    {
+     "type": "MeshBasicMaterial",
+     "opacite": 1,
+     "transparent": false,
+     "alphaTest": 0,
+     "map": false,
+     "visible": true,
+     "couches": 1
+    },
+    {
+     "type": "MeshStandardMaterial",
+     "opacite": 1,
+     "transparent": false,
+     "alphaTest": 0.5,
+     "map": true,
+     "visible": true,
+     "couches": 1
+    }
+   ],
+   "camCouches": 5,
+   "ecartMain": 0.57,
+   "ecran": {
+    "x": -0.05,
+    "y": -0.32,
+    "devant": true
+   }
+  }
+ ],
+ "enVol": [
+  {
+   "nom": "arme-chaise-p0-0",
+   "visible": true,
+   "echelle": 1.12,
+   "ecranP1": [
+    -0.14,
+    0.15,
+    true
+   ]
+  }
+ ]
+}
