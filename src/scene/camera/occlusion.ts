@@ -39,7 +39,10 @@ function raycastHits(scene: THREE.Scene, camera: THREE.Camera, focus: THREE.Vect
   raycaster.set(camera.position, dir);
   raycaster.near = 0.05;
   raycaster.far = dist - 0.3; // marge : ne masque jamais la cible elle-même
-  for (const hit of raycaster.intersectObjects(scene.children, true)) {
+  // perf : rayon sur le décor seulement. Tester les persos animés (SkinnedMesh) recalcule chaque sommet avec
+  // ses os : jusqu'à 18 ms par image sur le Galion (lot LPERF). Et un perso ne doit jamais passer en fondu.
+  const decor = scene.children.filter((c) => !registry.occlusionExcluded.has(c) && !registry.fighterRoots.includes(c));
+  for (const hit of raycaster.intersectObjects(decor, true)) {
     const mesh = hit.object as THREE.Mesh;
     if (!mesh.isMesh || Array.isArray(mesh.material) || isExcluded(mesh)) continue;
     hits.add(mesh);
