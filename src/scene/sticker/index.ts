@@ -57,7 +57,7 @@ const MAX_HOLE_POINTS = 120;
  *  pour caler l'épaisseur sur la profondeur réelle de l'objet. */
 const EPAISSEUR_TOTALE = 0.082;
 /** Part de cette épaisseur donnée au bombé des deux faces ; le reste est le carton du bord (lot LBENCH). */
-const PART_BOMBE = 0.6;
+const PART_BOMBE = 0.75;
 
 /** Palette carton par défaut, utilisée si aucune palette d'arme n'est fournie. */
 const CARDBOARD_TRANCHE = '#c9a36a';
@@ -469,7 +469,7 @@ export async function makeSticker(
 ): Promise<THREE.Group> {
   const targetHeight = opts.height ?? 1;
   const gonfle = opts.gonflage ?? opts.depth === undefined;
-  // Gonflé : carton du bord = 40 % de l'épaisseur (biseaux compris : profondeur × 1,8), bombé = 60 % en deux faces.
+  // Gonflé : carton du bord = 25 % de l'épaisseur (biseaux compris : profondeur × 1,8), bombé = 75 % en deux faces.
   const depth = opts.depth ?? (gonfle ? (targetHeight * EPAISSEUR_TOTALE * (1 - PART_BOMBE)) / 1.8 : 0.06);
   const bombe = gonfle ? (targetHeight * EPAISSEUR_TOTALE * PART_BOMBE) / 2 : 0;
   const borderFrac = opts.border ?? 0;
@@ -566,8 +566,8 @@ export async function makeSticker(
   const couleurCorps = couleurTranche(keyed, analysisCanvas, analysisScale, dist);
   const edgeMaterial = createToonMaterial(couleurCorps, { steps: 3 });
   // Dos uni (retour d'Adem, 16h55 : « on doit lire UN seul objet sous tous les angles ») : la silhouette à la
-  // couleur de l'objet avec un liseré blanc de sticker, au lieu de l'image en miroir (qui dédoublait l'objet).
-  const dosTexture = new THREE.CanvasTexture(texteDos(keyed, analysisCanvas, dist, couleurCorps));
+  // couleur de l'objet, au lieu de l'image en miroir (qui dédoublait l'objet).
+  const dosTexture = new THREE.CanvasTexture(texteDos(keyed, couleurCorps));
   dosTexture.colorSpace = THREE.SRGBColorSpace;
   const dosMaterial = createToonMaterial(0xffffff, { map: dosTexture, transparent: true, steps: 3 });
   dosMaterial.side = THREE.DoubleSide;
@@ -675,41 +675,19 @@ function couleurTranche(keyed: HTMLCanvasElement, analysis: HTMLCanvasElement, a
 
 /** Tranche et dos : couleur dominante de l'objet assombrie de 15 % (retour d'Adem). */
 const ASSOMBRI_TRANCHE = 0.85;
-/** Liseré blanc du dos, en fraction de la plus grande dimension du masque. */
-const LISERE_DOS = 0.018;
-
 /**
- * Texture du dos : la silhouette de l'objet (alpha du détourage) en blanc, et l'intérieur, à plus de LISERE_DOS du
- * bord, à la couleur de l'objet. Calculé sur le masque d'analyse puis agrandi (bord lissé par l'agrandissement).
+ * Texture du dos : la silhouette de l'objet (alpha du détourage) toute à la couleur de l'objet. Sans liseré : de
+ * trois-quarts, un liseré blanc au dos dépassait derrière celui de la face (« double silhouette », juge du banc).
  */
-function texteDos(keyed: HTMLCanvasElement, analysis: HTMLCanvasElement, dist: Float32Array, couleur: THREE.Color): HTMLCanvasElement {
-  const { width: aw, height: ah } = analysis;
-  const interieur = document.createElement('canvas');
-  interieur.width = aw;
-  interieur.height = ah;
-  const ic = interieur.getContext('2d')!;
-  const img = ic.createImageData(aw, ah);
-  const lisere = Math.max(1.5, LISERE_DOS * Math.max(aw, ah));
-  const hex = couleur.getHex(); // sRGB
-  const [r, g, b] = [(hex >> 16) & 255, (hex >> 8) & 255, hex & 255];
-  for (let i = 0; i < aw * ah; i++) {
-    if (dist[i] < lisere) continue;
-    img.data[i * 4] = r;
-    img.data[i * 4 + 1] = g;
-    img.data[i * 4 + 2] = b;
-    img.data[i * 4 + 3] = 255;
-  }
-  ic.putImageData(img, 0, 0);
+function texteDos(keyed: HTMLCanvasElement, couleur: THREE.Color): HTMLCanvasElement {
   const dos = document.createElement('canvas');
   dos.width = keyed.width;
   dos.height = keyed.height;
   const ctx = dos.getContext('2d')!;
   ctx.drawImage(keyed, 0, 0);
   ctx.globalCompositeOperation = 'source-in';
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = `#${couleur.getHexString()}`; // sRGB
   ctx.fillRect(0, 0, dos.width, dos.height);
-  ctx.globalCompositeOperation = 'source-atop';
-  ctx.drawImage(interieur, 0, 0, dos.width, dos.height);
   return dos;
 }
 
