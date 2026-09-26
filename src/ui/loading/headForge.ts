@@ -178,16 +178,21 @@ export function mountHeadForge(opts: { photoUrl: string; player: PlayerId }): He
       peindre();
       preview?.dispose();
       preview = mountHeadPreview(f, opts.player);
-      if (!preview) return null;
+      const pret = () => {
+        etat.build = 'done';
+        etat.ready = 'done';
+        peindre();
+        root.classList.add('ready');
+      };
+      if (!preview) {
+        pret(); // pas de contexte WebGL de plus ici : la planche 2D fait foi, le match posera la tête
+        return null;
+      }
       stage.append(preview.root);
       root.classList.add('has-3d');
       const ok = await preview.ready;
-      if (disposed) return false;
-      if (!ok) return false;
-      etat.build = 'done';
-      etat.ready = 'done';
-      peindre();
-      root.classList.add('ready');
+      if (disposed || !ok) return false;
+      pret();
       return true;
     },
     fail(message, actions) {

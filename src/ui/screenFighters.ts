@@ -50,7 +50,8 @@ const isForging = (f: FighterDef | null) => !!f && f.id.startsWith(FORGING);
 // Nom modifiable et message d'échec du scan (lot LFACE) : ajouts minimes, couleurs du thème existant.
 const LFACE_CSS = `
 .fighter-panel input.name-input { width:100%; min-width:0; border:0; border-bottom:3px dashed var(--b-encre); background:transparent;
-  color:inherit; font:400 clamp(24px, 3.6vh, 36px)/1 var(--b-display); padding:0 0 2px; text-align:inherit; }
+  color:inherit; font:400 clamp(20px, 2.8vh, 30px)/1 var(--b-display); padding:0 0 2px; text-align:inherit; }
+.fighter-panel-actions { display:grid; gap:6px; flex:none; }
 .fighter-panel input.name-input:focus { outline:none; border-bottom-style:solid; }
 .fighter-panel .fighter-issue { font-size:14px; font-weight:700; }
 .fighter-panel .forge { transform:scale(.7); transform-origin:center; margin:-14px 0; }
@@ -159,11 +160,13 @@ export function runFighterSelect(screenLayer: HTMLElement, vsAI = false): Promis
       text.append(scanned.has(f.id) && human(p) ? nameField(f, p) : el('strong', 'fighter-panel-name', f.name));
       if (f.catchphrase) text.append(el('span', 'fighter-quote', `"${f.catchphrase}"`));
       box.append(text);
-      if (scanned.has(f.id) && human(p)) box.append(button('New photo', 'b-btn small alt', () => void snapFor(p)));
+      // Boutons empilés en colonne : le nom garde la place de s'afficher en entier.
+      const actions = el('div', 'fighter-panel-actions');
+      if (scanned.has(f.id) && human(p)) actions.append(button('New photo', 'b-btn small alt', () => void snapFor(p)));
       if (human(p)) {
-        if (voiceReady[p]) box.append(el('span', 'voice-badge', 'Voice ready'));
+        if (voiceReady[p]) actions.append(el('span', 'voice-badge', 'Voice ready'));
         else
-          box.append(
+          actions.append(
             button('Use my voice', 'b-btn small voice-btn', async () => {
               side.hidden = false;
               grid.hidden = true;
@@ -189,6 +192,7 @@ export function runFighterSelect(screenLayer: HTMLElement, vsAI = false): Promis
           render();
         });
       }
+      if (actions.childElementCount) box.append(actions);
     } else {
       box.append(el('div', 'fighter-panel-empty', human(p) ? 'Pick a fighter' : 'AI picks…'));
     }
@@ -283,7 +287,7 @@ export function runFighterSelect(screenLayer: HTMLElement, vsAI = false): Promis
   /** Lot LWAIT : chaque étape RÉELLE du scan avance l'écran d'attente ; le perso n'est « prêt » que quand sa grosse tête
    * est affichée sur le perso 3D. Échec ou 30 s sans tête : le joueur choisit (Retry ou tête par défaut) ; une tête
    * qui arrive pendant qu'il hésite est prise tout de suite. */
-  async function lancerScan(p: PlayerId, blob: Blob): Promise<void> {
+  async function lancerScan(p: PlayerId, blob: Blob, frais = false): Promise<void> {
     forges[p]?.dispose();
     decision[p] = false;
     const forge = mountHeadForge({ photoUrl: URL.createObjectURL(blob), player: p });
@@ -339,7 +343,7 @@ export function runFighterSelect(screenLayer: HTMLElement, vsAI = false): Promis
       if (!actif()) return;
       decision[p] = true;
       forge.fail(message, [
-        [nouvellePhoto ? 'New photo' : 'Retry', () => (nouvellePhoto ? void snapFor(p) : void lancerScan(p, blob))],
+        [nouvellePhoto ? 'New photo' : 'Retry', () => (nouvellePhoto ? void snapFor(p) : void lancerScan(p, blob, true))],
         ['Use a default head', () => teteParDefaut()],
       ]);
       render();
@@ -350,7 +354,7 @@ export function runFighterSelect(screenLayer: HTMLElement, vsAI = false): Promis
       const base = courant === forging ? report?.fighter ?? courant : courant;
       const f: FighterDef = {
         ...base,
-        id: `${base.id}-default`,
+        id: `${base.id}-default-${p}-${Date.now().toString(36)}`,
         portraitUrl: undefined,
         look: base.look ? { ...base.look, faceUrl: undefined, backUrl: undefined } : undefined,
       };
@@ -367,6 +371,7 @@ export function runFighterSelect(screenLayer: HTMLElement, vsAI = false): Promis
     };
     report = await scanFighterReport(blob, {
       attenteMs: ATTENTE_TETE_MS,
+      frais,
       onProgress: (e) => {
         if (!actif()) return;
         if (e.step === 'traits') forge.traits(e.preview);

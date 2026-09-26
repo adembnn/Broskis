@@ -57,6 +57,8 @@ export interface FighterScanOptions {
   /** Attente maximum du portrait avant de rendre la main avec 'timeout' (défaut 12 s). La requête continue : une tête
    * tardive arrive encore par 'head' et `fighter:portrait`. L'écran de choix passe 30 s (lot LWAIT). */
   attenteMs?: number;
+  /** Ignore le cache de cette photo (« Retry » après une tête qui n'a pas pu être posée). */
+  frais?: boolean;
 }
 
 interface ScanFighterApiResult {
@@ -340,7 +342,7 @@ export async function scanFighterReport(image: Blob | string, opts: FighterScanO
     const { base64, mimeType } = await toResizedJpegBase64(image, PHOTO_MAX_PX);
     const resize = Math.round(performance.now() - t0);
     const cle = empreinte(base64);
-    let p = cache.get(cle);
+    let p = opts.frais ? undefined : cache.get(cle);
     if (!p) {
       p = scanner(base64, mimeType, resize, opts);
       cache.set(cle, p);
