@@ -11,6 +11,7 @@ import { installMovementRing } from './movementRing';
 import { installEnvironment } from './render/environment';
 import { installPostFx } from './render/postfx';
 import { installParryFx } from './parry-fx';
+import { installWeapons } from './weapons';
 import type { Install } from '../core/types';
 import { animMetricsImpl } from './animation/metrics';
 
@@ -27,4 +28,5 @@ export const install: Install = (ctx) => {
   installFx(ctx);
   installSmashFx(ctx);
   installParryFx(ctx);
+  installWeapons(ctx); // LATK1 : l'objet en main, en vol, à l'impact, en mur
 };
