@@ -18,7 +18,8 @@ await page.goto(URL, { waitUntil: 'load', timeout: 60000 });
 await page.waitForFunction(() => window.ctx && window.gameHooks, null, { timeout: 60000 });
 let ok = true;
 for (const map of MAPS) {
-  await page.evaluate((m) => window.gameHooks.startMatch({ map: m, seed: 7 }), map);
+  await page.evaluate((m) => window.gameHooks.startMatch({ map: m, seed: 7, split: true }), map);
+  await page.waitForFunction(() => window.gameState.phase === 'fight', null, { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(5000);
   const r = await page.evaluate(async () => {
     const ctx = window.ctx;
@@ -48,7 +49,8 @@ for (const map of MAPS) {
   });
   // Preuve : un perso DEBOUT sur chaque plateforme, capture en vue d'épaule (caméra derrière l'autre perso).
   for (const t of r.tops) {
-    await page.evaluate((m) => window.gameHooks.startMatch({ map: m, seed: 7 }), map);
+    await page.evaluate((m) => window.gameHooks.startMatch({ map: m, seed: 7, split: true }), map);
+  await page.waitForFunction(() => window.gameState.phase === 'fight', null, { timeout: 20000 }).catch(() => {});
     await page.waitForTimeout(4500);
     const st = await page.evaluate(async (id) => {
       const ctx = window.ctx;

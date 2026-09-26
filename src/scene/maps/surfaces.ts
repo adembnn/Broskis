@@ -59,11 +59,14 @@ function paint(kind: DetailKind): Uint8ClampedArray {
   return px;
 }
 
-const texCache = new Map<DetailKind, THREE.DataTexture>();
-function detailTexture(kind: DetailKind): THREE.DataTexture {
+const texCache = new Map<DetailKind, THREE.Texture>();
+/** Texture de détail : image tuilable des tokens (SURFACES[kind].image, lot LTEX) si fournie, sinon procédurale.
+ *  Seule sa luminance compte (centrée sur 0,5) : une image colorée sert aussi. */
+function detailTexture(kind: DetailKind): THREE.Texture {
   let t = texCache.get(kind);
   if (t) return t;
-  t = new THREE.DataTexture(paint(kind), SIZE, SIZE, THREE.RGBAFormat);
+  const image = SURFACES[kind].image;
+  t = image ? new THREE.TextureLoader().load(image) : new THREE.DataTexture(paint(kind), SIZE, SIZE, THREE.RGBAFormat);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.magFilter = THREE.LinearFilter;
   t.minFilter = THREE.LinearMipmapLinearFilter;
@@ -133,7 +136,8 @@ export function surfaceMaterial(src: THREE.Material, opts: SurfaceOpts): THREE.M
           vec3 bw = pow(abs(normalize(vDetNrm)), vec3(4.0));
           bw /= (bw.x + bw.y + bw.z + 1e-5);
           vec3 p = vDetPos * uDetScale;
-          float d = texture2D(uDetSide, p.zy).r * bw.x + texture2D(uDet, p.xz).r * bw.y + texture2D(uDetSide, p.xy).r * bw.z;
+          const vec3 LUM = vec3(0.299, 0.587, 0.114);
+          float d = dot(texture2D(uDetSide, p.zy).rgb, LUM) * bw.x + dot(texture2D(uDet, p.xz).rgb, LUM) * bw.y + dot(texture2D(uDetSide, p.xy).rgb, LUM) * bw.z;
           gDetH = d;
           diffuseColor.rgb *= mix(1.0, d * 2.0, uDetStrength);
         }`)

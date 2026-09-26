@@ -67,7 +67,7 @@ export type DetailKind = 'bois' | 'herbe' | 'pierre' | 'faience';
 
 /** Texture de détail triplanaire : echelle = répétitions par mètre, force = 0 (rien) à 1 (plein contraste),
  *  relief = intensité du relief (la texture sert aussi de carte de hauteur). */
-export const SURFACES: Record<DetailKind, { echelle: number; force: number; relief: number }> = {
+export const SURFACES: Record<DetailKind, { echelle: number; force: number; relief: number; /** image tuilable (lot LTEX), ex. '/assets/textures/pont-bois.png' ; absente = texture procédurale */ image?: string }> = {
   bois: { echelle: 0.3, force: 0.7, relief: 0.3 },
   herbe: { echelle: 0.5, force: 0.8, relief: 0.5 },
   pierre: { echelle: 0.4, force: 0.75, relief: 0.6 },
