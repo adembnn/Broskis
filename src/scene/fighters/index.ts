@@ -268,12 +268,13 @@ export function installFighters(ctx: Ctx): FighterSystem {
   // Recul à chaque projectile du blaster (le tireur est celui qui possède l'arme).
   ctx.bus.on('projectile:spawn', ({ weapon }) => {
     if (weapon.category !== 'blaster') return;
-    for (const p of [0, 1] as const) {
-      const rig = rigs[p];
-      if (!rig || !ctx.state.players[p].weapons.includes(weapon)) continue;
-      rig.animator.kickRecoil(1);
-      rig.body.burstUntil = performance.now() + ANIM.tir.tenueApres * 1000;
-    }
+    let owner = ([0, 1] as const).find((p) => ctx.state.players[p].weapons.includes(weapon));
+    // arme recopiée (caisse, banc) : c'est celui qui est en train de tirer au blaster
+    owner ??= ([0, 1] as const).find((p) => rigs[p]?.body.upper === 'attack' && rigs[p]?.body.cat === 'blaster');
+    const rig = owner !== undefined ? rigs[owner] : null;
+    if (!rig) return;
+    rig.animator.kickRecoil(1);
+    rig.body.burstUntil = performance.now() + ANIM.tir.tenueApres * 1000;
   });
 
   ctx.bus.on('aim:update', ({ player, power }) => { lastPower[player] = power; });
@@ -531,11 +532,12 @@ export function installFighters(ctx: Ctx): FighterSystem {
         tau = 0.05;
       } else if (tumbling) {
         tau = 1e9; // cap figé pendant le vol (posé au coup)
-      } else if (rig.locked || (!rig.moving && !busy)) {
+      } else if (rig.locked || busy || !rig.moving) {
+        // visée verrouillée, réaction en cours (glissade du recul : il ne se retourne pas) ou à l'arrêt
         tmpOpponent.set(opp[0], pos[1], opp[2]);
         desired = Math.atan2(tmpOpponent.x - cp.x, tmpOpponent.z - cp.z);
         tau = rig.locked || busy ? L.turnAction : L.turnIdle;
-      } else if (rig.moving) {
+      } else {
         desired = Math.atan2(rig.velXZ.x, rig.velXZ.y);
         tau = L.turnRun;
       }
