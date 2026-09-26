@@ -647,7 +647,9 @@ async function fireCatapult(ctx: Ctx, map: LoadedMap, target: THREE.Vector3): Pr
 const seaTime = { value: 0 };
 function buildSea(map: LoadedMap) {
   const tk = galionTokens();
-  const geo = new THREE.PlaneGeometry(320, 320, 90, 90).rotateX(-Math.PI / 2);
+  // LMAP3 : mer 3D limitée à un disque autour du navire, bord fondu : au-delà, c'est la mer peinte (LSKY).
+  const seaR = PLATEAU.merRayon;
+  const geo = new THREE.PlaneGeometry(seaR * 2.2, seaR * 2.2, 56, 56).rotateX(-Math.PI / 2);
   const mat = new THREE.MeshStandardMaterial({ color: tk.palette.accent, roughness: 0.4, metalness: 0, flatShading: true });
   const amp = tk.mer.houle * 4; // houle de tempête (m)
   const foam = new THREE.Color(tk.mer.ecume);
@@ -657,21 +659,27 @@ function buildSea(map: LoadedMap) {
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', `#include <common>
 uniform float uTime;
-varying float vWave;`)
+varying float vWave;
+varying vec2 vSeaXZ;`)
       .replace('#include <begin_vertex>', `#include <begin_vertex>
         {
           vec3 p = position;
           float h = sin(p.x * 0.16 + uTime * 1.1) * 0.9 + sin(p.z * 0.21 - uTime * 0.8) * 0.7 + sin((p.x + p.z) * 0.09 + uTime * 0.55) * 0.8;
           vWave = h / 2.4;
+          vSeaXZ = p.xz;
           transformed.y += h * ${amp.toFixed(3)} * 0.45;
         }`);
     // Crêtes d'écume : plus la vague est haute, plus elle blanchit.
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>
 uniform vec3 uFoam;
-varying float vWave;`)
+varying float vWave;
+varying vec2 vSeaXZ;`)
       .replace('#include <color_fragment>', `#include <color_fragment>
-  diffuseColor.rgb = mix(diffuseColor.rgb, uFoam, smoothstep(0.62, 1.0, vWave) * 0.8);`);
+  diffuseColor.rgb = mix(diffuseColor.rgb, uFoam, smoothstep(0.62, 1.0, vWave) * 0.8);
+  diffuseColor.a *= 1.0 - smoothstep(${(seaR * 0.7).toFixed(1)}, ${seaR.toFixed(1)}, length(vSeaXZ));`);
+  mat.transparent = true;
+  mat.depthWrite = false;
   };
   const sea = new THREE.Mesh(geo, mat);
   sea.position.y = map.def.seaY ?? -3;

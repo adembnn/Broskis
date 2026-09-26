@@ -81,6 +81,8 @@ export const PLATEAU = {
   variation: { luminosite: 0.16, teinte: 0.02 },
   /** Galion : largeur (m) du liseré de plat-bord sombre peint au bord du pont. */
   liserePont: 0.45,
+  /** Galion : rayon (m) de la mer 3D autour du navire, bord fondu vers la mer peinte du panorama. */
+  merRayon: 34,
   /** Grille-pain de la cuisine : chrome, bakélite, pain de mie, croûte, levier. */
   grillePain: { chrome: '#C9CFD2', bakelite: '#2B2522', mie: '#E8C489', croute: '#9A5A26', levier: '#D8402E', metal: 0.85, rugosite: 0.22 },
   /** Rouleau à pâtisserie : hêtre clair. */
