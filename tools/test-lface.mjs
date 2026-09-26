@@ -79,7 +79,7 @@ async function testerEnJeu(dossier, port) {
       const t0 = performance.now();
       const r = await Promise.all(photos.map((p) => scanFighterReport(p)));
       window.__lface = r.map((x) => x.fighter);
-      return r.map((x) => ({ issue: x.issue, ms: x.ms, name: x.fighter.name, model: x.fighter.model, catchphrase: x.fighter.catchphrase,
+      return r.map((x) => ({ issue: x.issue, ms: x.ms, modele: x.portraitModel, name: x.fighter.name, model: x.fighter.model, catchphrase: x.fighter.catchphrase,
         look: x.fighter.look && { ...x.fighter.look, faceUrl: x.fighter.look.faceUrl ? `${x.fighter.look.faceUrl.length} car.` : null },
         faceUrl: x.fighter.look?.faceUrl ?? null, totalMs: Math.round(performance.now() - t0) }));
     }, photos);
@@ -99,27 +99,30 @@ async function testerEnJeu(dossier, port) {
     console.log(`grosses têtes en scène : ${Date.now() - t1} ms après startMatch`);
     await page.waitForTimeout(2500);
     await page.screenshot({ path: join(OUT, 'match.png') });
-    // 3. Gros plans de face (la vue qu'a l'adversaire) et de dos (sa propre vue), caméra forcée par un système de test.
+    // 3. Gros plans de face (la vue qu'a l'adversaire) et de dos (sa propre vue) : caméra forcée par un système de test.
+    await page.evaluate(() => {
+      const ctx = window.ctx;
+      const V = ctx.three.camera.position.constructor;
+      ctx.loop.addSystem('lface-cam', () => {
+        const cible = window.__lfaceCam;
+        if (!cible) return;
+        const tetes = [];
+        ctx.three.scene.traverse((o) => { if (o.name === 'grosse-tete') tetes.push(o); });
+        const tete = tetes[cible.joueur];
+        let c = tete;
+        while (c && !/^fighter-/.test(c.name)) c = c.parent;
+        if (!c) return;
+        const centre = c.getWorldPosition(new V());
+        const avant = new V(0, 0, 1).applyQuaternion(c.getWorldQuaternion(c.quaternion.clone()));
+        const haut = tete.getWorldPosition(new V());
+        const sens = cible.cote === 'face' ? 1 : -1;
+        ctx.three.camera.position.set(centre.x + avant.x * 3.4 * sens, haut.y + 0.3, centre.z + avant.z * 3.4 * sens);
+        ctx.three.camera.lookAt(centre.x, (centre.y + haut.y) / 2 + 0.2, centre.z);
+      }, 999);
+    });
     for (const joueur of [0, 1]) {
       for (const cote of ['face', 'dos']) {
-        await page.evaluate(({ joueur, cote }) => {
-          const ctx = window.ctx;
-          const THREE_ = ctx.three.camera.position.constructor;
-          ctx.loop.addSystem(`lface-cam`, () => {
-            let tete = null;
-            let i = 0;
-            ctx.three.scene.traverse((o) => { if (o.name === 'grosse-tete') { if (i === joueur) tete = o; i++; } });
-            const fighter = tete; while (fighter && fighter.parent && !/^fighter-/.test(fighter.name)) { /* remonte */ break; }
-            let c = tete; while (c && !/^fighter-/.test(c.name)) c = c.parent;
-            if (!c || !tete) return;
-            const centre = new THREE_(); c.getWorldPosition(centre);
-            const avant = new THREE_(0, 0, 1).applyQuaternion(c.getWorldQuaternion(c.quaternion.clone()));
-            const haut = new THREE_(); tete.getWorldPosition(haut);
-            const sens = cote === 'face' ? 1 : -1;
-            ctx.three.camera.position.set(centre.x + avant.x * 3.2 * sens, haut.y + 0.2, centre.z + avant.z * 3.2 * sens);
-            ctx.three.camera.lookAt(centre.x, (centre.y + haut.y) / 2 + 0.1, centre.z);
-          });
-        }, { joueur, cote });
+        await page.evaluate((c) => { window.__lfaceCam = c; }, { joueur, cote });
         await page.waitForTimeout(700);
         await page.screenshot({ path: join(OUT, `j${joueur + 1}-${cote}.png`) });
       }
