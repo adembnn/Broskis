@@ -111,7 +111,11 @@ export const maps = {
       lumiere: '#FF9A4A', // braseros : seule source chaude, a droit au bloom
     },
     ciel: { haut: '#C98B6E', horizon: '#E2AE88', bas: '#B8806A' }, // le vide fonce vers le bas
-    brouillard: { couleur: '#E2AE88', debut: 24, fin: 75 },
+    // LSKY : panorama peint (public/assets/sky, tools/sky) sur un cylindre ; repetitions = copies sur un tour,
+    // horizon = fraction de l'image posée à hauteur d'arène (sous l'horizon peint : la vue plonge sur l'arène), haut/bas = bouchons, rotation en rad (axe vertical),
+    // chroma = saturation à l'écran malgré decor.saturation (étalonnage global de postfx).
+    panorama: { image: '/assets/sky/archipel.webp', rotation: 0, intensite: 1.1, chroma: 0.9, repetitions: 3, horizon: 0.47, haut: '#6CA1A8', bas: '#F6B275' },
+    brouillard: { couleur: '#D8AC8C', debut: 45, fin: 190 }, // léger, couleur de la mer de nuages à l'horizon
     hemi: { ciel: '#E3E2DC', sol: '#6A5A50', intensite: 0.85 },
     principale: { type: 'directionnelle', couleur: '#FFF3E2', intensite: 2.3, position: [-14, 7.5, 3] }, // soleil rasant, 28°
     pratique: { couleur: '#FF9A4A', intensite: 6, portee: 9, decroissance: 1.6, vacillement: 0.08 },
@@ -127,7 +131,8 @@ export const maps = {
       lumiere: '#FFB45A', // lanternes : seule source chaude, a droit au bloom
     },
     ciel: { haut: '#2B3532', horizon: '#3C4A45', bas: '#2E4642' },
-    brouillard: { couleur: '#3C4A45', debut: 16, fin: 55 },
+    panorama: { image: '/assets/sky/galion.webp', rotation: 0, intensite: 1.1, chroma: 0.9, repetitions: 2, horizon: 0.54, haut: '#405A60', bas: '#192A39' },
+    brouillard: { couleur: '#58889A', debut: 25, fin: 120 }, // la mer 3D se fond dans la mer peinte à l'horizon
     hemi: { ciel: '#9DB0AA', sol: '#5A4535', intensite: 0.9 },
     principale: { type: 'directionnelle', couleur: '#E6EDF2', intensite: 2.8, position: [-5, 12, 4] }, // lumière d'orage haute, 62°
     pratique: { couleur: '#FFB45A', intensite: 5, portee: 10, decroissance: 1.6, vacillement: 0.08 }, // lanterne du grand mât
@@ -145,7 +150,8 @@ export const maps = {
       lumiere: '#FF8A3D', // résistances du grille-pain armé : seule source chaude, a droit au bloom
     },
     ciel: { haut: '#4A4440', horizon: '#5A524D', bas: '#3F3A37' }, // plafond, murs, carrelage loin en bas
-    brouillard: { couleur: '#5A524D', debut: 22, fin: 70 },
+    panorama: { image: '/assets/sky/cuisine.webp', rotation: 0, intensite: 0.95, chroma: 0.9, repetitions: 2, horizon: 0.55, haut: '#AA7553', bas: '#AC5134' },
+    brouillard: { couleur: '#B3764E', debut: 45, fin: 190 }, // léger, carrelage et plan de travail peints
     hemi: { ciel: '#D5DDE3', sol: '#7E6A55', intensite: 0.8 },
     // soleil de fenêtre en spot : la flaque de lumière est le ring (decroissance 0 = pas d'atténuation)
     principale: { type: 'spot', couleur: '#FFF0DA', intensite: 2.5, position: [-12, 14, -3], angle: 0.6, penombre: 0.25, decroissance: 0 },
