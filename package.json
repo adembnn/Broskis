@@ -10,7 +10,8 @@
     "verifier": "npm run build && node tools/capture.mjs",
     "captures": "node tools/capture.mjs --parcours --demo",
     "video": "node tools/capture.mjs --parcours --demo --video",
-    "planche": "node tools/planche.mjs"
+    "planche": "node tools/planche.mjs",
+    "anim": "node tools/anim/anim-eval.mjs"
   },
   "devDependencies": {
     "@types/three": "^0.186.0",

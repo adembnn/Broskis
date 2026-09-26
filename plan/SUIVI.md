@@ -18,5 +18,7 @@ Réserver une ligne **avant** de commencer : nom + heure, commit + push de ce fi
 | LP2 | Vedettes 3D préparées (sans Tripo : MCP Blender + Rodin gratuit) | faible | PC d'Adem (Gemini) | MCP Blender | à prendre | | |
 | LD | Démo, vidéo, bande-annonce | faible | **Titouan** (+ Adem) | — | à prendre | | Références visuelles dès maintenant |
 | LK | Parade avancée (validée par Adem) | moyen | Adem (Gemini) | LG, LA, LU, LV | à prendre | | Spéc complète : plan/lots/LK-parade.md |
+| LE | Banc d'évaluation des animations (`npm run anim`) | moyen | Claude (sous-agent Sonnet) | — | en cours | Claude 12h35 | Évaluation = Claude (règle d'Adem) |
+| LAN | Animation vivante façon Smash | élevé | **Gemini** (CLI) | LA | à prendre | | Spéc : plan/lots/LAN-animation.md ; évaluée par `animateur-exigeant` + juge vidéo Gemini |
 | LX | Adversaire IA (vague 2) | moyen | Adem | LG | à prendre | | |
 | LW | Scandex + voix clonée (vague 2) | faible | partagé | LI, LU | à prendre | | |
