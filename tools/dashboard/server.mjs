@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, '../../');
-const DASH_DIR = __dirname;
+const DASH_DIR = path.join(ROOT_DIR, 'dashboard'); // journal écrit par tools/dashboard/log.mjs
 const LOGS_DIR = path.join(DASH_DIR, 'logs');
 
 // --- Helper Functions ---
@@ -154,13 +154,13 @@ const server = http.createServer(async (req, res) => {
   console.log(`[REQ] ${req.method} ${req.url}`);
 
   if (req.url === '/') {
-    const html = safeRead(path.join(DASH_DIR, 'index.html'));
+    const html = safeRead(path.join(__dirname, 'index.html'));
     res.writeHead(200, { 'Content-Type': 'text/html' });
     return res.end(html);
   }
   
   if (req.url === '/style.css' || req.url === '/script.js') {
-    const file = safeRead(path.join(DASH_DIR, req.url.substring(1)));
+    const file = safeRead(path.join(__dirname, req.url.substring(1)));
     res.writeHead(200, { 'Content-Type': MIME_TYPES[path.extname(req.url)] });
     return res.end(file);
   }
