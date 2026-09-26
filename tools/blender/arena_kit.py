@@ -655,7 +655,7 @@ def floating_island(name, outline, segs, depth, strata, rim=None, top_rings=(0.4
         style = rim.get('style', 'stone')
         rng = random.Random(int(seed * 1000))
         g = rim.get('gap', 0.035)
-        for u0, u1 in rim_spans(outline, rim['len'], rim.get('angle', 14.0)):
+        for u0, u1 in rim_spans(outline, rim['len'], rim.get('angle', 30.0)):
             u0, u1 = u0 + g / 2, u1 - g / 2
             p0, n0 = outline.at(u0)
             p1, n1 = outline.at(u1)

@@ -176,7 +176,7 @@ if (VUE === 'arene') {
     const pivot = new THREE.Group(); pivot.add(o);
     const c = b.getCenter(new THREE.Vector3()); o.position.set(-c.x * s, -c.y * s, -c.z * s);
     const col = i % cols; const lig = Math.floor(i / cols);
-    pivot.position.set((col - (cols - 1) / 2) * pas, 0, (lig - (lignes - 1) / 2) * pas * 0.9);
+    pivot.position.set((col - (cols - 1) / 2) * pas, 0, (lig - (lignes - 1) / 2) * pas * 1.18);
     scene.add(pivot); tournants.push({ obj: pivot, lent: false, phase: i * 0.7 });
     const info = infos[nom];
     const el = document.createElement('div'); el.className = 'etiquette';
@@ -185,7 +185,7 @@ if (VUE === 'arene') {
   }
   soleil.shadow.camera.left = soleil.shadow.camera.bottom = -24; soleil.shadow.camera.right = soleil.shadow.camera.top = 24;
   soleil.shadow.camera.updateProjectionMatrix();
-  camera.position.set(0, 30, 29); camera.lookAt(0, -1.5, 2.2);
+  camera.position.set(0, 36, 33); camera.lookAt(0, -2, 2.6);
 }
 document.getElementById('compte').textContent = `${LISTE.length} pièces`;
 
@@ -204,8 +204,8 @@ function frame() {
   else for (const r of tournants) if (!r.lent) r.obj.rotation.y = 0.6 + r.phase * 0.3;
   const v = new THREE.Vector3();
   for (const e of etiquettes) {
-    v.set(e.pivot.position.x, e.pivot.position.y - 2.2, e.pivot.position.z + 2.3).project(camera);
-    e.el.style.left = `${(v.x * 0.5 + 0.5) * innerWidth}px`; e.el.style.top = `${(-v.y * 0.5 + 0.5) * innerHeight}px`;
+    v.copy(e.pivot.position).project(camera); // ancré au centre de la pièce, décalé sous elle à l'écran
+    e.el.style.left = `${(v.x * 0.5 + 0.5) * innerWidth}px`; e.el.style.top = `${(-v.y * 0.5 + 0.5) * innerHeight + innerHeight * 0.075}px`;
   }
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
