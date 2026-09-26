@@ -365,8 +365,9 @@ export class RealtimeBot {
     const perp: [number, number] = [-fromFoe[1] * this.strafe, fromFoe[0] * this.strafe];
     let mx: number, mz: number;
     if (blind) { mx = perp[0] + (tl > 1.2 ? tx / tl : 0) * 0.4; mz = perp[1] + (tl > 1.2 ? tz / tl : 0) * 0.4; }
-    else if (tl > 1.2) { mx = tx / tl + perp[0] * 0.35; mz = tz / tl + perp[1] * 0.35; }
-    else { mx = perp[0] * 0.9 + tx * 0.4; mz = perp[1] * 0.9 + tz * 0.4; }
+    // Pas chassés dominants (une course droite vers l'adversaire se fait toucher : l'avance de visée tombe juste).
+    else if (tl > 1.2) { mx = (tx / tl) * 0.7 + perp[0] * 0.75; mz = (tz / tl) * 0.7 + perp[1] * 0.75; }
+    else { mx = perp[0] * 0.95 + tx * 0.4; mz = perp[1] * 0.95 + tz * 0.4; }
     // Survie : plus son % monte, plus il revient vers le centre.
     const pull = Math.max(0, Math.min(0.6, (me.pct - 50) / 120)) + M.centerPull * 0.4 + (this.edgeMe < 2 ? 0.5 : 0);
     mx += toCenter[0] * pull; mz += toCenter[1] * pull;

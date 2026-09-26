@@ -5,7 +5,7 @@ import { getArena, groundYBelow, isGroundCollider } from '../arena';
 import { isVoidAt } from '../character';
 import { viewForward } from '../movement';
 import { liveProjectiles } from '../projectiles';
-import { GRENADE_RADIUS_MAX, GRENADE_RADIUS_MIN, SHOT_ORIGIN_HEIGHT, TRAIT_TUNING } from '../tuning';
+import { CHARACTER_HALF_HEIGHT, CHARACTER_RADIUS, GRENADE_RADIUS_MAX, GRENADE_RADIUS_MIN, SHOT_ORIGIN_HEIGHT, TRAIT_TUNING } from '../tuning';
 import { lerp } from '../trajectory';
 
 export const flatDist = (a: Vec3, b: Vec3): number => Math.hypot(b[0] - a[0], b[2] - a[2]);
@@ -75,33 +75,29 @@ export interface SeenShot {
   firedAt: number;
 }
 
-/** Estimation de l'impact d'un projectile sur `target` : secondes de jeu avant contact (null = il ne touchera pas)
- * et point d'impact prévu. Tir tendu : approche la plus proche de la poitrine ; cloche : chute jusqu'aux pieds. */
+/** Estimation de l'impact d'un projectile sur `target` (pieds) : secondes de jeu avant contact (null = il ne touchera
+ * pas) et point d'impact. Vol simulé par pas de 20 ms (gravité comprise : grenade, objet lourd) : contact avec la
+ * capsule du perso, ou chute au sol dans le rayon d'explosion. */
 export function predictImpact(shot: SeenShot, target: Vec3): { eta: number; at: Vec3; lateral: number } | null {
   const p = liveProjectiles().find((q) => q.id === shot.id);
   if (!p) return null;
-  if (shot.gravity > 0) {
-    // Cloche : on intègre jusqu'à passer sous la hauteur de la cible (pas de 30 ms).
-    let x = p.pos[0], y = p.pos[1], z = p.pos[2], vy = p.vel[1];
-    const floor = target[1] + 0.3;
-    for (let t = 0; t < 2.5; t += 0.03) {
-      x += p.vel[0] * 0.03; z += p.vel[2] * 0.03; vy -= shot.gravity * 0.03; y += vy * 0.03;
-      if (vy < 0 && y <= floor) {
-        const lateral = Math.hypot(x - target[0], z - target[2]);
-        return lateral <= shot.splash + 0.9 ? { eta: t, at: [x, y, z], lateral } : null;
-      }
+  const y0 = target[1] + CHARACTER_RADIUS, y1 = target[1] + CHARACTER_RADIUS + 2 * CHARACTER_HALF_HEIGHT;
+  const reach = CHARACTER_RADIUS + 0.35 + 0.15; // capsule + projectile moyen + marge
+  let x = p.pos[0], y = p.pos[1], z = p.pos[2];
+  let vx = p.vel[0], vy = p.vel[1], vz = p.vel[2];
+  const h = 0.02;
+  for (let t = 0; t < 2.5; t += h) {
+    const cy = Math.max(y0, Math.min(y1, y));
+    const lateral = Math.hypot(x - target[0], z - target[2]);
+    if (Math.hypot(lateral, y - cy) <= reach) return { eta: t, at: [x, y, z], lateral };
+    if (shot.gravity > 0 && vy < 0 && y <= target[1] + 0.3) {
+      return lateral <= shot.splash + 0.9 ? { eta: t, at: [x, y, z], lateral } : null;
     }
-    return null;
+    vy -= shot.gravity * h;
+    x += vx * h; y += vy * h; z += vz * h;
+    if (shot.gravity <= 0 && t > 0.1 && ((x - target[0]) * vx + (z - target[2]) * vz) > 0 && lateral > 3) return null; // déjà passé
   }
-  const sp = Math.hypot(p.vel[0], p.vel[1], p.vel[2]);
-  if (sp < 1e-3) return null;
-  const c: Vec3 = [target[0] - p.pos[0], target[1] + 0.9 - p.pos[1], target[2] - p.pos[2]];
-  const along = (c[0] * p.vel[0] + c[1] * p.vel[1] + c[2] * p.vel[2]) / sp;
-  if (along <= 0) return null;
-  const lateral = Math.sqrt(Math.max(0, c[0] ** 2 + c[1] ** 2 + c[2] ** 2 - along * along));
-  if (lateral > 1.6) return null;
-  const k = along / sp;
-  return { eta: Math.max(0, (along - 0.6) / sp), at: [p.pos[0] + p.vel[0] * k, p.pos[1] + p.vel[1] * k, p.pos[2] + p.vel[2] * k], lateral };
+  return null;
 }
 
 const ALL: readonly InputAction[] = ['up', 'down', 'left', 'right', 'jump', 'weapon1', 'weapon2', 'weapon3', 'fire', 'parry'];
