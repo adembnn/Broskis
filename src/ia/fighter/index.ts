@@ -3,6 +3,7 @@
 import type { Accessory, FighterDef, ModelId, Trait } from '../../core/types';
 import { postJson } from '../fetch-json';
 import { isDataUrl, toResizedJpegBase64 } from '../image';
+import { getRuntimeCtx } from '../runtime';
 
 let counter = 0;
 function makeId(): string {
@@ -20,8 +21,18 @@ const FALLBACK_FIGHTER: FighterDef = {
   catchphrase: 'Who, me?'
 };
 
-/** Délai maximum côté joueur (plan/lots/LFACE) : au-delà, perso de secours. */
+/** Délai maximum côté joueur (plan/lots/LFACE) : au-delà, l'écran se débloque avec la tête de secours. */
 const SCAN_FIGHTER_TIMEOUT_MS = 25_000;
+/** Lot LE2E : la requête du portrait n'est PAS abandonnée au délai d'écran (le serveur tente 2 modèles puis un repli,
+ *  23 s chacun) ; un portrait tardif est posé sur le perso, même en plein match (`fighter:portrait`). */
+const PORTRAIT_REQUEST_MS = 75_000;
+
+/** Portrait arrivé après le délai d'écran : complète LE MÊME FighterDef (déjà dans l'état du match) et prévient la scène. */
+function portraitTardif(fighter: FighterDef, faceUrl: string): void {
+  fighter.portraitUrl = faceUrl;
+  if (fighter.look) fighter.look.faceUrl = faceUrl;
+  getRuntimeCtx()?.bus.emit('fighter:portrait', { fighterId: fighter.id, faceUrl });
+}
 
 interface ScanFighterApiResult {
   faceFound?: boolean;
@@ -105,12 +116,19 @@ function construire(raw: ScanFighterApiResult): FighterDef {
 async function scanner(base64: string, mimeType: string, resizeMs: number, onText?: (f: FighterDef) => void): Promise<FighterScanReport> {
   const t0 = performance.now();
   const corps = { imageBase64: base64, mimeType };
-  const portraitP = postJson<PortraitApiResult>('/api/scan-fighter', { ...corps, part: 'portrait' }, SCAN_FIGHTER_TIMEOUT_MS);
+  const portraitP = postJson<PortraitApiResult>('/api/scan-fighter', { ...corps, part: 'portrait' }, PORTRAIT_REQUEST_MS);
   const raw = await postJson<ScanFighterApiResult>('/api/scan-fighter', { ...corps, part: 'text' }, TEXT_TIMEOUT_MS);
   const textMs = Math.round(performance.now() - t0);
   let fighter: FighterDef | null = raw && raw.faceFound !== false ? construire(raw) : null;
   if (fighter) onText?.(fighter);
-  const portrait = await portraitP;
+  // L'écran n'attend pas plus que le délai joueur ; la requête, elle, continue (portrait tardif ci-dessous).
+  let enRetard = false;
+  const delai = new Promise<null>((r) => setTimeout(() => { enRetard = true; r(null); }, Math.max(0, SCAN_FIGHTER_TIMEOUT_MS - (performance.now() - t0))));
+  const portrait = await Promise.race([portraitP, delai]);
+  if (!portrait && enRetard && fighter) {
+    const f = fighter;
+    void portraitP.then((tard) => { if (tard?.faceUrl) portraitTardif(f, tard.faceUrl); });
+  }
   const total = Math.round(performance.now() - t0);
   const ms = { resize: resizeMs, total, text: textMs, image: portrait?.timings?.imageMs };
   const faceUrl = portrait?.faceUrl;
