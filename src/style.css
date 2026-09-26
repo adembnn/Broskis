@@ -4,7 +4,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; }
 #app { position: fixed; inset: 0; }
 #app canvas { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; }
 #ui { position: fixed; inset: 0; pointer-events: none; }
-#ui > * { pointer-events: auto; }
+/* Chaque couche d'interface décide elle-même : un calque plein écran ne doit jamais avaler les clics destinés au jeu. */
 #bootError {
   position: fixed; left: 16px; right: 16px; bottom: 16px; z-index: 99;
   padding: 12px 14px; white-space: pre-wrap; font: 600 14px/1.4 system-ui, sans-serif;
