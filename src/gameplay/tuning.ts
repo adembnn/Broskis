@@ -98,6 +98,13 @@ export const ONEWAY_SNAP_BELOW = 0.35;
 export const ONEWAY_SNAP_MAX_VY = 1.5; // m/s
 /** « Bas + saut » sur une plateforme traversable : on la traverse vers le bas pendant ce temps (s). */
 export const DROP_THROUGH_S = 0.35;
+/** Lot RTFIX, perso posé : sol cherché au centre de GROUND_PROBE_UP m au-dessus des pieds (un sol qui monte, le pont
+ * du galion qui gîte, soulève le perso) à GROUND_SNAP_DOWN m dessous (un sol qui descend un peu est suivi) ; au-delà,
+ * plus d'appui : il tombe. Appui sur un rebord : 4 rayons à GROUND_EDGE_R m du centre, GROUND_EDGE_DOWN m sous les pieds. */
+export const GROUND_PROBE_UP = 0.6;
+export const GROUND_SNAP_DOWN = 0.3;
+export const GROUND_EDGE_R = 0.3;
+export const GROUND_EDGE_DOWN = 0.1;
 export const EDGE_RAYCAST_AHEAD = 0.35; // m devant les pieds, dans la direction du pas
 export const EDGE_RAYCAST_DEPTH = 1.35; // m sous les pieds : au-delà, c'est le vide
 /** Bord : on s'arrête et on vacille (`teeter`) ; en insistant ce temps-là, on marche dans le vide. */
