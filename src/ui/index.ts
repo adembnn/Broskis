@@ -19,7 +19,7 @@ import { mountTitle } from './screenTitle';
 import { installSnapTime } from './snapTime';
 import { installStickers, preloadPresetStickers } from './sticker2d';
 import { injectGoogleFonts, injectStyles } from './theme';
-import { installTutorial } from './tutorial';
+import { installSettingsKey, openSettings } from './settings';
 
 type Difficulty = NonNullable<StartMatchOptions['difficulty']>;
 
@@ -43,7 +43,7 @@ export const install: Install = (ctx) => {
   root.append(hud.root, screenLayer);
   ctx.three.uiRoot.append(root);
   installSnapTime(ctx, screenLayer);
-  installTutorial(ctx, hud.root);
+  installSettingsKey(ctx, screenLayer); // ÉCHAP en match : pause + Settings → Controls
   installStickers(ctx); // stickers arrivés en route → recopiés sur les armes du match
   void presetsReady.then(preloadPresetStickers);
   void preloadPortraits(FIGHTER_PRESETS);
@@ -83,12 +83,14 @@ export const install: Install = (ctx) => {
 
   function startMatch(opts: StartMatchOptions): void {
     const weapons = opts.weapons && ([freshWeapons(opts.weapons[0]), freshWeapons(opts.weapons[1])] as [Weapon[], Weapon[]]);
-    ctx.hooks.startMatch({ ...opts, weapons });
+    // Temps réel (plan/PIVOT-TEMPS-REEL.md) : deux humains = écran scindé ; contre l'IA, plein écran.
+    const full: StartMatchOptions & { split?: boolean } = { ...opts, weapons, split: !opts.vsAI };
+    ctx.hooks.startMatch(full);
   }
 
   async function toTitle(): Promise<void> {
     if (ctx.state.phase !== 'title') ctx.bus.emit('phase:change', { from: ctx.state.phase, to: 'title' });
-    const titleOpts = await mountTitle(screenLayer);
+    const titleOpts = await mountTitle(screenLayer, () => openSettings(ctx, screenLayer));
     settings = { vsAI: !!titleOpts?.vsAI, difficulty: titleOpts?.difficulty ?? settings.difficulty };
 
     ctx.bus.emit('phase:change', { from: ctx.state.phase, to: 'fighter-select' });
