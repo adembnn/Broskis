@@ -1,40 +1,45 @@
-// Chemins des assets utilisés par les maps. Tous vérifiés présents dans public/assets/ (aucun téléchargement ici).
+// Chemins des assets utilisés par les maps. Tous présents dans public/assets/ (aucun téléchargement ici).
+// Pour brancher le kit d'arène (lot LKIT, public/assets/arena-kit/) : remplacer la pièce voulue dans la
+// fonction de construction de la map (plateau(), plateformes(), couverts(), fond()), rien d'autre.
 export const HEX = {
   grass: '/assets/packs/hexagon/tiles/base/hex_grass.gltf',
+  grassBottom: '/assets/packs/hexagon/tiles/base/hex_grass_bottom.gltf',
+  catapultTower: '/assets/packs/hexagon/buildings/blue/building_tower_catapult_blue.gltf',
   catapultProjectile: '/assets/packs/hexagon/buildings/neutral/projectile_catapult.gltf',
-  flagRed: '/assets/packs/hexagon/decoration/props/flag_red.gltf',
-  flagBlue: '/assets/packs/hexagon/decoration/props/flag_blue.gltf',
-  crateSmall: '/assets/packs/hexagon/decoration/props/crate_A_small.gltf',
+  cloudBig: '/assets/packs/hexagon/decoration/nature/cloud_big.gltf',
+  cloudSmall: '/assets/packs/hexagon/decoration/nature/cloud_small.gltf',
+  mountainTrees: '/assets/packs/hexagon/decoration/nature/mountain_A_grass_trees.gltf',
+  mountainB: '/assets/packs/hexagon/decoration/nature/mountain_B_grass_trees.gltf',
+  hillsTrees: '/assets/packs/hexagon/decoration/nature/hills_A_trees.gltf',
+  ruin: '/assets/packs/hexagon/buildings/neutral/building_destroyed.gltf',
 };
 
 export const PIRATE = {
   shipLarge: '/assets/packs/pirate/ship-pirate-large.glb',
+  shipMedium: '/assets/packs/pirate/ship-pirate-medium.glb',
+  shipGhost: '/assets/packs/pirate/ship-ghost.glb',
   cannon: '/assets/packs/pirate/cannon.glb',
   barrel: '/assets/packs/pirate/barrel.glb',
-  mast: '/assets/packs/pirate/mast.glb',
-  mastRopes: '/assets/packs/pirate/mast-ropes.glb',
   crate: '/assets/packs/pirate/crate.glb',
-  crateBottles: '/assets/packs/pirate/crate-bottles.glb',
-  cannonBall: '/assets/packs/pirate/cannon-ball.glb',
   platformPlanks: '/assets/packs/pirate/platform-planks.glb',
+  rocks: '/assets/packs/pirate/rocks-a.glb',
 };
 
 export const RESTAURANT = {
-  counterStraight: '/assets/packs/restaurant/kitchencounter_straight_A_backsplash.gltf',
-  counterSink: '/assets/packs/restaurant/kitchencounter_sink_backsplash.gltf',
+  counter: '/assets/packs/restaurant/kitchencounter_straight_A.gltf',
+  cuttingBoard: '/assets/packs/restaurant/cuttingboard.gltf',
+  jar: '/assets/packs/restaurant/jar_A_large.gltf',
+  fridge: '/assets/packs/restaurant/fridge_A.gltf',
   oven: '/assets/packs/restaurant/oven.gltf',
-  stoveSingle: '/assets/packs/restaurant/stove_single.gltf',
-  crateLettuce: '/assets/packs/restaurant/crate_lettuce.gltf',
-  plate: '/assets/packs/restaurant/plate.gltf',
-  knife: '/assets/packs/restaurant/knife.gltf',
-  papertowel: '/assets/packs/restaurant/papertowel.gltf',
+  cabinet: '/assets/packs/restaurant/kitchencabinet.gltf',
+  floor: '/assets/packs/restaurant/floor_kitchen.gltf',
+  wallWindow: '/assets/packs/restaurant/wall_window_open.gltf',
+  pot: '/assets/packs/restaurant/pot_A.gltf',
 };
 
 export const FURNITURE = {
-  tableMedium: '/assets/packs/furniture/table_medium.gltf',
-  chairA: '/assets/packs/furniture/chair_A.gltf',
-  cactusSmall: '/assets/packs/furniture/cactus_small_A.gltf',
+  shelf: '/assets/packs/furniture/shelf_A_big.gltf',
 };
 
-/** props.glb (KayKit tavern, meshopt) : tonneaux/tables/caisses déjà à l'échelle des persos KayKit. */
+/** props.glb (KayKit tavern, meshopt) : tonneaux déjà à l'échelle des persos. */
 export const PROPS = '/assets/props/props.glb';

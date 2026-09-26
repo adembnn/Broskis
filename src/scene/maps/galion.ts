@@ -1,96 +1,98 @@
-// Galion dans la tempête : Kenney Pirate Kit sur un océan stylisé.
-// Données pures (aucun THREE/Rapier ici) : engine.ts interprète ce MapDef.
-// Hypothèse assumée (pas de bounding box fiable pour "le pont" seul dans ship-pirate-large.glb, qui n'a
-// qu'un seul mesh pour toute la coque) : le pont principal est estimé à ~1.8 unité au-dessus de la quille
-// (repère local du modèle, bounding box totale de la coque = y:[0, 9.96], x:±2.4, z:±6.55). Ajuster
-// `LOCAL_TOKENS.galion.deckLocalY` si la capture d'écran montre un décalage — à vérifier en priorité.
+// Galion dans la tempête (LMAP2, l'esprit du stage « Pirate Ship » de Smash) : le PONT est le plateau,
+// bords ouverts (aucun bastingage jouable), mâts au centre, voiles ferlées hautes. Danger : la vague fait
+// gîter le pont de 12° vers la caméra (bande avant qui clignote un tour complet avant). Le canon, au fond
+// du pont, balaie son axe peint quand on lui tire dessus. Données pures : engine.ts interprète.
 import type { Vec3 } from '../../core/types';
 import { PIRATE } from './assets';
 import { LOCAL_TOKENS } from './tokens';
-import type { MapDef, PropSpec } from './types';
+import type { BackdropSpec, GroundPiece, MapDef, OneWaySpec, PropSpec, StaticCollider } from './types';
 
-export function buildGalionDef(): MapDef {
-  const tk = LOCAL_TOKENS.galion;
-  const scale = tk.shipScale;
-  const deckWorldY = 0; // convention commune aux 3 maps : la surface où l'on marche est à y=0
-  const hullPosY = deckWorldY - tk.deckLocalY * scale; // décale la coque pour amener le pont estimé à y=0
+const DECK_HALF_X = 9;     // 18 m de pont jouable
+const DECK_HALF_Z = 3.4;   // 6,8 m de large
+const PLATFORM_Y = 2.4;
+const SPAWN_X = 5;
 
-  // Pont : boîte fixe (déjà en unités monde, en retrait des bastingages visuels — le bord net = la limite de jeu).
-  const deckHalf: Vec3 = [2.3 * scale, 0.3, 6.2 * scale];
+// ---------------------------------------------------------------------------
+// Plateau : pont en planches (pièce propre, bord franc) posé sur la coque Kenney, qui ne sert que de silhouette.
+// ---------------------------------------------------------------------------
+function plateau(): { pieces: GroundPiece[]; collider: StaticCollider } {
+  const k = LOCAL_TOKENS.galion.shipScale;
+  const pieces: GroundPiece[] = [
+    { id: 'plateau_pont', build: { kind: 'procedural', shape: 'slab', size: [DECK_HALF_X * 2, 0.5, DECK_HALF_Z * 2] }, pos: [0, 0, 0], collider: null },
+    // Coque : axe long tourné sur X, abaissée pour que son bastingage reste sous le pont.
+    { id: 'plateau_coque', build: { kind: 'model', url: PIRATE.shipLarge }, pos: [0, -LOCAL_TOKENS.galion.deckLocalY * k, 0], yaw: Math.PI / 2, scale: k, collider: null },
+  ];
+  const collider: StaticCollider = { id: 'deck', pos: [0, -0.3, 0], collider: { type: 'box', hx: DECK_HALF_X, hy: 0.3, hz: DECK_HALF_Z } };
+  return { pieces, collider };
+}
 
-  const props: PropSpec[] = [
-    // Canon (bounding brute mesurée : hx0.7 hy1.055 hz0.99, base au sol) : un coup dessus tire un boulet
-    // le long de l'axe peint sur le pont.
+// ---------------------------------------------------------------------------
+// 2 passerelles de planches suspendues, au fond de la vue (derrière les mâts).
+// ---------------------------------------------------------------------------
+function passerelle(id: string, x: number): OneWaySpec {
+  return {
+    id, top: [x, PLATFORM_Y, -1.2], halfX: 1.8, halfZ: 1.0, thickness: 0.35,
+    parts: [{ build: { kind: 'model', url: PIRATE.platformPlanks }, offset: [0, -0.43 * 0.9, 0], yaw: Math.PI / 2, scale: [1.05, 0.9, 1.35] }],
+  };
+}
+
+function plateformes(): OneWaySpec[] {
+  return [passerelle('gangway_left', -4.6), passerelle('gangway_right', 4.6)];
+}
+
+// ---------------------------------------------------------------------------
+// Couverts (2 caisses) + canon au fond du pont.
+// ---------------------------------------------------------------------------
+function caisse(id: string, x: number, z: number): PropSpec {
+  return {
+    id, kind: 'decor', pos: [x, 0, z], scale: 1.5,
+    build: { kind: 'model', url: PIRATE.crate },
+    collider: { type: 'box', hx: 0.54, hy: 0.385, hz: 0.65, offset: [0, 0.385, 0] },
+  };
+}
+
+function couverts(): PropSpec[] {
+  return [
+    caisse('crate_a', -1.9, 1.3),
+    caisse('crate_b', 1.9, -1.3),
     {
-      // yaw = -90° : la bounding box brute (mesh du tube, asymétrique) pointe par défaut vers +Z ; on la
-      // tourne pour l'aligner sur cannonAxis (-X). À confirmer à l'écran (pas de capture possible ici) :
-      // si le canon semble viser à l'envers, passer yaw à +Math.PI/2.
-      id: 'cannon_port',
-      kind: 'cannon',
-      pos: [-1.9 * scale, 0, -3.2 * scale],
-      yaw: -Math.PI / 2,
-      scale,
+      id: 'cannon', kind: 'cannon', pos: [-8, 0, -2.3], yaw: Math.PI / 2, scale: 1.3,
       build: { kind: 'model', url: PIRATE.cannon },
       collider: { type: 'box', hx: 0.7, hy: 0.53, hz: 1.0, offset: [0, 0.53, 0] },
-      triggerRadius: 1.6 * scale,
-      cannonAxis: [-1, 0, 0],
-      cannonRange: 16,
-    },
-    // Barils (bounding brute pirate/barrel.glb : radius ~0.67, hauteur ~1.23, base au sol) : bousculés,
-    // pas d'explosion, quand on tire dessus.
-    {
-      id: 'barrel_1',
-      kind: 'knockable',
-      pos: [1.3 * scale, 0, -4.6 * scale],
-      scale,
-      build: { kind: 'model', url: PIRATE.barrel },
-      collider: { type: 'cylinder', radius: 0.67, halfHeight: 0.61, offset: [0, 0.61, 0] },
-      triggerRadius: 1.3 * scale,
-      impulse: 6,
-    },
-    {
-      id: 'barrel_2',
-      kind: 'knockable',
-      pos: [1.7 * scale, 0, -3.6 * scale],
-      scale,
-      build: { kind: 'model', url: PIRATE.barrel },
-      collider: { type: 'cylinder', radius: 0.67, halfHeight: 0.61, offset: [0, 0.61, 0] },
-      triggerRadius: 1.3 * scale,
-      impulse: 6,
-    },
-    // Vergue (mât + cordage, mast-ropes.glb, bounding brute ~7.86 de haut) : toucher le cordage balaie le pont.
-    {
-      id: 'yard',
-      kind: 'sweeper',
-      pos: [0, 0, 0.6 * scale],
-      scale,
-      build: { kind: 'model', url: PIRATE.mastRopes },
-      collider: { type: 'cylinder', radius: 0.35, halfHeight: 4, offset: [0, 4, 0] },
-      triggerRadius: 1.8 * scale,
-      sweepDegrees: 140,
-      sweepDuration: 1.1,
+      triggerRadius: 1.8, cannonAxis: [1, 0, 0], cannonRange: 15,
     },
   ];
+}
 
+// ---------------------------------------------------------------------------
+// Fond : autres navires en silhouette dans la brume.
+// ---------------------------------------------------------------------------
+function fond(): BackdropSpec[] {
+  return [
+    { build: { kind: 'model', url: PIRATE.shipGhost }, items: [{ pos: [-34, -5, -38], yaw: 0.5, scale: 1.8 }, { pos: [40, -6, -30], yaw: -0.9, scale: 1.5 }] },
+    { build: { kind: 'model', url: PIRATE.shipMedium }, items: [{ pos: [8, -6, -58], yaw: 1.4, scale: 2 }] },
+    { build: { kind: 'model', url: PIRATE.rocks }, items: [{ pos: [-22, -7, -20], scale: 2.2 }, { pos: [26, -7, -16], yaw: 2, scale: 1.8 }] },
+  ];
+}
+
+export function buildGalionDef(): MapDef {
+  const { pieces, collider } = plateau();
+  const spawns: [Vec3, Vec3] = [[-SPAWN_X, 0.05, 0.4], [SPAWN_X, 0.05, 0.4]];
   return {
     id: 'galion',
     voidY: -5,
-    spawns: [
-      { pos: [0, 0.05, -5.4 * scale], yawDeg: 180 },
-      { pos: [0, 0.05, 5.4 * scale], yawDeg: 0 },
-    ],
-    crateSpots: [
-      [0, 0.4, 0],
-      [-1.4 * scale, 0.4, 2.4 * scale],
-    ],
+    arena: { center: [0, 0, 0], radius: 9 },
+    respawn: [0, 0.05, 0.6],
+    spawns: [{ pos: spawns[0], yawDeg: -90 }, { pos: spawns[1], yawDeg: 90 }],
+    crateSpots: [[0, 0.4, 1], [-4, 0.4, 1.5], [4, 0.4, -1.5]],
     tiles: [],
-    ground: [
-      { id: 'hull', build: { kind: 'model', url: PIRATE.shipLarge }, pos: [0, hullPosY, 0], scale, collider: null },
-    ],
-    extraColliders: [
-      { id: 'deck', pos: [0, -deckHalf[1], 0], collider: { type: 'box', hx: deckHalf[0], hy: deckHalf[1], hz: deckHalf[2] } },
-    ],
-    props,
-    periodicEvent: { kind: 'wave', everyTurns: 3 },
+    ground: pieces,
+    extraColliders: [collider],
+    platforms: plateformes(),
+    props: couverts(),
+    backdrop: fond(),
+    periodicEvent: { kind: 'wave', everyTurns: 3, firstTurn: 4, leadTurns: 2 },
+    seaY: -5.5,
+    waveBand: { center: [0, 0, DECK_HALF_Z - 0.8], size: [DECK_HALF_X * 2, 1.6] },
   };
 }
