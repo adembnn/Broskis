@@ -12,11 +12,21 @@ export const ANIM = {
     /** Tremblement de la pose de charge à pleine puissance (rad). */
     tremblement: 2.2 * DEG,
     /** Torse qui s'enroule en arrière pendant la charge, puis se déroule (rad). */
-    torsion: 28 * DEG,
+    torsion: 32 * DEG,
+    /** Buste rejeté en arrière à pleine charge (poids sur le pied arrière). */
+    cambre: 10 * DEG,
+    /** Fente vers l'avant au lâcher : le haut du corps suit l'objet (rad, ressort). */
+    fente: 26 * DEG,
   },
-  tir: { recul: 14 * DEG, reculBras: 22 * DEG, tenueApres: 0.35 },
-  bouclier: { secousse: 10 * DEG },
-  parade: { /** Garde levée : fondu très court (< 50 ms exigés). */ recul: 16 * DEG },
+  tir: { recul: 20 * DEG, reculBras: 38 * DEG, tenueApres: 0.35 },
+  bouclier: { /** Coup planté : le buste plonge vers le sol à l'impact. */ plongee: 22 * DEG },
+  parade: {
+    /** Garde levée : fondu très court (< 50 ms exigés) ; buste voûté derrière la garde. */
+    voute: 14 * DEG,
+    recul: 18 * DEG,
+    /** Contre de la parade parfaite : fente vers l'attaquant. */
+    contre: 30 * DEG,
+  },
   coup: {
     /** Fouet du torse dans le sens du recul, par point de % encaissé (rad), plafonné. */
     fouetParPct: 0.9 * DEG, fouetMax: 34 * DEG,
