@@ -374,6 +374,16 @@ const PAGE_TOOLS = async () => {
       const m = main?.getObjectByName(`arme-${w.id}`);
       return { id: w.id, name: w.name, category: w.category, size: m && m.visible ? bbox(m) : null, sticker: !!w.stickerUrl, physics: w.physics ?? null };
     },
+    /** Position à l'écran (px CSS) de l'objet en main, vu par la caméra de son joueur : pour une capture serrée. */
+    heldScreen(p) {
+      const ps = ctx.state.players[p];
+      const m = ctx.three.scene.getObjectByName('latk-main')?.getObjectByName(`arme-${ps.weapons[ps.selected].id}`);
+      if (!m || !m.visible) return null;
+      const v = m.getWorldPosition(m.position.clone());
+      const view = ctx.three.viewOf(p);
+      v.project(view.camera);
+      return { x: view.x + ((v.x + 1) / 2) * view.width, y: view.y + ((1 - v.y) / 2) * view.height, view: [view.x, view.y, view.width, view.height] };
+    },
     flying() {
       const vol = ctx.three.scene.getObjectByName('latk-vol');
       const out = [];
@@ -431,8 +441,12 @@ async function measureMatch(page, match, idx) {
         const held = await page.evaluate((p) => window.__e2eTools.held(p), shooter);
         r.held = held.size; r.stickerInMatch = held.sticker; r.physicsInMatch = !!held.physics;
         if (r.preset) r.weapon = { name: held.name, category: held.category, physics: held.physics };
+        // Capture serrée autour de l'objet en main (vue du joueur), sinon sa moitié d'écran.
+        const hs = await page.evaluate((p) => window.__e2eTools.heldScreen(p), shooter);
         const half = { x: shooter === 0 ? 0 : 640, y: 0, width: 640, height: 720 };
-        await shot(page, `main-${key}`, `${key} : en main (P${shooter + 1})`, { group: key, clip: half });
+        const W = 420, H = 360;
+        const clip = hs ? { x: Math.max(half.x, Math.min(half.x + half.width - W, hs.x - W / 2)), y: Math.max(0, Math.min(720 - H, hs.y - H / 2)), width: W, height: H } : half;
+        await shot(page, `main-${key}`, `${key} : en main (P${shooter + 1}), ${r2(maxDim(r.held)) ?? '?'} m affichés pour ${r2(maxDim(held.physics?.sizeM)) ?? '?'} m réels`, { group: key, clip });
         const n0 = await evCount(page);
         await page.evaluate(() => window.ctx.bus.emit('slowmo', { factor: 0.25, ms: 3500 }));
         await page.keyboard.down(FIRE[shooter]);
@@ -453,7 +467,8 @@ async function measureMatch(page, match, idx) {
           r.gravity = r2(sp.p.gravity);
           r.massSpawn = r2(sp.p.mass);
           r.materialSpawn = sp.p.material;
-          await sleep(600);
+          // Mi-parcours (3,5 m) au ralenti ×0,25 : l'objet est bien entre les deux persos sur la capture « en vol ».
+          await sleep(Math.max(150, ((3.5 / Math.max(1, r.speed)) / 0.25) * 1000 - 150));
           r.flying = (await page.evaluate(() => window.__e2eTools.flying())).map(maxDim).map(r2);
           await shot(page, `vol-${key}`, `${key} : en vol`, { group: key });
           const end = await waitEv(page, n0, (e) => e.name === 'projectile:end' && e.p.id === sp.p.id, 6000);
