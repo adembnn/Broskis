@@ -26,17 +26,27 @@
       "PowerShell(git log *)",
       "PowerShell(git diff *)",
       "PowerShell(git tag *)",
-      "PowerShell(Get-Date *)"
-    ],
-    "ask": [
+      "PowerShell(Get-Date *)",
       "Bash(git push *)",
-      "Bash(git reset *)",
+      "PowerShell(git push *)",
       "Bash(npm install *)",
       "Bash(npm i *)",
-      "PowerShell(git push *)",
-      "PowerShell(git reset *)",
       "PowerShell(npm install *)",
       "PowerShell(npm i *)",
+      "Bash(npx *)",
+      "PowerShell(npx *)",
+      "Bash(node *)",
+      "PowerShell(node *)",
+      "Bash(gemini *)",
+      "PowerShell(gemini *)",
+      "Bash(git merge *)",
+      "Bash(git worktree *)",
+      "Bash(git fetch *)",
+      "Bash(curl *)"
+    ],
+    "ask": [
+      "Bash(git reset *)",
+      "PowerShell(git reset *)",
       "Bash(rm -rf *)",
       "PowerShell(Remove-Item -Recurse *)"
     ],
