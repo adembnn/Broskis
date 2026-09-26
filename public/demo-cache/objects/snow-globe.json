@@ -1,0 +1,18 @@
+{
+  "id": "demo-snow-globe",
+  "object": "snow globe",
+  "name": "The Blizzard Bomb",
+  "category": "grenade",
+  "why": "Shakes once, shatters into a tiny angry winter.",
+  "stats": { "a": 3, "b": 4, "c": 3 },
+  "trait": "split",
+  "palette": ["#4a90c4", "#eef3f6"],
+  "lines": {
+    "intro": "Careful — it's got a whole season bottled up.",
+    "hit": "A blizzard, indoors!",
+    "miss": "It just rolls away, unbroken.",
+    "parried": "Batted back before it could snow."
+  },
+  "source": "preset",
+  "cooldown": 0
+}

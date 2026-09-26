@@ -1,0 +1,18 @@
+{
+  "id": "demo-beanbag",
+  "object": "beanbag chair",
+  "name": "The Comfy Wall",
+  "category": "shield",
+  "why": "Filled with beans. And something that shouldn't be in there.",
+  "stats": { "a": 3, "b": 5, "c": 2 },
+  "trait": "explosive",
+  "palette": ["#7a3b3b", "#caa46d"],
+  "lines": {
+    "intro": "Sit on it, or hide behind it. Your call.",
+    "hit": "Reflected — and it POPPED a little.",
+    "miss": "Just absorbs it. Rude, but effective.",
+    "parried": "It finally bursts. Beans everywhere."
+  },
+  "source": "preset",
+  "cooldown": 0
+}

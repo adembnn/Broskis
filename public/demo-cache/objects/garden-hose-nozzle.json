@@ -1,0 +1,18 @@
+{
+  "id": "demo-hose-nozzle",
+  "object": "garden hose nozzle",
+  "name": "Old Faithful Jr.",
+  "category": "blaster",
+  "why": "Technically a fire hose. Mostly a soaking hazard.",
+  "stats": { "a": 3, "b": 4, "c": 3 },
+  "trait": "slippery",
+  "palette": ["#3b7a57", "#c9a227"],
+  "lines": {
+    "intro": "Hope you brought a towel.",
+    "hit": "Soaked and shocked!",
+    "miss": "Missed, but the floor's wet now.",
+    "parried": "Redirected, still dripping."
+  },
+  "source": "preset",
+  "cooldown": 0
+}

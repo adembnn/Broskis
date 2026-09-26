@@ -1,0 +1,18 @@
+{
+  "id": "demo-rubber-duck",
+  "object": "rubber duck",
+  "name": "Quackenade",
+  "category": "grenade",
+  "why": "Squeaks once, then ruins your whole day.",
+  "stats": { "a": 4, "b": 3, "c": 3 },
+  "trait": "bouncy",
+  "palette": ["#f5c518", "#e8702a"],
+  "lines": {
+    "intro": "Cute. Deceptively cute.",
+    "hit": "QUACK! Direct hit!",
+    "miss": "It just floats away, unbothered.",
+    "parried": "Sent back to the bathtub."
+  },
+  "source": "preset",
+  "cooldown": 0
+}

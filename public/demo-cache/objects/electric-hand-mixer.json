@@ -1,0 +1,18 @@
+{
+  "id": "demo-hand-mixer",
+  "object": "electric hand mixer",
+  "name": "The Batter Blaster",
+  "category": "blaster",
+  "why": "Whisks so fast it forgets it isn't a gun.",
+  "stats": { "a": 2, "b": 6, "c": 2 },
+  "trait": "loud",
+  "palette": ["#c9c9c9", "#d63447"],
+  "lines": {
+    "intro": "Look out — fully charged and full of batter!",
+    "hit": "Whipped clean!",
+    "miss": "Batter everywhere, target nowhere.",
+    "parried": "Sent back, still spinning."
+  },
+  "source": "preset",
+  "cooldown": 0
+}

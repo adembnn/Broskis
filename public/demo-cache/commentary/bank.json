@@ -1,0 +1,58 @@
+{
+  "hit": [
+    "Contact! Right where it counts.",
+    "That connected. That really connected.",
+    "Oh, that's gonna leave a mark.",
+    "Straight through — no notes, just damage.",
+    "That's the sound of regret."
+  ],
+  "crit": [
+    "OH! Right in the— and that's the WHOLE SANDWICH!",
+    "CRITICAL! Nobody saw that coming, least of all them.",
+    "Straight through the guard, folks!",
+    "That one's going in the highlight reel.",
+    "Full power, zero mercy!"
+  ],
+  "miss": [
+    "Swing and a whole lot of nothing.",
+    "Air! Pure, undefeated air.",
+    "Missed — that object was clearly built for something else.",
+    "Nothing but stage lights got hit.",
+    "Well, THAT went nowhere."
+  ],
+  "parry-perfect": [
+    "PERFECT parry — and that's the WHOLE SANDWICH!",
+    "Timed to the millisecond. Unfair, honestly.",
+    "Reflected! Right back where it came from.",
+    "Frame-perfect! Somebody's been practicing.",
+    "Sent home without a single scratch."
+  ],
+  "low-hp": [
+    "They're hanging by a thread out there.",
+    "One good hit ends this. Any second now.",
+    "Legs are wobbling. It's getting dangerous.",
+    "Running on fumes and stubbornness alone.",
+    "This is the part where anything can happen."
+  ],
+  "ko": [
+    "KO! And that's the WHOLE SANDWICH, folks!",
+    "It's over! Down and staying down.",
+    "Lights out! Somebody check on them.",
+    "That's the ballgame, right there.",
+    "And down they go — spectacularly."
+  ],
+  "match-start": [
+    "Two fighters, zero common sense — let's go!",
+    "Here we go — I have no idea what these objects do!",
+    "Weapons up! Questionable choices, all of them.",
+    "Let's see what household items can really do!",
+    "Ring the bell — literally, someone find a bell!"
+  ],
+  "crate-grab": [
+    "Crate secured! Ten seconds to scan something silly.",
+    "Grabbed it! Point that camera at literally anything.",
+    "Fresh crate, fresh nonsense — scan away!",
+    "New weapon incoming, chosen by whatever's nearby!",
+    "Ten-second shopping spree, starting now!"
+  ]
+}

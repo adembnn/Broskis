@@ -1,0 +1,18 @@
+{
+  "id": "demo-frying-pan",
+  "object": "cast iron frying pan",
+  "name": "The Breakfast Ender",
+  "category": "throwable",
+  "why": "Forged for eggs. Repurposed for justice.",
+  "stats": { "a": 6, "b": 1, "c": 3 },
+  "trait": "heavy",
+  "palette": ["#2b2b2b", "#f2c14e"],
+  "lines": {
+    "intro": "This thing has ended more mornings than alarms.",
+    "hit": "CLANG! Breakfast is over.",
+    "miss": "Too heavy — landed early.",
+    "parried": "Batted back, dented pride only."
+  },
+  "source": "preset",
+  "cooldown": 0
+}

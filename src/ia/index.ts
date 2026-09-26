@@ -1,41 +1,28 @@
-// STUB du lot L0 — à remplacer par le lot LI (plan/lots/LI-pipeline-ia.md). Les signatures sont le contrat :
-// l'interface (LU) et le gameplay (LG) les appellent déjà ; ce stub renvoie des armes factices pour qu'ils avancent.
-import type { Category, Install, PlayerId, Weapon } from '../core/types';
+// Lot LI — pipeline IA et serveur. Remplace le stub du lot L0 : signatures inchangées (LG et LU les
+// appellent déjà). Voir plan/lots/LI-pipeline-ia.md et le skill ia-en-jeu.
+import type { Install } from '../core/types';
+import { say } from './commentary';
+import { scanObject } from './scan';
+import { setRuntimeCtx } from './runtime';
 
-export interface ScanOptions { category?: Category; player?: PlayerId }
+export type { ScanOptions } from './scan';
+export { scanObject } from './scan';
+export { prepareCommentary, say } from './commentary';
 
-let n = 0;
-function fakeWeapon(category: Category = 'grenade'): Weapon {
-  n += 1;
-  return {
-    id: `stub-${n}`,
-    object: 'rubber duck',
-    name: 'Quack Attack',
-    category,
-    why: 'It floats, it squeaks, it explodes.',
-    stats: { a: 4, b: 3, c: 3 },
-    trait: 'bouncy',
-    palette: ['#f2c14e', '#e0662b'],
-    lines: {
-      intro: 'A rubber duck! Somebody call the lifeguard!',
-      hit: 'QUACK! Right in the feathers!',
-      miss: 'The duck swims away...',
-      parried: 'Sent back to the pond!',
-    },
-    source: 'preset',
-    cooldown: 0,
+export const install: Install = (ctx) => {
+  setRuntimeCtx(ctx);
+
+  // L'animateur commente ces moments (les autres restent silencieux : « moments rares » selon le skill).
+  ctx.bus.on('hit', (data) => say('hit', data));
+  ctx.bus.on('parry:result', (data) => say('parry:result', data));
+  ctx.bus.on('ko', (data) => say('ko', data));
+  ctx.bus.on('crate:grab', (data) => say('crate:grab', data));
+  ctx.bus.on('match:start', (data) => say('match:start', data));
+
+  // window.gameHooks.scan(objectKey) : personne d'autre ne le branche (LG énumère les siens sans lui,
+  // voir plan/lots/LG-gameplay.md) — c'est le pont de test headless vers le pipeline IA.
+  ctx.hooks.scan = (objectKey: string) => {
+    ctx.bus.emit('scan:start', { player: ctx.state.active, source: 'cache' });
+    scanObject(objectKey, { player: ctx.state.active }).catch((e) => console.error('[ia] scan', e));
   };
-}
-
-/** Photo d'un objet → arme (stats JSON + sticker). */
-export async function scanObject(_image: Blob | string, opts: ScanOptions = {}): Promise<Weapon> {
-  return fakeWeapon(opts.category);
-}
-
-/** Génère et vocalise les répliques de l'animateur pendant la présentation des armes. */
-export async function prepareCommentary(_weapons: Weapon[]): Promise<void> {}
-
-/** Demande une réplique pour un événement (émise ensuite sur le bus en `commentary:line`). */
-export function say(_event: string, _data?: unknown): void {}
-
-export const install: Install = () => {};
+};

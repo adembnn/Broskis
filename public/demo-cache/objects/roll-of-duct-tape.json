@@ -1,0 +1,18 @@
+{
+  "id": "demo-duct-tape",
+  "object": "roll of duct tape",
+  "name": "Sticky Situation",
+  "category": "throwable",
+  "why": "Fixes everything. Especially your opponent's shoes to the floor.",
+  "stats": { "a": 2, "b": 5, "c": 3 },
+  "trait": "sticky",
+  "palette": ["#b6b6b6", "#8a5a34"],
+  "lines": {
+    "intro": "Silver, sticky, and deeply unfair.",
+    "hit": "Stuck! That's going to peel.",
+    "miss": "Rolled off harmlessly.",
+    "parried": "Bounced back, somehow still sticky."
+  },
+  "source": "preset",
+  "cooldown": 0
+}
