@@ -14,7 +14,7 @@ export interface Vitrine {
 }
 
 /** Placement : écart entre les 2 persos (m), léger quart de tour l'un vers l'autre (rad), caméra de face. */
-const SCENE = { ecart: 1.3, quartDeTour: 0.3, fov: 26, camera: [0, 1.45, 7.4] as const, vise: [0, 1.2, 0] as const };
+const SCENE = { ecart: 1.05, quartDeTour: 0.3, fov: 26, camera: [0, 1.35, 5.7] as const, vise: [0, 1.1, 0] as const };
 
 function creerRendu(canvas: HTMLCanvasElement): THREE.WebGLRenderer | null {
   for (const antialias of [true, false]) {
