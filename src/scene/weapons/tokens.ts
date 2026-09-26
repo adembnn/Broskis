@@ -3,11 +3,12 @@
 // (même principe que ../localTokens.ts).
 export const WEAPON_FX = {
   // Objet en main pendant la charge (sa taille est la taille réelle, voir `physique`).
-  main: { tremble: 0.035, lueur: 0.45, pop: 160 },
+  // cote / coteMin (lot LE2E) : décalage à droite de la main = taille × cote + coteMin (m), hors de la silhouette.
+  main: { tremble: 0.035, lueur: 0.3, pop: 160, cote: 0.45, coteMin: 0.15 },
   // Physique réelle → rendu : taille lisible bornée (m), tours/s ≈ tours / √masse, bornés.
   // Taille en jeu (DA « vinyle gonflé » §4) : base + pente × log10(L / ref), bornée ; les petits objets sont exagérés,
   // l'ordre des tailles est gardé (roi 0,68 m, tasse 0,74 m, chaise 1,12 m).
-  physique: { tailleBase: 0.7, taillePente: 0.45, tailleRef: 0.1, tailleMin: 0.62, tailleMax: 1.45, tours: 1.6, toursMin: 0.35, toursMax: 4.5, tailleMaxApproche: 1.9 },
+  physique: { tailleBase: 0.7, taillePente: 0.45, tailleRef: 0.1, tailleMin: 0.65, tailleMax: 1.45, tours: 1.6, toursMin: 0.35, toursMax: 4.5, tailleMaxApproche: 1.9 },
   // Épaisseur du sticker (banc LBENCH, cible d'Adem à 16h55 : 8 à 15 % de la largeur) : ×3 au plus ; tranche
   // jamais plus sombre que clarteMin.
   epaisseur: { min: 0.08, max: 3, largeur: 0.15, clarteMin: 0.24 },

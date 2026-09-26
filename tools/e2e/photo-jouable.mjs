@@ -467,8 +467,8 @@ async function measureMatch(page, match, idx) {
           r.gravity = r2(sp.p.gravity);
           r.massSpawn = r2(sp.p.mass);
           r.materialSpawn = sp.p.material;
-          // Mi-parcours (3,5 m) au ralenti ×0,25 : l'objet est bien entre les deux persos sur la capture « en vol ».
-          await sleep(Math.max(150, ((3.5 / Math.max(1, r.speed)) / 0.25) * 1000 - 150));
+          // Aux 2/3 du trajet (4,6 m sur 7) au ralenti ×0,25 : l'objet est en l'air, dégagé de la tête du lanceur.
+          await sleep(Math.max(150, ((4.6 / Math.max(1, r.speed)) / 0.25) * 1000 - 150));
           r.flying = (await page.evaluate(() => window.__e2eTools.flying())).map(maxDim).map(r2);
           await shot(page, `vol-${key}`, `${key} : en vol`, { group: key });
           const end = await waitEv(page, n0, (e) => e.name === 'projectile:end' && e.p.id === sp.p.id, 6000);
