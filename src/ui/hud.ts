@@ -216,7 +216,8 @@ export function mountHud(ctx: Ctx): Hud {
     bigBanner.hidden = false;
     replay(bigBanner, 'slam');
     window.clearTimeout(bigTimer);
-    const hold = kind === 'go' ? durees.dramatique : kind === 'ready' ? durees.bandeau * 2 : durees.ko * 2;
+    // READY? reste jusqu'au GO! (les règles l'émettent une fois la map chargée), avec un plafond si GO! ne vient pas.
+    const hold = kind === 'go' ? durees.dramatique : kind === 'ready' ? durees.bandeau * 6 : durees.ko * 2;
     bigTimer = window.setTimeout(() => {
       bigBanner.classList.add('leave');
       bigTimer = window.setTimeout(() => {

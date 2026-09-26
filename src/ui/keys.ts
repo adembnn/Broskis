@@ -28,6 +28,11 @@ export function jumpKey(): string {
   return keyLabel(typeof T.JUMP_KEY === 'string' ? T.JUMP_KEY : 'ShiftLeft');
 }
 
+/** Touche de tir clavier (maintenir = charger, relâcher = tirer), ajoutée par les règles v2 (lot LSMASH). */
+export function fireKey(): string {
+  return keyLabel(typeof T.FIRE_KEY === 'string' ? T.FIRE_KEY : 'KeyF');
+}
+
 export function parryKey(player: PlayerId): string {
   const codes = T.PARRY_KEY_CODE as Record<number, string> | undefined;
   return keyLabel(codes?.[player] ?? (player === 0 ? 'Space' : 'Enter'));

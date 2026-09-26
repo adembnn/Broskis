@@ -6,11 +6,13 @@ import * as THREE from 'three';
 import type { Ctx, PlayerId, Vec3 } from '../core/types';
 import { getFighterObject, worldToScreen as sceneToScreen } from '../scene/api';
 import { el, worldToScreen } from './dom';
-import { jumpKey, kbd, keyLine, parryKey } from './keys';
+import { fireKey, jumpKey, kbd, keyLine, parryKey } from './keys';
 
 /** Hauteur (m) au-dessus des pieds où poser la flèche : perso KayKit ≈ 2,5 m (tokens.js, rendu.contour). */
 const HEAD_H = 2.2;
 const EDGE_H = 2.9;
+
+const keyLabelOf = (code: string) => (code.startsWith('Key') ? code.slice(3) : code);
 
 export interface Help {
   root: HTMLDivElement;
@@ -69,7 +71,7 @@ export function mountHelp(ctx: Ctx): Help {
     } else if (phase === 'aim' && charging) {
       root.append(turnChip, el('span', 'keytext fire', 'Release to FIRE!'));
     } else if (phase === 'aim') {
-      root.append(turnChip, keyLine([['1', '2', '3'], 'Weapon', '·', 'Hold', ['CLICK'], 'or', ['F'], '→ release to FIRE']));
+      root.append(turnChip, keyLine([['1', '2', '3'], 'Weapon', '·', 'Hold', ['CLICK'], 'or', [fireKey()], '→ release to FIRE']));
     }
     root.hidden = root.childElementCount === 0;
   }
@@ -115,7 +117,7 @@ export function mountHelp(ctx: Ctx): Help {
     }
   };
   const onKey = (e: KeyboardEvent) => {
-    if (e.code !== 'KeyF' || e.repeat) return;
+    if (keyLabelOf(e.code) !== fireKey() || e.repeat) return;
     const down = e.type === 'keydown';
     if (down && !inTurn()) return;
     if (charging !== down) {
