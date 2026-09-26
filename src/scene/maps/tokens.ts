@@ -1,7 +1,5 @@
-// Pont vers src/art/tokens.js (direction « Vinyle », figée). Ce lot ne modifie JAMAIS tokens.js : la copie
-// locale (non commitée, voir consigne du coordinateur) sert de source réelle pendant le développement.
-// LOCAL_TOKENS ne garde que ce qui n'est PAS une valeur visuelle (hypothèses structurelles : échelle du
-// bateau, hauteur estimée du pont, échelle x10 de la cuisine, angle de gîte) — tout le reste vient d'ici.
+// Pont vers src/art/tokens.js (lot LDA2 en parallèle). Ce lot ne modifie JAMAIS tokens.js.
+// LOCAL_TOKENS ne garde que ce qui n'est PAS une valeur visuelle (hypothèses structurelles).
 import * as artTokens from '../../art/tokens.js';
 
 export const palette = artTokens.palette as { fond: string; matiere: string; lumiere: string; joueur: string; danger: string };
@@ -58,15 +56,11 @@ export function archipelTokens(): ArchipelTokens { return mapsToken.archipel; }
 export function galionTokens(): GalionTokens { return mapsToken.galion; }
 export function cuisineTokens(): CuisineTokens { return mapsToken.cuisine; }
 
-/** Hypothèses STRUCTURELLES (pas des valeurs visuelles) manquant d'un contrat commun : à revoir si un lot
- *  de gameplay/scène les redéfinit ailleurs. Voir le rendu de fin de lot pour le détail de chacune. */
+/** Hypothèses STRUCTURELLES (pas des valeurs visuelles) : géométrie du galion, angle de gîte. */
 export const LOCAL_TOKENS = {
   galion: {
-    shipScale: 1.15, // ship-pirate-large.glb est déjà à l'échelle Kenney ; léger agrandissement pour "grand bateau"
-    deckLocalY: 1.8, // pas de bounding box fiable pour "le pont" seul (un seul mesh pour toute la coque) : à ajuster visuellement
+    shipScale: 1.45, // ship-pirate-large.glb : coque de 19 x 7 m, à peine plus grande que le pont jouable (18 x 6,8)
+    deckLocalY: 2.1, // hauteur (repère du modèle) du haut du bastingage : la coque est abaissée d'autant sous le pont
     tiltDeg: 12,     // angle de gîte demandé par le lot (mécanique de jeu, pas une teinte)
-  },
-  cuisine: {
-    counterScale: 10, // consigne du lot : props restaurant/furniture agrandis "environ x10"
   },
 } as const;
