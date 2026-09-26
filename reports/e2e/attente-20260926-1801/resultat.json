@@ -1,0 +1,2539 @@
+{
+ "branch": "worktree-agent-a5399d4fc3ca2735d",
+ "commit": "278196a",
+ "verdicts": [
+  {
+   "label": "Texte progressif (≥ 3 états intermédiaires) — tête",
+   "ok": false,
+   "detail": "2 textes différents avant la tête"
+  },
+  {
+   "label": "Texte progressif (≥ 3 états intermédiaires) — objet",
+   "ok": true,
+   "detail": "5 textes différents avant l'objet 3D"
+  },
+  {
+   "label": "L'image se révèle — tête",
+   "ok": false,
+   "detail": "images visibles : 5 → 5"
+  },
+  {
+   "label": "L'image se révèle — objet",
+   "ok": true,
+   "detail": "images visibles : 1 → 4"
+  },
+  {
+   "label": "Le 3D se construit — tête",
+   "ok": true,
+   "detail": "canvas dans l'écran : 1"
+  },
+  {
+   "label": "Le 3D se construit — objet",
+   "ok": false,
+   "detail": "canvas dans l'encart : 0"
+  },
+  {
+   "label": "Aucune seconde où rien ne bouge — tête",
+   "ok": true,
+   "detail": "plus longue immobilité : 0.5 s"
+  },
+  {
+   "label": "Aucune seconde où rien ne bouge — objet",
+   "ok": true,
+   "detail": "plus longue immobilité : 0 s"
+  },
+  {
+   "label": "Validation bloquée tant que la tête n'est pas affichée",
+   "ok": true,
+   "detail": "bouton « Ready » bloqué avant la tête ; tête affichée : oui (12 s)"
+  },
+  {
+   "label": "Validation bloquée tant que l'objet 3D n'est pas affiché",
+   "ok": false,
+   "detail": "bouton « Confirm » ACTIF avant l'objet 3D ; objet 3D affiché : oui (10.8 s)"
+  },
+  {
+   "label": "Réseau ralenti de 8 s : on reste sur l'écran, la progression continue",
+   "ok": false,
+   "detail": "tête affichée à 12 s, immobilité max 1 s, message : aucun · objet affiché à 10.2 s, immobilité max 0 s, note : Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again."
+  },
+  {
+   "label": "API coupée : boutons Retry et Default — tête",
+   "ok": false,
+   "detail": "boutons : Retry, Use my voice, Use my voice, Ready to fight! ; message : Your cartoon head didn't come out this time. Try again, or fight as is."
+  },
+  {
+   "label": "API coupée : boutons Retry et Default — objet",
+   "ok": false,
+   "detail": "boutons : blaster, grenade, throwable, shield, Confirm, Retry, Pick 3 more"
+  }
+ ],
+ "films": {
+  "normal": {
+   "reseau": "normal",
+   "tete": [
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 0,
+     "fichier": "normal-tete-000.jpg",
+     "empreinte": "cba10ed005"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 0.5,
+     "fichier": "normal-tete-001.jpg",
+     "empreinte": "cba10ed005"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 1.1,
+     "fichier": "normal-tete-002.jpg",
+     "empreinte": "7c84c5763b"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 1.6,
+     "fichier": "normal-tete-003.jpg",
+     "empreinte": "cba10ed005"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 2.1,
+     "fichier": "normal-tete-004.jpg",
+     "empreinte": "18b4aaa53e"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing Curly Specs's big head… \"Look at these curls spin!\" New photo Use my voice P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fig",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "New photo",
+      "Use my voice",
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 2.6,
+     "fichier": "normal-tete-005.jpg",
+     "empreinte": "1f08066d4e"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing Curly Specs's big head… \"Look at these curls spin!\" New photo Use my voice P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fig",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "New photo",
+      "Use my voice",
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 3.2,
+     "fichier": "normal-tete-006.jpg",
+     "empreinte": "cdb565ae22"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing Curly Specs's big head… \"Look at these curls spin!\" New photo Use my voice P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fig",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "New photo",
+      "Use my voice",
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 3.7,
+     "fichier": "normal-tete-007.jpg",
+     "empreinte": "cdb565ae22"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing Curly Specs's big head… \"Look at these curls spin!\" New photo Use my voice P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fig",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "New photo",
+      "Use my voice",
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 4.2,
+     "fichier": "normal-tete-008.jpg",
+     "empreinte": "efc2200fb8"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing Curly Specs's big head… \"Look at these curls spin!\" New photo Use my voice P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fig",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "New photo",
+      "Use my voice",
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 4.7,
+     "fichier": "normal-tete-009.jpg",
+     "empreinte": "b9d1d28778"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing Curly Specs's big head… \"Look at these curls spin!\" New photo Use my voice P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fig",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "New photo",
+      "Use my voice",
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 5.2,
+     "fichier": "normal-tete-010.jpg",
+     "empreinte": "cdb565ae22"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing Curly Specs's big head… \"Look at these curls spin!\" New photo Use my voice P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fig",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "New photo",
+      "Use my voice",
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 5.7,
+     "fichier": "normal-tete-011.jpg",
+     "empreinte": "7593392916"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing Curly Specs's big head… \"Look at these curls spin!\" New photo Use my voice P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fig",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "New photo",
+      "Use my voice",
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 6.2,
+     "fichier": "normal-tete-012.jpg",
+     "empreinte": "8587ab9b1d"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing Curly Specs's big head… \"Look at these curls spin!\" New photo Use my voice P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fig",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "New photo",
+      "Use my voice",
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 7,
+     "fichier": "normal-tete-013.jpg",
+     "empreinte": "f8d7e6baf3"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing Curly Specs's big head… \"Look at these curls spin!\" New photo Use my voice P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fig",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "New photo",
+      "Use my voice",
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 7.5,
+     "fichier": "normal-tete-014.jpg",
+     "empreinte": "ea3d083544"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing Curly Specs's big head… \"Look at these curls spin!\" New photo Use my voice P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fig",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "New photo",
+      "Use my voice",
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 8.6,
+     "fichier": "normal-tete-015.jpg",
+     "empreinte": "cdb565ae22"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing Curly Specs's big head… \"Look at these curls spin!\" New photo Use my voice P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fig",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "New photo",
+      "Use my voice",
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 9.5,
+     "fichier": "normal-tete-016.jpg",
+     "empreinte": "c0410509ca"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing Curly Specs's big head… \"Look at these curls spin!\" New photo Use my voice P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fig",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "New photo",
+      "Use my voice",
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 10,
+     "fichier": "normal-tete-017.jpg",
+     "empreinte": "7fdcdacdc8"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing Curly Specs's big head… \"Look at these curls spin!\" New photo Use my voice P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fig",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "New photo",
+      "Use my voice",
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 10.8,
+     "fichier": "normal-tete-018.jpg",
+     "empreinte": "cdb565ae22"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing Curly Specs's big head… \"Look at these curls spin!\" New photo Use my voice P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fig",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "New photo",
+      "Use my voice",
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 11.5,
+     "fichier": "normal-tete-019.jpg",
+     "empreinte": "cdb565ae22"
+    },
+    {
+     "texte": "Fighters ready! P1 \"Look at these curls spin!\" New photo Use my voice P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 2,
+     "canvas": 1,
+     "bouton": "actif",
+     "boutons": [
+      "New photo",
+      "Use my voice",
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": true,
+     "t": 12,
+     "fichier": "normal-tete-020.jpg",
+     "empreinte": "c8d1073b46"
+    }
+   ],
+   "teteFin": {
+    "ecran": "persos",
+    "boutons": [
+     "New photo",
+     "Use my voice",
+     "Use my voice",
+     "Ready to fight!"
+    ],
+    "message": []
+   },
+   "objet": [
+    {
+     "texte": "Player 1: Gemin Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 0,
+     "fichier": "normal-objet-000.jpg",
+     "empreinte": "f8f7c106e1"
+    },
+    {
+     "texte": "Player 1: Gemini is reading your object… Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 1.2,
+     "fichier": "normal-objet-001.jpg",
+     "empreinte": "9e1d406ba2"
+    },
+    {
+     "texte": "Player 1: Gemini is reading your object… Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 2.1,
+     "fichier": "normal-objet-002.jpg",
+     "empreinte": "3a849281b1"
+    },
+    {
+     "texte": "Player 1: Gemini is reading your object… Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 2.6,
+     "fichier": "normal-objet-003.jpg",
+     "empreinte": "9ec058e941"
+    },
+    {
+     "texte": "Player 1: Gemini is reading your object… Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 3.1,
+     "fichier": "normal-objet-004.jpg",
+     "empreinte": "c45bf5e023"
+    },
+    {
+     "texte": "Player 1: Gemini is reading your object… Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 3.6,
+     "fichier": "normal-objet-005.jpg",
+     "empreinte": "1710b854be"
+    },
+    {
+     "texte": "Player 1: Gemini is reading your object… Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 4.1,
+     "fichier": "normal-objet-006.jpg",
+     "empreinte": "765d8fd7db"
+    },
+    {
+     "texte": "Player 1: Gemini is reading your object… Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 4.6,
+     "fichier": "normal-objet-007.jpg",
+     "empreinte": "eb31f0ef3f"
+    },
+    {
+     "texte": "Player 1: Gemini is reading your object… Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 5.2,
+     "fichier": "normal-objet-008.jpg",
+     "empreinte": "d68b611de1"
+    },
+    {
+     "texte": "Er Gemini see Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 5.7,
+     "fichier": "normal-objet-009.jpg",
+     "empreinte": "939ef25a74"
+    },
+    {
+     "texte": "Ergonomic Deflector Nano Snapped Stats Sticker BROSKIS SHIELD #01 Ergonomic Deflector From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It has an upright backrest specifically engineered to b",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 6.2,
+     "fichier": "normal-objet-010.jpg",
+     "empreinte": "5a1b56755a"
+    },
+    {
+     "texte": "Ergonomic Deflector Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 Ergonomic Deflector From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It has an upright backr",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 6.7,
+     "fichier": "normal-objet-011.jpg",
+     "empreinte": "1d24be84fb"
+    },
+    {
+     "texte": "Ergonomic Deflector Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 Ergonomic Deflector From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It has an upright backr",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 7.2,
+     "fichier": "normal-objet-012.jpg",
+     "empreinte": "c76a78dda2"
+    },
+    {
+     "texte": "Ergonomic Deflector Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 Ergonomic Deflector From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It has an upright backr",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 7.7,
+     "fichier": "normal-objet-013.jpg",
+     "empreinte": "dccabda093"
+    },
+    {
+     "texte": "Ergonomic Deflector Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 Ergonomic Deflector From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It has an upright backr",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 8.2,
+     "fichier": "normal-objet-014.jpg",
+     "empreinte": "85e676bae8"
+    },
+    {
+     "texte": "Ergonomic Deflector Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 Ergonomic Deflector From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It has an upright backr",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 8.7,
+     "fichier": "normal-objet-015.jpg",
+     "empreinte": "1c3c8b9695"
+    },
+    {
+     "texte": "Ergonomic Deflector Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 Ergonomic Deflector From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It has an upright backr",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 9.2,
+     "fichier": "normal-objet-016.jpg",
+     "empreinte": "d8d403f50a"
+    },
+    {
+     "texte": "Ergonomic Deflector Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 Ergonomic Deflector From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It has an upright backr",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 9.8,
+     "fichier": "normal-objet-017.jpg",
+     "empreinte": "fc3a8c474f"
+    },
+    {
+     "texte": "Ergonomic Deflector Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 Ergonomic Deflector From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It has an upright backr",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 10.3,
+     "fichier": "normal-objet-018.jpg",
+     "empreinte": "f993eaf193"
+    },
+    {
+     "texte": "Ergonomic Deflector Forged! Snapped Stats Sticker BROSKIS SHIELD #01 Ergonomic Deflector From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It has an upright backrest specifically engineered t",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": true,
+     "t": 10.8,
+     "fichier": "normal-objet-019.jpg",
+     "empreinte": "1f16b78654"
+    }
+   ],
+   "objetFin": {
+    "ecran": "arsenal",
+    "boutons": [
+     "blaster",
+     "grenade",
+     "throwable",
+     "shield",
+     "Confirm",
+     "Retry"
+    ],
+    "note": null
+   }
+  },
+  "lent": {
+   "reseau": "lent",
+   "tete": [
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 0,
+     "fichier": "lent-tete-000.jpg",
+     "empreinte": "300bf410e9"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 0.5,
+     "fichier": "lent-tete-001.jpg",
+     "empreinte": "1dddf0fccf"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 1,
+     "fichier": "lent-tete-002.jpg",
+     "empreinte": "300bf410e9"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 1.5,
+     "fichier": "lent-tete-003.jpg",
+     "empreinte": "300bf410e9"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 2,
+     "fichier": "lent-tete-004.jpg",
+     "empreinte": "97a97f844c"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 2.5,
+     "fichier": "lent-tete-005.jpg",
+     "empreinte": "bf117a0601"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 3.1,
+     "fichier": "lent-tete-006.jpg",
+     "empreinte": "300bf410e9"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 3.6,
+     "fichier": "lent-tete-007.jpg",
+     "empreinte": "300bf410e9"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 5.1,
+     "fichier": "lent-tete-008.jpg",
+     "empreinte": "3fd8febb47"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 5.6,
+     "fichier": "lent-tete-009.jpg",
+     "empreinte": "300bf410e9"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 6.2,
+     "fichier": "lent-tete-010.jpg",
+     "empreinte": "9496210add"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 6.7,
+     "fichier": "lent-tete-011.jpg",
+     "empreinte": "93eff99e0f"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 7.2,
+     "fichier": "lent-tete-012.jpg",
+     "empreinte": "300bf410e9"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 7.9,
+     "fichier": "lent-tete-013.jpg",
+     "empreinte": "300bf410e9"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 8.4,
+     "fichier": "lent-tete-014.jpg",
+     "empreinte": "300bf410e9"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 8.9,
+     "fichier": "lent-tete-015.jpg",
+     "empreinte": "7fd02e5638"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 9.4,
+     "fichier": "lent-tete-016.jpg",
+     "empreinte": "300bf410e9"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing Curly Specs's big head… \"Curls of fury incoming!\" New photo Use my voice P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "New photo",
+      "Use my voice",
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 9.9,
+     "fichier": "lent-tete-017.jpg",
+     "empreinte": "44cbb5099e"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing Curly Specs's big head… \"Curls of fury incoming!\" New photo Use my voice P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "New photo",
+      "Use my voice",
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 10.4,
+     "fichier": "lent-tete-018.jpg",
+     "empreinte": "44cbb5099e"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing Curly Specs's big head… \"Curls of fury incoming!\" New photo Use my voice P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "New photo",
+      "Use my voice",
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 11,
+     "fichier": "lent-tete-019.jpg",
+     "empreinte": "91821aa17a"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing Curly Specs's big head… \"Curls of fury incoming!\" New photo Use my voice P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "New photo",
+      "Use my voice",
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 11.5,
+     "fichier": "lent-tete-020.jpg",
+     "empreinte": "44cbb5099e"
+    },
+    {
+     "texte": "Fighters ready! P1 C \"Curls of fury incoming!\" New photo Use my voice P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 1,
+     "canvas": 1,
+     "bouton": "actif",
+     "boutons": [
+      "New photo",
+      "Use my voice",
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": true,
+     "t": 12,
+     "fichier": "lent-tete-021.jpg",
+     "empreinte": "c1b052ad05"
+    }
+   ],
+   "teteFin": {
+    "ecran": "persos",
+    "boutons": [
+     "New photo",
+     "Use my voice",
+     "Use my voice",
+     "Ready to fight!"
+    ],
+    "message": []
+   },
+   "objet": [
+    {
+     "texte": "Player 1: Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 0,
+     "fichier": "lent-objet-000.jpg",
+     "empreinte": "8ec955ccde"
+    },
+    {
+     "texte": "Player 1: Gemini is rea Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 0.5,
+     "fichier": "lent-objet-001.jpg",
+     "empreinte": "6e076e02d5"
+    },
+    {
+     "texte": "Player 1: Gemini is reading your object… Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 1,
+     "fichier": "lent-objet-002.jpg",
+     "empreinte": "3965ea9e73"
+    },
+    {
+     "texte": "Player 1: Gemini is reading your object… Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 1.5,
+     "fichier": "lent-objet-003.jpg",
+     "empreinte": "8cd335e2ea"
+    },
+    {
+     "texte": "Player 1: Gemini is reading your object… Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 2.1,
+     "fichier": "lent-objet-004.jpg",
+     "empreinte": "28475c4a89"
+    },
+    {
+     "texte": "Player 1: Gemini is reading your object… Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 2.6,
+     "fichier": "lent-objet-005.jpg",
+     "empreinte": "c299425d3b"
+    },
+    {
+     "texte": "Player 1: Gemini is reading your object… Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 3.1,
+     "fichier": "lent-objet-006.jpg",
+     "empreinte": "03c22fa4be"
+    },
+    {
+     "texte": "Player 1: Gemini is reading your object… Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 3.6,
+     "fichier": "lent-objet-007.jpg",
+     "empreinte": "eb31f0ef3f"
+    },
+    {
+     "texte": "Player 1: Gemini is reading your object… Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 4.1,
+     "fichier": "lent-objet-008.jpg",
+     "empreinte": "52a46b8476"
+    },
+    {
+     "texte": "Player 1: Gemini is reading your object… Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 4.6,
+     "fichier": "lent-objet-009.jpg",
+     "empreinte": "95c3dec1a7"
+    },
+    {
+     "texte": "Player 1: Gemini is reading your object… Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 5.1,
+     "fichier": "lent-objet-010.jpg",
+     "empreinte": "eba51e8157"
+    },
+    {
+     "texte": "Player 1: Gemini is reading your object… Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 5.7,
+     "fichier": "lent-objet-011.jpg",
+     "empreinte": "e4950e08bb"
+    },
+    {
+     "texte": "Player 1: Gemini is reading your object… Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 6.3,
+     "fichier": "lent-objet-012.jpg",
+     "empreinte": "61f2c787e6"
+    },
+    {
+     "texte": "Player 1: Gemini is reading your object… Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 7.3,
+     "fichier": "lent-objet-013.jpg",
+     "empreinte": "e984903fef"
+    },
+    {
+     "texte": "Player 1: Gemini is reading your object… Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 7.8,
+     "fichier": "lent-objet-014.jpg",
+     "empreinte": "ef5fe92ce9"
+    },
+    {
+     "texte": "Player 1: Gemini is reading your object… Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 8.3,
+     "fichier": "lent-objet-015.jpg",
+     "empreinte": "3bf6d712fd"
+    },
+    {
+     "texte": "Player 1: Gemini is reading your object… Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 9.2,
+     "fichier": "lent-objet-016.jpg",
+     "empreinte": "37685e33c8"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Doom Scroller Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Doom Scroller From: smartphone 200 g · 15 cm · glass · fragile Power Radius Bounce EXPLOSIVE blaste",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": true,
+     "t": 10.2,
+     "fichier": "lent-objet-017.jpg",
+     "empreinte": "530aaa0c29"
+    }
+   ],
+   "objetFin": {
+    "ecran": "arsenal",
+    "boutons": [
+     "blaster",
+     "grenade",
+     "throwable",
+     "shield",
+     "Confirm",
+     "Retry"
+    ],
+    "note": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again."
+   }
+  },
+  "coupe": {
+   "reseau": "coupe",
+   "tete": [
+    {
+     "texte": "Fighters ready! P1 Your cartoon head didn't come out this time. Try again, or fight as is. Retry Use my voice P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 2,
+     "canvas": 1,
+     "bouton": "actif",
+     "boutons": [
+      "Retry",
+      "Use my voice",
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": true,
+     "t": 0,
+     "fichier": "coupe-tete-000.jpg",
+     "empreinte": "012307395e"
+    }
+   ],
+   "teteFin": {
+    "ecran": "persos",
+    "boutons": [
+     "Retry",
+     "Use my voice",
+     "Use my voice",
+     "Ready to fight!"
+    ],
+    "message": [
+     "Your cartoon head didn't come out this time. Try again, or fight as is."
+    ]
+   }
+  },
+  "coupeObjet": {
+   "objet": [
+    {
+     "texte": "Point the camera at an object, or drop in a photo. Use webcam Import a photo No camera found. Import a photo or drop one in.",
+     "imgs": 0,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Use webcam",
+      "Import a photo",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 0,
+     "fichier": "coupe-objet-000.jpg",
+     "empreinte": "112532e674"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Atta Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blaster",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 0.9,
+     "fichier": "coupe-objet-001.jpg",
+     "empreinte": "e6e3e75075"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 1.4,
+     "fichier": "coupe-objet-002.jpg",
+     "empreinte": "daf8c55837"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 2.4,
+     "fichier": "coupe-objet-003.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 2.9,
+     "fichier": "coupe-objet-004.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 3.5,
+     "fichier": "coupe-objet-005.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 4,
+     "fichier": "coupe-objet-006.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 4.6,
+     "fichier": "coupe-objet-007.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 5.1,
+     "fichier": "coupe-objet-008.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 5.6,
+     "fichier": "coupe-objet-009.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 6.1,
+     "fichier": "coupe-objet-010.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 6.6,
+     "fichier": "coupe-objet-011.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 7.2,
+     "fichier": "coupe-objet-012.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 7.7,
+     "fichier": "coupe-objet-013.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 8.3,
+     "fichier": "coupe-objet-014.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 8.9,
+     "fichier": "coupe-objet-015.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 9.5,
+     "fichier": "coupe-objet-016.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 10,
+     "fichier": "coupe-objet-017.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 10.5,
+     "fichier": "coupe-objet-018.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 11,
+     "fichier": "coupe-objet-019.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 11.5,
+     "fichier": "coupe-objet-020.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 12,
+     "fichier": "coupe-objet-021.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 12.5,
+     "fichier": "coupe-objet-022.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 13,
+     "fichier": "coupe-objet-023.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 13.6,
+     "fichier": "coupe-objet-024.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 14.1,
+     "fichier": "coupe-objet-025.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 14.6,
+     "fichier": "coupe-objet-026.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 15.1,
+     "fichier": "coupe-objet-027.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 15.6,
+     "fichier": "coupe-objet-028.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 16.1,
+     "fichier": "coupe-objet-029.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 16.6,
+     "fichier": "coupe-objet-030.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 17.1,
+     "fichier": "coupe-objet-031.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 17.6,
+     "fichier": "coupe-objet-032.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 18.1,
+     "fichier": "coupe-objet-033.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 18.6,
+     "fichier": "coupe-objet-034.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 19.2,
+     "fichier": "coupe-objet-035.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 19.7,
+     "fichier": "coupe-objet-036.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 20.2,
+     "fichier": "coupe-objet-037.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 20.7,
+     "fichier": "coupe-objet-038.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 21.2,
+     "fichier": "coupe-objet-039.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 21.9,
+     "fichier": "coupe-objet-040.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 23,
+     "fichier": "coupe-objet-041.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 23.5,
+     "fichier": "coupe-objet-042.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 24,
+     "fichier": "coupe-objet-043.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 24.5,
+     "fichier": "coupe-objet-044.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 25,
+     "fichier": "coupe-objet-045.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 25.6,
+     "fichier": "coupe-objet-046.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 26.1,
+     "fichier": "coupe-objet-047.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 26.6,
+     "fichier": "coupe-objet-048.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 27.1,
+     "fichier": "coupe-objet-049.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 27.6,
+     "fichier": "coupe-objet-050.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 28.2,
+     "fichier": "coupe-objet-051.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 28.7,
+     "fichier": "coupe-objet-052.jpg",
+     "empreinte": "614ab3bec4"
+    },
+    {
+     "texte": "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again. Quack Attack Forged! Snapped Stats Sticker BROSKIS GRENADE #01 Quack Attack From: yellow rubber duck 50 g · 9 cm · rubber · bouncy Power Radius Bounce BOUNCY blast",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 29.5,
+     "fichier": "coupe-objet-053.jpg",
+     "empreinte": "614ab3bec4"
+    }
+   ],
+   "boutons": [
+    "blaster",
+    "grenade",
+    "throwable",
+    "shield",
+    "Confirm",
+    "Retry",
+    "Pick 3 more"
+   ]
+  }
+ }
+}
