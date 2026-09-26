@@ -1,0 +1,21 @@
+{
+ "retardS": 60,
+ "ecranDebloqueS": 30,
+ "messageEcran": [
+  "The AI took too long. Try again, or fight as is."
+ ],
+ "combatS": 43,
+ "teteAuDebutDuMatch": false,
+ "portraitRenduApresS": 60,
+ "evenement": [
+  {
+   "t": 74920,
+   "id": "custom-fighter-muijhg77-1"
+  }
+ ],
+ "teteEnMatch": true,
+ "teteArriveeS": 66,
+ "phaseALArrivee": "fight",
+ "hudVisage": false,
+ "verdict": "VERT"
+}
