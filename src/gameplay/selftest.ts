@@ -1,0 +1,143 @@
+// Match complet joué uniquement via `window.gameHooks` (aucune souris ni clavier), pour que la session
+// principale puisse le lancer dans le navigateur : `await window.__selftest()`. Ne throw jamais : les
+// erreurs sont collectées dans le résultat. PV des persos gonflés exprès pour ne pas dépendre du hasard
+// des critiques (sinon un K.O. prématuré casserait le script) ; la caisse Snap est forcée sous les pieds
+// plutôt que d'attendre le tirage aléatoire, pour un test court et reproductible.
+import type { Ctx, FighterDef, Weapon } from '../core/types';
+import { defaultArsenal } from './tuning';
+
+export interface SelftestResult { ok: boolean; steps: string[]; errors: string[]; finalState: unknown }
+
+declare global { interface Window { __selftest?: () => Promise<SelftestResult> } }
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function waitUntil(cond: () => boolean, timeoutMs: number, stepMs = 40): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const start = performance.now();
+    const poll = () => {
+      if (cond()) { resolve(); return; }
+      if (performance.now() - start > timeoutMs) { reject(new Error(`délai dépassé (${timeoutMs} ms)`)); return; }
+      setTimeout(poll, stepMs);
+    };
+    poll();
+  });
+}
+
+// Volontairement PAS une assertion function TS (`asserts cond`) : sur `ctx.state.phase === '...'`, ça
+// figerait un narrowing qui devient faux dès qu'un hook change la phase, et ferait échouer la compilation
+// des vérifications suivantes (« types X et Y have no overlap ») sans rapport avec un vrai bug.
+function assert(cond: unknown, msg: string): void {
+  if (!cond) throw new Error(`assertion échouée : ${msg}`);
+}
+
+const TEST_FIGHTERS: [FighterDef, FighterDef] = [
+  { id: 'selftest-p0', name: 'Selftest P0', model: 'knight', hpMax: 500, power: 5, agility: 5 },
+  { id: 'selftest-p1', name: 'Selftest P1', model: 'rogue_hooded', hpMax: 500, power: 5, agility: 5 },
+];
+
+/** Arsenal par défaut, mais avec le blaster réglé à précision maximale (budget toujours a+b+c=10) :
+ * un script sans souris tire droit, la dispersion de la rafale ne doit pas rendre le test aléatoire.
+ * Fonction (pas une constante) : `window.__selftest()` doit rester rejouable sans armes en recharge
+ * héritées d'un run précédent (startMatch ne réinitialise pas des objets Weapon fournis). */
+function testWeapons(): [Weapon[], Weapon[]] {
+  const make = (): Weapon[] => {
+    const weapons = defaultArsenal();
+    const blaster = weapons.find((w) => w.category === 'blaster');
+    if (blaster) blaster.stats = { a: 4, b: 1, c: 5 };
+    return weapons;
+  };
+  return [make(), make()];
+}
+
+async function runSelftest(ctx: Ctx): Promise<SelftestResult> {
+  const steps: string[] = [];
+  const errors: string[] = [];
+  const step = (s: string) => steps.push(s);
+  const originalError = console.error;
+  console.error = (...args: unknown[]) => { errors.push(args.map(String).join(' ')); originalError(...args); };
+
+  try {
+    ctx.hooks.startMatch({ seed: 20260926, fighters: TEST_FIGHTERS, weapons: testWeapons() });
+    step('startMatch({seed, fighters à 500 PV, blaster haute précision})');
+    assert(ctx.state.phase === 'turn-intro', `phase attendue 'turn-intro', obtenu '${ctx.state.phase}'`);
+    assert(ctx.state.players[0].weapons.length === 3 && ctx.state.players[1].weapons.length === 3, '3 armes par défaut par joueur');
+
+    await waitUntil(() => ctx.state.phase === 'move', 2000);
+    step("bandeau de tour passé → phase 'move'");
+
+    // --- Tour 1 (P0) : déplacement, saut, visée, tir — personne ne pare, le coup doit toucher. ---
+    assert(ctx.state.active === 0, 'le tour 1 doit être à P0');
+    const moveLeftBefore = ctx.state.players[0].moveLeft;
+    ctx.hooks.move(2, 0);
+    assert(ctx.state.players[0].moveLeft < moveLeftBefore, 'move(2,0) doit consommer du budget de déplacement');
+    ctx.hooks.jump();
+    assert(ctx.state.players[0].jumpUsed, 'jump() doit marquer jumpUsed');
+    step(`move(2,0) + jump() → moveLeft=${ctx.state.players[0].moveLeft.toFixed(2)}`);
+
+    ctx.hooks.pickWeapon(0);
+    assert(ctx.state.phase === 'aim', `pickWeapon(0) doit passer en 'aim', obtenu '${ctx.state.phase}'`);
+    ctx.hooks.aim(90, 0); // P0 (-x) vise vers +x, où se trouve P1
+    ctx.hooks.fire(0.6);
+    assert(ctx.state.phase === 'resolve', `fire() doit passer en 'resolve', obtenu '${ctx.state.phase}'`);
+    step(`pickWeapon(0)=${ctx.state.players[0].weapons[0].category}, aim(90,0), fire(0.6)`);
+
+    const hpP1Before = ctx.state.players[1].hp;
+    await waitUntil(() => ctx.state.turn >= 2, 8000);
+    assert(ctx.state.players[1].hp < hpP1Before, 'P1 doit avoir perdu des PV (aucune parade au tour 1)');
+    assert(ctx.state.players[0].weapons[0].cooldown > 0, "l'arme tirée doit recharger 1 tour");
+    step(`tour 2 atteint — P1 hp ${hpP1Before} → ${ctx.state.players[1].hp}, arme en recharge`);
+
+    // --- Tour 2 (P1) : même arme ; chaque tir de la rafale est paré PARFAITEMENT via le hook. ---
+    assert(ctx.state.active === 1, 'le tour 2 doit être à P1');
+    const hpP0Before = ctx.state.players[0].hp;
+    const offIncoming = ctx.bus.on('projectile:incoming', () => ctx.hooks.parry(0));
+    ctx.hooks.pickWeapon(0);
+    ctx.hooks.aim(-90, 0); // P1 (+x) vise vers -x, où se trouve P0
+    ctx.hooks.fire(0.5);
+    step('P1 : pickWeapon(0), aim(-90,0), fire(0.5) — parry(0) sur chaque projectile:incoming');
+    await waitUntil(() => ctx.state.turn >= 3, 8000);
+    offIncoming();
+    assert(ctx.state.players[0].hp === hpP0Before, 'une parade PARFAITE doit annuler tous les dégâts de la rafale');
+    assert(ctx.state.players[0].parryStreak > 0, 'parryStreak doit monter après des parades réussies');
+    step(`tour 3 atteint — P0 hp inchangé, parryStreak=${ctx.state.players[0].parryStreak}`);
+
+    // --- Caisse Snap : forcée sous les pieds du joueur actif (le tirage aléatoire prendrait trop longtemps). ---
+    await waitUntil(() => ctx.state.phase === 'move', 2000);
+    const grabber = ctx.state.active;
+    const grabberPos = ctx.state.players[grabber].pos;
+    ctx.state.crate = { pos: [...grabberPos], landsInTurns: 0, landed: true };
+    ctx.hooks.grabCrate();
+    assert(ctx.state.phase === 'snap-time', `grabCrate() doit passer en 'snap-time', obtenu '${ctx.state.phase}'`);
+    // IMPORTANT : pickWeapon() APRÈS grabCrate(), pas avant — tant qu'on n'est pas encore en `snap-time`,
+    // pickWeapon(1) sélectionnerait l'arme n°1 au lieu de choisir l'emplacement Snap (voir aim.ts::pickWeapon).
+    ctx.hooks.pickWeapon(1); // choisit l'emplacement 1 (le scan du stub répond quasi instantanément)
+    step(`grabCrate() (caisse forcée) → snap-time, joueur ${grabber}`);
+
+    await waitUntil(() => ctx.state.phase !== 'snap-time', 3000);
+    assert(ctx.state.players[grabber].weapons[1].object === 'rubber duck', "l'emplacement 1 doit recevoir l'arme scannée (stub IA)");
+    step(`snap-time résolu → phase '${ctx.state.phase}', arme scannée en place`);
+
+    // --- Fin forcée : vérifie forcerVictoire indépendamment du déroulé naturel du match. ---
+    ctx.hooks.forcerVictoire(0);
+    assert(ctx.state.phase === 'end', `forcerVictoire doit passer en 'end', obtenu '${ctx.state.phase}'`);
+    assert(ctx.state.winner === 0, `le vainqueur forcé doit être 0, obtenu '${String(ctx.state.winner)}'`);
+    step('forcerVictoire(0) → match:end, winner=0');
+  } catch (e) {
+    errors.push(String((e as Error)?.stack ?? e));
+  } finally {
+    console.error = originalError;
+  }
+
+  const ok = errors.length === 0;
+  await wait(0); // laisse une micro-tâche s'écouler avant de lire l'état final (cohérence des derniers events)
+  const result: SelftestResult = { ok, steps, errors, finalState: window.gameState };
+  console.log(`[selftest] ${ok ? 'OK' : 'ÉCHEC'} — ${steps.length} étape(s), ${errors.length} erreur(s).`);
+  return result;
+}
+
+export function installSelftest(ctx: Ctx): void {
+  window.__selftest = () => runSelftest(ctx);
+}
