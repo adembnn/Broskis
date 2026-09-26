@@ -154,7 +154,8 @@ export class CameraRig {
     _chest.set(s[0], selfY, s[2]);
     _look.copy(_chest).lerp(_opp, RTVIEW.visee);
     _look.y += RTVIEW.viseeHauteur;
-    const focus = Math.max(this.koFocus, RTVIEW.ejection.focus * this.launchW);
+    const fall = THREE.MathUtils.smoothstep(-s[1], -RTVIEW.chute.debut, -RTVIEW.chute.plein); // 0 sur le plateau, 1 en chute
+    const focus = Math.max(this.koFocus, RTVIEW.ejection.focus * this.launchW, RTVIEW.chute.focus * fall);
     _look.lerp(_chest.setY(selfY + RTVIEW.cibleHauteur), focus);
     _look.y = Math.max(_look.y, RTVIEW.sol.viseeMin);
 
@@ -170,7 +171,7 @@ export class CameraRig {
       const kxz = this.launchW > 0.5 ? expFollow(real, RTVIEW.lissage * 0.5) : k; // éjection : suit sans décrocher
       this.anchor.x += (s[0] - this.anchor.x) * kxz;
       this.anchor.z += (s[2] - this.anchor.z) * kxz;
-      this.anchor.y += (selfY - this.anchor.y) * expFollow(real, this.launchW > 0.5 ? RTVIEW.lissage : RTVIEW.lissageY);
+      this.anchor.y += (selfY - this.anchor.y) * expFollow(real, this.launchW > 0.5 || fall > 0.5 ? RTVIEW.lissage : RTVIEW.lissageY);
       this.look.lerp(_look, kxz);
       const r = this.reachWant < this.reach ? RTVIEW.collision.rentre : RTVIEW.collision.ressort;
       this.reach += (this.reachWant - this.reach) * expFollow(real, r);
