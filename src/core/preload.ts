@@ -21,7 +21,7 @@ type Status = 'queued' | 'loading' | 'ready' | 'failed';
 interface Job { key: string; priority: number; run: () => Promise<unknown> }
 
 /** Plus grand = plus urgent. */
-const PRIO = { hover: 30, chosen: 20, likely: 10, idle: 0 } as const;
+export const PRIO = { hover: 30, chosen: 20, likely: 10, idle: 0 } as const;
 const PRESET_MODELS: ModelId[] = ['barbarian', 'knight', 'mage', 'rogue_hooded'];
 /** Deux persos suffisent à la répétition générale : tous partagent les mêmes matériaux toon (mêmes programmes GPU). */
 const REHEARSAL_MODELS = PRESET_MODELS.slice(0, 2);
@@ -222,7 +222,28 @@ async function rehearse(ctx: Ctx): Promise<void> {
       ctx.three.scene.add(f);
       added.push(f);
     });
+
+    const shown: { obj: any; visible: boolean; count?: number; drawRange?: number }[] = [];
+    for (const child of ctx.three.scene.children) {
+      if (child.name.startsWith('latk-')) {
+        child.traverse((o: any) => {
+          if (o.isMesh || o.isSprite || o.isPoints) {
+            shown.push({ obj: o, visible: o.visible, count: o.count, drawRange: o.geometry?.drawRange?.count });
+            o.visible = true;
+            if (o.isInstancedMesh && o.count === 0) o.count = 1;
+            if (o.isPoints && o.geometry?.drawRange?.count === 0) o.geometry.setDrawRange(0, 1);
+          }
+        });
+      }
+    }
+
     await compileScene(ctx, 4000);
+
+    for (const s of shown) {
+      s.obj.visible = s.visible;
+      if (s.count !== undefined) s.obj.count = s.count;
+      if (s.drawRange !== undefined) s.obj.geometry.setDrawRange(0, s.drawRange);
+    }
   } catch (e) {
     console.warn('[preload] répétition', e);
   } finally {
