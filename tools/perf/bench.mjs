@@ -4,7 +4,9 @@
 //                         [--preview] [--port 5377] [--profile] [--toggle nobloom,noshadow] [--out fichier.json]
 //   --gpu nvidia  : force la carte NVIDIA (--force_high_performance_gpu) ; défaut « intel » = ce que Chrome
 //                   choisit tout seul sur ce PC portable (la puce Intel intégrée, voir gpu-probe.mjs).
-//   --preview     : sert le build de production (`vite preview`) au lieu du serveur de dev.
+//   --preview     : sert le build de production (`vite preview`, faire `npx vite build` avant) au lieu du dev.
+//   --q haute|basse : force la qualité (sinon choix automatique au 1er tour, src/core/quality.ts).
+//   --shot        : capture d'écran en fin de match (tools/perf/out/<map>-<gpu>-<q>.png).
 //   --profile     : profil CPU (échantillonneur Chrome) pendant le match, top des fonctions les plus coûteuses.
 //   --toggle      : essais A/B à chaud (nobloom = rendu direct sans post-traitement, noshadow = ombres figées,
 //                   pr1 = ratio de pixels 1).
@@ -22,6 +24,7 @@ const PORT = Number(opt('--port', '5377'));
 const TOGGLES = (opt('--toggle', '') || '').split(',').filter(Boolean);
 const PROFILE = args.includes('--profile');
 const PREVIEW = args.includes('--preview');
+const Q = opt('--q', null); // ?q=haute|basse : force la qualité (voir src/core/quality.ts)
 let base = opt('--url', null);
 
 async function up(u) { try { return (await fetch(u)).ok; } catch { return false; } }
@@ -160,7 +163,7 @@ for (const map of MAPS) {
   page.on('console', (m) => { if (m.type() === 'error') erreurs.push(m.text().slice(0, 200)); });
 
   const tNav = Date.now();
-  await page.goto(`${base}/?demo=1`, { waitUntil: 'load', timeout: 60000 });
+  await page.goto(`${base}/?demo=1${Q ? `&q=${Q}` : ''}`, { waitUntil: 'load', timeout: 60000 });
   await page.waitForFunction(() => window.ctx && typeof window.gameHooks?.startMatch === 'function', null, { timeout: 60000 });
   const chargement = { pageMs: Date.now() - tNav };
   await page.waitForTimeout(1500); // écran titre posé
@@ -282,6 +285,7 @@ for (const map of MAPS) {
     };
   });
 
+  if (args.includes('--shot')) await page.screenshot({ path: `tools/perf/out/${map}-${GPU}-${Q || 'auto'}.png` });
   const r = {
     gpu: gpuNom,
     canvas: mesure.canvas,
@@ -321,7 +325,7 @@ for (const map of MAPS) {
 
 await browser.close();
 if (server) server.kill();
-const out = opt('--out', `tools/perf/out/bench-${GPU}${PREVIEW ? '-preview' : ''}${TOGGLES.length ? '-' + TOGGLES.join('+') : ''}.json`);
+const out = opt('--out', `tools/perf/out/bench-${GPU}${PREVIEW ? '-preview' : ''}${Q ? '-q' + Q : ''}${TOGGLES.length ? '-' + TOGGLES.join('+') : ''}.json`);
 mkdirSync(out.replace(/[/\\][^/\\]*$/, ''), { recursive: true });
 writeFileSync(out, JSON.stringify(resultats, null, 1));
 console.log(`\nRésultats : ${out}`);
