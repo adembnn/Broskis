@@ -15,7 +15,7 @@
 //    lui-même un son ;
 //  - `src/gameplay/ai/taunt-bubble.ts` appelle `playBark` (voix de perso), plus `commentary:line`.
 import type { Bus } from '../core/bus';
-import type { Category, Ctx, ModelId, PlayerId } from '../core/types';
+import type { Category, Ctx, ModelId, PlayerId, Weapon } from '../core/types';
 import type { AudioEngine } from './engine';
 import type { MusicDirector } from './music';
 
@@ -472,6 +472,7 @@ function playPair(ctx: Ctx, player: PlayerId, fighterEvent: FighterBarkEvent, an
 
 function installBusHandlers(bus: Bus, ctx: Ctx): () => void {
   const tauntTurnCounter = new Map<number, number>();
+  const lastHitWeapon = new Map<PlayerId, Weapon>();
 
   const offs = [
     bus.on('match:start', () => {
@@ -480,14 +481,21 @@ function installBusHandlers(bus: Bus, ctx: Ctx): () => void {
       barkPlayer.play('announcer', 'match_intro', { isAnnouncer: true });
     }),
 
-    bus.on('hit', ({ target, crit }) => {
+    bus.on('hit', ({ target, weapon, crit }) => {
+      lastHitWeapon.set(target, weapon);
       playPair(ctx, target, crit ? 'crit_taken' : 'hit_light', crit ? 'crit' : 'hit');
     }),
 
     bus.on('parry:result', ({ player: p, grade }) => {
       if (grade === 'miss') return;
-      barkPlayer.play(roleFor(ctx, p), grade === 'perfect' ? 'parry_perfect' : 'parry_good', { player: p });
-      if (grade === 'perfect') ctx.loop.later(0.25, () => barkPlayer.play('announcer', 'perfect', { isAnnouncer: true }));
+      if (grade === 'perfect') {
+        barkPlayer.play('announcer', 'perfect', { isAnnouncer: true });
+        // The fighter bark is queued immediately but will naturally play AFTER the announcer
+        // because the announcer bark started first and its priority is higher (65 > 60).
+        barkPlayer.play(roleFor(ctx, p), 'parry_perfect', { player: p });
+      } else {
+        barkPlayer.play(roleFor(ctx, p), 'parry_good', { player: p });
+      }
     }),
 
     bus.on('fire', ({ player: p, weapon }) => {
@@ -510,8 +518,25 @@ function installBusHandlers(bus: Bus, ctx: Ctx): () => void {
       playPair(ctx, p, 'ringout_scream', 'ringout');
     }),
 
-    bus.on('ko', ({ player: p }) => {
-      playPair(ctx, p, 'ko', 'ko');
+    bus.on('stock:lost', ({ player: p }) => {
+      const w = lastHitWeapon.get(p);
+      if (w && w.object) {
+        barkPlayer.play(roleFor(ctx, p), 'ko', { player: p });
+        import('../ia/tts-client').then(({ synthesizeLine }) => {
+          const text = `Knocked out by… a ${w.object}!`;
+          synthesizeLine(text).then(audioUrl => {
+            barkPlayer.playCustom(text, audioUrl, 'ko', 105);
+          }).catch(() => {
+            barkPlayer.play('announcer', 'ko', { isAnnouncer: true });
+          });
+        });
+      } else {
+        playPair(ctx, p, 'ko', 'ko');
+      }
+    }),
+
+    bus.on('ko', () => {
+      // Logic moved to stock:lost, which is the Smash style life loss
     }),
 
     bus.on('match:end', ({ winner }) => {
