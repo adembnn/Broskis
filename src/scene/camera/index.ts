@@ -14,6 +14,8 @@ import { RTVIEW } from './tokens';
 /** Écrans de menu : une seule vue plein écran (le décor derrière les menus). */
 const MENUS = new Set<Phase>(['title', 'fighter-select', 'arsenal', 'reveal', 'map-select']);
 
+declare global { interface Window { __rtviewRigs?: [CameraRig, CameraRig] } }
+
 export function installCamera(ctx: Ctx): [CameraRig, CameraRig] {
   const three = ctx.three;
   const rigs: [CameraRig, CameraRig] = [new CameraRig(ctx, 0), new CameraRig(ctx, 1)];
@@ -96,5 +98,6 @@ export function installCamera(ctx: Ctx): [CameraRig, CameraRig] {
 
   // Juste avant chaque vue : ses opacités d'occlusion.
   three.onBeforeView((v) => applyOcclusion(v.player));
+  window.__rtviewRigs = rigs; // débogage et bancs : rigs[p].lastHit, rigs[p].yaw
   return rigs;
 }
