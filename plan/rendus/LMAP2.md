@@ -42,7 +42,7 @@ Suite au contre-ordre de 15h50, le lot est rendu à LMAP3 (session « Map design
   - Arènes : Archipel 26 m (disque de rayon 6), Galion 24,7 × 17,2 m (pont du kit ×1,3), Cuisine 24,7 × 18,2 m (îlot ×1,3). Apparitions à 15 m, 3 plateformes en triangle (2 à 2,2 m, 1 à 4,0 m), couverts à hauteur de torse.
 
 ## Pas fait / reste pour LMAP3
-- **Cuisine version kit (`7c3d059`)** : sur la capture à 4,5 s, les bocaux, le grille-pain et le fond n'étaient pas encore affichés. Aucune erreur console : probablement un chargement plus long (dressing LDECOR + kit). Voir la capture `cuisine-p3` à 12 s, citée en bas si elle est faite.
+- **Chargement de la Cuisine** (`7c3d059`) : à 4,5 s, les couverts et le fond ne sont pas encore affichés ; à 12 s, tout est là (capture `cuisine-p3`). Aucune erreur, c'est le temps de chargement (dressing LDECOR + kit). À précharger derrière l'écran de choix de map (LLOAD / LPERF).
 - `map-events` en minuterie : laissé au cœur temps réel (consigne). Le moteur réagit seulement à `map:warn` / `map:event`, quelle que soit leur source.
 - Brume et ciel de l'Archipel : délavés (halo du soleil de `Sky` + brouillard de 24 à 75 m). C'est à LSKY / LDA2.
 
@@ -71,7 +71,7 @@ Pour l'écran scindé (120 par vue), la map doit viser 30 à 35 au maximum. Le G
 ## Notes /10 (œil de level designer Smash)
 - **Archipel : 8/10 en disposition** (plateau net, vide visible, catapulte et anneau rayé très lisibles, one-way testé). **6/10 à l'écran aujourd'hui**, à cause de la brume et du halo de LDA2.
 - **Galion : 7,5/10.** Le pont du kit est propre et le bord se lit, tout comme la gîte et sa bande. Il manque une seule mer et moins de navires au fond.
-- **Cuisine : 7/10.** La lecture « minuscule sur un îlot » marche. Les couverts sont à vérifier sur la version kit (voir plus haut), et le cylindre de LDA2 cache le fond.
+- **Cuisine : 7,5/10.** La lecture « minuscule sur un îlot » marche : îlot carrelé du kit, bocaux, grille-pain et cuisine LDECOR autour. Il faut précharger, et le cylindre de LDA2 cache le fond lointain.
 
 ## Captures (dossier local `captures/lmap2/`, non commité)
 - `archipel-v3` / `-dessus` / `-v7-loin` / `-v2-alerte` / `-v9-danger-a` : Archipel avant fusion.
