@@ -25,7 +25,7 @@ function createThree(root: HTMLElement): Three {
   renderer.toneMapping = TONE_MAPPING[rendu.toneMapping] ?? THREE.NoToneMapping;
   renderer.toneMappingExposure = rendu.exposition;
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
   root.appendChild(renderer.domElement);
 
   const uiRoot = document.createElement('div');

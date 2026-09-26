@@ -58,6 +58,8 @@ export const install: Install = (ctx) => {
   installParryHud(ctx, hud.root);
   installScandexCollector(ctx); // Lot LW (Scandex) : enregistre chaque scan:result dans localStorage.
 
+  ctx.bus.on('match:start', () => clear(screenLayer));
+
   async function runPreMatch(): Promise<Picks> {
     ctx.bus.emit('phase:change', { from: ctx.state.phase, to: 'fighter-select' });
     const fighters = await runFighterSelect(screenLayer);

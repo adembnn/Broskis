@@ -12,10 +12,10 @@ export const LOCAL_TOKENS = {
   },
   camera: {
     fov: 45,                 // reprend la valeur posée dans core/ctx.ts (ne pas diverger)
-    shoulderDistance: 3.4,   // recul derrière l'épaule du joueur actif
-    shoulderHeight: 1.75,
-    shoulderSide: 1.15,      // décalage latéral (vue 3/4)
-    lookAhead: 3.6,          // point visé au-delà du joueur actif, vers l'adversaire
+    shoulderDistance: 6.5,   // recul derrière l'épaule du joueur actif
+    shoulderHeight: 3.8,
+    shoulderSide: 1.8,      // décalage latéral (vue 3/4)
+    lookAhead: 4.5,          // point visé au-delà du joueur actif, vers l'adversaire
     // repli turn:start (pas de projectile en vol : tour après un SHIELD, début de match) — la bascule
     // principale utilise désormais durees.camera / juice.bascule (voir director.ts).
     arcDuration: 1.1,
