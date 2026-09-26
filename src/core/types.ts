@@ -17,8 +17,11 @@ export const TRAITS: readonly Trait[] = ['bouncy', 'sticky', 'explosive', 'heavy
 export type MapId = 'archipel' | 'galion' | 'cuisine';
 export const MAPS: readonly MapId[] = ['archipel', 'galion', 'cuisine'];
 
+/** Temps réel (plan/PIVOT-TEMPS-REEL.md) : un match = `countdown` (READY? 3-2-1 GO!) → `fight` → `ko` → `end`.
+ * Les phases de tour (`turn-intro`, `move`, `aim`, `resolve`, `snap-time`) ne sont plus utilisées en match. */
 export type Phase =
   | 'title' | 'fighter-select' | 'arsenal' | 'reveal' | 'map-select'
+  | 'countdown' | 'fight'
   | 'turn-intro' | 'move' | 'aim' | 'resolve' | 'snap-time' | 'ko' | 'end';
 
 export type ModelId = 'barbarian' | 'knight' | 'mage' | 'rogue_hooded' | 'skeleton_mage' | 'skeleton_warrior' | 'custom';
@@ -88,6 +91,12 @@ export interface PlayerState {
   pct: number;
   stocks: number;
   onLedge: boolean;
+  /** Temps réel (lot RTCORE) : recharge restante de chaque arme (s, 0 = prête), charge du tir maintenu (0..1),
+   * blocage maintenu, orientation (rad, autour de y ; 0 = vers +z). */
+  cooldowns: number[];
+  charge: number;
+  blocking: boolean;
+  yaw: number;
 }
 
 export interface CrateState { pos: Vec3; landsInTurns: number; landed: boolean }
@@ -100,7 +109,10 @@ export interface GameState {
   mapId: MapId;
   seed: number;
   suddenDeath: boolean;
+  /** Temps réel : secondes avant la mort subite (3:00 au départ). */
   timerLeft: number;
+  /** Écran scindé (2 humains) ; false contre l'IA (plein écran pour l'humain). */
+  split: boolean;
   crate: CrateState | null;
   winner: PlayerId | null;
   lastEvent: string | null;
@@ -129,7 +141,12 @@ export interface StartMatchOptions {
   /** Nombre de vies (règles v2) : 2 par défaut, 1 en démo. */
   stocks?: number;
   difficulty?: 'easy' | 'medium' | 'hard' | 'hardcore';
+  /** Écran scindé (défaut : true à 2 humains, false contre l'IA). */
+  split?: boolean;
 }
+
+/** Actions de jeu d'un joueur (mêmes noms que src/core/input.ts). */
+export type InputAction = 'up' | 'down' | 'left' | 'right' | 'jump' | 'weapon1' | 'weapon2' | 'weapon3' | 'fire' | 'parry';
 
 /** Pilotage du jeu par script (agents du harnais, régie de démo). Chaque lot remplace les fonctions qui le concernent. */
 export interface GameHooks {
@@ -146,6 +163,8 @@ export interface GameHooks {
   forcerVictoire(player?: PlayerId): void;
   setSeed(n: number): void;
   action(text: string): void;
+  /** Temps réel : simule une touche (enfoncée / relâchée) d'un joueur, comme le clavier ou la manette. */
+  input?(player: PlayerId, action: InputAction, down: boolean): void;
   animCamera?(player: PlayerId, shot: 'side' | 'front' | 'threeQuarter'): void;
   animPlay?(player: PlayerId, action: 'idle' | 'walk' | 'run' | 'jump' | 'throw' | 'blaster' | 'shield' | 'hitFront' | 'hitBack' | 'ko' | 'teeter' | 'parry'): void;
 }

@@ -19,6 +19,10 @@ export function createPlayer(id: PlayerId): PlayerState {
     pct: 0,
     stocks: 2,
     onLedge: false,
+    cooldowns: [0, 0, 0],
+    charge: 0,
+    blocking: false,
+    yaw: id === 0 ? Math.PI / 2 : -Math.PI / 2,
   };
 }
 
@@ -31,7 +35,8 @@ export function createState(seed: number, demo: boolean): GameState {
     mapId: 'archipel',
     seed,
     suddenDeath: false,
-    timerLeft: 15,
+    timerLeft: 180,
+    split: true,
     crate: null,
     winner: null,
     lastEvent: null,

@@ -25,9 +25,11 @@ export interface ShotMods {
   superLaunch: number;
   /** Éclat secondaire (trait `split`) : fraction des dégâts et du recul d'un coup plein. */
   fragment: number;
+  /** Multiplicateur du recul seul (blocage temps réel : ÷ 2). */
+  launchMult: number;
 }
 
-export const NO_MODS: ShotMods = { charge: 0.5, burst: 1, mult: 1, crit: false, nice: false, superDamage: 1, superLaunch: 1, fragment: 1 };
+export const NO_MODS: ShotMods = { charge: 0.5, burst: 1, mult: 1, crit: false, nice: false, superDamage: 1, superLaunch: 1, fragment: 1, launchMult: 1 };
 
 /** Dégâts en % d'un coup (arrondis à l'unité, au moins 1). */
 export function damagePct(w: WeaponLike, fighterPower: number, m: ShotMods, critMult: number): number {
@@ -63,7 +65,7 @@ export function launchSpeed(w: WeaponLike, pctAfter: number, m: ShotMods, target
   // BRO SMASH : même une arme légère (tir de blaster) frappe au moins comme une grosse grenade, puis ×1,8.
   const base = m.superLaunch > 1 ? Math.max(launchBase(w, m.charge), SUPER_MIN_LAUNCH_BASE) : launchBase(w, m.charge);
   // `m.mult` (parade GOOD, atténuation d'explosion) ne touche que les dégâts : le % après coup, plus bas, suffit.
-  return base * (1 + (Math.max(0, pctAfter) / 100) * LAUNCH_K2) * weight * m.superLaunch * m.fragment;
+  return base * (1 + (Math.max(0, pctAfter) / 100) * LAUNCH_K2) * weight * m.superLaunch * m.fragment * m.launchMult;
 }
 
 /** Vecteur d'éjection : direction horizontale du tir + LAUNCH_ANGLE_DEG vers le haut. */

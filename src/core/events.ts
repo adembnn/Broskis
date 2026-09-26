@@ -13,7 +13,10 @@ export interface EventMap {
   /** Aides de visée : trajectoire prévue, point d'impact, recul prévu, éjection probable. */
   'aim:update': { player: PlayerId; dir: Vec3; power: number; path?: Vec3[]; impact?: Vec3; knockback?: Vec3; ejects?: boolean };
   'fire': { player: PlayerId; weapon: Weapon; dir: Vec3; power: number };
-  'projectile:spawn': { id: string; weapon: Weapon; from: Vec3; vel: Vec3 };
+  /** Temps réel : `gravity` (m/s², 0 = tir tendu) et `owner` permettent de rejouer exactement le vol côté rendu. */
+  'projectile:spawn': { id: string; weapon: Weapon; from: Vec3; vel: Vec3; gravity?: number; owner?: PlayerId };
+  /** Temps réel : fin d'un projectile (touché, mur, sol, paré-renvoyé, trop loin), pour retirer son visuel. */
+  'projectile:end': { id: string; pos: Vec3; reason: 'hit' | 'world' | 'parried' | 'expired' };
   /** Part ~1,2 s avant l'impact : déclenche les repères de parade. */
   'projectile:incoming': { id: string; target: PlayerId; etaMs: number };
   'parry:cue': { defender: PlayerId; attacker: PlayerId };
@@ -48,6 +51,12 @@ export interface EventMap {
   'super:fire': { player: PlayerId };
   /** Début (READY?/GO!) et fin (GAME!) de match, pour les bandeaux et la voix. */
   'match:banner': { kind: 'ready' | 'go' | 'game' };
+  /** Temps réel : blocage maintenu (G / K par défaut) qui commence ou s'arrête. */
+  'block': { player: PlayerId; on: boolean };
+  /** Temps réel : une arme a fini de recharger. */
+  'weapon:ready': { player: PlayerId; index: number };
+  /** Temps réel : compte à rebours avant le combat (3, 2, 1), puis `match:banner { go }`. */
+  'countdown': { n: number };
   'ko': { player: PlayerId; cause: 'hp' | 'ringout' };
   'match:end': { winner: PlayerId };
   'commentary:line': { text: string; priority: number; audioUrl?: string; at?: number };
