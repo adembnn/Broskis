@@ -1,7 +1,7 @@
 // État interne du lot LG : tout ce qui n'appartient PAS au contrat central (core/state.ts) mais dont
 // nos modules ont besoin (corps Rapier, minuteries, etc). Une seule partie active à la fois : singleton de module.
 import type * as RAPIER from '@dimforge/rapier3d-compat';
-import type { Ctx, PlayerId, Weapon } from '../core/types';
+import type { Ctx, PlayerId, Vec3, Weapon } from '../core/types';
 
 export interface PlayerRuntime {
   body: RAPIER.RigidBody | null;
@@ -19,6 +19,30 @@ export interface PlayerRuntime {
   /** Puissance de charge courante (0..1), pendant que le clic est maintenu. */
   charging: boolean;
   chargeStartMs: number;
+  // ---------- Règles v2 (lot LSMASH) ----------
+  /** Éjection en cours (vol cinématique intégré par launch.ts), null sinon. */
+  launch: { vel: Vec3; grounded: boolean; attacker: PlayerId; t: number } | null;
+  /** Sauts faits ce tour (0, 1 ou 2) : le 1er coûte JUMP_COST, le 2e est gratuit et seulement en l'air. */
+  jumpsUsed: number;
+  /** Au bord du vide (animation d'équilibre), et depuis combien de temps on pousse vers le vide. */
+  teetering: boolean;
+  edgePushS: number;
+  /** Accroché au bord : point du bord (y = dessus du plateau) et direction vers l'intérieur. */
+  ledge: { edge: Vec3; inward: Vec3 } | null;
+  /** Vie perdue, en attente de réapparition (corps garé, ni coups ni contrôles). */
+  dead: boolean;
+  /** Réapparu : flotte (sans gravité) jusqu'à ce temps de jeu, puis tombe sur le plateau. */
+  hoverUntil: number;
+  /** Invulnérable jusqu'à la fin de ce tour (inclus) ; 0 = pas d'invulnérabilité. */
+  invulnUntilTurn: number;
+  /** Jauge BRO (0..100) et BRO SMASH armé pour le prochain tir. */
+  bro: number;
+  superReady: boolean;
+  /** Visée auto calée sur l'adversaire ; position souris (px) au moment du calage. */
+  aimLocked: boolean;
+  aimLockMouse: [number, number] | null;
+  /** Point visé (monde) : sert à la grenade (cloche jusqu'à ce point). */
+  aimPoint: Vec3 | null;
 }
 
 export type CancelFn = () => void;
@@ -41,6 +65,15 @@ export interface GameplayRuntime {
   resumePhaseAfterSnap: 'move' | 'aim';
   /** Murs de bouclier posés cette partie (voir projectiles.ts) : nettoyés à la revanche. */
   shieldBodies: RAPIER.RigidBody[];
+  /** Numéro du match (incrémenté à chaque startMatch) : une minuterie d'un ancien match ne fait plus rien. */
+  matchSeq: number;
+  /** Temps réel (ms) du dernier geste du joueur actif et du début de sa phase de jeu (tir automatique). */
+  lastGestureMs: number;
+  turnPlayStartMs: number;
+  /** Tour déjà terminé par un tir automatique (anti double tir). */
+  autoFiredTurn: number;
+  /** Mort subite déjà appliquée (tout le monde à 150 %) : une seule fois par match. */
+  sdApplied: boolean;
 }
 
 function makePlayerRuntime(): PlayerRuntime {
@@ -55,6 +88,19 @@ function makePlayerRuntime(): PlayerRuntime {
     aimDir: [0, 0, 1],
     charging: false,
     chargeStartMs: 0,
+    launch: null,
+    jumpsUsed: 0,
+    teetering: false,
+    edgePushS: 0,
+    ledge: null,
+    dead: false,
+    hoverUntil: 0,
+    invulnUntilTurn: 0,
+    bro: 0,
+    superReady: false,
+    aimLocked: false,
+    aimLockMouse: null,
+    aimPoint: null,
   };
 }
 
@@ -70,6 +116,11 @@ function makeRuntime(): GameplayRuntime {
     cancelSnap: null,
     resumePhaseAfterSnap: 'move',
     shieldBodies: [],
+    matchSeq: 0,
+    lastGestureMs: 0,
+    turnPlayStartMs: 0,
+    autoFiredTurn: -1,
+    sdApplied: false,
   };
 }
 
@@ -87,6 +138,7 @@ export function getRuntime(): GameplayRuntime {
 export function resetRuntime(ctx: Ctx): GameplayRuntime {
   const previous = runtime;
   runtime = makeRuntime();
+  runtime.matchSeq = (previous?.matchSeq ?? 0) + 1;
   if (previous) {
     runtime.players[0].body = previous.players[0].body;
     runtime.players[0].collider = previous.players[0].collider;
