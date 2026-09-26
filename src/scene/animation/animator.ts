@@ -138,6 +138,8 @@ export class FighterAnimator {
   // os
   private readonly bones: Record<'hips' | 'spine' | 'chest' | 'head' | 'armL' | 'armR' | 'foreR' | 'hand' | 'footL' | 'footR', THREE.Object3D | null>;
   private readonly boneByName = new Map<string, THREE.Object3D>();
+  /** Pose de repos des os retouchés par la couche procédurale (et la couche haut du corps). */
+  private readonly rest: { bone: THREE.Object3D; q: THREE.Quaternion }[] = [];
   private readonly chestFwd = new THREE.Vector3(0, 0, 1);
   private readonly headFwd = new THREE.Vector3(0, 0, 1);
   private readonly hipsRest = new THREE.Vector3();
@@ -189,6 +191,12 @@ export class FighterAnimator {
     fwdLocal(this.bones.chest, this.chestFwd);
     fwdLocal(this.bones.head, this.headFwd);
     if (this.bones.hips) this.hipsRest.copy(this.bones.hips.position);
+    // Les clips des persos n'ont pas de piste pour les os restés au repos : le mixeur ne les réécrit pas, et une
+    // rotation procédurale posée dessus s'additionnerait d'image en image (buste qui finit couché). On les remet
+    // au repos avant chaque image ; le mixeur réécrit ensuite ceux que le clip anime.
+    for (const b of this.boneByName.values()) {
+      if (UPPER_BONES.has(b.name)) this.rest.push({ bone: b, q: b.quaternion.clone() });
+    }
     if (this.bones.footL) this.ankleRest = root.worldToLocal(this.bones.footL.getWorldPosition(this.va)).y;
     this.addPackClips();
   }
@@ -619,6 +627,7 @@ export class FighterAnimator {
       if (this.currentName === 'run' && this.currentAction) this.currentAction.timeScale = this.animRate;
     }
 
+    for (const r of this.rest) r.bone.quaternion.copy(r.q);
     this.mixer.update(dt);
     this.stepUpper(dt, container);
     this.applyProcedural(dt, container);
