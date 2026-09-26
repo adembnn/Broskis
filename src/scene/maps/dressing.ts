@@ -81,11 +81,8 @@ function cuisine(): BackdropSpec[] {
     // LSKY : murs, fenêtre et meubles du fond sont peints dans le panorama. Restent les plans de travail
     // latéraux AU NIVEAU de l'arène (l'échelle se lit tout de suite) et quelques objets posés dessus.
     model(r('kitchencounter_straight_A'), [[-34, FLOOR, -14, K, Math.PI / 2], [-34, FLOOR, 0, K, Math.PI / 2], [34, FLOOR, -14, K, -Math.PI / 2], [34, FLOOR, 0, K, -Math.PI / 2]]),
-    model(r('stove_single_countertop'), [[34, TOP, 0, K * 0.9, -Math.PI / 2]]),
-    model(r('pot_B_stew'), [[34, TOP + 0.3 * K, 0, K * 0.8, 0.5]]),
     model(r('crate_tomatoes'), [[-34, TOP, 0, K * 0.7, 0.2]]),
     model(r('jar_C_large'), [[-33, TOP, -12, K * 1.1, 0]]),
-    model(r('jar_B_large'), [[33, TOP, -16, K * 1.1, 0]]),
   ];
 }
 
