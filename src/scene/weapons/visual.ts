@@ -4,8 +4,11 @@
 import * as THREE from 'three';
 import type { Weapon } from '../../core/types';
 import { makeFallbackSticker, makeSticker } from '../sticker';
+import { lookOf } from './physics';
 
 const templates = new Map<string, Promise<THREE.Group>>();
+/** Épaisseur du carton d'un sticker de hauteur 1 (extrusion 0,06 + biseaux, sticker/index.ts). */
+const TEMPLATE_DEPTH = 0.082;
 
 /** Sticker de référence (plus grande dimension = 1) d'une image ; un seul calcul par image. */
 function template(url: string): Promise<THREE.Group> {
@@ -57,15 +60,22 @@ export class WeaponModel {
   disposed = false;
   readonly weapon: Weapon;
 
-  constructor(weapon: Weapon) {
+  constructor(weapon: Weapon, flatDepth = false) {
     this.weapon = weapon;
     this.root.name = `arme-${weapon.id}`;
     const fallback = makeFallbackSticker(weapon.category, weapon.palette);
     if (weapon.category === 'shield') fallback.rotation.x = Math.PI / 2; // disque debout, face à +Z comme un sticker
     this.setModel(normalize(fallback));
+    // Épaisseur du carton = profondeur réelle de l'objet (une canette est un bloc, un téléphone une carte).
+    const depth = flatDepth ? 1 : Math.min(8, Math.max(0.5, lookOf(weapon).depthRatio / TEMPLATE_DEPTH));
     if (weapon.stickerUrl) {
       template(weapon.stickerUrl)
-        .then((t) => { if (!this.disposed) this.setModel(normalize(t.clone(true))); })
+        .then((t) => {
+          if (this.disposed) return;
+          const n = normalize(t.clone(true));
+          n.scale.z *= depth;
+          this.setModel(n);
+        })
         .catch((e) => console.warn('[weapons] sticker', e));
     }
   }

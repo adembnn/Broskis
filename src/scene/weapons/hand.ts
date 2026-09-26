@@ -9,6 +9,7 @@ import { getRuntime } from '../../gameplay/runtime';
 import { registry } from '../registry';
 import { excludeFromOcclusion } from '../registry';
 import { WEAPON_FX } from './tokens';
+import { lookOf } from './physics';
 import { WeaponModel } from './visual';
 
 interface Held {
@@ -17,6 +18,8 @@ interface Held {
   stowed: boolean;
   pop: number;
   power: number;
+  /** Taille réelle de l'objet (m), bornée pour rester lisible. */
+  size: number;
   kick: number;
   flash: THREE.Sprite;
   flashT: number;
@@ -64,7 +67,7 @@ export function installHands(ctx: Ctx) {
     const flash = new THREE.Sprite(new THREE.SpriteMaterial({ map: star, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
     flash.visible = false; flash.raycast = () => {};
     root.add(flash);
-    return { model: null, weaponId: '', stowed: false, pop: 1, power: 0, kick: 0, flash, flashT: 1, aim: new THREE.Vector3(1, 0, 0) };
+    return { model: null, weaponId: '', stowed: false, pop: 1, power: 0, size: 0.5, kick: 0, flash, flashT: 1, aim: new THREE.Vector3(1, 0, 0) };
   }) as [Held, Held];
 
   // Douilles colorées : petites boîtes qui sautent de la main et rebondissent.
@@ -111,6 +114,7 @@ export function installHands(ctx: Ctx) {
     h.weaponId = w?.id ?? '';
     if (!w) return;
     h.model = new WeaponModel(w);
+    h.size = lookOf(w).size;
     root.add(h.model.root);
     h.pop = 0;
   }
@@ -141,7 +145,7 @@ export function installHands(ctx: Ctx) {
       return _p.clone();
     }
     const out = h.model.root.position.clone();
-    if (muzzle) out.addScaledVector(h.aim, WEAPON_FX.main.taille * 0.6);
+    if (muzzle) out.addScaledVector(h.aim, h.size * 0.6);
     return out;
   }
 
@@ -207,7 +211,7 @@ export function installHands(ctx: Ctx) {
       }
       m.root.position.copy(_p);
       m.root.quaternion.copy(_q);
-      m.root.scale.setScalar(WEAPON_FX.main.taille * pop * (1 + 0.12 * k));
+      m.root.scale.setScalar(h.size * pop * (1 + 0.12 * k));
       // Éclair de bouche : 70 ms.
       h.flashT += real;
       const fu = h.flashT / 0.07;

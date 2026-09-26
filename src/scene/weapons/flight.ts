@@ -12,7 +12,8 @@ import { liveProjectiles } from '../../gameplay/projectiles';
 import { lerp } from '../../gameplay/trajectory';
 import { GRENADE_RADIUS_MAX, GRENADE_RADIUS_MIN, SHOT_ORIGIN_HEIGHT, TRAIT_TUNING } from '../../gameplay/tuning';
 import { excludeFromOcclusion } from '../registry';
-import type { BlastFx } from './blast';
+import type { BlastFx, ObjectHit } from './blast';
+import { lookOf, type ObjectLook } from './physics';
 import { WEAPON_FX } from './tokens';
 import { Trail } from './trail';
 import { WeaponModel } from './visual';
@@ -43,13 +44,20 @@ interface Flight {
   trail: Trail | null;
   shadow: THREE.Mesh | null;
   ring: THREE.Sprite | null;
-  ringT0: number;
-  ringT1: number;
+  /** Anneau de parade : âge et durée (s, temps de JEU comme le vol : le ralenti le ralentit aussi). */
+  ringAge: number;
+  ringDur: number;
   size: number;
   spin: number;
   spinDir: number;
   squash: number;
   ground: number;
+  /** Physique réelle vue par le rendu : taille, poids, matière, forme. */
+  look: ObjectLook;
+  /** Rotation propre selon la forme (repère de l'objet), axe et vitesse angulaire (rad/s). */
+  rot: THREE.Quaternion;
+  spinAxis: THREE.Vector3;
+  omega: number;
 }
 
 export interface FlightDeps {
@@ -231,12 +239,15 @@ export function installFlights(ctx: Ctx, deps: FlightDeps) {
     const axis = new THREE.Vector3(vel[0], 0, vel[2]);
     if (axis.lengthSq() < 1e-6) axis.set(owner === 0 ? 1 : -1, 0, 0);
     axis.normalize();
+    const look = lookOf(weapon);
     const f: Flight = {
       id, weapon, kind, owner, target, base, pos: base.clone(), vel: new THREE.Vector3(vel[0], vel[1], vel[2]), gravity,
       handOffset: new THREE.Vector3(), axis, start: base.clone(), age: 0, t: 0, state: 'flying', returning: false,
-      model: null, twins: [], bolt: null, trail: null, shadow: null, ring: null, ringT0: 0, ringT1: 0, size: 1,
+      model: null, twins: [], bolt: null, trail: null, shadow: null, ring: null, ringAge: 0, ringDur: 0.4, size: look.size,
       spin: Math.random() * Math.PI * 2, spinDir: owner === 0 ? -1 : 1, squash: 0, ground: 0,
+      look, rot: new THREE.Quaternion(), spinAxis: new THREE.Vector3(1, 0, 0), omega: look.turns * Math.PI * 2,
     };
+    setSpin(f);
     // Part de la main : l'écart main → origine du gameplay se résorbe sur les premiers instants.
     const hand = deps.handPos(owner, kind === 'bolt');
     if (hand && hand.distanceTo(base) < 2) f.handOffset.copy(hand).sub(base);
@@ -248,7 +259,6 @@ export function installFlights(ctx: Ctx, deps: FlightDeps) {
       deps.shot(owner, weapon);
     } else {
       f.model = new WeaponModel(weapon);
-      f.size = kind === 'grenade' ? WEAPON_FX.vol.grenade.taille : WEAPON_FX.vol.throwable.taille;
       root.add(f.model.root);
       if (weapon.trait === 'split') {
         // Trait split : l'objet se divise en 3 (deux copies plus petites l'escortent et se referment à l'impact).
@@ -258,9 +268,24 @@ export function installFlights(ctx: Ctx, deps: FlightDeps) {
       f.shadow.rotation.x = -Math.PI / 2;
       f.shadow.raycast = () => {};
       root.add(f.shadow);
-      if (kind === 'throwable') { f.trail = new Trail(14, f.size * 0.42, weapon.palette[0], 0.75); root.add(f.trail.mesh); }
+      // Traînée : épaisse et longue pour un objet lourd, fine pour un léger.
+      f.trail = new Trail(10 + Math.round(8 * look.weight), f.size * (0.12 + 0.4 * look.weight), weapon.palette[0], 0.55 + 0.3 * look.weight);
+      root.add(f.trail.mesh);
     }
     flights.push(f);
+  }
+
+  /** Rotation propre selon la forme (demande d'Adem) ; vitesse ≈ 1 / √masse (lookOf). */
+  function setSpin(f: Flight): void {
+    const [h, w] = f.look.phys.sizeM;
+    switch (f.look.shape) {
+      case 'long': f.spinAxis.set(h >= w ? 1 : 0, h >= w ? 0 : 1, 0); break; // bout par-dessus bout
+      case 'flat': f.spinAxis.set(0, 0, 1); break; // frisbee : tourne à plat dans son plan
+      case 'round': f.spinAxis.set(0, 0, 1); break; // roule : la face tourne vers le défenseur
+      case 'box': f.spinAxis.set(1, 0.6, 0.2).normalize(); f.omega *= 0.55; break; // culbute lente
+      default: f.spinAxis.set(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize(); f.omega *= 1.4; // aléatoire, amortie
+    }
+    f.rot.identity();
   }
 
   // ------------------------------------------------------------------ fin de vol
@@ -272,33 +297,46 @@ export function installFlights(ctx: Ctx, deps: FlightDeps) {
     if (w.trait === 'heavy') blast.dust(groundPos, 2.4, 16);
   }
 
-  function impact(f: Flight, at: THREE.Vector3): void {
+  function objectHitOf(f: Flight): ObjectHit {
+    const p = f.look.phys;
+    return { colors: f.weapon.palette, weight: f.look.weight, size: f.size, material: p.material, fragile: p.fragile, liquid: p.liquid, viewer: f.owner };
+  }
+
+  function impact(f: Flight, at: THREE.Vector3, on: 'player' | 'world'): void {
     const w = f.weapon;
+    const p = f.look.phys;
     f.pos.copy(at);
     clearRing(f);
     deps.arrived(at, w, f.owner);
     const gy = groundBelow(at);
     const g = new THREE.Vector3(at.x, at.y - gy < 3 ? gy : at.y, at.z);
+    // Pour le son (clang, crash, splash…) : matière et masse réelles de l'objet.
+    ctx.bus.emit('weapon:impact', { pos: [at.x, at.y, at.z], weaponId: w.id, category: w.category, material: p.material, massKg: p.massKg, fragile: p.fragile, liquid: p.liquid, on });
     if (f.kind === 'grenade') {
-      // L'explosion part du point d'impact ; son anneau au sol montre le VRAI rayon de dégâts.
-      blast.explosion(at.y - g.y > 0.4 ? g.clone() : at.clone(), splashRadius(w) || 2, w.palette, { big: w.trait === 'explosive' });
+      // L'explosion part du point d'impact ; son anneau au sol montre le VRAI rayon de dégâts. La matière s'y
+      // lit aussi : une bouteille éclate en verre et gicle, un canard en caoutchouc part en morceaux jaunes.
+      blast.explosion(at.y - g.y > 0.4 ? g.clone() : at.clone(), splashRadius(w) || 2, w.palette, { big: w.trait === 'explosive', viewer: f.owner });
+      blast.materialBurst(at.clone(), g.y, objectHitOf(f), 0.8);
       traitsAt(f, at, g);
       finish(f);
       return;
     }
     if (f.kind === 'throwable') {
-      blast.wham(at.clone(), g.y, w.palette, w.trait === 'heavy');
+      blast.objectHit(at.clone(), g.y, objectHitOf(f));
       if (w.trait === 'explosive') blast.explosion(g, TRAIT_TUNING.explosive.bonusRadius, w.palette, { word: false });
       traitsAt(f, at, g);
-      // L'objet rebondit sur ce qu'il a touché puis retombe (et s'écrase à chaque rebond s'il est bouncy).
+      hideTwins(f);
+      if (p.fragile) { finish(f); return; } // brisé : il n'en reste que les éclats
+      // L'objet rebondit sur ce qu'il a touché puis retombe : caoutchouc et plastique rebondissent fort
+      // (écrasés à chaque rebond), le tissu tombe mou, le lourd retombe lourdement.
+      const bounce = Math.min(1, Math.max(0.05, p.bounciness + (w.trait === 'bouncy' ? 0.35 : 0)));
       f.state = 'debris';
       f.t = 0;
       f.ground = g.y;
       _v.copy(f.vel).setY(0);
       if (_v.lengthSq() < 1e-4) _v.copy(f.axis);
-      const bouncy = w.trait === 'bouncy';
-      f.vel.copy(_v.normalize()).multiplyScalar(bouncy ? -5 : -2.4).addScaledVector(UP, bouncy ? 7 : 4.2);
-      hideTwins(f);
+      f.vel.copy(_v.normalize()).multiplyScalar(-(1.2 + 4 * bounce)).addScaledVector(UP, 2 + 6 * bounce);
+      f.squash = 0.6 + 0.4 * bounce;
       return;
     }
     blast.sparks(at.clone(), w.palette, 10);
@@ -362,16 +400,15 @@ export function installFlights(ctx: Ctx, deps: FlightDeps) {
     const at = new THREE.Vector3(pos[0], pos[1], pos[2]);
     if (reason === 'parried') { if (pendingReflect?.flight === f) pendingReflect = null; f.pos.copy(at); deflect(f); return; }
     if (reason === 'expired') { blast.sparks(f.pos.clone(), f.weapon.palette, 6); finish(f); return; }
-    impact(f, at);
+    impact(f, at, reason === 'hit' ? 'player' : 'world');
   });
 
   ctx.bus.on('projectile:incoming', ({ id, etaMs }) => {
     const f = flights.find((x) => x.id === id && x.state === 'flying');
     if (!f) return;
-    const now = performance.now();
     clearRing(f);
     f.ring = makeRing(f);
-    f.ringT0 = now; f.ringT1 = now + Math.max(80, etaMs);
+    f.ringAge = 0; f.ringDur = Math.max(0.08, etaMs / 1000);
   });
 
   ctx.bus.on('parry:result', ({ player, grade }) => {
@@ -421,7 +458,8 @@ export function installFlights(ctx: Ctx, deps: FlightDeps) {
         const floor = f.ground + f.size * 0.3;
         if (f.pos.y < floor && f.vel.y < 0 && f.state === 'debris') {
           f.pos.y = floor;
-          f.vel.y *= f.weapon.trait === 'bouncy' ? -0.6 : -0.3;
+          f.vel.y *= -Math.min(0.85, f.look.phys.bounciness * 0.8 + (f.weapon.trait === 'bouncy' ? 0.3 : 0));
+          if (f.look.weight > 0.45) blast.dust(_w.set(f.pos.x, f.ground, f.pos.z), 0.6 + f.look.weight, 6); // lourd : retombe dans la poussière
           f.vel.x *= 0.6; f.vel.z *= 0.6;
           f.squash = 1;
         }
@@ -440,7 +478,8 @@ export function installFlights(ctx: Ctx, deps: FlightDeps) {
   function render(f: Flight, dt: number, now: number): void {
     f.squash = Math.max(0, f.squash - dt * 6);
     if (f.ring) {
-      const u = Math.min(1, (now - f.ringT0) / Math.max(1, f.ringT1 - f.ringT0));
+      f.ringAge += dt;
+      const u = Math.min(1, f.ringAge / f.ringDur);
       const base = f.kind === 'bolt' ? 0.55 : f.size;
       f.ring.position.copy(f.pos);
       f.ring.scale.setScalar(base * (1.15 + 3.4 * (1 - u) * (1 - u)));
@@ -457,19 +496,26 @@ export function installFlights(ctx: Ctx, deps: FlightDeps) {
     }
     const m = f.model;
     if (!m) return;
-    // Face au défenseur (axe tireur → cible) : lisible dans les 2 vues de l'écran scindé ; rotation dans son
-    // plan + léger roulis qui montre l'épaisseur du carton.
-    const turns = f.kind === 'grenade' ? WEAPON_FX.vol.grenade.tours : WEAPON_FX.vol.throwable.tours;
-    const spinRate = (f.state === 'flying' ? 1 : 2.2) * (f.returning ? 1.6 : 1);
-    f.spin += f.spinDir * turns * Math.PI * 2 * dt * spinRate;
-    _qz.setFromAxisAngle(Z, f.spin);
-    _qt.setFromAxisAngle(X, 0.35 * Math.sin(f.t * 5));
-    m.root.quaternion.setFromUnitVectors(Z, _v.copy(f.axis).negate()).multiply(_qt).multiply(_qz);
-    // Grossit en arrivant sur le défenseur (lisible au moment de parer) ; bouncy : s'écrase comme du caoutchouc.
+    // Face au défenseur (axe tireur → cible : lisible dans les 2 vues), puis rotation propre selon la FORME réelle :
+    // long = bout par-dessus bout, flat = frisbee (à plat, penché vers le défenseur), round = roule face à lui,
+    // box = culbute lente, irregular = axe aléatoire qui s'amortit. Vitesse ≈ 1 / √masse.
+    let omega = f.omega * (f.state === 'flying' ? 1 : 1.8) * (f.returning ? 1.4 : 1);
+    if (f.look.shape === 'irregular') omega *= 0.35 + 0.65 * Math.exp(-1.6 * f.t);
+    f.rot.multiply(_qz.setFromAxisAngle(f.spinAxis, f.spinDir * omega * dt));
+    if (f.look.shape === 'flat') {
+      // Disque couché : normale vers le haut, un peu inclinée vers le défenseur pour que sa vue voie la face.
+      _v.copy(UP).addScaledVector(f.axis, 0.55).normalize();
+      m.root.quaternion.setFromUnitVectors(Z, _v).multiply(f.rot);
+    } else {
+      _qt.setFromAxisAngle(X, 0.25 * Math.sin(f.t * 5)); // léger roulis : montre l'épaisseur du carton
+      m.root.quaternion.setFromUnitVectors(Z, f.axis).multiply(_qt).multiply(f.rot);
+    }
+    // Grossit en arrivant sur le défenseur (lisible au moment de parer), sans dépasser une taille lisible ;
+    // bouncy : s'écrase comme du caoutchouc.
     let k = f.size;
     if (f.state === 'flying') {
       const d = f.pos.distanceTo(chest(f.target));
-      k *= 1 + (WEAPON_FX.vol.approche - 1) * (1 - smooth(1.5, 7, d));
+      k = Math.min(Math.max(k, WEAPON_FX.physique.tailleMaxApproche), k * (1 + (WEAPON_FX.vol.approche - 1) * (1 - smooth(1.5, 7, d))));
       if (f.weapon.trait === 'bouncy') f.squash = Math.max(f.squash, 0.5 + 0.5 * Math.sin(f.t * 16));
     }
     if (f.state === 'debris' && f.t > 0.8) k *= Math.max(0.001, 1 - (f.t - 0.8) / 0.3); // se décolle
@@ -507,8 +553,9 @@ export function installFlights(ctx: Ctx, deps: FlightDeps) {
       const h = f.pos.y - g;
       f.shadow.visible = h > -0.1 && h < 12;
       f.shadow.position.set(f.pos.x, g + 0.03, f.pos.z);
-      f.shadow.scale.setScalar(WEAPON_FX.vol.ombre * (k / f.size) * (1 + h * 0.08));
-      (f.shadow.material as THREE.MeshBasicMaterial).opacity = rendu.ombres.tache * Math.max(0.2, 1 - h / 9);
+      // Tache d'encre à la taille de l'objet ; plus nette (plus opaque) pour un objet lourd.
+      f.shadow.scale.setScalar(WEAPON_FX.vol.ombre * k * (1 + h * 0.06));
+      (f.shadow.material as THREE.MeshBasicMaterial).opacity = Math.min(0.85, rendu.ombres.tache * (0.6 + 1.1 * f.look.weight)) * Math.max(0.25, 1 - h / 10);
     }
   }
 
