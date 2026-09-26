@@ -5,7 +5,7 @@
 //   loop.setSlow(key, f) / clearSlow   ralentis nommés, le plus fort l'emporte
 //   loop.addSystem(name, fn, order)    système appelé chaque frame (order croissant ; le rendu est à 1000)
 //   loop.hitstop = s                   gel du gameplay en secondes réelles (le rendu continue)
-// Hooks de test : window.__fast (multiplicateur de dt).
+// Hooks de test : window.__fast (multiplicateur de dt). Plafond ~60 i/s (voir frame), ?fps=max pour l'enlever.
 import * as THREE from 'three';
 import type { Bus } from './bus';
 
@@ -26,7 +26,7 @@ export interface Loop {
   start(): void;
 }
 
-declare global { interface Window { __fast?: number; __perfSys?: Record<string, number> } }
+declare global { interface Window { __fast?: number; __perfSys?: Record<string, number>; __perfTick?: (t: number) => void } }
 
 export function createLoop(bus: Bus): Loop {
   const timers: { at: number; fn: () => void }[] = [];
@@ -78,8 +78,32 @@ export function createLoop(bus: Bus): Loop {
   });
   bus.clock = () => loop.time;
 
+  // Plafond ~60 i/s (portables des jurés : moins de chauffe, et autant de GPU pour tenir 60) : sur un écran à
+  // 120/144 Hz on ne traite qu'une image d'écran sur 2 (72 i/s à 144 Hz), à 240 Hz une sur 4. La période de
+  // l'écran est estimée en continu (10e centile des intervalles de requestAnimationFrame). ?fps=max : sans plafond.
+  const plafond = new URLSearchParams(location.search).get('fps') !== 'max';
+  const intervalles: number[] = [];
+  let periode = 1000 / 60;
+  let dernierRaf = 0;
+  let dernierTraite = 0;
+
   const clock = new THREE.Clock();
-  function frame() {
+  function frame(t: number) {
+    if (plafond) {
+      if (dernierRaf) {
+        intervalles.push(t - dernierRaf);
+        if (intervalles.length >= 60) {
+          intervalles.sort((a, b) => a - b);
+          periode = Math.max(2, intervalles[6]);
+          intervalles.length = 0;
+        }
+      }
+      dernierRaf = t;
+      const saut = Math.max(1, Math.floor(1000 / 60 / periode + 0.05));
+      if (saut > 1 && t - dernierTraite < (saut - 0.5) * periode) { requestAnimationFrame(frame); return; }
+      dernierTraite = t;
+    }
+    window.__perfTick?.(t); // banc tools/perf : images réellement traitées
     const real = Math.min(clock.getDelta(), 0.05) * (window.__fast || 1);
     loop.realTime += real;
     let dt = real * loop.timeScale;

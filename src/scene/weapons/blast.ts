@@ -4,6 +4,7 @@
 // allocation par image une fois lancé ; 300 particules au plus pour tout le lot.
 import * as THREE from 'three';
 import { palette, polices, rendu, ui } from '../../art/tokens.js';
+import { TEXTURE_VIDE } from '../../core/shaders';
 import type { Ctx, Material, PlayerId } from '../../core/types';
 import { cameraShake } from '../api';
 import { ParticleBurstSystem } from '../fx/particles';
@@ -212,7 +213,8 @@ export function installBlast(ctx: Ctx): BlastFx {
   const decalGeo = new THREE.PlaneGeometry(2, 2);
   const decals: Decal[] = [];
   for (let i = 0; i < 8; i++) {
-    const mesh = new THREE.Mesh(decalGeo, new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
+    // perf : map posée dès la création (LPERF) : le shader « avec image » est compilé par la préchauffe, pas au 1er impact.
+    const mesh = new THREE.Mesh(decalGeo, new THREE.MeshBasicMaterial({ map: TEXTURE_VIDE, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
     mesh.rotation.x = -Math.PI / 2; mesh.visible = false; mesh.renderOrder = 4; noRay(mesh); root.add(mesh);
     decals.push({ mesh, t: 0, dur: 6, active: false, fadeFrom: 0.7 });
   }
@@ -225,7 +227,7 @@ export function installBlast(ctx: Ctx): BlastFx {
   // il n'apparaît que dans sa vue (jamais un mot géant collé sur la caméra de celui qui se fait toucher).
   const words: Word[] = [];
   for (let i = 0; i < 4; i++) {
-    const mat = new THREE.SpriteMaterial({ transparent: true, depthWrite: false, depthTest: false, fog: false }); // vraie couleur de l'objet, même dans la brume
+    const mat = new THREE.SpriteMaterial({ map: TEXTURE_VIDE, transparent: true, depthWrite: false, depthTest: false, fog: false }); // vraie couleur de l'objet, même dans la brume ; map : voir décalques (perf)
     const sprite = new THREE.Sprite(mat);
     sprite.visible = false; sprite.renderOrder = 30; noRay(sprite); root.add(sprite);
     const w: Word = { sprite, t: 0, dur: 0.75, active: false, size: 2, viewer: null, alpha: 1 };

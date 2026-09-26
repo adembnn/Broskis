@@ -1,0 +1,1148 @@
+{
+ "meta": {
+  "date": "26/09/2026 17:44:00",
+  "branch": "worktree-agent-a5399d4fc3ca2735d",
+  "commit": "f2a398d",
+  "dureeS": 175,
+  "rendu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Laptop GPU (0x00002D59) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "glLost": []
+ },
+ "verdicts": [
+  {
+   "id": "arsenal",
+   "label": "Arsenal : la carte se remplit (nom, catégorie, stats, physique) pour chaque photo",
+   "ok": true,
+   "detail": "11 cartes ; physique sur l'arme : 11 ; physique affichée sur la carte : 11"
+  },
+  {
+   "id": "sticker",
+   "label": "On valide sans attendre le sticker ; le sticker arrive ensuite et passe sur l'arme en match",
+   "ok": true,
+   "detail": "validés avant le sticker : 11/11 ; stickers arrivés : 11 ; sur l'arme en match : 11"
+  },
+  {
+   "id": "persos",
+   "label": "2 persos tirés de photos (visages fictifs)",
+   "ok": true,
+   "detail": "Green Hood (rogue_hooded, visage) · Yellow Flash (rogue_hooded, visage) ; scan 6 s"
+  },
+  {
+   "id": "match",
+   "label": "Match en écran scindé, chaque joueur avec SES objets",
+   "ok": true,
+   "detail": "split=true, phase=fight"
+  },
+  {
+   "id": "en-main",
+   "label": "Chaque objet en main à la taille que le jeu tire de sa taille réelle (échelle lisible 0.62-1.45 m, ±35 %), la chaise nettement plus grande que la canette",
+   "ok": true,
+   "detail": "11/11 à la bonne taille ; chaise 1.12 m, canette 0.74 m"
+  },
+  {
+   "id": "chaise-canette",
+   "label": "Chaise contre canette (toutes deux lancées) : plus de dégâts, plus de recul, plus lente, moins loin, recharge plus longue",
+   "ok": true,
+   "detail": "plus de dégâts oui · plus de recul oui · plus lente oui · moins loin oui · recharge plus longue oui"
+  },
+  {
+   "id": "quatre",
+   "label": "Feutre, canette, tabouret, chaise : plus c'est lourd, plus ça frappe et recule, plus c'est lent et long à recharger",
+   "ok": true,
+   "detail": "feutre-velleda 0.02 kg < canette 0.35 kg < tabouret-rotin 2.5 kg < chaise-bureau 9.5 kg"
+  },
+  {
+   "id": "fragile",
+   "label": "Un objet fragile se brise (éclats à l'impact)",
+   "ok": true,
+   "detail": "tasse-verre : 2 coup(s) 10+3 · telephone : 2 coup(s) 20+5 · pendule-newton : 2 coup(s) 16+5 · lampe-champignon : 2 coup(s) 17+7 · montre : 2 coup(s) 13+4"
+  },
+  {
+   "id": "liquide",
+   "label": "Un liquide gicle (sol glissant)",
+   "ok": true,
+   "detail": "tasse-verre : 2 flaque(s) · canette : 1 flaque(s)"
+  },
+  {
+   "id": "rebond",
+   "label": "Un objet rebondissant rebondit",
+   "ok": false,
+   "detail": "feutre-velleda : 0 rebond(s) · preset:rubber duck : 1 rebond(s)"
+  },
+  {
+   "id": "dix",
+   "label": "Les 10 objets d'Adem : physique plausible, lancés en match avec LEUR masse",
+   "ok": true,
+   "detail": "tasse-verre ✓ 0.25 kg · chaise-bureau ✓ 9.5 kg · feutre-velleda ✓ 0.02 kg · telephone ✓ 0.2 kg · mocassin ✓ 0.45 kg · tabouret-rotin ✓ 2.5 kg · pendule-newton ✓ 0.65 kg · lampe-champignon ✓ 0.8 kg · roi-echecs ✓ 0.05 kg · montre ✓ 0.08 kg"
+  }
+ ],
+ "matches": [
+  {
+   "split": true,
+   "fighters": [
+    {
+     "name": "Green Hood",
+     "model": "rogue_hooded",
+     "face": true
+    },
+    {
+     "name": "Yellow Flash",
+     "model": "rogue_hooded",
+     "face": true
+    }
+   ],
+   "phase": "fight",
+   "tailles": [
+    0.62,
+    1.45
+   ]
+  },
+  {
+   "split": true,
+   "fighters": [
+    {
+     "name": "Big Gustav",
+     "model": "barbarian",
+     "face": false
+    },
+    {
+     "name": "Sir Clank",
+     "model": "knight",
+     "face": false
+    }
+   ],
+   "phase": "fight",
+   "tailles": [
+    0.62,
+    1.45
+   ]
+  }
+ ],
+ "objets": [
+  {
+   "key": "chaise-bureau",
+   "player": 0,
+   "slot": 0,
+   "cardS": 2.719,
+   "categoryScan": "shield",
+   "weapon": {
+    "id": "scan-muik4pt0-2",
+    "object": "office chair",
+    "name": "Ergonomic Aggressor",
+    "category": "throwable",
+    "why": "Nothing solves a polite office dispute faster than a mid-range swivel chair projectile.",
+    "stats": {
+     "a": 5,
+     "b": 1,
+     "c": 4
+    },
+    "trait": "heavy",
+    "palette": [
+     "#d8b894",
+     "#1a1a1a"
+    ],
+    "lines": {
+     "intro": "Watch your lumbar spine, folks, someone brought corporate seating!",
+     "hit": "That is definitely not covered under OSHA regulations!",
+     "miss": "It rolls off harmlessly into HR territory!",
+     "parried": "Rejected and sent straight back to the breakroom!"
+    },
+    "physics": {
+     "massKg": 9.5,
+     "sizeM": [
+      0.85,
+      0.6,
+      0.6
+     ],
+     "material": "fabric",
+     "shape": "irregular",
+     "bounciness": 0.1,
+     "fragile": false,
+     "liquid": false
+    },
+    "source": "scan",
+    "cooldown": 0
+   },
+   "card": {
+    "name": "Ergonomic Aggressor",
+    "category": "throwable",
+    "object": "From: office chair",
+    "pips": 10,
+    "physicsText": "9.5 kg · 85 cm · fabric",
+    "text": "BROSKISthrowable#01Ergonomic AggressorFrom: office chair9.5 kg · 85 cm · fabricpowerspeedknockbackheavyblastergrenadethrowableshield\"Nothing solves a polite office dispute faster than a mid-range swivel chair projectile.\""
+   },
+   "stickerAtConfirm": false,
+   "confirmAt": 1790437283910,
+   "held": [
+    0.45,
+    1.12,
+    0.95
+   ],
+   "heldAttendu": 1.12,
+   "stickerInMatch": true,
+   "physicsInMatch": true,
+   "cooldown": 7.2,
+   "category": "throwable",
+   "speed": 11.7,
+   "gravity": 9.81,
+   "massSpawn": 9.5,
+   "materialSpawn": "fabric",
+   "flying": [
+    1.85
+   ],
+   "endReason": "hit",
+   "damage": 32,
+   "crit": false,
+   "launch": 3.46,
+   "launchRaw": 10.11,
+   "massHit": 9.5,
+   "hits": [
+    32
+   ],
+   "bouncesNear": 0,
+   "splashNear": 0,
+   "range": 12.6,
+   "rangeEnd": "world",
+   "bounces": 0,
+   "splash": 0,
+   "sticker": "ok"
+  },
+  {
+   "key": "feutre-velleda",
+   "player": 0,
+   "slot": 1,
+   "cardS": 3.165,
+   "categoryScan": "blaster",
+   "weapon": {
+    "id": "scan-muik4v1g-4",
+    "object": "whiteboard marker",
+    "name": "The Boardroom Squeaker",
+    "category": "throwable",
+    "why": "It is aerodynamic enough to hurl across a meeting room whenever someone suggests another sprint plan",
+    "stats": {
+     "a": 2,
+     "b": 6,
+     "c": 2
+    },
+    "trait": "loud",
+    "palette": [
+     "#0b1d3a",
+     "#ffffff"
+    ],
+    "lines": {
+     "intro": "Incoming dry-erase diplomacy, uncapped and ready to stain!",
+     "hit": "Direct hit! That one won't wipe off without toxic spray!",
+     "miss": "A clean whiff, rolling uselessly under the filing cabinet!",
+     "parried": "Reflected! Now who is holding the squeaky stick?!"
+    },
+    "physics": {
+     "massKg": 0.02,
+     "sizeM": [
+      0.14,
+      0.03,
+      0.03
+     ],
+     "material": "plastic",
+     "shape": "long",
+     "bounciness": 0.35,
+     "fragile": false,
+     "liquid": false
+    },
+    "source": "scan",
+    "cooldown": 0
+   },
+   "card": {
+    "name": "The Boardroom Squeaker",
+    "category": "throwable",
+    "object": "From: whiteboard marker",
+    "pips": 10,
+    "physicsText": "20 g · 14 cm · plastic · bouncy",
+    "text": "BROSKISthrowable#02 The Boardroom SqueakerFrom: whiteboard marker20 g · 14 cm · plastic · bouncypowerspeedknockbackloudblastergrenadethrowableshield\"It is aerodynamic enough to hurl across a meeting room whenever someone suggests another sprint plan\""
+   },
+   "stickerAtConfirm": false,
+   "confirmAt": 1790437290718,
+   "held": [
+    0.21,
+    0.77,
+    0.37
+   ],
+   "heldAttendu": 0.77,
+   "stickerInMatch": true,
+   "physicsInMatch": true,
+   "cooldown": 2.4,
+   "category": "throwable",
+   "speed": 24.3,
+   "gravity": 6,
+   "massSpawn": 0.02,
+   "materialSpawn": "plastic",
+   "flying": [
+    1.02
+   ],
+   "endReason": "hit",
+   "damage": 5,
+   "crit": false,
+   "launch": 0.99,
+   "launchRaw": 1.29,
+   "massHit": 0.02,
+   "hits": [
+    5
+   ],
+   "bouncesNear": 0,
+   "splashNear": 0,
+   "range": 71.79,
+   "rangeEnd": "expired",
+   "bounces": 0,
+   "splash": 0,
+   "sticker": "ok"
+  },
+  {
+   "key": "tasse-verre",
+   "player": 0,
+   "slot": 2,
+   "cardS": 3.055,
+   "weapon": {
+    "id": "scan-muik4xaj-5",
+    "object": "glass mug",
+    "name": "The Double-Walled Detonator",
+    "category": "grenade",
+    "why": "It is fragile, round, and designed to catastrophically shatter upon introduction to any hard surface",
+    "stats": {
+     "a": 3,
+     "b": 6,
+     "c": 1
+    },
+    "trait": "explosive",
+    "palette": [
+     "#d8e5e8",
+     "#c89d5c"
+    ],
+    "lines": {
+     "intro": "Watch your step, it is transparent and full of shattered dreams!",
+     "hit": "Direct hit! Shards everywhere, cleanup on aisle four!",
+     "miss": "Shattered on the hardwood! Total waste of borosilicate!",
+     "parried": "Reflected! That is seven years of bad luck right back at you!"
+    },
+    "physics": {
+     "massKg": 0.25,
+     "sizeM": [
+      0.11,
+      0.12,
+      0.09
+     ],
+     "material": "glass",
+     "shape": "round",
+     "bounciness": 0.05,
+     "fragile": true,
+     "liquid": true
+    },
+    "source": "scan",
+    "cooldown": 0
+   },
+   "card": {
+    "name": "The Double-Walled Detonator",
+    "category": "grenade",
+    "object": "From: glass mug",
+    "pips": 10,
+    "physicsText": "250 g · 12 cm · glass · fragile · splashes",
+    "text": "BROSKISgrenade#03 The Double-Walled DetonatorFrom: glass mug250 g · 12 cm · glass · fragile · splashespowerradiusbounceexplosiveblastergrenadethrowableshield\"It is fragile, round, and designed to catastrophically shatter upon introduction to any hard surface\""
+   },
+   "stickerAtConfirm": false,
+   "confirmAt": 1790437294047,
+   "held": [
+    0.3,
+    0.74,
+    0.73
+   ],
+   "heldAttendu": 0.74,
+   "stickerInMatch": true,
+   "physicsInMatch": true,
+   "cooldown": 2.44,
+   "category": "grenade",
+   "speed": 9.72,
+   "gravity": 12.88,
+   "massSpawn": 0.25,
+   "materialSpawn": "glass",
+   "flying": [
+    1.11
+   ],
+   "endReason": "hit",
+   "damage": 10,
+   "crit": false,
+   "launch": 1.33,
+   "launchRaw": 2.12,
+   "massHit": 0.25,
+   "hits": [
+    10,
+    3
+   ],
+   "bouncesNear": 0,
+   "splashNear": 1,
+   "range": 15.99,
+   "rangeEnd": "world",
+   "bounces": 0,
+   "splash": 1,
+   "sticker": "ok"
+  },
+  {
+   "key": "canette",
+   "player": 1,
+   "slot": 0,
+   "cardS": 4.034,
+   "categoryScan": "grenade",
+   "weapon": {
+    "id": "scan-muik52y7-7",
+    "object": "soda can",
+    "name": "The Carbonated Clunker",
+    "category": "throwable",
+    "why": "It is built exclusively to be chucked at someone's forehead before it violently foams over.",
+    "stats": {
+     "a": 3,
+     "b": 5,
+     "c": 2
+    },
+    "trait": "explosive",
+    "palette": [
+     "#b81414",
+     "#ffffff"
+    ],
+    "lines": {
+     "intro": "Freshly shaken and ready for flight, duck your heads!",
+     "hit": "Right in the teeth! That is going to leave a sticky stain!",
+     "miss": "A total whiff! Now the soda is just foaming on the floor.",
+     "parried": "Batted back! Talk about aggressive recycling!"
+    },
+    "physics": {
+     "massKg": 0.35,
+     "sizeM": [
+      0.12,
+      0.066,
+      0.066
+     ],
+     "material": "metal",
+     "shape": "round",
+     "bounciness": 0.2,
+     "fragile": false,
+     "liquid": true
+    },
+    "source": "scan",
+    "cooldown": 0
+   },
+   "card": {
+    "name": "The Carbonated Clunker",
+    "category": "throwable",
+    "object": "From: soda can",
+    "pips": 10,
+    "physicsText": "350 g · 12 cm · metal · splashes",
+    "text": "BROSKISthrowable#01 The Carbonated ClunkerFrom: soda can350 g · 12 cm · metal · splashespowerspeedknockbackexplosiveblastergrenadethrowableshield\"It is built exclusively to be chucked at someone's forehead before it violently foams over.\""
+   },
+   "stickerAtConfirm": false,
+   "confirmAt": 1790437300941,
+   "held": [
+    0.23,
+    0.74,
+    0.48
+   ],
+   "heldAttendu": 0.74,
+   "stickerInMatch": true,
+   "physicsInMatch": true,
+   "cooldown": 3.59,
+   "category": "throwable",
+   "speed": 19.68,
+   "gravity": 0.08,
+   "massSpawn": 0.35,
+   "materialSpawn": "metal",
+   "flying": [
+    1.19
+   ],
+   "endReason": "hit",
+   "damage": 12,
+   "crit": false,
+   "launch": 1.48,
+   "launchRaw": 2.55,
+   "massHit": 0.35,
+   "hits": [
+    12,
+    6
+   ],
+   "bouncesNear": 0,
+   "splashNear": 1,
+   "range": 69.07,
+   "rangeEnd": "expired",
+   "bounces": 0,
+   "splash": 0,
+   "sticker": "ok"
+  },
+  {
+   "key": "tabouret-rotin",
+   "player": 1,
+   "slot": 1,
+   "cardS": 2.969,
+   "categoryScan": "shield",
+   "weapon": {
+    "id": "scan-muik57f7-9",
+    "object": "wooden stool",
+    "name": "The Barfight Special",
+    "category": "throwable",
+    "why": "Nothing says civilized dispute quite like hurling a woven wicker perch across the room.",
+    "stats": {
+     "a": 4,
+     "b": 2,
+     "c": 4
+    },
+    "trait": "heavy",
+    "palette": [
+     "#d4a359",
+     "#b37d38"
+    ],
+    "lines": {
+     "intro": "Direct from the saloon, it's four legs of flying splinter risk!",
+     "hit": "Take a seat, pal!",
+     "miss": "Total airball, watch the wicker!",
+     "parried": "Returned to sender with extreme prejudice!"
+    },
+    "physics": {
+     "massKg": 2.5,
+     "sizeM": [
+      0.45,
+      0.35,
+      0.35
+     ],
+     "material": "wood",
+     "shape": "round",
+     "bounciness": 0.1,
+     "fragile": false,
+     "liquid": false
+    },
+    "source": "scan",
+    "cooldown": 0
+   },
+   "card": {
+    "name": "The Barfight Special",
+    "category": "throwable",
+    "object": "From: wooden stool",
+    "pips": 10,
+    "physicsText": "2.5 kg · 45 cm · wood",
+    "text": "BROSKISthrowable#02 The Barfight SpecialFrom: wooden stool2.5 kg · 45 cm · woodpowerspeedknockbackheavyblastergrenadethrowableshield\"Nothing says civilized dispute quite like hurling a woven wicker perch across the room.\""
+   },
+   "stickerAtConfirm": false,
+   "confirmAt": 1790437306778,
+   "held": [
+    0.32,
+    0.99,
+    0.81
+   ],
+   "heldAttendu": 0.99,
+   "stickerInMatch": true,
+   "physicsInMatch": true,
+   "cooldown": 6.48,
+   "category": "throwable",
+   "speed": 12.04,
+   "gravity": 3.52,
+   "massSpawn": 2.5,
+   "materialSpawn": "wood",
+   "flying": [
+    1.73
+   ],
+   "endReason": "hit",
+   "damage": 25,
+   "crit": false,
+   "launch": 3.46,
+   "launchRaw": 8.66,
+   "massHit": 2.5,
+   "hits": [
+    25
+   ],
+   "bouncesNear": 0,
+   "splashNear": 0,
+   "range": 19.22,
+   "rangeEnd": "world",
+   "bounces": 0,
+   "splash": 0,
+   "sticker": "ok"
+  },
+  {
+   "key": "telephone",
+   "player": 1,
+   "slot": 2,
+   "cardS": 3.578,
+   "weapon": {
+    "id": "scan-muik5a0l-a",
+    "object": "smartphone",
+    "name": "Doomscroller",
+    "category": "grenade",
+    "why": "It is a compact rectangle packed with explosive group chats and shattered glass waiting to happen.",
+    "stats": {
+     "a": 5,
+     "b": 4,
+     "c": 1
+    },
+    "trait": "explosive",
+    "palette": [
+     "#1a1a1a",
+     "#e0e0e0"
+    ],
+    "lines": {
+     "intro": "Behold the pocket brick, powered by unread notifications!",
+     "hit": "Right on the glass! That warranty is completely voided!",
+     "miss": "A total whiff! Now it's stuck in airplane mode!",
+     "parried": "Call rejected! It bounces right back at sender!"
+    },
+    "physics": {
+     "massKg": 0.2,
+     "sizeM": [
+      0.15,
+      0.075,
+      0.03
+     ],
+     "material": "glass",
+     "shape": "flat",
+     "bounciness": 0.1,
+     "fragile": true,
+     "liquid": false
+    },
+    "source": "scan",
+    "cooldown": 0
+   },
+   "card": {
+    "name": "Doomscroller",
+    "category": "grenade",
+    "object": "From: smartphone",
+    "pips": 10,
+    "physicsText": "200 g · 15 cm · glass · fragile",
+    "text": "BROSKISgrenade#03DoomscrollerFrom: smartphone200 g · 15 cm · glass · fragilepowerradiusbounceexplosiveblastergrenadethrowableshield\"It is a compact rectangle packed with explosive group chats and shattered glass waiting to happen.\""
+   },
+   "stickerAtConfirm": false,
+   "confirmAt": 1790437310710,
+   "held": [
+    0.14,
+    0.78,
+    0.33
+   ],
+   "heldAttendu": 0.78,
+   "stickerInMatch": true,
+   "physicsInMatch": true,
+   "cooldown": 2.28,
+   "category": "grenade",
+   "speed": 9.66,
+   "gravity": 12.54,
+   "massSpawn": 0.2,
+   "materialSpawn": "glass",
+   "flying": [
+    1.11
+   ],
+   "endReason": "hit",
+   "damage": 14.81,
+   "crit": true,
+   "launch": 1.36,
+   "launchRaw": 3,
+   "massHit": 0.2,
+   "hits": [
+    20,
+    5
+   ],
+   "bouncesNear": 0,
+   "splashNear": 0,
+   "range": 16.02,
+   "rangeEnd": "world",
+   "bounces": 0,
+   "splash": 0,
+   "sticker": "ok"
+  },
+  {
+   "key": "mocassin",
+   "player": 0,
+   "slot": 0,
+   "cardS": 2.581,
+   "weapon": {
+    "id": "scan-muik6ldx-b",
+    "object": "loafer",
+    "name": "The Formal Reprimand",
+    "category": "throwable",
+    "why": "It lacks laces and common decency, making it aerodynamic enough to chuck across a board meeting.",
+    "stats": {
+     "a": 3,
+     "b": 4,
+     "c": 3
+    },
+    "trait": "sticky",
+    "palette": [
+     "#1a1918",
+     "#8b5a2b"
+    ],
+    "lines": {
+     "intro": "Direct from HR, it's business casual violence!",
+     "hit": "Straight to the cheekbone! Very unprofessional!",
+     "miss": "Airballed! Who throws a shoe, honestly?",
+     "parried": "Polished leather right back at your noggin!"
+    },
+    "physics": {
+     "massKg": 0.45,
+     "sizeM": [
+      0.1,
+      0.1,
+      0.3
+     ],
+     "material": "fabric",
+     "shape": "irregular",
+     "bounciness": 0.15,
+     "fragile": false,
+     "liquid": false
+    },
+    "source": "scan",
+    "cooldown": 0
+   },
+   "card": {
+    "name": "The Formal Reprimand",
+    "category": "throwable",
+    "object": "From: loafer",
+    "pips": 10,
+    "physicsText": "450 g · 30 cm · fabric",
+    "text": "BROSKISthrowable#01 The Formal ReprimandFrom: loafer450 g · 30 cm · fabricpowerspeedknockbackstickyblastergrenadethrowableshield\"It lacks laces and common decency, making it aerodynamic enough to chuck across a board meeting.\""
+   },
+   "stickerAtConfirm": false,
+   "confirmAt": 1790437371559,
+   "held": [
+    0.39,
+    0.47,
+    0.94
+   ],
+   "heldAttendu": 0.91,
+   "stickerInMatch": true,
+   "physicsInMatch": true,
+   "cooldown": 3.88,
+   "category": "throwable",
+   "speed": 18.48,
+   "gravity": 0.24,
+   "massSpawn": 0.45,
+   "materialSpawn": "fabric",
+   "flying": [
+    1.32
+   ],
+   "endReason": "hit",
+   "damage": 14.07,
+   "crit": true,
+   "launch": 1.61,
+   "launchRaw": 3.44,
+   "massHit": 0.45,
+   "hits": [
+    19
+   ],
+   "bouncesNear": 0,
+   "splashNear": 0,
+   "range": 64.92,
+   "rangeEnd": "expired",
+   "bounces": 0,
+   "splash": 0,
+   "sticker": "ok"
+  },
+  {
+   "key": "pendule-newton",
+   "player": 0,
+   "slot": 1,
+   "cardS": 2.568,
+   "weapon": {
+    "id": "scan-muik6ng2-c",
+    "object": "Newton's cradle",
+    "name": "The Executive Clacker",
+    "category": "throwable",
+    "why": "It is an awkward tangle of wires and heavy chrome spheres designed entirely for lobbing at middle ma",
+    "stats": {
+     "a": 3,
+     "b": 4,
+     "c": 3
+    },
+    "trait": "split",
+    "palette": [
+     "#c0c0c0",
+     "#1a1a1a"
+    ],
+    "lines": {
+     "intro": "Direct from the CEO's mahogany desk: the clattering law of physics!",
+     "hit": "Every action has an equal, painful reaction!",
+     "miss": "Total momentum lost into thin air!",
+     "parried": "Transferred straight back with zero energy loss!"
+    },
+    "physics": {
+     "massKg": 0.65,
+     "sizeM": [
+      0.18,
+      0.18,
+      0.12
+     ],
+     "material": "metal",
+     "shape": "box",
+     "bounciness": 0.15,
+     "fragile": true,
+     "liquid": false
+    },
+    "source": "scan",
+    "cooldown": 0
+   },
+   "card": {
+    "name": "The Executive Clacker",
+    "category": "throwable",
+    "object": "From: Newton's cradle",
+    "pips": 10,
+    "physicsText": "650 g · 18 cm · metal · fragile",
+    "text": "BROSKISthrowable#02 The Executive ClackerFrom: Newton's cradle650 g · 18 cm · metal · fragilepowerspeedknockbacksplitblastergrenadethrowableshield\"It is an awkward tangle of wires and heavy chrome spheres designed entirely for lobbing at middle ma\""
+   },
+   "stickerAtConfirm": false,
+   "confirmAt": 1790437374306,
+   "held": [
+    0.33,
+    0.81,
+    0.76
+   ],
+   "heldAttendu": 0.81,
+   "stickerInMatch": true,
+   "physicsInMatch": true,
+   "cooldown": 4.33,
+   "category": "throwable",
+   "speed": 16.86,
+   "gravity": 0.56,
+   "massSpawn": 0.65,
+   "materialSpawn": "metal",
+   "flying": [
+    1.49,
+    0.93,
+    0.93
+   ],
+   "endReason": "hit",
+   "damage": 16,
+   "crit": false,
+   "launch": 1.79,
+   "launchRaw": 3.52,
+   "massHit": 0.65,
+   "hits": [
+    16,
+    5
+   ],
+   "bouncesNear": 0,
+   "splashNear": 0,
+   "range": 59.2,
+   "rangeEnd": "expired",
+   "bounces": 0,
+   "splash": 0,
+   "sticker": "ok"
+  },
+  {
+   "key": "lampe-champignon",
+   "player": 0,
+   "slot": 2,
+   "cardS": 3.098,
+   "weapon": {
+    "id": "scan-muik6pst-d",
+    "object": "table lamp",
+    "name": "The Bright Idea",
+    "category": "throwable",
+    "why": "It has an ergonomic handle and a mushroom head built exclusively for launching across a living room.",
+    "stats": {
+     "a": 3,
+     "b": 4,
+     "c": 3
+    },
+    "trait": "heavy",
+    "palette": [
+     "#FFD000",
+     "#C89500"
+    ],
+    "lines": {
+     "intro": "Someone forgot to screw in a bulb, so here comes the whole fixture!",
+     "hit": "Enlightenment delivered directly to the forehead!",
+     "miss": "A total power outage on that throw!",
+     "parried": "Reflected! Talk about bad interior decorating!"
+    },
+    "physics": {
+     "massKg": 0.8,
+     "sizeM": [
+      0.28,
+      0.16,
+      0.16
+     ],
+     "material": "metal",
+     "shape": "irregular",
+     "bounciness": 0.1,
+     "fragile": true,
+     "liquid": false
+    },
+    "source": "scan",
+    "cooldown": 0
+   },
+   "card": {
+    "name": "The Bright Idea",
+    "category": "throwable",
+    "object": "From: table lamp",
+    "pips": 10,
+    "physicsText": "800 g · 28 cm · metal · fragile",
+    "text": "BROSKISthrowable#03 The Bright IdeaFrom: table lamp800 g · 28 cm · metal · fragilepowerspeedknockbackheavyblastergrenadethrowableshield\"It has an ergonomic handle and a mushroom head built exclusively for launching across a living room.\""
+   },
+   "stickerAtConfirm": false,
+   "confirmAt": 1790437377641,
+   "held": [
+    0.32,
+    0.9,
+    0.64
+   ],
+   "heldAttendu": 0.9,
+   "stickerInMatch": true,
+   "physicsInMatch": true,
+   "cooldown": 4.61,
+   "category": "throwable",
+   "speed": 16,
+   "gravity": 0.8,
+   "massSpawn": 0.8,
+   "materialSpawn": "metal",
+   "flying": [
+    1.38
+   ],
+   "endReason": "hit",
+   "damage": 17,
+   "crit": false,
+   "launch": 2.29,
+   "launchRaw": 4.63,
+   "massHit": 0.8,
+   "hits": [
+    17,
+    7
+   ],
+   "bouncesNear": 0,
+   "splashNear": 0,
+   "range": 56.2,
+   "rangeEnd": "expired",
+   "bounces": 0,
+   "splash": 0,
+   "sticker": "ok"
+  },
+  {
+   "key": "roi-echecs",
+   "player": 1,
+   "slot": 0,
+   "cardS": 3.255,
+   "weapon": {
+    "id": "scan-muik6smn-e",
+    "object": "wooden chess king",
+    "name": "The Regal Concussion",
+    "category": "throwable",
+    "why": "It can only move one square in any direction, unless hurled violently across the room.",
+    "stats": {
+     "a": 2,
+     "b": 6,
+     "c": 2
+    },
+    "trait": "bouncy",
+    "palette": [
+     "#dfb15b",
+     "#8b5a2b"
+    ],
+    "lines": {
+     "intro": "Bow down or get clipped by pure royal timber!",
+     "hit": "Checkmate, directly to the skull!",
+     "miss": "Illegal move, completely off the board!",
+     "parried": "The monarchy has been swiftly overthrown!"
+    },
+    "physics": {
+     "massKg": 0.05,
+     "sizeM": [
+      0.095,
+      0.038,
+      0.038
+     ],
+     "material": "wood",
+     "shape": "long",
+     "bounciness": 0.2,
+     "fragile": false,
+     "liquid": false
+    },
+    "source": "scan",
+    "cooldown": 0
+   },
+   "card": {
+    "name": "The Regal Concussion",
+    "category": "throwable",
+    "object": "From: wooden chess king",
+    "pips": 10,
+    "physicsText": "50 g · 10 cm · wood",
+    "text": "BROSKISthrowable#01 The Regal ConcussionFrom: wooden chess king50 g · 10 cm · woodpowerspeedknockbackbouncyblastergrenadethrowableshield\"It can only move one square in any direction, unless hurled violently across the room.\""
+   },
+   "stickerAtConfirm": false,
+   "confirmAt": 1790437381275,
+   "held": [
+    0.17,
+    0.69,
+    0.34
+   ],
+   "heldAttendu": 0.69,
+   "stickerInMatch": true,
+   "physicsInMatch": true,
+   "cooldown": 2.4,
+   "category": "throwable",
+   "speed": 24.3,
+   "gravity": 0,
+   "massSpawn": 0.05,
+   "materialSpawn": "wood",
+   "flying": [
+    0.74
+   ],
+   "endReason": "hit",
+   "damage": 5,
+   "crit": false,
+   "launch": 0.88,
+   "launchRaw": 1.15,
+   "massHit": 0.05,
+   "hits": [
+    5
+   ],
+   "bouncesNear": 0,
+   "splashNear": 0,
+   "range": 85.17,
+   "rangeEnd": "expired",
+   "bounces": 0,
+   "splash": 0,
+   "sticker": "ok"
+  },
+  {
+   "key": "montre",
+   "player": 1,
+   "slot": 1,
+   "cardS": 3.018,
+   "weapon": {
+    "id": "scan-muik6vag-f",
+    "object": "wrist watch",
+    "name": "The Overtime Exploder",
+    "category": "grenade",
+    "why": "It has an aggressive internal countdown and shatters glass directly at anyone who is late for brunch",
+    "stats": {
+     "a": 5,
+     "b": 3,
+     "c": 2
+    },
+    "trait": "explosive",
+    "palette": [
+     "#8B5A2B",
+     "#D4AF37"
+    ],
+    "lines": {
+     "intro": "Look at the time, folks—someone is about to get their clock cleaned!",
+     "hit": "Right on schedule! That impact really ticked them off!",
+     "miss": "Wasted seconds! Time is slipping away into the void!",
+     "parried": "Rejected! That blast was sent backwards across time zones!"
+    },
+    "physics": {
+     "massKg": 0.08,
+     "sizeM": [
+      0.04,
+      0.04,
+      0.03
+     ],
+     "material": "metal",
+     "shape": "round",
+     "bounciness": 0.15,
+     "fragile": true,
+     "liquid": false
+    },
+    "source": "scan",
+    "cooldown": 0
+   },
+   "card": {
+    "name": "The Overtime Exploder",
+    "category": "grenade",
+    "object": "From: wrist watch",
+    "pips": 10,
+    "physicsText": "80 g · 4 cm · metal · fragile",
+    "text": "BROSKISgrenade#02 The Overtime ExploderFrom: wrist watch80 g · 4 cm · metal · fragilepowerradiusbounceexplosiveblastergrenadethrowableshield\"It has an aggressive internal countdown and shatters glass directly at anyone who is late for brunch\""
+   },
+   "stickerAtConfirm": false,
+   "confirmAt": 1790437384475,
+   "held": [
+    0.2,
+    0.62,
+    0.43
+   ],
+   "heldAttendu": 0.62,
+   "stickerInMatch": true,
+   "physicsInMatch": true,
+   "cooldown": 1.8,
+   "category": "grenade",
+   "speed": 9.46,
+   "gravity": 11.24,
+   "massSpawn": 0.08,
+   "materialSpawn": "metal",
+   "flying": [
+    0.99
+   ],
+   "endReason": "hit",
+   "damage": 13,
+   "crit": false,
+   "launch": 0.99,
+   "launchRaw": 1.75,
+   "massHit": 0.08,
+   "hits": [
+    13,
+    4
+   ],
+   "bouncesNear": 0,
+   "splashNear": 0,
+   "range": 16.08,
+   "rangeEnd": "world",
+   "bounces": 0,
+   "splash": 0,
+   "sticker": "ok"
+  },
+  {
+   "key": "preset:rubber duck",
+   "player": 1,
+   "slot": 2,
+   "preset": true,
+   "held": [
+    0.25,
+    0.5,
+    0.69
+   ],
+   "heldAttendu": 0.68,
+   "stickerInMatch": true,
+   "physicsInMatch": true,
+   "weapon": {
+    "name": "Quack Attack",
+    "category": "grenade",
+    "physics": {
+     "massKg": 0.05,
+     "sizeM": [
+      0.08,
+      0.07,
+      0.09
+     ],
+     "material": "rubber",
+     "shape": "irregular",
+     "bounciness": 0.5,
+     "fragile": false,
+     "liquid": false
+    }
+   },
+   "cooldown": 1.8,
+   "category": "grenade",
+   "speed": 9.46,
+   "gravity": 11.2,
+   "massSpawn": 0.05,
+   "materialSpawn": "rubber",
+   "flying": [
+    1.27
+   ],
+   "endReason": "hit",
+   "damage": 4,
+   "crit": false,
+   "launch": 1.04,
+   "launchRaw": 1.29,
+   "massHit": 0.05,
+   "hits": [
+    4
+   ],
+   "bouncesNear": 0,
+   "splashNear": 0,
+   "range": 33.9,
+   "rangeEnd": "expired",
+   "bounces": 1,
+   "splash": 0,
+   "sticker": "absent"
+  }
+ ],
+ "erreurs": []
+}

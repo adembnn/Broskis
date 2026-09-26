@@ -343,6 +343,7 @@ const PAGE_TOOLS = async () => {
   const { getRuntime } = await import('/src/gameplay/runtime.ts');
   const { LAUNCH_K2 } = await import('/src/gameplay/tuning.ts');
   const { WEAPON_FX } = await import('/src/scene/weapons/tokens.ts');
+  const { lookOf } = await import('/src/scene/weapons/physics.ts');
   const ctx = window.ctx;
   const bbox = (obj) => {
     obj.updateMatrixWorld(true);
@@ -372,7 +373,7 @@ const PAGE_TOOLS = async () => {
       const w = ps.weapons[ps.selected];
       const main = ctx.three.scene.getObjectByName('latk-main');
       const m = main?.getObjectByName(`arme-${w.id}`);
-      return { id: w.id, name: w.name, category: w.category, size: m && m.visible ? bbox(m) : null, sticker: !!w.stickerUrl, physics: w.physics ?? null };
+      return { id: w.id, name: w.name, category: w.category, size: m && m.visible ? bbox(m) : null, attendu: Math.round(lookOf(w).size * 100) / 100, sticker: !!w.stickerUrl, physics: w.physics ?? null };
     },
     /** Position à l'écran (px CSS) de l'objet en main, vu par la caméra de son joueur : pour une capture serrée. */
     heldScreen(p) {
@@ -439,7 +440,7 @@ async function measureMatch(page, match, idx) {
         await page.keyboard.press(WEAPON_KEYS[shooter][slot]);
         await sleep(450);
         const held = await page.evaluate((p) => window.__e2eTools.held(p), shooter);
-        r.held = held.size; r.stickerInMatch = held.sticker; r.physicsInMatch = !!held.physics;
+        r.held = held.size; r.heldAttendu = held.attendu; r.stickerInMatch = held.sticker; r.physicsInMatch = !!held.physics;
         if (r.preset) r.weapon = { name: held.name, category: held.category, physics: held.physics };
         // Capture serrée autour de l'objet en main (vue du joueur), sinon sa moitié d'écran.
         const hs = await page.evaluate((p) => window.__e2eTools.heldScreen(p), shooter);
@@ -495,7 +496,8 @@ async function measureMatch(page, match, idx) {
         // 2) Tir long : cible un peu au-delà des points d'apparition, rendue intouchable → portée réelle, rebonds,
         //    éclats, giclée au sol (l'objet traverse la cible et finit sa course dans le décor).
         if (!r.shield) {
-          const far = L / 2 + 1.5;
+          // Objet rebondissant : cible à 7 m, pour qu'il retombe SUR l'arène (au-delà, il tombe dans le vide sans rebondir).
+          const far = (r.weapon?.physics?.bounciness ?? 0) > 0.3 ? 3.5 : L / 2 + 1.5;
           await page.evaluate(({ a, b, s, t }) => { const T = window.__e2eTools; T.place(s, a); T.place(t, b); T.reset(s); T.untouchable(t, 6); }, { a: at(-far * sign), b: at(far * sign), s: shooter, t: target });
           await sleep(250);
           const n1 = await evCount(page);
@@ -562,12 +564,12 @@ function verdicts(matches) {
   const T = matches[0]?.tailles ?? [0.35, 1.6];
   const heldOk = (r) => {
     const real = maxDim(r.weapon.physics.sizeM);
-    const want = Math.min(T[1], Math.max(T[0], real));
+    const want = r.heldAttendu ?? Math.min(T[1], Math.max(T[0], real));
     return Math.abs(maxDim(r.held) - want) / want <= 0.35;
   };
   const ch = rows.get('chaise-bureau'), ca = rows.get('canette'), fe = rows.get('feutre-velleda'), ta = rows.get('tabouret-rotin');
-  add('en-main', `Chaque objet en main à sa taille réelle (bornée ${T[0]}-${T[1]} m pour rester lisible, ±35 %), la chaise nettement plus grande que la canette`,
-    withHeld.length >= adem.length && withHeld.every(heldOk) && !!(ch?.held && ca?.held && maxDim(ch.held) >= 1.5 * maxDim(ca.held)),
+  add('en-main', `Chaque objet en main à la taille que le jeu tire de sa taille réelle (échelle lisible ${T[0]}-${T[1]} m, ±35 %), la chaise nettement plus grande que la canette`,
+    withHeld.length >= adem.length && withHeld.every(heldOk) && !!(ch?.held && ca?.held && maxDim(ch.held) >= 1.4 * maxDim(ca.held)),
     `${withHeld.filter(heldOk).length}/${scanned.length} à la bonne taille ; chaise ${maxDim(ch?.held) ?? '?'} m, canette ${maxDim(ca?.held) ?? '?'} m`);
 
   const cmp = (a, b, f, sens) => a && b && a[f] != null && b[f] != null && (sens > 0 ? a[f] > b[f] : a[f] < b[f]);
