@@ -66,3 +66,8 @@ Lecture : avec la mort subite au tour 7 et la parade très efficace, la plupart 
 - Physique : chaise (5 kg) recharge 7,2 s, 36 %, recul 10,7 m/s ; canette (0,35 kg, liquide) 3,5 s, 18 %, 4,3 m/s ; `ground:slippery` émis à l'impact de la canette.
 - Sauts : `move:jump` ×2 au clavier (ESPACE) après être sorti du plateau ; « reculer + saut » sur une plateforme à 2,3 m : descente jusqu'au sol (y 2,35 → 0,04) sans consommer de saut.
 - Erreurs console au dernier passage complet : 0.
+
+## Rythme temps réel (banc `tools/balance/rythme-rt.mjs`, deux joueurs scriptés qui tirent dès que possible et tournent autour de l'adversaire)
+- 1re éjection vers 12-16 s de jeu, match à 2 vies en 20-40 s de jeu ; une éjection « par coup » observée à 85 %.
+- Mais la plupart des éjections étaient des **chutes seules** (joueurs qui tournent en maintenant une direction) : poussée au bord portée de 0,3 à 0,5 s (`RT.teeterPushS`, commit `b71f561`). À revérifier avec de vrais joueurs ; le bot RTBOT devra éviter les bords.
+- En fin d'après-midi, la machine est très chargée (plusieurs agents en parallèle) : READY → GO a pris jusqu'à 26 s en sans-fenêtre, d'où des scénarios en délai dépassé sans erreur de logique (le scénario « game-fin » complet passe).
