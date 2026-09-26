@@ -1,6 +1,28 @@
 # Rendu du lot LFACE · « On s'est pris en photo, on est dans le jeu »
 Agent Claude (Opus), 15h20 → 17h10. Branche `worktree-agent-a51705288e23cf3bc` (main fusionnée à 16h40, conflits résolus).
 
+## Mise à jour 17h40 : tête de face ET de dos, en volume, en ~3,5 s (demandes d'Adem de 17h10 et 17h15)
+- **Une seule génération, 2 faces** : Nano Banana dessine une planche 16:9, la tête de face à gauche et **la même tête vue de dos** à droite (même coupe, même couleur, oreilles, nuque, branches de lunettes). `decouperPlanche` (src/ia/fighter) la coupe à la colonne la plus vide. Même latence qu'un portrait seul.
+- **Tête en volume (vinyle gonflé)** : une lentille bombée, avec la face vers l'avant et le dos (en miroir) vers l'arrière. Le bombé suit la distance au bord de la silhouette (DA-objets-scannes §2, en plus rond). Le contour exact vient de la texture. Le bord blanc du sticker est retiré : le bord de la tête devient le trait d'encre et la couleur des cheveux ou de la peau.
+- **Repli** : sans panneau de dos, des mèches peintes à la couleur des cheveux sur la même silhouette, jamais un aplat vide.
+- **Portrait tardif (LE2E)** : la planche est découpée avant l'événement. `fighter:portrait` porte `faceUrl` et `backUrl`, posés ensemble sur le même `FighterDef`.
+- **Vitesse** : Nano Banana 2 Lite (`gemini-3.1-flash-lite-image`) répond sur la clé. Course Lite / Nano Banana 2 / Pro : le 1er portrait valide gagne et les autres appels sont abandonnés. Photo à 512 px. L'écran se débloque à 12 s (sinon tête de secours, puis le vrai visage arrive en jeu). Le module serveur est préchauffé dès le lancement du jeu.
+- **Lueur d'équipe gardée** : la teinte de la tenue s'ajoute au shader du lot LLOOK au lieu de le remplacer. Capes rouge / bleue lisibles de dos.
+
+| Mesure (visages fictifs, machine d'Adem chargée) | Valeur |
+|---|---|
+| 6 scans complets (3 tours de 2 joueurs en parallèle, texte + planche face/dos) | **médiane 3,5 s, pire 4,2 s** (Lite gagne 6 fois sur 6) |
+| Texte (nom, stats, couleurs) | médiane 2,3 s |
+| Planche Nano Banana 2 (avant la course avec Lite) | 8,5 à 9,7 s |
+| Découpe des 2 planches dans le navigateur | 1,4 à 1,7 s pour 2 en parallèle (machine saturée) |
+
+Captures (dépôt principal, `captures/lface/`, ignoré par Git) :
+- `volume-split.png` : **les caméras des joueurs en écran scindé**. P1 voit les cheveux roux bouclés de Tom de dos, P2 les cheveux noirs de Jade de dos, chacun voit le visage de l'autre au loin.
+- `volume-j1-34dos.png`, `volume-j1-34.png`, `volume-j2-34.png`, `volume-j1-dos.png`, `volume-j1-profil.png` : gros plans.
+- `mesure-1-1.jpg` et `mesure-2-2.jpg` : planches face/dos de Nano Banana 2 Lite.
+
+Limites : de profil pur, la lentille reste fine sur les bords (le portrait s'étire sur le bombé). Les expressions de Lite sont moins exagérées que celles de Nano Banana 2.
+
 ## Ce que voit le joueur
 1. **Snap yourself** : ovale de cadrage sur la webcam (« nothing is saved »), photo recadrée serré sur le visage.
 2. La forge tourne **dans son encart** et la main passe tout de suite à l'autre joueur : **les 2 scans avancent en même temps**.

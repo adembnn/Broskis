@@ -54,7 +54,41 @@ const rapport = await page.evaluate(() => {
     }
   });
   const conflits = [...parMat.values()].filter((e) => e.sigs.size > 1).map((e) => `${e.nom} ${JSON.stringify([...e.sigs])}`);
-  return { lumieres, meshes, visibles, casters, receivers, materiaux: parMat.size, conflits, programmes: c.three.renderer.info.programs.length };
+  // Groupes : objets dessinables visibles, triangles, distance au centre (pour repérer le décor lointain).
+  const groupes = [];
+  const box = new c.three.camera.position.constructor();
+  const visit = (g, prof) => {
+    let n = 0; let tri = 0; let ombre = 0;
+    g.traverse((o) => {
+      if (!(o.isMesh || o.isPoints || o.isLine || o.isSprite)) return;
+      let vis = true; for (let p = o; p; p = p.parent) if (!p.visible) vis = false;
+      if (!vis) return;
+      n += o.isInstancedMesh ? 1 : 1;
+      const idx = o.geometry?.index; const pos = o.geometry?.attributes?.position;
+      tri += ((idx ? idx.count : pos ? pos.count : 0) / 3) * (o.isInstancedMesh ? o.count : 1);
+      if (o.castShadow) ombre++;
+    });
+    if (!n) return;
+    g.getWorldPosition(box);
+    groupes.push(`${'  '.repeat(prof)}${g.name || g.type} · ${n} objets · ${Math.round(tri / 1000)} k tri · ${ombre} ombres · à ${Math.round(Math.hypot(box.x, box.z))} m`);
+    if (prof < 1) for (const ch of g.children) visit(ch, prof + 1);
+  };
+  for (const ch of scene.children) visit(ch, 0);
+  // Répartition des objets dessinables visibles : coques de contour (…__outline), persos animés, instanciés, reste.
+  const repart = { contours: 0, contoursTri: 0, animes: 0, animesTri: 0, instancies: 0, autres: 0, autresTri: 0 };
+  scene.traverse((o) => {
+    if (!(o.isMesh || o.isPoints || o.isLine || o.isSprite)) return;
+    let vis = true; for (let p = o; p; p = p.parent) if (!p.visible) vis = false;
+    if (!vis) return;
+    const idx = o.geometry?.index; const pos = o.geometry?.attributes?.position;
+    const tri = ((idx ? idx.count : pos ? pos.count : 0) / 3) * (o.isInstancedMesh ? o.count : 1);
+    if (o.name.endsWith('__outline') || o.userData.isOutline) { repart.contours++; repart.contoursTri += tri; }
+    else if (o.isSkinnedMesh) { repart.animes++; repart.animesTri += tri; }
+    else if (o.isInstancedMesh) repart.instancies++;
+    else { repart.autres++; repart.autresTri += tri; }
+  });
+  for (const k of Object.keys(repart)) if (k.endsWith('Tri')) repart[k] = `${Math.round(repart[k] / 1000)} k`;
+  return { lumieres, meshes, visibles, casters, receivers, materiaux: parMat.size, conflits, programmes: c.three.renderer.info.programs.length, repart, groupes: groupes.slice(0, 12) };
 });
 console.log(JSON.stringify(rapport, null, 1));
 await browser.close();

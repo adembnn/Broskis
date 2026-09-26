@@ -1,0 +1,2329 @@
+{
+  "horodatage": "2026-09-26_17h31",
+  "iteration": 14,
+  "partiel": false,
+  "reprise": false,
+  "juge": "gemini-3.1-pro-preview",
+  "moyenne": 6.08,
+  "fidelite": 5.6,
+  "esthetique": 5.03,
+  "grille": 2,
+  "injouables": [
+    "telephone"
+  ],
+  "objets": [
+    {
+      "id": "tasse-verre",
+      "attendu": {
+        "objet": "tasse en verre à double paroi, fond de café",
+        "masseKg": [
+          0.15,
+          0.5
+        ],
+        "tailleMaxM": [
+          0.08,
+          0.16
+        ],
+        "matieres": [
+          "glass"
+        ],
+        "formes": [
+          "round",
+          "irregular",
+          "box"
+        ],
+        "fragile": true,
+        "liquide": [
+          true,
+          false
+        ],
+        "categories": [
+          "grenade",
+          "throwable"
+        ]
+      },
+      "scan": {
+        "object": "glass mug",
+        "weaponName": "The Double-Walled Detonator",
+        "category": "grenade",
+        "why": "It is an empty glass vessel primed to shatter into dozens of annoying pieces.",
+        "stats": {
+          "a": 5,
+          "b": 4,
+          "c": 1
+        },
+        "trait": "split",
+        "palette": [
+          "#f0f4f8",
+          "#d8b674"
+        ],
+        "lines": {
+          "intro": "Insulated for heat, but thrown strictly for blunt force!",
+          "hit": "Right in the jaw! That is a mess of broken glass!",
+          "miss": "It skipped off the floor and miraculously survived!",
+          "parried": "Reflected! Now you have to clean up the shards!"
+        },
+        "physics": {
+          "massKg": 0.25,
+          "sizeM": [
+            0.11,
+            0.12,
+            0.09
+          ],
+          "material": "glass",
+          "shape": "round",
+          "bounciness": 0.05,
+          "fragile": true,
+          "liquid": false
+        },
+        "geminiPhysics": {
+          "material": "glass",
+          "shape": "round",
+          "heightM": 0.11,
+          "widthM": 0.12,
+          "depthM": 0.09,
+          "massKg": 0.25,
+          "bounciness": 0.05,
+          "fragile": true,
+          "liquid": false,
+          "physicsConfidence": "high"
+        }
+      },
+      "erreurScan": null,
+      "stickerRaison": null,
+      "stickerModele": "gemini-3.1-flash-image",
+      "stickerRelais": false,
+      "mesures": {
+        "fondRetire": 0.5577508592349073,
+        "roseBord": 0.10887708649468893,
+        "pixelsBord": 7908,
+        "pourtourMagenta": 1,
+        "tailleJeu": 0.74,
+        "tailleReelle": 0.12,
+        "epaisseurReelle": 0.75,
+        "toursParS": 3.2,
+        "msSticker": 534,
+        "repli": false,
+        "pointsContour": 181,
+        "trous": 1,
+        "epaisseur": 0.216,
+        "hauteurPerso": 1.7
+      },
+      "regles": [
+        {
+          "cle": "masse",
+          "libelle": "Masse (kg)",
+          "ok": true,
+          "trouve": 0.25,
+          "attendu": "0.15 à 0.5",
+          "groupe": "physique"
+        },
+        {
+          "cle": "taille",
+          "libelle": "Plus grande dimension (m)",
+          "ok": true,
+          "trouve": 0.12,
+          "attendu": "0.08 à 0.16",
+          "groupe": "physique"
+        },
+        {
+          "cle": "matiere",
+          "libelle": "Matière",
+          "ok": true,
+          "trouve": "glass",
+          "attendu": "glass",
+          "groupe": "physique"
+        },
+        {
+          "cle": "forme",
+          "libelle": "Forme",
+          "ok": true,
+          "trouve": "round",
+          "attendu": "round, irregular, box",
+          "groupe": "physique"
+        },
+        {
+          "cle": "fragile",
+          "libelle": "Fragile",
+          "ok": true,
+          "trouve": true,
+          "attendu": "true",
+          "groupe": "physique"
+        },
+        {
+          "cle": "liquide",
+          "libelle": "Liquide",
+          "ok": true,
+          "trouve": false,
+          "attendu": "true ou false",
+          "groupe": "physique"
+        },
+        {
+          "cle": "categorie",
+          "libelle": "Catégorie",
+          "ok": true,
+          "trouve": "grenade",
+          "attendu": "grenade, throwable",
+          "groupe": "physique"
+        },
+        {
+          "cle": "sticker",
+          "libelle": "Sticker présent et détouré",
+          "ok": true,
+          "trouve": "oui",
+          "attendu": "oui",
+          "groupe": "image"
+        },
+        {
+          "cle": "pourtour",
+          "libelle": "Accepté par le jeu (magenta au pourtour)",
+          "ok": true,
+          "trouve": "100 %",
+          "attendu": "> 60 %",
+          "groupe": "image"
+        },
+        {
+          "cle": "magenta",
+          "libelle": "Fond magenta retiré, sans liseré rose",
+          "ok": false,
+          "trouve": "10.9 % de rose au bord, 56 % de fond retiré",
+          "attendu": "≤ 3 % de rose, fond retiré",
+          "groupe": "image"
+        }
+      ],
+      "reglages": {
+        "vitesse": 1.189207115002721,
+        "degats": 0.8336420754263598,
+        "recul": 0.8122523963562355,
+        "recharge": 0.8122523963562356,
+        "portee": 1.148698354997035,
+        "rebonds": 0,
+        "fragile": true,
+        "liquide": false
+      },
+      "juge": {
+        "objetVu": "Tasse de café pleine",
+        "fidelite": 4,
+        "reconnaissable": 4,
+        "style": 6,
+        "volume": 3,
+        "detourage": 4,
+        "jouable": 6,
+        "note": 4,
+        "injouable": false,
+        "justification": "Tasse générique pleine au lieu d'un verre presque vide. Le volume est une simple extrusion plate.",
+        "defauts": [
+          "Niveau de liquide incorrect",
+          "Effet brique plat",
+          "Trou de l'anse bouché"
+        ],
+        "piste": "Évider correctement le trou de l'anse lors de la génération du volume 3D.",
+        "ms": 18131
+      },
+      "temps": {
+        "redim": 296,
+        "scan": 5435,
+        "sticker": 10758,
+        "rendu3d": 2122,
+        "extrusion": 534,
+        "juge": 18131
+      },
+      "note": 5.13,
+      "physique": 10,
+      "injouable": false,
+      "criteres": {
+        "fidelite": 4,
+        "reconnaissable": 4,
+        "style": 6,
+        "volume": 3,
+        "detourage": 4,
+        "jouable": 6,
+        "physique": 10
+      },
+      "esthetique": 4.33,
+      "fidelite": 4
+    },
+    {
+      "id": "chaise-bureau",
+      "attendu": {
+        "objet": "chaise de bureau à roulettes, coque tissu, piètement noir",
+        "masseKg": [
+          5,
+          16
+        ],
+        "tailleMaxM": [
+          0.7,
+          1.2
+        ],
+        "matieres": [
+          "fabric",
+          "metal",
+          "plastic",
+          "wood"
+        ],
+        "formes": [
+          "irregular",
+          "box"
+        ],
+        "fragile": false,
+        "liquide": [
+          false
+        ],
+        "categories": [
+          "shield",
+          "throwable"
+        ]
+      },
+      "scan": {
+        "object": "office chair",
+        "weaponName": "The Ergonomic Bulwark",
+        "category": "shield",
+        "why": "It supports your lumbar region while completely absorbing blunt trauma from unruly coworkers.",
+        "stats": {
+          "a": 3,
+          "b": 6,
+          "c": 1
+        },
+        "trait": "heavy",
+        "palette": [
+          "#d8c6a5",
+          "#2a2826"
+        ],
+        "lines": {
+          "intro": "Wheeling in with superior back support, take a seat behind this unit!",
+          "hit": "Right in the spine! That posture is ruined!",
+          "miss": "A clean dodge! The casters just rolled it away!",
+          "parried": "Rejected and sent rolling backward in an orderly swivel!"
+        },
+        "physics": {
+          "massKg": 9.5,
+          "sizeM": [
+            0.85,
+            0.55,
+            0.55
+          ],
+          "material": "fabric",
+          "shape": "irregular",
+          "bounciness": 0.15,
+          "fragile": false,
+          "liquid": false
+        },
+        "geminiPhysics": {
+          "material": "fabric",
+          "shape": "irregular",
+          "heightM": 0.85,
+          "widthM": 0.55,
+          "depthM": 0.55,
+          "massKg": 9.5,
+          "bounciness": 0.15,
+          "fragile": false,
+          "liquid": false,
+          "physicsConfidence": "high"
+        }
+      },
+      "erreurScan": null,
+      "stickerRaison": null,
+      "stickerModele": "gemini-3.1-flash-image",
+      "stickerRelais": false,
+      "mesures": {
+        "fondRetire": 0.5573119022713688,
+        "roseBord": 0.09224334042709327,
+        "pixelsBord": 13627,
+        "pourtourMagenta": 1,
+        "tailleJeu": 1.12,
+        "tailleReelle": 0.85,
+        "epaisseurReelle": 0.647,
+        "toursParS": 0.52,
+        "msSticker": 657,
+        "repli": false,
+        "pointsContour": 315,
+        "trous": 0,
+        "epaisseur": 0.216,
+        "hauteurPerso": 1.7
+      },
+      "regles": [
+        {
+          "cle": "masse",
+          "libelle": "Masse (kg)",
+          "ok": true,
+          "trouve": 9.5,
+          "attendu": "5 à 16",
+          "groupe": "physique"
+        },
+        {
+          "cle": "taille",
+          "libelle": "Plus grande dimension (m)",
+          "ok": true,
+          "trouve": 0.85,
+          "attendu": "0.7 à 1.2",
+          "groupe": "physique"
+        },
+        {
+          "cle": "matiere",
+          "libelle": "Matière",
+          "ok": true,
+          "trouve": "fabric",
+          "attendu": "fabric, metal, plastic, wood",
+          "groupe": "physique"
+        },
+        {
+          "cle": "forme",
+          "libelle": "Forme",
+          "ok": true,
+          "trouve": "irregular",
+          "attendu": "irregular, box",
+          "groupe": "physique"
+        },
+        {
+          "cle": "fragile",
+          "libelle": "Fragile",
+          "ok": true,
+          "trouve": false,
+          "attendu": "false",
+          "groupe": "physique"
+        },
+        {
+          "cle": "liquide",
+          "libelle": "Liquide",
+          "ok": true,
+          "trouve": false,
+          "attendu": "false",
+          "groupe": "physique"
+        },
+        {
+          "cle": "categorie",
+          "libelle": "Catégorie",
+          "ok": true,
+          "trouve": "shield",
+          "attendu": "shield, throwable",
+          "groupe": "physique"
+        },
+        {
+          "cle": "sticker",
+          "libelle": "Sticker présent et détouré",
+          "ok": true,
+          "trouve": "oui",
+          "attendu": "oui",
+          "groupe": "image"
+        },
+        {
+          "cle": "pourtour",
+          "libelle": "Accepté par le jeu (magenta au pourtour)",
+          "ok": true,
+          "trouve": "100 %",
+          "attendu": "> 60 %",
+          "groupe": "image"
+        },
+        {
+          "cle": "magenta",
+          "libelle": "Fond magenta retiré, sans liseré rose",
+          "ok": false,
+          "trouve": "9.2 % de rose au bord, 56 % de fond retiré",
+          "attendu": "≤ 3 % de rose, fond retiré",
+          "groupe": "image"
+        }
+      ],
+      "reglages": {
+        "vitesse": 0.65,
+        "degats": 1.6,
+        "recul": 1.7,
+        "recharge": 1.8,
+        "portee": 0.5549441528283543,
+        "rebonds": 0,
+        "fragile": false,
+        "liquide": false
+      },
+      "juge": {
+        "objetVu": "Chaise de bureau beige",
+        "fidelite": 7,
+        "reconnaissable": 7,
+        "style": 7,
+        "volume": 4,
+        "detourage": 4,
+        "jouable": 6,
+        "note": 6,
+        "injouable": false,
+        "justification": "L'objet est fidèle et reconnaissable, avec un bon style cartoon. Cependant, le détourage interne est manquant et le volume est trop plat.",
+        "defauts": [
+          "Espaces non évidés dans le piètement",
+          "Effet brique de profil",
+          "Tranche blanche trop visible"
+        ],
+        "piste": "Évider les espaces entre les branches du piètement lors du détourage.",
+        "ms": 7615
+      },
+      "temps": {
+        "redim": 304,
+        "scan": 5233,
+        "sticker": 11492,
+        "rendu3d": 3139,
+        "extrusion": 657,
+        "juge": 7615
+      },
+      "note": 6.5,
+      "physique": 10,
+      "injouable": false,
+      "criteres": {
+        "fidelite": 7,
+        "reconnaissable": 7,
+        "style": 7,
+        "volume": 4,
+        "detourage": 4,
+        "jouable": 6,
+        "physique": 10
+      },
+      "esthetique": 5,
+      "fidelite": 7
+    },
+    {
+      "id": "feutre-velleda",
+      "attendu": {
+        "objet": "feutre pour tableau blanc (BIC Velleda)",
+        "masseKg": [
+          0.01,
+          0.04
+        ],
+        "tailleMaxM": [
+          0.1,
+          0.16
+        ],
+        "matieres": [
+          "plastic"
+        ],
+        "formes": [
+          "long"
+        ],
+        "fragile": false,
+        "liquide": [
+          false
+        ],
+        "categories": [
+          "blaster",
+          "throwable"
+        ]
+      },
+      "scan": {
+        "object": "whiteboard marker",
+        "weaponName": "The Dry-Erase Eliminator",
+        "category": "blaster",
+        "why": "Point it forward to rapidly spray indelible tactical pigment right into the enemy line.",
+        "stats": {
+          "a": 1,
+          "b": 5,
+          "c": 4
+        },
+        "trait": "sticky",
+        "palette": [
+          "#224099",
+          "#FFFFFF"
+        ],
+        "lines": {
+          "intro": "Uncapped and volatile: behold the Dry-Erase Eliminator!",
+          "hit": "Permanent emotional damage delivered in bold color!",
+          "miss": "Scribbled wildly off the edge of the board!",
+          "parried": "Erased completely and reflected back to sender!"
+        },
+        "physics": {
+          "massKg": 0.02,
+          "sizeM": [
+            0.14,
+            0.03,
+            0.03
+          ],
+          "material": "plastic",
+          "shape": "long",
+          "bounciness": 0.3,
+          "fragile": false,
+          "liquid": false
+        },
+        "geminiPhysics": {
+          "material": "plastic",
+          "shape": "long",
+          "heightM": 0.14,
+          "widthM": 0.02,
+          "depthM": 0.02,
+          "massKg": 0.02,
+          "bounciness": 0.3,
+          "fragile": false,
+          "liquid": false,
+          "physicsConfidence": "high"
+        }
+      },
+      "erreurScan": null,
+      "stickerRaison": null,
+      "stickerModele": "gemini-3.1-flash-image",
+      "stickerRelais": false,
+      "mesures": {
+        "fondRetire": 0.8626849222952779,
+        "roseBord": 0.1178743961352657,
+        "pixelsBord": 4140,
+        "pourtourMagenta": 1,
+        "tailleJeu": 0.77,
+        "tailleReelle": 0.14,
+        "epaisseurReelle": 0.214,
+        "toursParS": 4.5,
+        "msSticker": 868,
+        "repli": false,
+        "pointsContour": 64,
+        "trous": 0,
+        "epaisseur": 0.153,
+        "hauteurPerso": 1.7
+      },
+      "regles": [
+        {
+          "cle": "masse",
+          "libelle": "Masse (kg)",
+          "ok": true,
+          "trouve": 0.02,
+          "attendu": "0.01 à 0.04",
+          "groupe": "physique"
+        },
+        {
+          "cle": "taille",
+          "libelle": "Plus grande dimension (m)",
+          "ok": true,
+          "trouve": 0.14,
+          "attendu": "0.1 à 0.16",
+          "groupe": "physique"
+        },
+        {
+          "cle": "matiere",
+          "libelle": "Matière",
+          "ok": true,
+          "trouve": "plastic",
+          "attendu": "plastic",
+          "groupe": "physique"
+        },
+        {
+          "cle": "forme",
+          "libelle": "Forme",
+          "ok": true,
+          "trouve": "long",
+          "attendu": "long",
+          "groupe": "physique"
+        },
+        {
+          "cle": "fragile",
+          "libelle": "Fragile",
+          "ok": true,
+          "trouve": false,
+          "attendu": "false",
+          "groupe": "physique"
+        },
+        {
+          "cle": "liquide",
+          "libelle": "Liquide",
+          "ok": true,
+          "trouve": false,
+          "attendu": "false",
+          "groupe": "physique"
+        },
+        {
+          "cle": "categorie",
+          "libelle": "Catégorie",
+          "ok": true,
+          "trouve": "blaster",
+          "attendu": "blaster, throwable",
+          "groupe": "physique"
+        },
+        {
+          "cle": "sticker",
+          "libelle": "Sticker présent et détouré",
+          "ok": true,
+          "trouve": "oui",
+          "attendu": "oui",
+          "groupe": "image"
+        },
+        {
+          "cle": "pourtour",
+          "libelle": "Accepté par le jeu (magenta au pourtour)",
+          "ok": true,
+          "trouve": "100 %",
+          "attendu": "> 60 %",
+          "groupe": "image"
+        },
+        {
+          "cle": "magenta",
+          "libelle": "Fond magenta retiré, sans liseré rose",
+          "ok": false,
+          "trouve": "11.8 % de rose au bord, 86 % de fond retiré",
+          "attendu": "≤ 3 % de rose, fond retiré",
+          "groupe": "image"
+        }
+      ],
+      "reglages": {
+        "vitesse": 1.35,
+        "degats": 0.6,
+        "recul": 0.6,
+        "recharge": 0.6,
+        "portee": 1.2,
+        "rebonds": 0,
+        "fragile": false,
+        "liquide": false
+      },
+      "juge": {
+        "objetVu": "feutre bleu et blanc",
+        "fidelite": 6,
+        "reconnaissable": 7,
+        "style": 6,
+        "volume": 5,
+        "detourage": 6,
+        "jouable": 7,
+        "note": 6,
+        "injouable": false,
+        "justification": "Feutre reconnaissable et jouable malgré la perte des détails de l'étiquette. Le volume souffre d'une bordure blanche trop épaisse.",
+        "defauts": [
+          "Bordure blanche épaisse",
+          "Étiquette abstraite",
+          "Effet brique"
+        ],
+        "piste": "Réduire l'épaisseur de l'extrusion de la bordure blanche.",
+        "ms": 10301
+      },
+      "temps": {
+        "redim": 297,
+        "scan": 2305,
+        "sticker": 10044,
+        "rendu3d": 2185,
+        "extrusion": 868,
+        "juge": 10301
+      },
+      "note": 6.5,
+      "physique": 10,
+      "injouable": false,
+      "criteres": {
+        "fidelite": 6,
+        "reconnaissable": 7,
+        "style": 6,
+        "volume": 5,
+        "detourage": 5,
+        "jouable": 7,
+        "physique": 10
+      },
+      "esthetique": 5.33,
+      "fidelite": 6
+    },
+    {
+      "id": "telephone",
+      "attendu": {
+        "objet": "smartphone dans une coque noire",
+        "masseKg": [
+          0.14,
+          0.3
+        ],
+        "tailleMaxM": [
+          0.13,
+          0.18
+        ],
+        "matieres": [
+          "glass",
+          "metal",
+          "plastic"
+        ],
+        "formes": [
+          "flat",
+          "box"
+        ],
+        "fragile": [
+          true,
+          false
+        ],
+        "liquide": [
+          false
+        ],
+        "categories": [
+          "grenade",
+          "throwable",
+          "blaster"
+        ]
+      },
+      "scan": {
+        "object": "smartphone",
+        "weaponName": "The Doomscroll Detonator",
+        "category": "grenade",
+        "why": "It is a compact pocket-sized brick designed to blow up your attention span on impact.",
+        "stats": {
+          "a": 5,
+          "b": 4,
+          "c": 1
+        },
+        "trait": "explosive",
+        "palette": [
+          "#1f2421",
+          "#e0e2db"
+        ],
+        "lines": {
+          "intro": "Plugged in, fully charged, and ready to inflict terminal screen time!",
+          "hit": "Right in the forehead! That warranty is completely voided!",
+          "miss": "Dropped call! It skitters harmlessly across the linoleum!",
+          "parried": "Call rejected! It bounced right back to your inbox!"
+        },
+        "physics": {
+          "massKg": 0.2,
+          "sizeM": [
+            0.15,
+            0.075,
+            0.03
+          ],
+          "material": "glass",
+          "shape": "flat",
+          "bounciness": 0.1,
+          "fragile": true,
+          "liquid": false
+        },
+        "geminiPhysics": {
+          "material": "glass",
+          "shape": "flat",
+          "heightM": 0.15,
+          "widthM": 0.075,
+          "depthM": 0.009,
+          "massKg": 0.2,
+          "bounciness": 0.1,
+          "fragile": true,
+          "liquid": false,
+          "physicsConfidence": "high"
+        }
+      },
+      "erreurScan": null,
+      "stickerRaison": null,
+      "stickerModele": "gemini-3.1-flash-image",
+      "stickerRelais": false,
+      "mesures": {
+        "fondRetire": 0.5061930289898386,
+        "roseBord": 0.10602032838154808,
+        "pixelsBord": 6395,
+        "pourtourMagenta": 1,
+        "tailleJeu": 0.78,
+        "tailleReelle": 0.15,
+        "epaisseurReelle": 0.2,
+        "toursParS": 3.58,
+        "msSticker": 773,
+        "repli": false,
+        "pointsContour": 125,
+        "trous": 0,
+        "epaisseur": 0.119,
+        "hauteurPerso": 1.7
+      },
+      "regles": [
+        {
+          "cle": "masse",
+          "libelle": "Masse (kg)",
+          "ok": true,
+          "trouve": 0.2,
+          "attendu": "0.14 à 0.3",
+          "groupe": "physique"
+        },
+        {
+          "cle": "taille",
+          "libelle": "Plus grande dimension (m)",
+          "ok": true,
+          "trouve": 0.15,
+          "attendu": "0.13 à 0.18",
+          "groupe": "physique"
+        },
+        {
+          "cle": "matiere",
+          "libelle": "Matière",
+          "ok": true,
+          "trouve": "glass",
+          "attendu": "glass, metal, plastic",
+          "groupe": "physique"
+        },
+        {
+          "cle": "forme",
+          "libelle": "Forme",
+          "ok": true,
+          "trouve": "flat",
+          "attendu": "flat, box",
+          "groupe": "physique"
+        },
+        {
+          "cle": "fragile",
+          "libelle": "Fragile",
+          "ok": true,
+          "trouve": true,
+          "attendu": "true ou false",
+          "groupe": "physique"
+        },
+        {
+          "cle": "liquide",
+          "libelle": "Liquide",
+          "ok": true,
+          "trouve": false,
+          "attendu": "false",
+          "groupe": "physique"
+        },
+        {
+          "cle": "categorie",
+          "libelle": "Catégorie",
+          "ok": true,
+          "trouve": "grenade",
+          "attendu": "grenade, throwable, blaster",
+          "groupe": "physique"
+        },
+        {
+          "cle": "sticker",
+          "libelle": "Sticker présent et détouré",
+          "ok": true,
+          "trouve": "oui",
+          "attendu": "oui",
+          "groupe": "image"
+        },
+        {
+          "cle": "pourtour",
+          "libelle": "Accepté par le jeu (magenta au pourtour)",
+          "ok": true,
+          "trouve": "100 %",
+          "attendu": "> 60 %",
+          "groupe": "image"
+        },
+        {
+          "cle": "magenta",
+          "libelle": "Fond magenta retiré, sans liseré rose",
+          "ok": false,
+          "trouve": "10.6 % de rose au bord, 51 % de fond retiré",
+          "attendu": "≤ 3 % de rose, fond retiré",
+          "groupe": "image"
+        }
+      ],
+      "reglages": {
+        "vitesse": 1.2574334296829355,
+        "degats": 0.7862139542912571,
+        "recul": 0.7596577929323739,
+        "recharge": 0.7596577929323739,
+        "portee": 1.2,
+        "rebonds": 0,
+        "fragile": true,
+        "liquide": false
+      },
+      "juge": {
+        "objetVu": "Deux smartphones superposés",
+        "fidelite": 3,
+        "reconnaissable": 6,
+        "style": 6,
+        "volume": 3,
+        "detourage": 4,
+        "jouable": 4,
+        "note": 4,
+        "injouable": false,
+        "justification": "L'IA a généré deux téléphones au lieu d'un seul, créant une double silhouette. Le volume 3D extrudé devient confus et peu lisible en jeu.",
+        "defauts": [
+          "Double silhouette de téléphone",
+          "Bordure beige parasite autour de l'objet",
+          "Perspective faussée par rapport à l'original"
+        ],
+        "piste": "Contraindre l'IA à ne générer qu'un seul objet vu de face ou de trois-quarts.",
+        "ms": 15845
+      },
+      "temps": {
+        "redim": 250,
+        "scan": 2237,
+        "sticker": 9632,
+        "rendu3d": 4244,
+        "extrusion": 773,
+        "juge": 15845
+      },
+      "note": 4.88,
+      "physique": 10,
+      "injouable": true,
+      "criteres": {
+        "fidelite": 3,
+        "reconnaissable": 6,
+        "style": 6,
+        "volume": 3,
+        "detourage": 4,
+        "jouable": 4,
+        "physique": 10
+      },
+      "esthetique": 4.33,
+      "fidelite": 3
+    },
+    {
+      "id": "mocassin",
+      "attendu": {
+        "objet": "mocassin en cuir noir",
+        "masseKg": [
+          0.2,
+          0.7
+        ],
+        "tailleMaxM": [
+          0.24,
+          0.33
+        ],
+        "matieres": [
+          "fabric",
+          "rubber",
+          "plastic"
+        ],
+        "formes": [
+          "irregular",
+          "long"
+        ],
+        "fragile": false,
+        "liquide": [
+          false
+        ],
+        "categories": [
+          "throwable"
+        ]
+      },
+      "scan": {
+        "object": "leather loafer",
+        "weaponName": "The Corporate Slapper",
+        "category": "throwable",
+        "why": "A classic piece of business attire hurled with extreme unprofessional malice.",
+        "stats": {
+          "a": 3,
+          "b": 4,
+          "c": 3
+        },
+        "trait": "bouncy",
+        "palette": [
+          "#1a1917",
+          "#8b5a2b"
+        ],
+        "lines": {
+          "intro": "Fresh from middle management, it's the Corporate Slapper!",
+          "hit": "Right in the resume! That's gotta hurt!",
+          "miss": "Airball! HR will hear about that swing!",
+          "parried": "Returned to sender with a stiff heel deflection!"
+        },
+        "physics": {
+          "massKg": 0.45,
+          "sizeM": [
+            0.1,
+            0.11,
+            0.3
+          ],
+          "material": "fabric",
+          "shape": "irregular",
+          "bounciness": 0.2,
+          "fragile": false,
+          "liquid": false
+        },
+        "geminiPhysics": {
+          "material": "fabric",
+          "shape": "irregular",
+          "heightM": 0.1,
+          "widthM": 0.11,
+          "depthM": 0.3,
+          "massKg": 0.45,
+          "bounciness": 0.2,
+          "fragile": false,
+          "liquid": false,
+          "physicsConfidence": "high"
+        }
+      },
+      "erreurScan": null,
+      "stickerRaison": null,
+      "stickerModele": "gemini-3.1-flash-image",
+      "stickerRelais": false,
+      "mesures": {
+        "fondRetire": 0.8368985355648536,
+        "roseBord": 0.0915915915915916,
+        "pixelsBord": 4662,
+        "pourtourMagenta": 1,
+        "tailleJeu": 0.91,
+        "tailleReelle": 0.3,
+        "epaisseurReelle": 1,
+        "toursParS": 2.39,
+        "msSticker": 829,
+        "repli": false,
+        "pointsContour": 155,
+        "trous": 0,
+        "epaisseur": 0.216,
+        "hauteurPerso": 1.7
+      },
+      "regles": [
+        {
+          "cle": "masse",
+          "libelle": "Masse (kg)",
+          "ok": true,
+          "trouve": 0.45,
+          "attendu": "0.2 à 0.7",
+          "groupe": "physique"
+        },
+        {
+          "cle": "taille",
+          "libelle": "Plus grande dimension (m)",
+          "ok": true,
+          "trouve": 0.3,
+          "attendu": "0.24 à 0.33",
+          "groupe": "physique"
+        },
+        {
+          "cle": "matiere",
+          "libelle": "Matière",
+          "ok": true,
+          "trouve": "fabric",
+          "attendu": "fabric, rubber, plastic",
+          "groupe": "physique"
+        },
+        {
+          "cle": "forme",
+          "libelle": "Forme",
+          "ok": true,
+          "trouve": "irregular",
+          "attendu": "irregular, long",
+          "groupe": "physique"
+        },
+        {
+          "cle": "fragile",
+          "libelle": "Fragile",
+          "ok": true,
+          "trouve": false,
+          "attendu": "false",
+          "groupe": "physique"
+        },
+        {
+          "cle": "liquide",
+          "libelle": "Liquide",
+          "ok": true,
+          "trouve": false,
+          "attendu": "false",
+          "groupe": "physique"
+        },
+        {
+          "cle": "categorie",
+          "libelle": "Catégorie",
+          "ok": true,
+          "trouve": "throwable",
+          "attendu": "throwable",
+          "groupe": "physique"
+        },
+        {
+          "cle": "sticker",
+          "libelle": "Sticker présent et détouré",
+          "ok": true,
+          "trouve": "oui",
+          "attendu": "oui",
+          "groupe": "image"
+        },
+        {
+          "cle": "pourtour",
+          "libelle": "Accepté par le jeu (magenta au pourtour)",
+          "ok": true,
+          "trouve": "100 %",
+          "attendu": "> 60 %",
+          "groupe": "image"
+        },
+        {
+          "cle": "magenta",
+          "libelle": "Fond magenta retiré, sans liseré rose",
+          "ok": false,
+          "trouve": "9.2 % de rose au bord, 84 % de fond retiré",
+          "attendu": "≤ 3 % de rose, fond retiré",
+          "groupe": "image"
+        }
+      ],
+      "reglages": {
+        "vitesse": 1.026690096080341,
+        "degats": 0.9727218215500505,
+        "recul": 0.9688861611972633,
+        "recharge": 0.9688861611972633,
+        "portee": 1.0212956876001351,
+        "rebonds": 0,
+        "fragile": false,
+        "liquide": false
+      },
+      "juge": {
+        "objetVu": "chaussure de ville cartoon",
+        "fidelite": 7,
+        "reconnaissable": 7,
+        "style": 7,
+        "volume": 4,
+        "detourage": 7,
+        "jouable": 5,
+        "note": 6,
+        "injouable": false,
+        "justification": "Le style cartoon est très réussi et fidèle à l'objet d'origine sans la main. Cependant, l'extrusion 3D crée une tranche blanche trop visible qui nuit à la lisibilité en vol.",
+        "defauts": [
+          "Tranche blanche trop épaisse",
+          "Lisibilité réduite de profil et en vol",
+          "Couleur légèrement trop grise par rapport au noir d'origine"
+        ],
+        "piste": "Réduire l'épaisseur de l'extrusion 3D ou colorer la tranche dans une teinte sombre.",
+        "ms": 11255
+      },
+      "temps": {
+        "redim": 251,
+        "scan": 2335,
+        "sticker": 10814,
+        "rendu3d": 3014,
+        "extrusion": 829,
+        "juge": 11255
+      },
+      "note": 6.5,
+      "physique": 10,
+      "injouable": false,
+      "criteres": {
+        "fidelite": 7,
+        "reconnaissable": 7,
+        "style": 7,
+        "volume": 4,
+        "detourage": 5,
+        "jouable": 5,
+        "physique": 10
+      },
+      "esthetique": 5.33,
+      "fidelite": 7
+    },
+    {
+      "id": "tabouret-rotin",
+      "attendu": {
+        "objet": "tabouret en bois, assise en cannage (rotin)",
+        "masseKg": [
+          1.5,
+          6
+        ],
+        "tailleMaxM": [
+          0.4,
+          0.8
+        ],
+        "matieres": [
+          "wood"
+        ],
+        "formes": [
+          "irregular",
+          "box",
+          "round"
+        ],
+        "fragile": false,
+        "liquide": [
+          false
+        ],
+        "categories": [
+          "shield",
+          "throwable"
+        ]
+      },
+      "scan": {
+        "object": "cane stool",
+        "weaponName": "The Barroom Bulwark",
+        "category": "shield",
+        "why": "It keeps your backside elevated and hostile flying glassware strictly on the outside.",
+        "stats": {
+          "a": 4,
+          "b": 4,
+          "c": 2
+        },
+        "trait": "heavy",
+        "palette": [
+          "#cf9f5e",
+          "#8c602c"
+        ],
+        "lines": {
+          "intro": "Pull up a seat, because this stool is built to take a beating!",
+          "hit": "Right in the ribs! That rattan pattern leaves a mark!",
+          "miss": "Total whiff! Just casually rearranging the tavern furniture!",
+          "parried": "Blocked and pushed right back! No sitting down on this shift!"
+        },
+        "physics": {
+          "massKg": 3,
+          "sizeM": [
+            0.45,
+            0.35,
+            0.35
+          ],
+          "material": "wood",
+          "shape": "irregular",
+          "bounciness": 0.1,
+          "fragile": false,
+          "liquid": false
+        },
+        "geminiPhysics": {
+          "material": "wood",
+          "shape": "irregular",
+          "heightM": 0.45,
+          "widthM": 0.35,
+          "depthM": 0.35,
+          "massKg": 3,
+          "bounciness": 0.1,
+          "fragile": false,
+          "liquid": false,
+          "physicsConfidence": "high"
+        }
+      },
+      "erreurScan": null,
+      "stickerRaison": null,
+      "stickerModele": "gemini-3.1-flash-image",
+      "stickerRelais": false,
+      "mesures": {
+        "fondRetire": 0.5062247833233712,
+        "roseBord": 0.028696166264950657,
+        "pixelsBord": 43978,
+        "pourtourMagenta": 1,
+        "tailleJeu": 0.99,
+        "tailleReelle": 0.45,
+        "epaisseurReelle": 0.778,
+        "toursParS": 0.92,
+        "msSticker": 789,
+        "repli": false,
+        "pointsContour": 182,
+        "trous": 1,
+        "epaisseur": 0.216,
+        "hauteurPerso": 1.7
+      },
+      "regles": [
+        {
+          "cle": "masse",
+          "libelle": "Masse (kg)",
+          "ok": true,
+          "trouve": 3,
+          "attendu": "1.5 à 6",
+          "groupe": "physique"
+        },
+        {
+          "cle": "taille",
+          "libelle": "Plus grande dimension (m)",
+          "ok": true,
+          "trouve": 0.45,
+          "attendu": "0.4 à 0.8",
+          "groupe": "physique"
+        },
+        {
+          "cle": "matiere",
+          "libelle": "Matière",
+          "ok": true,
+          "trouve": "wood",
+          "attendu": "wood",
+          "groupe": "physique"
+        },
+        {
+          "cle": "forme",
+          "libelle": "Forme",
+          "ok": true,
+          "trouve": "irregular",
+          "attendu": "irregular, box, round",
+          "groupe": "physique"
+        },
+        {
+          "cle": "fragile",
+          "libelle": "Fragile",
+          "ok": true,
+          "trouve": false,
+          "attendu": "false",
+          "groupe": "physique"
+        },
+        {
+          "cle": "liquide",
+          "libelle": "Liquide",
+          "ok": true,
+          "trouve": false,
+          "attendu": "false",
+          "groupe": "physique"
+        },
+        {
+          "cle": "categorie",
+          "libelle": "Catégorie",
+          "ok": true,
+          "trouve": "shield",
+          "attendu": "shield, throwable",
+          "groupe": "physique"
+        },
+        {
+          "cle": "sticker",
+          "libelle": "Sticker présent et détouré",
+          "ok": true,
+          "trouve": "oui",
+          "attendu": "oui",
+          "groupe": "image"
+        },
+        {
+          "cle": "pourtour",
+          "libelle": "Accepté par le jeu (magenta au pourtour)",
+          "ok": true,
+          "trouve": "100 %",
+          "attendu": "> 60 %",
+          "groupe": "image"
+        },
+        {
+          "cle": "magenta",
+          "libelle": "Fond magenta retiré, sans liseré rose",
+          "ok": true,
+          "trouve": "2.9 % de rose au bord, 51 % de fond retiré",
+          "attendu": "≤ 3 % de rose, fond retiré",
+          "groupe": "image"
+        }
+      ],
+      "reglages": {
+        "vitesse": 0.65,
+        "degats": 1.6,
+        "recul": 1.7,
+        "recharge": 1.711769859409705,
+        "portee": 0.6988271187715792,
+        "rebonds": 0,
+        "fragile": false,
+        "liquide": false
+      },
+      "juge": {
+        "objetVu": "tabouret plat mal détouré",
+        "fidelite": 4,
+        "reconnaissable": 6,
+        "style": 7,
+        "volume": 3,
+        "detourage": 4,
+        "jouable": 5,
+        "note": 4,
+        "injouable": false,
+        "justification": "L'objet souffre d'une perspective écrasée et d'un détourage incomplet. Le volume est un simple bloc plat.",
+        "defauts": [
+          "Perspective de l'assise cuite dans la texture frontale",
+          "Espaces entre les pieds non détourés",
+          "Effet brique très prononcé de profil"
+        ],
+        "piste": "Détourer les espaces vides entre les pieds du tabouret pour améliorer la silhouette.",
+        "ms": 9948
+      },
+      "temps": {
+        "redim": 219,
+        "scan": 3478,
+        "sticker": 13061,
+        "rendu3d": 5788,
+        "extrusion": 789,
+        "juge": 9948
+      },
+      "note": 5.38,
+      "physique": 10,
+      "injouable": false,
+      "criteres": {
+        "fidelite": 4,
+        "reconnaissable": 6,
+        "style": 7,
+        "volume": 3,
+        "detourage": 4,
+        "jouable": 5,
+        "physique": 10
+      },
+      "esthetique": 4.67,
+      "fidelite": 4
+    },
+    {
+      "id": "pendule-newton",
+      "attendu": {
+        "objet": "pendule de Newton (5 billes d'acier, cadre chromé, socle noir)",
+        "masseKg": [
+          0.4,
+          2.5
+        ],
+        "tailleMaxM": [
+          0.15,
+          0.3
+        ],
+        "matieres": [
+          "metal"
+        ],
+        "formes": [
+          "box",
+          "irregular"
+        ],
+        "fragile": false,
+        "liquide": [
+          false
+        ],
+        "categories": [
+          "blaster",
+          "grenade",
+          "throwable"
+        ]
+      },
+      "scan": {
+        "object": "Newton's cradle",
+        "weaponName": "The Executive Clacker",
+        "category": "throwable",
+        "why": "It is an awkward metal frame best hurled directly at someone to transfer all momentum at once.",
+        "stats": {
+          "a": 2,
+          "b": 5,
+          "c": 3
+        },
+        "trait": "bouncy",
+        "palette": [
+          "#C0C0C0",
+          "#1A1A1A"
+        ],
+        "lines": {
+          "intro": "Direct from middle management, it's the Executive Clacker!",
+          "hit": "Equal and opposite reaction straight to the skull!",
+          "miss": "The strings tangled instantly on that whiff!",
+          "parried": "Conservation of momentum bounced it right back!"
+        },
+        "physics": {
+          "massKg": 0.45,
+          "sizeM": [
+            0.18,
+            0.18,
+            0.12
+          ],
+          "material": "metal",
+          "shape": "irregular",
+          "bounciness": 0.2,
+          "fragile": false,
+          "liquid": false
+        },
+        "geminiPhysics": {
+          "material": "metal",
+          "shape": "irregular",
+          "heightM": 0.18,
+          "widthM": 0.18,
+          "depthM": 0.12,
+          "massKg": 0.45,
+          "bounciness": 0.2,
+          "fragile": false,
+          "liquid": false,
+          "physicsConfidence": "high"
+        }
+      },
+      "erreurScan": null,
+      "stickerRaison": null,
+      "stickerModele": "gemini-3.1-flash-image",
+      "stickerRelais": false,
+      "mesures": {
+        "fondRetire": 0.5275338090257023,
+        "roseBord": 0.10716720447211744,
+        "pixelsBord": 22003,
+        "pourtourMagenta": 1,
+        "tailleJeu": 0.81,
+        "tailleReelle": 0.18,
+        "epaisseurReelle": 0.667,
+        "toursParS": 2.39,
+        "msSticker": 570,
+        "repli": false,
+        "pointsContour": 66,
+        "trous": 0,
+        "epaisseur": 0.216,
+        "hauteurPerso": 1.7
+      },
+      "regles": [
+        {
+          "cle": "masse",
+          "libelle": "Masse (kg)",
+          "ok": true,
+          "trouve": 0.45,
+          "attendu": "0.4 à 2.5",
+          "groupe": "physique"
+        },
+        {
+          "cle": "taille",
+          "libelle": "Plus grande dimension (m)",
+          "ok": true,
+          "trouve": 0.18,
+          "attendu": "0.15 à 0.3",
+          "groupe": "physique"
+        },
+        {
+          "cle": "matiere",
+          "libelle": "Matière",
+          "ok": true,
+          "trouve": "metal",
+          "attendu": "metal",
+          "groupe": "physique"
+        },
+        {
+          "cle": "forme",
+          "libelle": "Forme",
+          "ok": true,
+          "trouve": "irregular",
+          "attendu": "box, irregular",
+          "groupe": "physique"
+        },
+        {
+          "cle": "fragile",
+          "libelle": "Fragile",
+          "ok": true,
+          "trouve": false,
+          "attendu": "false",
+          "groupe": "physique"
+        },
+        {
+          "cle": "liquide",
+          "libelle": "Liquide",
+          "ok": true,
+          "trouve": false,
+          "attendu": "false",
+          "groupe": "physique"
+        },
+        {
+          "cle": "categorie",
+          "libelle": "Catégorie",
+          "ok": true,
+          "trouve": "throwable",
+          "attendu": "blaster, grenade, throwable",
+          "groupe": "physique"
+        },
+        {
+          "cle": "sticker",
+          "libelle": "Sticker présent et détouré",
+          "ok": true,
+          "trouve": "oui",
+          "attendu": "oui",
+          "groupe": "image"
+        },
+        {
+          "cle": "pourtour",
+          "libelle": "Accepté par le jeu (magenta au pourtour)",
+          "ok": true,
+          "trouve": "100 %",
+          "attendu": "> 60 %",
+          "groupe": "image"
+        },
+        {
+          "cle": "magenta",
+          "libelle": "Fond magenta retiré, sans liseré rose",
+          "ok": false,
+          "trouve": "10.7 % de rose au bord, 53 % de fond retiré",
+          "attendu": "≤ 3 % de rose, fond retiré",
+          "groupe": "image"
+        }
+      ],
+      "reglages": {
+        "vitesse": 1.026690096080341,
+        "degats": 0.9727218215500505,
+        "recul": 0.9688861611972633,
+        "recharge": 0.9688861611972633,
+        "portee": 1.0212956876001351,
+        "rebonds": 0,
+        "fragile": false,
+        "liquide": false
+      },
+      "juge": {
+        "objetVu": "pendule de Newton plat",
+        "fidelite": 7,
+        "reconnaissable": 7,
+        "style": 7,
+        "volume": 4,
+        "detourage": 4,
+        "jouable": 5,
+        "note": 5,
+        "injouable": false,
+        "justification": "L'objet est reconnaissable de face mais souffre d'un volume en brique. Le manque de détourage interne nuit fortement à la crédibilité 3D.",
+        "defauts": [
+          "Effet brique très prononcé",
+          "Espaces internes non détourés",
+          "Illisible de profil"
+        ],
+        "piste": "Détourer les espaces vides à l'intérieur du cadre.",
+        "ms": 9774
+      },
+      "temps": {
+        "redim": 242,
+        "scan": 7671,
+        "sticker": 11098,
+        "rendu3d": 4102,
+        "extrusion": 570,
+        "juge": 9774
+      },
+      "note": 6.38,
+      "physique": 10,
+      "injouable": false,
+      "criteres": {
+        "fidelite": 7,
+        "reconnaissable": 7,
+        "style": 7,
+        "volume": 4,
+        "detourage": 4,
+        "jouable": 5,
+        "physique": 10
+      },
+      "esthetique": 5,
+      "fidelite": 7
+    },
+    {
+      "id": "lampe-champignon",
+      "attendu": {
+        "objet": "petite lampe champignon jaune laquée",
+        "masseKg": [
+          0.5,
+          2
+        ],
+        "tailleMaxM": [
+          0.22,
+          0.4
+        ],
+        "matieres": [
+          "metal",
+          "plastic"
+        ],
+        "formes": [
+          "round",
+          "irregular"
+        ],
+        "fragile": [
+          true,
+          false
+        ],
+        "liquide": [
+          false
+        ],
+        "categories": [
+          "grenade",
+          "throwable",
+          "blaster",
+          "shield"
+        ]
+      },
+      "scan": {
+        "object": "table lamp",
+        "weaponName": "The Swedish Luminary",
+        "category": "throwable",
+        "why": "It is an awkwardly shaped modern lamp built primarily to be violently chucked across an open-concept",
+        "stats": {
+          "a": 3,
+          "b": 4,
+          "c": 3
+        },
+        "trait": "heavy",
+        "palette": [
+          "#FFD700",
+          "#FFFFFF"
+        ],
+        "lines": {
+          "intro": "Shedding some blunt-force illumination on the ring!",
+          "hit": "Lights out, literally!",
+          "miss": "Total blackout on that toss!",
+          "parried": "That bright idea bounced right back at you!"
+        },
+        "physics": {
+          "massKg": 0.8,
+          "sizeM": [
+            0.28,
+            0.16,
+            0.16
+          ],
+          "material": "metal",
+          "shape": "irregular",
+          "bounciness": 0.1,
+          "fragile": false,
+          "liquid": false
+        },
+        "geminiPhysics": {
+          "material": "metal",
+          "shape": "irregular",
+          "heightM": 0.28,
+          "widthM": 0.16,
+          "depthM": 0.16,
+          "massKg": 0.8,
+          "bounciness": 0.1,
+          "fragile": false,
+          "liquid": false,
+          "physicsConfidence": "high"
+        }
+      },
+      "erreurScan": null,
+      "stickerRaison": null,
+      "stickerModele": "gemini-3.1-flash-image",
+      "stickerRelais": false,
+      "mesures": {
+        "fondRetire": 0.739143753735804,
+        "roseBord": 0.07523302263648468,
+        "pixelsBord": 7510,
+        "pourtourMagenta": 1,
+        "tailleJeu": 0.9,
+        "tailleReelle": 0.28,
+        "epaisseurReelle": 0.571,
+        "toursParS": 1.79,
+        "msSticker": 572,
+        "repli": false,
+        "pointsContour": 176,
+        "trous": 0,
+        "epaisseur": 0.216,
+        "hauteurPerso": 1.7
+      },
+      "regles": [
+        {
+          "cle": "masse",
+          "libelle": "Masse (kg)",
+          "ok": true,
+          "trouve": 0.8,
+          "attendu": "0.5 à 2",
+          "groupe": "physique"
+        },
+        {
+          "cle": "taille",
+          "libelle": "Plus grande dimension (m)",
+          "ok": true,
+          "trouve": 0.28,
+          "attendu": "0.22 à 0.4",
+          "groupe": "physique"
+        },
+        {
+          "cle": "matiere",
+          "libelle": "Matière",
+          "ok": true,
+          "trouve": "metal",
+          "attendu": "metal, plastic",
+          "groupe": "physique"
+        },
+        {
+          "cle": "forme",
+          "libelle": "Forme",
+          "ok": true,
+          "trouve": "irregular",
+          "attendu": "round, irregular",
+          "groupe": "physique"
+        },
+        {
+          "cle": "fragile",
+          "libelle": "Fragile",
+          "ok": true,
+          "trouve": false,
+          "attendu": "true ou false",
+          "groupe": "physique"
+        },
+        {
+          "cle": "liquide",
+          "libelle": "Liquide",
+          "ok": true,
+          "trouve": false,
+          "attendu": "false",
+          "groupe": "physique"
+        },
+        {
+          "cle": "categorie",
+          "libelle": "Catégorie",
+          "ok": true,
+          "trouve": "throwable",
+          "attendu": "grenade, throwable, blaster, shield",
+          "groupe": "physique"
+        },
+        {
+          "cle": "sticker",
+          "libelle": "Sticker présent et détouré",
+          "ok": true,
+          "trouve": "oui",
+          "attendu": "oui",
+          "groupe": "image"
+        },
+        {
+          "cle": "pourtour",
+          "libelle": "Accepté par le jeu (magenta au pourtour)",
+          "ok": true,
+          "trouve": "100 %",
+          "attendu": "> 60 %",
+          "groupe": "image"
+        },
+        {
+          "cle": "magenta",
+          "libelle": "Fond magenta retiré, sans liseré rose",
+          "ok": false,
+          "trouve": "7.5 % de rose au bord, 74 % de fond retiré",
+          "attendu": "≤ 3 % de rose, fond retiré",
+          "groupe": "image"
+        }
+      ],
+      "reglages": {
+        "vitesse": 0.8891397050194614,
+        "degats": 1.1313096599027817,
+        "recul": 1.1514259016263246,
+        "recharge": 1.1514259016263246,
+        "portee": 0.9102821015130401,
+        "rebonds": 0,
+        "fragile": false,
+        "liquide": false
+      },
+      "juge": {
+        "objetVu": "lampe de bureau jaune",
+        "fidelite": 7,
+        "reconnaissable": 7,
+        "style": 7,
+        "volume": 5,
+        "detourage": 7,
+        "jouable": 7,
+        "note": 7,
+        "injouable": false,
+        "justification": "L'objet est fidèle et bien détouré, s'intégrant bien au style cartoon. Le volume de profil révèle cependant une tranche épaisse due à l'effet sticker.",
+        "defauts": [
+          "Volume de profil en double coque",
+          "Tranche blanche très épaisse"
+        ],
+        "piste": "Améliorer la génération du volume 3D pour éviter l'effet de symétrie avec une tranche épaisse au milieu.",
+        "ms": 9329
+      },
+      "temps": {
+        "redim": 232,
+        "scan": 2208,
+        "sticker": 8312,
+        "rendu3d": 1652,
+        "extrusion": 572,
+        "juge": 9329
+      },
+      "note": 6.88,
+      "physique": 10,
+      "injouable": false,
+      "criteres": {
+        "fidelite": 7,
+        "reconnaissable": 7,
+        "style": 7,
+        "volume": 5,
+        "detourage": 5,
+        "jouable": 7,
+        "physique": 10
+      },
+      "esthetique": 5.67,
+      "fidelite": 7
+    },
+    {
+      "id": "roi-echecs",
+      "attendu": {
+        "objet": "roi d'un jeu d'échecs en bois",
+        "masseKg": [
+          0.015,
+          0.12
+        ],
+        "tailleMaxM": [
+          0.07,
+          0.13
+        ],
+        "matieres": [
+          "wood"
+        ],
+        "formes": [
+          "long",
+          "irregular"
+        ],
+        "fragile": false,
+        "liquide": [
+          false
+        ],
+        "categories": [
+          "throwable",
+          "grenade"
+        ]
+      },
+      "scan": {
+        "object": "wooden chess piece",
+        "weaponName": "The Sovereign Yeet",
+        "category": "throwable",
+        "why": "It only moves one square in the rules, but rules mean nothing when hurled directly at your forehead.",
+        "stats": {
+          "a": 2,
+          "b": 6,
+          "c": 2
+        },
+        "trait": "bouncy",
+        "palette": [
+          "#e0b784",
+          "#613b1e"
+        ],
+        "lines": {
+          "intro": "Heads up, here comes royal blunder management!",
+          "hit": "Checkmate right between the eyeballs!",
+          "miss": "Illegal move, it sailed right past!",
+          "parried": "En passant! Straight back to the monarch!"
+        },
+        "physics": {
+          "massKg": 0.04,
+          "sizeM": [
+            0.09,
+            0.035,
+            0.035
+          ],
+          "material": "wood",
+          "shape": "irregular",
+          "bounciness": 0.15,
+          "fragile": false,
+          "liquid": false
+        },
+        "geminiPhysics": {
+          "material": "wood",
+          "shape": "irregular",
+          "heightM": 0.09,
+          "widthM": 0.035,
+          "depthM": 0.035,
+          "massKg": 0.04,
+          "bounciness": 0.15,
+          "fragile": false,
+          "liquid": false,
+          "physicsConfidence": "high"
+        }
+      },
+      "erreurScan": null,
+      "stickerRaison": null,
+      "stickerModele": "gemini-3.1-flash-image",
+      "stickerRelais": false,
+      "mesures": {
+        "fondRetire": 0.7394239390316796,
+        "roseBord": 0.08643160927424887,
+        "pixelsBord": 7289,
+        "pourtourMagenta": 1,
+        "tailleJeu": 0.68,
+        "tailleReelle": 0.09,
+        "epaisseurReelle": 0.389,
+        "toursParS": 4.5,
+        "msSticker": 484,
+        "repli": false,
+        "pointsContour": 190,
+        "trous": 0,
+        "epaisseur": 0.216,
+        "hauteurPerso": 1.7
+      },
+      "regles": [
+        {
+          "cle": "masse",
+          "libelle": "Masse (kg)",
+          "ok": true,
+          "trouve": 0.04,
+          "attendu": "0.015 à 0.12",
+          "groupe": "physique"
+        },
+        {
+          "cle": "taille",
+          "libelle": "Plus grande dimension (m)",
+          "ok": true,
+          "trouve": 0.09,
+          "attendu": "0.07 à 0.13",
+          "groupe": "physique"
+        },
+        {
+          "cle": "matiere",
+          "libelle": "Matière",
+          "ok": true,
+          "trouve": "wood",
+          "attendu": "wood",
+          "groupe": "physique"
+        },
+        {
+          "cle": "forme",
+          "libelle": "Forme",
+          "ok": true,
+          "trouve": "irregular",
+          "attendu": "long, irregular",
+          "groupe": "physique"
+        },
+        {
+          "cle": "fragile",
+          "libelle": "Fragile",
+          "ok": true,
+          "trouve": false,
+          "attendu": "false",
+          "groupe": "physique"
+        },
+        {
+          "cle": "liquide",
+          "libelle": "Liquide",
+          "ok": true,
+          "trouve": false,
+          "attendu": "false",
+          "groupe": "physique"
+        },
+        {
+          "cle": "categorie",
+          "libelle": "Catégorie",
+          "ok": true,
+          "trouve": "throwable",
+          "attendu": "throwable, grenade",
+          "groupe": "physique"
+        },
+        {
+          "cle": "sticker",
+          "libelle": "Sticker présent et détouré",
+          "ok": true,
+          "trouve": "oui",
+          "attendu": "oui",
+          "groupe": "image"
+        },
+        {
+          "cle": "pourtour",
+          "libelle": "Accepté par le jeu (magenta au pourtour)",
+          "ok": true,
+          "trouve": "100 %",
+          "attendu": "> 60 %",
+          "groupe": "image"
+        },
+        {
+          "cle": "magenta",
+          "libelle": "Fond magenta retiré, sans liseré rose",
+          "ok": false,
+          "trouve": "8.6 % de rose au bord, 74 % de fond retiré",
+          "attendu": "≤ 3 % de rose, fond retiré",
+          "groupe": "image"
+        }
+      ],
+      "reglages": {
+        "vitesse": 1.35,
+        "degats": 0.6,
+        "recul": 0.6,
+        "recharge": 0.6,
+        "portee": 1.2,
+        "rebonds": 0,
+        "fragile": false,
+        "liquide": false
+      },
+      "juge": {
+        "objetVu": "roi d'échecs plat",
+        "fidelite": 4,
+        "reconnaissable": 7,
+        "style": 7,
+        "volume": 4,
+        "detourage": 7,
+        "jouable": 6,
+        "note": 6,
+        "injouable": false,
+        "justification": "L'objet est bien stylisé et reconnaissable, mais son volume plat type autocollant épais déçoit. La fidélité à la photo d'origine est faible car c'est un modèle générique.",
+        "defauts": [
+          "Volume plat (extrusion simple)",
+          "Tranche blanche inesthétique",
+          "Fidélité faible (modèle générique)"
+        ],
+        "piste": "Générer un vrai volume de révolution pour la pièce d'échecs au lieu d'une simple extrusion.",
+        "ms": 13485
+      },
+      "temps": {
+        "redim": 580,
+        "scan": 4925,
+        "sticker": 8913,
+        "rendu3d": 1547,
+        "extrusion": 484,
+        "juge": 13485
+      },
+      "note": 5.88,
+      "physique": 10,
+      "injouable": false,
+      "criteres": {
+        "fidelite": 4,
+        "reconnaissable": 7,
+        "style": 7,
+        "volume": 4,
+        "detourage": 5,
+        "jouable": 6,
+        "physique": 10
+      },
+      "esthetique": 5.33,
+      "fidelite": 4
+    },
+    {
+      "id": "montre",
+      "attendu": {
+        "objet": "montre-bracelet laiton vieilli, bracelet cuir",
+        "masseKg": [
+          0.03,
+          0.2
+        ],
+        "tailleMaxM": [
+          0.04,
+          0.28
+        ],
+        "matieres": [
+          "metal"
+        ],
+        "formes": [
+          "flat",
+          "round",
+          "irregular"
+        ],
+        "fragile": [
+          true,
+          false
+        ],
+        "liquide": [
+          false
+        ],
+        "categories": [
+          "grenade",
+          "throwable"
+        ]
+      },
+      "scan": {
+        "object": "wrist watch",
+        "weaponName": "The Second Hand Grenade",
+        "category": "grenade",
+        "why": "It is a literal ticking time bomb designed to violently explode into tiny brass gears.",
+        "stats": {
+          "a": 4,
+          "b": 5,
+          "c": 1
+        },
+        "trait": "explosive",
+        "palette": [
+          "#4a3728",
+          "#c5a059"
+        ],
+        "lines": {
+          "intro": "Look at the time, someone is about to get their clock cleaned!",
+          "hit": "Time is up! Right in the face!",
+          "miss": "Missed! Out of time and out of luck!",
+          "parried": "Turn back the clock, that return was instantaneous!"
+        },
+        "physics": {
+          "massKg": 0.08,
+          "sizeM": [
+            0.24,
+            0.04,
+            0.03
+          ],
+          "material": "metal",
+          "shape": "round",
+          "bounciness": 0.1,
+          "fragile": true,
+          "liquid": false
+        },
+        "geminiPhysics": {
+          "material": "metal",
+          "shape": "round",
+          "heightM": 0.24,
+          "widthM": 0.04,
+          "depthM": 0.01,
+          "massKg": 0.08,
+          "bounciness": 0.1,
+          "fragile": true,
+          "liquid": false,
+          "physicsConfidence": "high"
+        }
+      },
+      "erreurScan": null,
+      "stickerRaison": null,
+      "stickerModele": "gemini-3.1-flash-image",
+      "stickerRelais": false,
+      "mesures": {
+        "fondRetire": 0.6448464584578601,
+        "roseBord": 0.09605263157894736,
+        "pixelsBord": 6840,
+        "pourtourMagenta": 1,
+        "tailleJeu": 0.87,
+        "tailleReelle": 0.24,
+        "epaisseurReelle": 0.125,
+        "toursParS": 4.5,
+        "msSticker": 496,
+        "repli": false,
+        "pointsContour": 201,
+        "trous": 0,
+        "epaisseur": 0.216,
+        "hauteurPerso": 1.7
+      },
+      "regles": [
+        {
+          "cle": "masse",
+          "libelle": "Masse (kg)",
+          "ok": true,
+          "trouve": 0.08,
+          "attendu": "0.03 à 0.2",
+          "groupe": "physique"
+        },
+        {
+          "cle": "taille",
+          "libelle": "Plus grande dimension (m)",
+          "ok": true,
+          "trouve": 0.24,
+          "attendu": "0.04 à 0.28",
+          "groupe": "physique"
+        },
+        {
+          "cle": "matiere",
+          "libelle": "Matière",
+          "ok": true,
+          "trouve": "metal",
+          "attendu": "metal",
+          "groupe": "physique"
+        },
+        {
+          "cle": "forme",
+          "libelle": "Forme",
+          "ok": true,
+          "trouve": "round",
+          "attendu": "flat, round, irregular",
+          "groupe": "physique"
+        },
+        {
+          "cle": "fragile",
+          "libelle": "Fragile",
+          "ok": true,
+          "trouve": true,
+          "attendu": "true ou false",
+          "groupe": "physique"
+        },
+        {
+          "cle": "liquide",
+          "libelle": "Liquide",
+          "ok": true,
+          "trouve": false,
+          "attendu": "false",
+          "groupe": "physique"
+        },
+        {
+          "cle": "categorie",
+          "libelle": "Catégorie",
+          "ok": true,
+          "trouve": "grenade",
+          "attendu": "grenade, throwable",
+          "groupe": "physique"
+        },
+        {
+          "cle": "sticker",
+          "libelle": "Sticker présent et détouré",
+          "ok": true,
+          "trouve": "oui",
+          "attendu": "oui",
+          "groupe": "image"
+        },
+        {
+          "cle": "pourtour",
+          "libelle": "Accepté par le jeu (magenta au pourtour)",
+          "ok": true,
+          "trouve": "100 %",
+          "attendu": "> 60 %",
+          "groupe": "image"
+        },
+        {
+          "cle": "magenta",
+          "libelle": "Fond magenta retiré, sans liseré rose",
+          "ok": false,
+          "trouve": "9.6 % de rose au bord, 64 % de fond retiré",
+          "attendu": "≤ 3 % de rose, fond retiré",
+          "groupe": "image"
+        }
+      ],
+      "reglages": {
+        "vitesse": 1.35,
+        "degats": 0.6,
+        "recul": 0.6,
+        "recharge": 0.6,
+        "portee": 1.2,
+        "rebonds": 0,
+        "fragile": true,
+        "liquide": false
+      },
+      "juge": {
+        "objetVu": "Montre bracelet",
+        "fidelite": 7,
+        "reconnaissable": 7,
+        "style": 7,
+        "volume": 4,
+        "detourage": 7,
+        "jouable": 7,
+        "note": 6,
+        "injouable": false,
+        "justification": "Très bonne adaptation cartoon de la montre. Le volume extrudé est un peu basique mais fonctionnel.",
+        "defauts": [
+          "Tranche blanche épaisse",
+          "Volume plat",
+          "Manque de courbure du bracelet"
+        ],
+        "piste": "Arrondir les bords de l'extrusion 3D pour un effet moins brique.",
+        "ms": 8511
+      },
+      "temps": {
+        "redim": 152,
+        "scan": 3504,
+        "sticker": 8695,
+        "rendu3d": 1592,
+        "extrusion": 496,
+        "juge": 8511
+      },
+      "note": 6.75,
+      "physique": 10,
+      "injouable": false,
+      "criteres": {
+        "fidelite": 7,
+        "reconnaissable": 7,
+        "style": 7,
+        "volume": 4,
+        "detourage": 5,
+        "jouable": 7,
+        "physique": 10
+      },
+      "esthetique": 5.33,
+      "fidelite": 7
+    }
+  ],
+  "erreursPage": []
+}
