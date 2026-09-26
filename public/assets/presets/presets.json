@@ -6,9 +6,9 @@
     "category": "grenade",
     "why": "You toss it in the tub and it explodes just like bath time.",
     "stats": {
-      "a": 3,
-      "b": 3,
-      "c": 4
+      "a": 2,
+      "b": 2,
+      "c": 6
     },
     "trait": "bouncy",
     "palette": [
@@ -24,7 +24,20 @@
     "stickerUrl": "/assets/presets/rubber-duck.jpg",
     "voiceUrl": "/assets/presets/rubber-duck.wav",
     "source": "preset",
-    "cooldown": 0
+    "cooldown": 0,
+    "physics": {
+      "massKg": 0.05,
+      "sizeM": [
+        0.08,
+        0.07,
+        0.09
+      ],
+      "material": "rubber",
+      "shape": "irregular",
+      "bounciness": 0.5,
+      "fragile": false,
+      "liquid": false
+    }
   },
   {
     "id": "preset-frying-pan",
@@ -33,9 +46,9 @@
     "category": "shield",
     "why": "It blocks every attack perfectly but your morning eggs will still stick anyway.",
     "stats": {
-      "a": 5,
+      "a": 4,
       "b": 3,
-      "c": 2
+      "c": 3
     },
     "trait": "loud",
     "palette": [
@@ -51,7 +64,20 @@
     "stickerUrl": "/assets/presets/frying-pan.jpg",
     "voiceUrl": "/assets/presets/frying-pan.wav",
     "source": "preset",
-    "cooldown": 0
+    "cooldown": 0,
+    "physics": {
+      "massKg": 1.1,
+      "sizeM": [
+        0.06,
+        0.28,
+        0.46
+      ],
+      "material": "metal",
+      "shape": "flat",
+      "bounciness": 0.05,
+      "fragile": false,
+      "liquid": true
+    }
   },
   {
     "id": "preset-baguette",
@@ -60,9 +86,9 @@
     "category": "blaster",
     "why": "Because nothing hurts quite like a week-old loaf of stale French bread.",
     "stats": {
-      "a": 4,
-      "b": 3,
-      "c": 3
+      "a": 2,
+      "b": 4,
+      "c": 4
     },
     "trait": "split",
     "palette": [
@@ -78,7 +104,20 @@
     "stickerUrl": "/assets/presets/baguette.jpg",
     "voiceUrl": "/assets/presets/baguette.wav",
     "source": "preset",
-    "cooldown": 0
+    "cooldown": 0,
+    "physics": {
+      "massKg": 0.25,
+      "sizeM": [
+        0.06,
+        0.07,
+        0.65
+      ],
+      "material": "food",
+      "shape": "long",
+      "bounciness": 0.05,
+      "fragile": false,
+      "liquid": false
+    }
   },
   {
     "id": "preset-smartphone",
@@ -105,7 +144,20 @@
     "stickerUrl": "/assets/presets/smartphone.jpg",
     "voiceUrl": "/assets/presets/smartphone.wav",
     "source": "preset",
-    "cooldown": 0
+    "cooldown": 0,
+    "physics": {
+      "massKg": 0.2,
+      "sizeM": [
+        0.15,
+        0.075,
+        0.03
+      ],
+      "material": "glass",
+      "shape": "flat",
+      "bounciness": 0.1,
+      "fragile": true,
+      "liquid": false
+    }
   },
   {
     "id": "preset-banana",
@@ -114,8 +166,8 @@
     "category": "throwable",
     "why": "Its natural aerodynamic curve makes it a terrifyingly effective, albeit mushy, yellow boomerang.",
     "stats": {
-      "a": 3,
-      "b": 5,
+      "a": 2,
+      "b": 6,
       "c": 2
     },
     "trait": "slippery",
@@ -132,7 +184,20 @@
     "stickerUrl": "/assets/presets/banana.jpg",
     "voiceUrl": "/assets/presets/banana.wav",
     "source": "preset",
-    "cooldown": 0
+    "cooldown": 0,
+    "physics": {
+      "massKg": 0.15,
+      "sizeM": [
+        0.04,
+        0.04,
+        0.2
+      ],
+      "material": "food",
+      "shape": "long",
+      "bounciness": 0.1,
+      "fragile": false,
+      "liquid": false
+    }
   },
   {
     "id": "preset-office-chair",
@@ -141,8 +206,8 @@
     "category": "shield",
     "why": "Perfect for blocking attacks and dodging mandatory corporate meetings.",
     "stats": {
-      "a": 4,
-      "b": 4,
+      "a": 3,
+      "b": 5,
       "c": 2
     },
     "trait": "slippery",
@@ -159,7 +224,20 @@
     "stickerUrl": "/assets/presets/office-chair.jpg",
     "source": "preset",
     "cooldown": 0,
-    "voiceUrl": "/assets/presets/office-chair.wav"
+    "voiceUrl": "/assets/presets/office-chair.wav",
+    "physics": {
+      "massKg": 13,
+      "sizeM": [
+        1.1,
+        0.65,
+        0.65
+      ],
+      "material": "plastic",
+      "shape": "irregular",
+      "bounciness": 0.05,
+      "fragile": false,
+      "liquid": false
+    }
   },
   {
     "id": "preset-stapler",
@@ -169,8 +247,8 @@
     "why": "It rapidly spits tiny metal teeth, making it a perfect office machine gun.",
     "stats": {
       "a": 2,
-      "b": 5,
-      "c": 3
+      "b": 4,
+      "c": 4
     },
     "trait": "sticky",
     "palette": [
@@ -186,7 +264,20 @@
     "stickerUrl": "/assets/presets/stapler.jpg",
     "voiceUrl": "/assets/presets/stapler.wav",
     "source": "preset",
-    "cooldown": 0
+    "cooldown": 0,
+    "physics": {
+      "massKg": 0.35,
+      "sizeM": [
+        0.06,
+        0.04,
+        0.16
+      ],
+      "material": "metal",
+      "shape": "box",
+      "bounciness": 0.1,
+      "fragile": false,
+      "liquid": false
+    }
   },
   {
     "id": "preset-garden-gnome",
@@ -195,8 +286,8 @@
     "category": "throwable",
     "why": "It is surprisingly aerodynamic when hurled directly at your neighbor's face.",
     "stats": {
-      "a": 5,
-      "b": 2,
+      "a": 4,
+      "b": 3,
       "c": 3
     },
     "trait": "heavy",
@@ -213,6 +304,19 @@
     "stickerUrl": "/assets/presets/garden-gnome.jpg",
     "source": "preset",
     "cooldown": 0,
-    "voiceUrl": "/assets/presets/garden-gnome.wav"
+    "voiceUrl": "/assets/presets/garden-gnome.wav",
+    "physics": {
+      "massKg": 1.5,
+      "sizeM": [
+        0.3,
+        0.14,
+        0.12
+      ],
+      "material": "ceramic",
+      "shape": "irregular",
+      "bounciness": 0,
+      "fragile": true,
+      "liquid": false
+    }
   }
 ]

@@ -3,7 +3,7 @@
 // La photo réellement capturée est gardée à part (photos, par id d'arme) : le contrat Weapon ne la porte pas,
 // mais la présentation (règle 5 du DA) veut la vraie preuve webcam sur la carte.
 import type { Category, PlayerId, Weapon } from '../core/types';
-import { primeWeapon, scanObject } from '../ia';
+import { primeWeapon, scanNote, scanObject } from '../ia';
 import { mountCapture } from './capture';
 import { button, clear, el, menuScreen } from './dom';
 import { mountForgeView } from './loading';
@@ -61,6 +61,11 @@ function snapTile(onClick: () => void): HTMLDivElement {
   return tile;
 }
 
+const NOTE_TEXT = {
+  offline: "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again.",
+  substituted: "Nice try. Real weapons and people don't count. Have this instead.",
+} as const;
+
 async function forgeAndCard(
   area: HTMLElement,
   blob: Blob,
@@ -78,6 +83,9 @@ async function forgeAndCard(
   return new Promise((resolve) => {
     clear(area);
     const wrap = el('div', 'weapon-confirm');
+    // Lot LSCAN : une arme de secours (réseau lent, objet refusé) est expliquée au joueur, jamais muette.
+    const note = scanNote(weapon.id);
+    if (note) wrap.append(el('p', 'capture-error', NOTE_TEXT[note]));
     const pair = el('div', 'lload-pair');
     wrap.append(pair);
     pair.append(forge.root);
