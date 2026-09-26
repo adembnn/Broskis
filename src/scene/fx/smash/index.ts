@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { joueurs } from '../../../art/tokens.js';
-import type { Ctx } from '../../../core/types';
+import type { Ctx, PlayerId } from '../../../core/types';
 import { ParticleBurstSystem } from '../particles';
 import { registry, excludeFromOcclusion } from '../../registry';
+import { cameraShake, onlyInView } from '../../api';
 
 export function installSmashFx(ctx: Ctx): void {
   const { scene, camera, renderer } = ctx.three;
@@ -77,11 +78,18 @@ export function installSmashFx(ctx: Ctx): void {
     depthTest: false,
     depthWrite: false,
   });
-  const overlayMesh = new THREE.Mesh(overlayGeo, overlayMat);
-  overlayMesh.frustumCulled = false;
-  overlayMesh.renderOrder = 999;
-  scene.add(overlayMesh);
-  excludeFromOcclusion(overlayMesh);
+  // Écran scindé (RTVIEW) : un voile par vue, collé à la caméra de SON joueur. Le zoom KO ne se voit que dans la
+  // vue de la victime ; GAME! et BRO SMASH dans les 2 vues. overlayOnly = null : les 2 vues.
+  const overlays = ([0, 1] as const).map((p) => {
+    const m = new THREE.Mesh(overlayGeo, overlayMat);
+    m.frustumCulled = false;
+    m.renderOrder = 999;
+    scene.add(m);
+    excludeFromOcclusion(m);
+    onlyInView(m, p);
+    return m;
+  });
+  let overlayOnly: PlayerId | null = null;
 
   let overlayState = { opacity: 0, color: new THREE.Color(), radialLines: 0, vignette: 0, fadeOutTime: 0 };
   let bgDarken = 0;
@@ -125,6 +133,7 @@ export function installSmashFx(ctx: Ctx): void {
       setTimeout(() => {
         ctx.bus.emit('slowmo', { factor: 0.2, ms: 600 });
         ctx.bus.emit('camera:cue', { shot: 'impact', target: ev.target });
+        overlayOnly = ctx.state.split ? ev.target : null;
         flash('#000000', 0, 0.6, 1.0, 1.0);
       }, 120);
     }
@@ -141,7 +150,8 @@ export function installSmashFx(ctx: Ctx): void {
       const pos = new THREE.Vector3(...exitPos);
       const dir = pos.clone().negate().normalize();
       fxAdd.burst(pos, { count: 30, color: [pColor, '#ffffff'], speed: [5, 15], life: [0.5, 1.0], size: [0.5, 1.5], direction: dir, spread: 0.5 });
-      registry.shake?.add(0.6);
+      cameraShake(0.6, player);
+      overlayOnly = ctx.state.split ? player : null;
       flash(pColor, 0.5, 0.2);
     } else if (side === 'top') {
       if (rig) {
@@ -204,6 +214,7 @@ export function installSmashFx(ctx: Ctx): void {
 
   // 7. BRO SMASH
   ctx.bus.on('super:fire', ({ player }) => {
+    overlayOnly = null;
     bgDarken = 0.8;
     const pColor = player === 0 ? joueurs.p1.principal : joueurs.p2.principal;
     
@@ -240,6 +251,7 @@ export function installSmashFx(ctx: Ctx): void {
   ctx.bus.on('match:banner', ({ kind }) => {
     if (kind === 'game') {
       ctx.bus.emit('slowmo', { factor: 0.001, ms: 500 });
+      overlayOnly = null;
       flash('#ffffff', 1.0, 0.8);
     }
   });
@@ -248,10 +260,15 @@ export function installSmashFx(ctx: Ctx): void {
   ctx.loop.addSystem('smash-fx', (dt) => {
     const time = performance.now() / 1000;
     
-    // Position overlay strictly in front of the camera
-    overlayMesh.position.copy(camera.position);
-    overlayMesh.quaternion.copy(camera.quaternion);
-    overlayMesh.translateZ(-0.5); // 0.5 units in front
+    // Chaque voile juste devant la caméra de son joueur (écran scindé), visible selon overlayOnly.
+    for (const p of [0, 1] as const) {
+      const cam = ctx.three.cameras?.[p] ?? camera;
+      const m = overlays[p];
+      m.position.copy(cam.position);
+      m.quaternion.copy(cam.quaternion);
+      m.translateZ(-0.5);
+      m.visible = overlayOnly === null || overlayOnly === p;
+    }
     
     if (overlayState.fadeOutTime > 0) {
       overlayState.opacity = Math.max(0, overlayState.opacity - (dt / overlayState.fadeOutTime));
