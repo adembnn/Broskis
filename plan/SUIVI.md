@@ -73,3 +73,4 @@ Réserver une ligne **avant** de commencer : nom + heure, commit + push de ce fi
 >   - **LSKY** (chez moi) : brouillard qui délave tout, en cours.
 
 > **RÈGLE D'ADEM (16h18), POUR TOUTES LES SESSIONS ET TOUS LES AGENTS** : des tests en TOUR PAR TOUR tournent encore sur son PC. Avant tout test : `git rebase main`, relancer son Vite, lancer le match par `startMatch({ split: true })` et vérifier `phase === 'fight'`. Arrêter tout test/agent encore sur une branche d'avant le pivot (15h25). Arrêter ses serveurs de test finis (son propre PID seulement). Écrit aussi dans CLAUDE.md.
+> - **RTCORE, à vérifier (16h20)** : dans un rejeu de `demo/parcours.json`, `gameHooks.input(0,'up',true)` n'a pas fait avancer P1 (x resté à -5) alors que P2 bougeait (rendu logiciel lent, peut-être) ; la touche panique F9 est captée mais branchée nulle part (seule F4 marche). Et le serveur Vite principal 5173 était bloqué à la préparation des dépendances.
