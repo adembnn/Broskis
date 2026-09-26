@@ -274,16 +274,17 @@ function stickerFor(imgKey: string, imageBase64: string, mimeType: string): Prom
   return p;
 }
 
-/** Démo (?demo=1) sans réseau : les objets de demo/OBJETS.md dans l'ordre du script, puis la banque. */
+/** Démo (?demo=1) sans réseau : les objets de demo/OBJETS.md dans l'ordre du script (en silence : sur scène, ça
+ *  doit avoir l'air d'avoir marché), puis la banque. `null` = arme du cache de démo, pas de note à afficher. */
 let demoFallbackIndex = 0;
-async function offlineWeapon(imgKey: string, category: Category | undefined): Promise<Weapon> {
+async function offlineWeapon(imgKey: string, category: Category | undefined): Promise<[Weapon, ScanNote | undefined]> {
   const ctx = getRuntimeCtx();
   if (ctx?.demo) {
     const demo = await loadDemoFallback(demoFallbackIndex++);
-    if (demo && (!category || demo.category === category)) return { ...demo, id: makeId('cache'), source: 'cache' };
-    return pickPreset(createRng(seedFromString(imgKey)), category);
+    if (demo && (!category || demo.category === category)) return [{ ...demo, id: makeId('cache'), source: 'cache' }, undefined];
+    return [pickPreset(createRng(seedFromString(imgKey)), category), 'offline'];
   }
-  return pickPreset(Math.random, category);
+  return [pickPreset(Math.random, category), 'offline'];
 }
 
 /**
@@ -320,9 +321,10 @@ export async function scanObject(image: Blob | string, opts: ScanOptions = {}): 
 
   let weapon: Weapon;
   let note: ScanNote | undefined;
+  let offline = false;
   if (!raw) {
-    weapon = await offlineWeapon(imgKey, opts.category);
-    note = 'offline';
+    [weapon, note] = await offlineWeapon(imgKey, opts.category);
+    offline = true;
   } else if (raw.substituted) {
     // Vraie arme ou personne seule : l'arme de secours garde SON sticker (celui de la photo montrerait l'original).
     weapon = pickPreset(Math.random, opts.category);
@@ -336,10 +338,10 @@ export async function scanObject(image: Blob | string, opts: ScanOptions = {}): 
   if (note) notes.set(weapon.id, note);
   timing.id = weapon.id;
   timing.object = weapon.object;
-  timing.note = note;
+  timing.note = note ?? (offline ? 'offline' : undefined);
   timing.json = Math.round(performance.now() - t0);
 
-  if (!note) {
+  if (!note && !offline) {
     setCached(jsonKey, weapon);
     setCached(weapon.object, weapon);
   }
@@ -347,7 +349,7 @@ export async function scanObject(image: Blob | string, opts: ScanOptions = {}): 
   emitScanResult(opts.player, weapon);
 
   // Le sticker de la photo ne vaut que pour une vraie lecture de la photo (pas pour une arme de secours).
-  if (note || weapon.stickerUrl) {
+  if (note || offline || weapon.stickerUrl) {
     if (weapon.stickerUrl) emitScanProgress(opts.player, 'sticker', weapon.id, weapon);
     else emitScanProgress(opts.player, 'sticker-failed', weapon.id);
     return weapon;
