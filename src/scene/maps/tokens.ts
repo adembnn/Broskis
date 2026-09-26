@@ -98,4 +98,15 @@ export const LOCAL_TOKENS = {
     deckLocalY: 2.1, // hauteur (repère du modèle) du haut du bastingage : la coque est abaissée d'autant sous le pont
     tiltDeg: 12,     // angle de gîte demandé par le lot (mécanique de jeu, pas une teinte)
   },
+  propAnim: {
+    stiffness: 180,
+    damping: 12,
+    squashHit: 0.3,
+    tiltHitDeg: 10,
+    rotHitDeg: 6,
+    tiltContactDeg: 6,
+    contactCooldown: 0.5, // en secondes
+    contactRadiusPad: 0.5,
+    platformDip: 0.04
+  }
 } as const;
