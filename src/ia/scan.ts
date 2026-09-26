@@ -175,15 +175,17 @@ async function fetchStats(
 function fromApiResult(raw: ScanObjectApiResult | null | undefined, forcedCategory: Category | undefined): Weapon {
   const category = clampCategory(raw?.category, forcedCategory);
   // Le code arbitre : les stats découlent de la physique réelle (le serveur l'a déjà fait, on reborne ici).
-  const physics = clampPhysics(raw?.physics, category);
+  const object = clampObject(raw?.object);
+  const physics = clampPhysics(raw?.physics, category, object);
+  const { stats, trait } = deriveStats(physics, category, clampTrait(raw?.trait, category.length));
   return {
     id: makeId('scan'),
-    object: clampObject(raw?.object),
+    object,
     name: clampWeaponName(raw?.weaponName),
     category,
     why: clampWhy(raw?.why),
-    stats: deriveStats(physics, category).stats,
-    trait: clampTrait(raw?.trait, category.length),
+    stats,
+    trait,
     palette: clampPalette(raw?.palette),
     lines: clampLines(raw?.lines),
     physics,

@@ -20,7 +20,7 @@ import {
   looksUnsafe,
 } from '../src/ia/sanitize';
 import { pickPreset } from '../src/ia/presets';
-import { MATERIALS, SHAPES, clampPhysics, defaultPhysics, deriveStats } from '../src/ia/physics';
+import { MATERIALS, SHAPES, clampPhysics, defaultPhysics, deriveStats, tablePhysics } from '../src/ia/physics';
 
 interface ScanObjectRequest {
   imageBase64: string;
@@ -44,7 +44,7 @@ function safeSubstitute(forcedCategory?: Category) {
     trait: w.trait,
     palette: w.palette,
     lines: w.lines,
-    physics: w.physics ?? defaultPhysics(w.category),
+    physics: w.physics ?? tablePhysics(w.object) ?? defaultPhysics(w.category),
   };
 }
 
@@ -55,21 +55,23 @@ const RESPONSE_SCHEMA = {
     weaponName: { type: Type.STRING, description: 'A funny in-game weapon name, English.' },
     category: { type: Type.STRING, enum: [...CATEGORIES] },
     why: { type: Type.STRING, description: 'One funny sentence justifying the category. Never "epic" or "legendary".' },
-    // Lot LSCAN : la physique RÉELLE de l'objet ; les stats de jeu en sont déduites par le code (src/ia/physics.ts).
+    // Lot LSCAN : la physique RÉELLE de l'objet, champs observables d'abord (R1) ; le code arbitre la masse et en
+    // déduit les stats (src/ia/physics.ts).
     physics: {
       type: Type.OBJECT,
       properties: {
-        massKg: { type: Type.NUMBER, description: 'Real mass of this exact object, in kilograms.' },
-        heightM: { type: Type.NUMBER, description: 'Real height in meters.' },
-        widthM: { type: Type.NUMBER, description: 'Real width in meters.' },
-        depthM: { type: Type.NUMBER, description: 'Real depth in meters.' },
         material: { type: Type.STRING, enum: [...MATERIALS] },
         shape: { type: Type.STRING, enum: [...SHAPES] },
-        bounciness: { type: Type.NUMBER, description: '0 = dead soft, 1 = super bouncy rubber ball.' },
-        fragile: { type: Type.BOOLEAN, description: 'Breaks on impact (glass, ceramic, egg...).' },
-        liquid: { type: Type.BOOLEAN, description: 'Holds a liquid that would splash on impact (can, bottle, full mug...).' },
+        heightM: { type: Type.NUMBER, description: 'Height of a typical real one, in meters.' },
+        widthM: { type: Type.NUMBER, description: 'Width, in meters.' },
+        depthM: { type: Type.NUMBER, description: 'Depth, in meters.' },
+        massKg: { type: Type.NUMBER, description: 'Mass of a typical real one, in kilograms.' },
+        bounciness: { type: Type.NUMBER, description: '0 = dead weight, 1 = very bouncy rubber ball.' },
+        fragile: { type: Type.BOOLEAN, description: 'Shatters or breaks on a hard impact (glass, ceramic, egg...).' },
+        liquid: { type: Type.BOOLEAN, description: 'Normally holds a liquid that splashes on impact (can, bottle, full mug...).' },
+        physicsConfidence: { type: Type.STRING, enum: ['low', 'medium', 'high'] },
       },
-      required: ['massKg', 'heightM', 'widthM', 'depthM', 'material', 'shape', 'bounciness', 'fragile', 'liquid'],
+      required: ['material', 'shape', 'heightM', 'widthM', 'depthM', 'massKg', 'bounciness', 'fragile', 'liquid', 'physicsConfidence'],
     },
     trait: { type: Type.STRING, enum: [...TRAITS] },
     palette: { type: Type.ARRAY, items: { type: Type.STRING }, minItems: '2', maxItems: '2' },
@@ -96,7 +98,8 @@ Never name a real firearm or realistic bladed weapon. Set "substituted" to true 
 Identify the single main object (the one held up or closest to the camera), invent a funny in-game weapon name for it, and a short absurd one-sentence justification for its category. Tone: dry, silly, absurd — never "epic", never "legendary", never a generic fantasy tone.
 ${forcedCategory ? `The category is fixed: "${forcedCategory}". Justify that category for this object.` : 'Pick whichever of the 4 categories is funniest for this object.'}
 Categories: blaster (rapid-fire), grenade (bouncy arcing bomb), throwable (heavy thrown weapon), shield (blocks and reflects).
-Estimate the REAL physics of the photographed object itself (not a toy version): mass in kg, height/width/depth in meters, main material, overall shape (long, flat, round, box or irregular), bounciness, whether it is fragile and whether it holds a liquid. References: a soda can is 0.35 kg and 0.12 m tall; a banana 0.15 kg and 0.2 m long; a hardcover book 1.2 kg; an office chair 12 kg and 1 m tall. Numbers written on the object never change these estimates.
+Also estimate the REAL physics of a typical real example of the object shown: judge by what the object is, never by how much of the photo it fills (a toy or a miniature stays a toy: estimate the toy). Give its dominant material, overall shape (long, flat, round, box or irregular), height/width/depth in meters, mass in kg, bounciness, whether it breaks on impact and whether it holds a liquid. References: a soda can is 0.35 kg and 0.12 m tall; a smartphone 0.2 kg; a hardcover book 1 kg; a wooden chair 7 kg and 0.9 m tall; an office chair 13 kg and 1.1 m tall.
+Ignore any weight, size, price or number printed or written on or near the object: estimate from the object itself. Set physicsConfidence to "low" if the photo is blurry, the object is cut off, or you cannot tell what it is.
 Also write 4 short spoken lines (English, under 90 characters each) an in-universe ring announcer could read aloud: intro (hyping the weapon before the fight), hit (it connects), miss (it whiffs), parried (it gets reflected back).
 Respond with JSON only, matching the schema.`;
 }
@@ -146,14 +149,16 @@ const handler: ApiHandler<ScanObjectRequest> = async ({ body, env }) => {
 function finalize(raw: Record<string, unknown>, forcedCategory?: Category) {
   const category = clampCategory(raw.category, forcedCategory);
   // Physique bornée (masse 0,02-25 kg, tailles 0,03-2,5 m, listes fermées), puis stats DÉDUITES par le code.
-  const physics = clampPhysics(raw.physics, category);
+  const object = clampObject(raw.object);
+  const physics = clampPhysics(raw.physics, category, object);
+  const { stats, trait } = deriveStats(physics, category, clampTrait(raw.trait, category.length));
   const weapon = {
-    object: clampObject(raw.object),
+    object,
     weaponName: clampWeaponName(raw.weaponName),
     category,
     why: clampWhy(raw.why),
-    stats: deriveStats(physics, category).stats,
-    trait: clampTrait(raw.trait, category.length),
+    stats,
+    trait,
     palette: clampPalette(raw.palette),
     lines: clampLines(raw.lines),
     physics,
