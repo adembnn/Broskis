@@ -3,6 +3,7 @@
 // « l'IA interprète, le code arbitre »). Lot LSCAN : Gemini estime la PHYSIQUE réelle de l'objet, le code en déduit
 // les stats (src/ia/physics.ts). Le budget de latence est géré côté client (src/ia/scan.ts) ;
 // ici on se contente d'un filet de sécurité serveur plus large pour ne pas laisser une requête pendre.
+import { adapt } from './_vercel';
 import { GoogleGenAI, Type } from '@google/genai';
 import type { ApiHandler } from './_types';
 import { fail, ok } from './_types';
@@ -224,4 +225,4 @@ async function pollStream(jobId: string) {
 const withPolling: ApiHandler<ScanObjectRequest> = async (req) =>
   typeof req.body?.jobId === 'string' ? pollStream(req.body.jobId) : handler(req);
 
-export default withPolling;
+export default adapt(withPolling);

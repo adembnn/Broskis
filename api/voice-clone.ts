@@ -1,3 +1,4 @@
+import { adapt } from './_vercel';
 import type { ApiHandler } from './_types';
 import { fail, ok } from './_types';
 import { GRADIUM_BASE_URL } from './_models';
@@ -95,4 +96,4 @@ const handler: ApiHandler<CloneReq> = async ({ body, env }) => {
   return fail(400, 'invalid action');
 };
 
-export default handler;
+export default adapt(handler);

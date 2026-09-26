@@ -1,5 +1,6 @@
 // POST /api/gradium-token — jeton à usage unique pour la WebSocket Gradium côté navigateur (lot LI).
 // La clé d'API elle-même ne quitte jamais le serveur ; seul ce jeton de courte durée part au client.
+import { adapt } from './_vercel';
 import type { ApiHandler } from './_types';
 import { fail, ok } from './_types';
 import { GRADIUM_TOKEN_URL } from './_models';
@@ -24,4 +25,4 @@ const handler: ApiHandler<Record<string, never>> = async ({ env }) => {
   }
 };
 
-export default handler;
+export default adapt(handler);

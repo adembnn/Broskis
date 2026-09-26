@@ -2,6 +2,7 @@
 // Deux appels EN PARALLÈLE : Gemini Flash (traits, couleurs, surnom) et Nano Banana Pro (tête cartoon sur
 // fond magenta, découpée en sticker 3D par src/scene/fighter-custom). Rien n'est écrit sur disque ni dans les
 // logs : la photo et le portrait ne font que traverser la mémoire.
+import { adapt } from './_vercel';
 import { FinishReason, GoogleGenAI, Modality, Type, type Part } from '@google/genai';
 import type { ApiHandler } from './_types';
 import { fail, ok } from './_types';
@@ -295,4 +296,4 @@ async function releverFlux(jobId: string) {
 const avecReleve: ApiHandler<ScanFighterRequest> = async (req) =>
   typeof req.body?.jobId === 'string' ? releverFlux(req.body.jobId) : handler(req);
 
-export default avecReleve;
+export default adapt(avecReleve);

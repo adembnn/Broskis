@@ -2,6 +2,7 @@
 // duel ; Gemini choisit la POSTURE du bot, l'arme conseillée et une provocation. Le réflexe local (20 Hz) reste
 // seul maître du moment de chaque geste : Gemini interprète, le code arbitre (skill ia-en-jeu).
 // Réponse : { stance, preferredWeapon, taunt, source: 'gemini' | 'fallback' } ; en repli, le bot garde sa posture.
+import { adapt } from './_vercel';
 import { GoogleGenAI, Type } from '@google/genai';
 import type { ApiHandler } from './_types';
 import { fail, ok } from './_types';
@@ -94,4 +95,4 @@ const handler: ApiHandler<AIMoveRequest> = async ({ body, env }) => {
   }
 };
 
-export default handler;
+export default adapt(handler);

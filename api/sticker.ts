@@ -3,6 +3,7 @@
 // deux (voir plan/lots/LI-pipeline-ia.md : « lance le JSON et le sticker en parallèle »).
 // Le détourage (chroma key) et l'extrusion 3D sont le lot LS (src/scene/sticker) : ici on ne fait QUE
 // l'image 2D sur fond magenta plat.
+import { adapt } from './_vercel';
 import { FinishReason, GoogleGenAI, Modality } from '@google/genai';
 import type { ApiHandler } from './_types';
 import { fail, ok } from './_types';
@@ -130,4 +131,4 @@ const handler: ApiHandler<StickerRequest> = async ({ body, env }) => {
   return ok({ ...gagnant, ms: Date.now() - t0, relais: true });
 };
 
-export default handler;
+export default adapt(handler);

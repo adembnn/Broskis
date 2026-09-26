@@ -5,6 +5,7 @@
 // joueur (lot LW2, en cours en parallèle) : Gemini n'a que des voix prébuilt nommées, il ne sait pas cloner,
 // donc un `voiceId` fourni saute Gemini et va droit sur Gradium.
 // Renvoie des octets WAV bruts (pas de JSON) : le client en fait un Blob + URL d'objet (src/ia/tts-client.ts).
+import { adapt } from './_vercel';
 import { GoogleGenAI, Modality } from '@google/genai';
 import type { ApiHandler } from './_types';
 import { bytes, fail } from './_types';
@@ -134,4 +135,4 @@ const handler: ApiHandler<TtsRequest> = async ({ body, env }) => {
   }
 };
 
-export default handler;
+export default adapt(handler);

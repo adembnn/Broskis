@@ -1,6 +1,7 @@
 // POST /api/commentary — l'animateur de ring solo (lot LI). Appelé une seule fois par prepareCommentary,
 // PENDANT la présentation des armes (jamais en direct pendant un tour, skill ia-en-jeu : le direct est
 // réservé aux moments rares). Renvoie plusieurs variantes par type de moment, à vocaliser à l'avance.
+import { adapt } from './_vercel';
 import { GoogleGenAI, Type } from '@google/genai';
 import type { ApiHandler } from './_types';
 import { fail, ok } from './_types';
@@ -116,4 +117,4 @@ const handler: ApiHandler<CommentaryRequest> = async ({ body, env }) => {
   }
 };
 
-export default handler;
+export default adapt(handler);

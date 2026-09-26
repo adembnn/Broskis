@@ -1,3 +1,4 @@
+import { adapt } from './_vercel';
 import type { ApiHandler } from './_types';
 import { fail, ok } from './_types';
 import { GRADIUM_TTS_URL, GRADIUM_TTS_MODEL } from './_models';
@@ -74,4 +75,4 @@ const handler: ApiHandler<VoiceLinesReq> = async ({ body, env }) => {
   return ok({ results });
 };
 
-export default handler;
+export default adapt(handler);
