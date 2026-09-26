@@ -28,8 +28,8 @@ try {
   page.on('pageerror', (e) => erreurs.push(e.message));
   page.on('console', (m) => m.type() === 'error' && erreurs.push(m.text()));
   for (const vue of VUES) {
-    const [v, map] = vue.split('-'); // « arene-galion » -> ?vue=arene&map=galion
-    await page.goto(`${base}/arena-kit.html?vue=${v}${map ? `&map=${map}` : ''}&fixe=1`);
+    const [v, map, cam] = vue.split('-'); // « arene-galion-basse » -> ?vue=arene&map=galion&cam=basse
+    await page.goto(`${base}/arena-kit.html?vue=${v}${map ? `&map=${map}` : ''}${cam ? `&cam=${cam}` : ''}&fixe=1`);
     await page.waitForFunction(() => window.kitPret === true, null, { timeout: 60000 });
     await page.waitForTimeout(1500);
     const info = await page.evaluate(() => window.kitInfo());

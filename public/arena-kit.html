@@ -69,7 +69,7 @@ function gradientTexture(top, bottom) {
 const CIELS = { archipel: ['#c9b8c4', '#e8c9a8'], galion: ['#6f7f7b', '#a9b3ac'], cuisine: ['#8a7f76', '#c4b39f'] };
 const CIEL = VUE === 'arene' ? (CIELS[params.get('map')] ?? CIELS.archipel) : ['#dcd7cf', '#b7b0a6'];
 scene.background = gradientTexture(CIEL[0], CIEL[1]);
-if (VUE === 'arene') scene.fog = new THREE.Fog(CIEL[1], 30, 95);
+if (VUE === 'arene') scene.fog = new THREE.Fog(CIEL[1], 45, 130);
 
 // lumière : soleil chaud rasant + ciel froid, contre-jour léger
 scene.add(new THREE.HemisphereLight('#dfe6f2', '#6a5a50', 0.9));
@@ -77,7 +77,7 @@ const soleil = new THREE.DirectionalLight('#fff1dc', 2.6);
 soleil.position.set(-12, 16, 9);
 soleil.castShadow = true;
 soleil.shadow.mapSize.set(2048, 2048);
-Object.assign(soleil.shadow.camera, { left: -16, right: 16, top: 16, bottom: -16, near: 1, far: 60 });
+Object.assign(soleil.shadow.camera, { left: -20, right: 20, top: 20, bottom: -20, near: 1, far: 70 });
 soleil.shadow.bias = -0.0005; soleil.shadow.normalBias = 0.02;
 scene.add(soleil);
 const contre = new THREE.DirectionalLight('#ffd9b0', 0.8);
@@ -120,7 +120,7 @@ async function perso(x, z, yaw) {
 const ARENES = {
   archipel: {
     plateau: 'plateau_pierre', plateformes: ['plateforme_pierre_M', 'plateforme_pierre_M', 'plateforme_pierre_S'],
-    couverts: [['muret_ruine', -3.2, 0, -4.4, 1, 0.15], ['tonneau', 6.9, 0, 2.6, 1, 0], ['caisse', -7.2, 0, -2.4, 1, 0.5]],
+    couverts: [['muret_bas', -3.6, 0, 3.4, 1, 1.45], ['rocher_couvert', 3.9, 0, -3.3, 1, 0.5], ['muret_ruine', -1.5, 0, -8.2, 1, 0.1], ['tonneau', 9.5, 0, 4.2, 1, 0]],
     fond: [
       ['ile_lointaine_A', -30, -4, -46, 2.6, 0.4], ['ile_lointaine_B', 26, 1, -52, 2.2, 1.2], ['ile_lointaine_B', 44, -9, -30, 1.8, 2.1],
       ['ile_lointaine_A', -52, 3, -70, 3.2, 2.8], ['rocher_M', -15, -3, -12, 1, 0.3], ['rocher_S', 16, 3.5, -14, 1, 1.1],
@@ -130,12 +130,12 @@ const ARENES = {
   },
   galion: {
     plateau: 'plateau_pont', plateformes: ['radeau_M', 'radeau_M', 'radeau_S'],
-    couverts: [['caisse', -6.6, 0, -2.0, 1, 0.3], ['tonneau', 6.4, 0, 2.2, 1, 0], ['tonneau', 7.2, 0, 1.3, 1, 1]],
+    couverts: [['caisses_pile', -3.6, 0, 3.3, 1, 1.6], ['caisses_pile', 3.9, 0, -3.4, 1, -1.4], ['tonneau', 9.8, 0, 3.8, 1, 1]],
     fond: [['nuage_A', -24, -8, -26, 3.5, 0], ['nuage_B', 20, -10, -30, 4, 1], ['nuage_A', 2, -13, -46, 5, 2], ['nuage_B', -44, 6, -66, 4.5, 0.5]],
   },
   cuisine: {
     plateau: 'plateau_cuisine', plateformes: ['planche_M', 'planche_M', 'planche_S'],
-    couverts: [['tonneau', 6.8, 0, 2.4, 1, 0]],
+    couverts: [['tasse', -3.6, 0, 3.3, 1, 2.6], ['sucre', 3.9, 0, -3.3, 1, 0.35], ['sucre', -9.4, 0, -4.8, 1, 0.8]],
     fond: [],
   },
 };
@@ -149,21 +149,22 @@ if (VUE === 'arene') {
   };
   await place(A.plateau, 0, 0, 0);
   const [p1, p2, p3] = A.plateformes;
-  await place(p1, -4.6, 2.4, -1.2);
-  await place(p2, 4.6, 2.4, -1.2);
-  await place(p3, 0, 2.8, -4.2);
+  await place(p1, -6.4, 2.4, -2.6);
+  await place(p2, 6.4, 2.4, -2.6);
+  await place(p3, 0, 2.8, -6.6);
   for (const c of A.couverts) await place(...c);
   // fond : îles, rochers, nuages (les ombres portées au loin sont inutiles)
   for (const [nom, x, y, z, s, ry] of A.fond) {
     const o = await place(nom, x, y, z, s, ry);
     if (o) o.traverse((m) => { if (m.isMesh) { m.castShadow = false; m.receiveShadow = false; } });
   }
-  await perso(-4.75, 0.6, Math.PI / 2);
-  await perso(4.75, 0.6, -Math.PI / 2);
-  camera.position.set(0, 9.5, 24); camera.lookAt(0, 0.6, -1);
+  await perso(-7, 0.4, Math.PI / 2);
+  await perso(7, 0.4, -Math.PI / 2);
+  if (params.get('cam') === 'basse') { camera.position.set(-7, 2.4, 22); camera.lookAt(2, 0.2, 0); } // vue de côté, façon caméra Smash
+  else { camera.position.set(0, 12.5, 32); camera.lookAt(0, 0.2, -1.5); }
   tournants.push({ obj: racine, lent: true });
 } else {
-  const cols = 6; const pas = 6.6;
+  const cols = 7; const pas = 6.4;
   const lignes = Math.ceil(LISTE.length / cols);
   const sol = new THREE.Mesh(new THREE.CircleGeometry(80, 48), new THREE.MeshStandardMaterial({ color: '#b7b0a6', roughness: 1 }));
   sol.rotation.x = -Math.PI / 2; sol.position.y = -3.2; sol.receiveShadow = true; scene.add(sol);
@@ -185,7 +186,7 @@ if (VUE === 'arene') {
   }
   soleil.shadow.camera.left = soleil.shadow.camera.bottom = -24; soleil.shadow.camera.right = soleil.shadow.camera.top = 24;
   soleil.shadow.camera.updateProjectionMatrix();
-  camera.position.set(0, 36, 33); camera.lookAt(0, -2, 2.6);
+  camera.position.set(0, 40, 37); camera.lookAt(0, -2, 3);
 }
 document.getElementById('compte').textContent = `${LISTE.length} pièces`;
 
