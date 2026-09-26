@@ -83,7 +83,16 @@ export function installEnvironment(ctx: Ctx): EnvironmentHandles {
   // Custom environment elements
   const sky = new Sky();
   sky.scale.setScalar(450000);
+  // Écran scindé (RTVIEW) : les caméras regardent maintenant dans toutes les directions. Face au soleil bas de
+  // l'Archipel, le ciel sortait des valeurs HDR loin au-dessus du seuil du bloom : vue entièrement blanche.
+  // On plafonne sa composante la plus forte sous le seuil (teinte gardée) : le bloom ne prend plus le ciel.
+  sky.material.fragmentShader = sky.material.fragmentShader.replace(
+    'gl_FragColor = vec4( texColor, 1.0 );',
+    `texColor *= min( 1.0, ${(rendu.bloom.seuil * 0.9).toFixed(3)} / max( max( texColor.r, texColor.g ), max( texColor.b, 1e-4 ) ) );
+			gl_FragColor = vec4( texColor, 1.0 );`,
+  );
   scene.add(sky);
+  excludeFromOcclusion(sky);
   const sun = new THREE.Vector3();
 
   // Archipel: islands
