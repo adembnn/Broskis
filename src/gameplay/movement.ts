@@ -10,7 +10,7 @@ import { checkCratePickup } from './crate';
 import { setTeeter, stepFalls } from './launch';
 import { inFight } from './phases';
 import { getRuntime, otherPlayer } from './runtime';
-import { AIR_ACCEL, AIR_DRAG, AIR_JUMP_VELOCITY, COYOTE_S, JUMP_VELOCITY, RT, TRAIT_TUNING } from './tuning';
+import { AIR_ACCEL, AIR_DRAG, AIR_JUMP_VELOCITY, COYOTE_S, JUMP_VELOCITY, RT, TRAIT_TUNING, WALKOFF_MAX_SPEED } from './tuning';
 
 type ForwardFn = (player: PlayerId) => Vec3 | null | undefined;
 
@@ -90,6 +90,12 @@ export function stepPlayerControl(ctx: Ctx, player: PlayerId, input: PlayerInput
   const them = ctx.state.players[otherPlayer(player)].pos;
   ps.yaw = Math.atan2(them[0] - ps.pos[0], them[2] - ps.pos[2]);
   if (rt.grounded && rt.vy <= 0 && !rt.launch) { rt.jumpsUsed = 0; rt.lastGroundedAt = ctx.loop.time; }
+  // Sorti du plateau en marchant (pas en sautant) : l'élan vers le vide est bridé, le rattrapage reste jouable.
+  if (rt.wasGrounded && !rt.grounded && rt.vy <= 0 && !rt.launch) {
+    const h = Math.hypot(rt.hvel[0], rt.hvel[1]);
+    if (h > WALKOFF_MAX_SPEED) rt.hvel = [(rt.hvel[0] / h) * WALKOFF_MAX_SPEED, (rt.hvel[1] / h) * WALKOFF_MAX_SPEED];
+  }
+  rt.wasGrounded = rt.grounded;
   if (!canMove(ctx, player)) { rt.edgePushS = 0; rt.hvel = [0, 0]; return; }
   if (input.pressed.has('jump')) jump(ctx, player);
   const [mx, my] = input.move;

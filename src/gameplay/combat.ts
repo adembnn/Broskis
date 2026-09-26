@@ -30,9 +30,12 @@ export function chargeFor(heldS: number): number {
 
 function setBlocking(ctx: Ctx, player: PlayerId, on: boolean, atMs: number): void {
   const ps = ctx.state.players[player];
+  const rt = getRuntime().players[player];
   if (ps.blocking === on) return;
   ps.blocking = on;
-  if (on) getRuntime().players[player].blockStartMs = atMs;
+  // Anti-martelage : un blocage relancé juste après en avoir lâché un ne compte pas pour la parade parfaite.
+  if (on) rt.blockStartMs = atMs - rt.blockEndMs < RT.block.remashMs ? -1e9 : atMs;
+  else rt.blockEndMs = atMs;
   ctx.bus.emit('block', { player, on });
 }
 
@@ -109,10 +112,13 @@ export function fireWeapon(ctx: Ctx, shooter: PlayerId, charge: number): boolean
     }
   } else if (weapon.category === 'grenade') {
     // Cloche calculée jusqu'à l'adversaire : durée de vol selon la distance, vitesse initiale en conséquence.
-    const t = ctx.state.players[otherPlayer(shooter)].pos;
+    const t0 = ctx.state.players[otherPlayer(shooter)].pos;
+    const dist0 = Math.hypot(t0[0] - origin[0], t0[2] - origin[2]);
+    const T = Math.min(RT.grenadeFlight.max, RT.grenadeFlight.min + dist0 * RT.grenadeFlight.perM);
+    // Avance partielle sur la course de l'adversaire (il peut encore sortir de la zone en changeant de direction).
+    const v = getRuntime().players[otherPlayer(shooter)].vel;
+    const t: Vec3 = [t0[0] + v[0] * T * 0.5, t0[1], t0[2] + v[2] * T * 0.5];
     const dx = t[0] - origin[0], dz = t[2] - origin[2], dy = t[1] + 0.3 - origin[1];
-    const dist = Math.hypot(dx, dz);
-    const T = Math.min(RT.grenadeFlight.max, RT.grenadeFlight.min + dist * RT.grenadeFlight.perM);
     const g = RT.grenadeGravity;
     spawnProjectile(ctx, shooter, weapon, origin, [dx / T, (dy + 0.5 * g * T * T) / T, dz / T], g, mods, T);
   } else {
@@ -157,7 +163,9 @@ export function stepCombat(ctx: Ctx, player: PlayerId, input: PlayerInput, dt: n
   if (rt.charging) {
     const heldS = (now - rt.chargeStartMs) / 1000;
     ps.charge = chargeFor(heldS);
-    if (input.released.has('fire') || !input.held.has('fire') || heldS >= RT.autoReleaseS) fireWeapon(ctx, player, ps.charge);
+    if (input.released.has('fire') || !input.held.has('fire') || heldS >= RT.autoReleaseS) {
+      if (!fireWeapon(ctx, player, ps.charge)) { rt.charging = false; ps.charge = 0; } // arme changée en recharge
+    }
   }
 }
 

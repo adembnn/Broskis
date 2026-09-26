@@ -33,7 +33,7 @@ export const RT = {
   grenadeFlight: { min: 0.55, perM: 0.035, max: 1.1 },
   projectileMaxLifeS: 3.5,
   /** Blocage maintenu : dégâts ÷ 3, recul ÷ 2 ; parade parfaite si le blocage a commencé < perfectMs avant l'impact. */
-  block: { damageMult: 1 / 3, launchMult: 0.5, perfectMs: 150 },
+  block: { damageMult: 1 / 3, launchMult: 0.5, perfectMs: 150, remashMs: 300 },
   parrySlowmo: { factor: 0.3, ms: 300 },
   reflectSpeedMult: 1.15,
   /** `projectile:incoming` émis ce temps avant l'impact prévu (anneau de repère). */
@@ -78,6 +78,8 @@ export const COYOTE_S = 0.1;
 /** Élan aérien : en l'air, la vitesse horizontale rejoint la direction voulue à ce rythme (1/s), et se garde sans entrée. */
 export const AIR_ACCEL = 5;
 export const AIR_DRAG = 0.4;
+/** Élan maximal (m/s) gardé quand on sort du plateau en marchant : le rattrapage au bord reste à portée. */
+export const WALKOFF_MAX_SPEED = 3;
 export const GRAVITY = 20; // m/s², un peu plus nerveux que la gravité par défaut du monde Rapier
 export const EDGE_RAYCAST_AHEAD = 0.35; // m devant les pieds, dans la direction du pas
 export const EDGE_RAYCAST_DEPTH = 1.35; // m sous les pieds : au-delà, c'est le vide
