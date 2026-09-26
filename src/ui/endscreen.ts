@@ -44,7 +44,31 @@ export function showEndScreen(ctx: Ctx, screenLayer: HTMLElement, log: MatchLog,
     const hero = el('div', 'end-hero');
     const title = el('div', 'end-title');
     title.append(el('span', `ptoken p${winner + 1}`, ctx.state.vsAI && winner === 1 ? 'AI' : `P${winner + 1}`), el('span', 'end-name', winnerName));
-    hero.append(fighterPortrait(wps.fighter, winner), title, el('div', 'end-wins', 'WINS!'));
+    const heroRow = el('div', 'end-hero-row');
+    heroRow.style.display = 'flex';
+    heroRow.style.alignItems = 'center';
+    heroRow.style.gap = '24px';
+    
+    const buildWeaponMini = (w: typeof wps.weapons[0]) => {
+      if (!w) return el('div');
+      const box = el('div', 'end-hero-weapon');
+      box.style.display = 'grid';
+      box.style.justifyItems = 'center';
+      box.style.gap = '8px';
+      const sticker = weaponSticker(w, 'end-hero-sticker');
+      sticker.style.width = '100px';
+      sticker.style.height = '100px';
+      const nameEl = el('span', 'end-hero-wname', w.object || w.name);
+      nameEl.style.font = '800 16px/1.1 var(--b-body)';
+      nameEl.style.textAlign = 'center';
+      nameEl.style.maxWidth = '120px';
+      box.append(sticker, nameEl);
+      return box;
+    };
+    
+    heroRow.append(buildWeaponMini(wps.weapons[0]), fighterPortrait(wps.fighter, winner), buildWeaponMini(wps.weapons[1]));
+
+    hero.append(heroRow, title, el('div', 'end-wins', 'WINS!'));
     card.append(hero);
 
     const cols = el('div', 'end-cols');

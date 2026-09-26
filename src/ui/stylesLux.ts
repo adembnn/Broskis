@@ -151,7 +151,8 @@ export const LUX_CSS = `
   transition:transform var(--b-t-snap) var(--b-claque), background var(--b-t-snap); }
 .wcard-art { width:100%; height:clamp(40px, 6.4vh, 70px); }
 .wcard-name { max-width:100%; font:800 clamp(11px, 1.6vh, 17px)/1.1 var(--b-body); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.wcard-does { display:flex; align-items:center; gap:4px; max-width:100%; font:800 clamp(10px, 1.4vh, 15px)/1.1 var(--b-body); color:var(--b-muted); white-space:nowrap; }
+.wcard-does { display:flex; align-items:center; gap:4px; max-width:100%; font:800 clamp(10px, 1.4vh, 15px)/1.1 var(--b-body); color:var(--b-muted); white-space:nowrap; overflow:hidden; }
+.wcard-does-text { overflow:hidden; text-overflow:ellipsis; }
 .wcard-ico { display:inline-grid; place-items:center; width:1.35em; height:1.35em; padding:2px; border-radius:50%; background:var(--accent); border:1.5px solid var(--b-encre); color:var(--b-encre); }
 .wcard-ico svg { width:100%; height:100%; }
 .wcard-keyslot { position:absolute; top:-13px; left:-10px; z-index:2; }
