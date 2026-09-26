@@ -25,11 +25,11 @@ export const install: Install = (ctx) => {
   ctx.bus.on('turn:start', ({ turn }) => {
     const def = currentMapDef();
     if (def) {
-      const { kind, everyTurns, firstTurn, leadTurns } = def.periodicEvent;
+      const { kind, everyTurns, firstTurn, leadTurns, maxEvents = Infinity } = def.periodicEvent;
       const since = turn - firstTurn;
-      if (since >= 0 && since % everyTurns === 0) ctx.bus.emit('map:event', { mapId: ctx.state.mapId, kind });
+      if (since >= 0 && since % everyTurns === 0 && since / everyTurns < maxEvents) ctx.bus.emit('map:event', { mapId: ctx.state.mapId, kind });
       const untilNext = turn + leadTurns - firstTurn;
-      if (untilNext >= 0 && untilNext % everyTurns === 0) ctx.bus.emit('map:warn', { mapId: ctx.state.mapId, kind, turnsLeft: leadTurns });
+      if (untilNext >= 0 && untilNext % everyTurns === 0 && untilNext / everyTurns < maxEvents) ctx.bus.emit('map:warn', { mapId: ctx.state.mapId, kind, turnsLeft: leadTurns });
     }
 
     if (turn === SUDDEN_DEATH_TURN - 1) {

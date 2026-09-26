@@ -6,6 +6,10 @@
 export const CSS_TEXT = `
 .broskis-ui { position:fixed; inset:0; pointer-events:none; font:700 16px/1.3 var(--b-body); color:var(--b-encre); }
 .broskis-ui * { box-sizing:border-box; }
+/* Fix LSCAN-PERSO : sans cette règle, [hidden] perd contre .fighter-grid/.weapon-rack (display:grid, règle
+   auteur) car une règle auteur bat toujours l'agent utilisateur, même à spécificité égale. Bouton "Snap yourself"
+   et la grille de persos restaient visibles pendant la capture. */
+.broskis-ui [hidden] { display:none !important; }
 .broskis-ui svg { display:block; }
 .num { font-variant-numeric:tabular-nums; font-weight:800; }
 .stroke { font-family:var(--b-display); color:var(--b-vinyle); -webkit-text-stroke:var(--b-contour-grand) var(--b-encre); paint-order:stroke fill; }

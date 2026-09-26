@@ -83,7 +83,7 @@ function fond(): BackdropSpec[] {
 
 export function buildGalionDef(): MapDef {
   const { pieces, collider } = plateau();
-  const spawns: [Vec3, Vec3] = [[-SPAWN_X, 0.05, 0.4], [SPAWN_X, 0.05, 0.4]];
+  const spawns: [Vec3, Vec3] = [[-SPAWN_X, 0.05, 0], [SPAWN_X, 0.05, 0]];
   return {
     id: 'galion',
     voidY: -5,

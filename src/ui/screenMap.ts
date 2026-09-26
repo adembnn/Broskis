@@ -1,6 +1,7 @@
 // Choix de l'arène (lot LUX) : 3 grandes vignettes peintes aux couleurs de chaque map (mapThumbs.ts), nom, danger
 // en une ligne. Un clic = on y va (un seul appel à l'action). Clavier : 1 2 3.
 import type { MapId } from '../core/types';
+import { preloadMap } from '../core/preload';
 import { clear, el, menuScreen } from './dom';
 import { kbd } from './keys';
 import { mapThumbSvg } from './mapThumbs';
@@ -14,6 +15,10 @@ function mapTile(preset: (typeof MAP_PRESETS)[number], index: number, onPick: ()
   const name = el('div', 'map-tile-head');
   name.append(kbd(String(index + 1)), el('h3', 'b-title map-tile-name', preset.name));
   tile.append(art, name, el('p', 'map-tile-blurb', preset.blurb));
+  // LLOAD : survol ou focus = intention (instant.page) → la map se charge avant le clic.
+  const warm = () => preloadMap(preset.id);
+  tile.addEventListener('pointerenter', warm);
+  tile.addEventListener('focus', warm);
   tile.addEventListener('click', onPick);
   tile.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') {

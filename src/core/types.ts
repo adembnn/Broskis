@@ -152,6 +152,10 @@ export interface GameHooks {
   action(text: string): void;
   animCamera?(player: PlayerId, shot: 'side' | 'front' | 'threeQuarter'): void;
   animPlay?(player: PlayerId, action: 'idle' | 'walk' | 'run' | 'jump' | 'throw' | 'blaster' | 'shield' | 'hitFront' | 'hitBack' | 'ko' | 'teeter' | 'parry'): void;
+  /** Lot LSCAN-PERSO : pont de test headless vers le pipeline photo -> combattant (src/ia/fighter). Charge
+   *  l'image à `url` (data URL ou chemin servi, ex. /tmp-test/face.png), la fait scanner par Gemini, et pose
+   *  le résultat dans state.players[player].fighter — prêt pour un hooks.startMatch() qui suit. */
+  scanFighterFromUrl?(url: string, player: PlayerId): void;
 }
 
 export interface AnimSample {

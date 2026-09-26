@@ -3,10 +3,10 @@
 // La photo réellement capturée est gardée à part (photos, par id d'arme) : le contrat Weapon ne la porte pas,
 // mais la présentation (règle 5 du DA) veut la vraie preuve webcam sur la carte.
 import type { Category, PlayerId, Weapon } from '../core/types';
-import { scanObject } from '../ia';
+import { primeWeapon, scanObject } from '../ia';
 import { mountCapture } from './capture';
 import { button, clear, el, menuScreen } from './dom';
-import { mountForge } from './forge';
+import { mountForgeView } from './loading';
 import { CAMERA_SVG, categoryTag } from './icons';
 import { presetsReady, weaponPresets } from './presets';
 import { weaponSticker } from './sticker2d';
@@ -71,13 +71,17 @@ async function forgeAndCard(
   slotNumber: number,
 ): Promise<Weapon> {
   clear(area);
-  const forge = mountForge(`Forging ${label}'s weapon…`);
+  // LLOAD : forge branchée sur les étapes réelles du scan (scan:progress) ; elle reste à côté de la carte jusqu'au sticker.
+  const forge = mountForgeView({ photoUrl, label });
   area.append(forge.root);
   const weapon = await scanObject(blob, category ? { category } : {});
   return new Promise((resolve) => {
     clear(area);
     const wrap = el('div', 'weapon-confirm');
-    wrap.append(
+    const pair = el('div', 'lload-pair');
+    wrap.append(pair);
+    pair.append(forge.root);
+    pair.append(
       renderWeaponCard(weapon, {
         player,
         cardNumber: slotNumber,
@@ -151,6 +155,7 @@ function pickArsenal(screenLayer: HTMLElement, player: PlayerId, photos: Map<str
   function assign(weapon: Weapon, photoUrl?: string) {
     const slotIndex = current;
     const cloned: Weapon = { ...weapon, id: `${weapon.id}-p${player}-${slotIndex}` };
+    void primeWeapon(cloned); // LLOAD : sa réplique de pesée se vocalise dès maintenant, pas à la présentation
     slots[slotIndex] = cloned;
     if (photoUrl) photos.set(cloned.id, photoUrl);
     const next = slots.findIndex((w) => !w);

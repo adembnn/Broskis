@@ -25,6 +25,9 @@ interface ScanObjectRequest {
   imageBase64: string;
   mimeType?: string;
   category?: Category;
+  /** Lot LLOAD : true = réponse immédiate { jobId }, puis relève du texte partiel avec { jobId }. */
+  stream?: boolean;
+  jobId?: string;
 }
 
 /** Le photo montre une vraie arme / une personne : on répond quand même 200, avec une arme de secours drôle. */
@@ -96,49 +99,97 @@ const handler: ApiHandler<ScanObjectRequest> = async ({ body, env }) => {
     ? (body.category as Category)
     : undefined;
 
+  const request = {
+    model: GEMINI_TEXT_MODEL,
+    contents: [
+      {
+        role: 'user',
+        parts: [
+          { text: buildPrompt(forcedCategory) },
+          { inlineData: { mimeType: body.mimeType || mimeType, data } },
+        ],
+      },
+    ],
+    config: {
+      thinkingConfig: { thinkingBudget: 0 },
+      responseMimeType: 'application/json',
+      responseSchema: RESPONSE_SCHEMA,
+      abortSignal: serverTimeout(10_000),
+    },
+  };
+
   try {
     const ai = new GoogleGenAI({ apiKey });
-    const res = await ai.models.generateContent({
-      model: GEMINI_TEXT_MODEL,
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            { text: buildPrompt(forcedCategory) },
-            { inlineData: { mimeType: body.mimeType || mimeType, data } },
-          ],
-        },
-      ],
-      config: {
-        thinkingConfig: { thinkingBudget: 0 },
-        responseMimeType: 'application/json',
-        responseSchema: RESPONSE_SCHEMA,
-        abortSignal: serverTimeout(10_000),
-      },
-    });
-
-    const raw = JSON.parse(res.text ?? '{}');
-    const category = clampCategory(raw.category, forcedCategory);
-    const weapon = {
-      object: clampObject(raw.object),
-      weaponName: clampWeaponName(raw.weaponName),
-      category,
-      why: clampWhy(raw.why),
-      stats: clampStats(raw.stats),
-      trait: clampTrait(raw.trait, category.length),
-      palette: clampPalette(raw.palette),
-      lines: clampLines(raw.lines),
-    };
-
-    if (looksUnsafe(weapon.object, weapon.weaponName, weapon.why)) {
-      return ok(safeSubstitute(forcedCategory));
-    }
-
-    return ok(weapon);
+    if (body.stream) return ok({ jobId: startStream(ai, request, forcedCategory) });
+    const res = await ai.models.generateContent(request);
+    return ok(finalize(JSON.parse(res.text ?? '{}'), forcedCategory));
   } catch (err) {
     console.error('[api/scan-object]', err);
     return fail(502, `gemini error: ${(err as Error)?.message ?? err}`);
   }
 };
 
-export default handler;
+/** Le code arbitre : tout ce qui sort de Gemini est borné ici, flux ou pas. */
+function finalize(raw: Record<string, unknown>, forcedCategory?: Category) {
+  const category = clampCategory(raw.category, forcedCategory);
+  const weapon = {
+    object: clampObject(raw.object),
+    weaponName: clampWeaponName(raw.weaponName),
+    category,
+    why: clampWhy(raw.why),
+    stats: clampStats(raw.stats),
+    trait: clampTrait(raw.trait, category.length),
+    palette: clampPalette(raw.palette),
+    lines: clampLines(raw.lines),
+  };
+  return looksUnsafe(weapon.object, weapon.weaponName, weapon.why) ? safeSubstitute(forcedCategory) : weapon;
+}
+
+// ---------------------------------------------------------------------------
+// Lot LLOAD : réponse au fil de l'eau (generateContentStream). Le serveur de dev (vite.config.ts) ne renvoie que
+// des réponses entières : on garde donc le texte partiel ici, et le navigateur le relève en « long polling »
+// ({ jobId } : la requête attend jusqu'à 400 ms qu'un nouveau morceau arrive). Le résultat final est borné
+// par finalize, exactement comme sans flux. Un jobId inconnu (redémarrage, autre instance) → 404, le client
+// retombe alors sur l'appel classique.
+// ---------------------------------------------------------------------------
+interface StreamJob { text: string; done: boolean; result?: unknown; error?: string; startedAt: number }
+const jobs = new Map<string, StreamJob>();
+const JOB_TTL_MS = 60_000;
+const POLL_WAIT_MS = 400;
+
+function startStream(ai: GoogleGenAI, request: Parameters<GoogleGenAI['models']['generateContentStream']>[0], forcedCategory?: Category): string {
+  const now = Date.now();
+  for (const [k, j] of jobs) if (now - j.startedAt > JOB_TTL_MS) jobs.delete(k);
+  const id = `${now.toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  const job: StreamJob = { text: '', done: false, startedAt: now };
+  jobs.set(id, job);
+  void (async () => {
+    try {
+      const stream = await ai.models.generateContentStream(request);
+      for await (const chunk of stream) job.text += chunk.text ?? '';
+      job.result = finalize(JSON.parse(job.text || '{}'), forcedCategory);
+    } catch (err) {
+      console.error('[api/scan-object] stream', err);
+      job.error = String((err as Error)?.message ?? err);
+    } finally {
+      job.done = true;
+    }
+  })();
+  return id;
+}
+
+async function pollStream(jobId: string) {
+  const job = jobs.get(jobId);
+  if (!job) return fail(404, 'unknown job');
+  const seen = job.text.length;
+  const t0 = Date.now();
+  while (!job.done && job.text.length === seen && Date.now() - t0 < POLL_WAIT_MS) await new Promise((r) => setTimeout(r, 25));
+  if (job.done) jobs.delete(jobId);
+  // Le texte partiel n'est qu'un aperçu : le client le nettoie (sanitize.ts) avant de l'afficher.
+  return ok({ text: job.text, done: job.done, result: job.result ?? null, error: job.error ?? null });
+}
+
+const withPolling: ApiHandler<ScanObjectRequest> = async (req) =>
+  typeof req.body?.jobId === 'string' ? pollStream(req.body.jobId) : handler(req);
+
+export default withPolling;
