@@ -1,123 +1,100 @@
-// Caisse Snap : annoncée (`crate:warn`) tous les 2 à 3 tours, se pose au tour suivant (`crate:land`),
-// se ramasse en marchant dessus (`crate:grab`) → phase `snap-time` (10 s) → `scan:start` → au `scan:result`,
-// remplace l'arme choisie (touches 1/2/3, ou la plus ancienne après 10 s). Sans résultat en 10 s : retour au tour.
+// Caisse Snap en temps réel : toutes les 35 s de combat, son ombre est annoncée (`crate:warn`), elle tombe 3 s
+// plus tard (`crate:land`) ; le premier qui la touche (`crate:grab`) reçoit INSTANTANÉMENT une arme bonus
+// (objet déjà scanné ou du cache, via src/ia), qui remplace son arme choisie. Aucune pause.
 import type { Ctx, PlayerId, Vec3, Weapon } from '../core/types';
 import { scanObject } from '../ia';
-import { raycastDown } from './character';
-import { cancelGestureTimer, setPhase } from './phases';
+import { getCrateSpots } from '../scene/maps/api';
+import { getArena, groundYBelow } from './arena';
+import { inFight } from './phases';
 import { getRuntime } from './runtime';
-import { CRATE_ARENA_HALF_SIZE, CRATE_INTERVAL_TURNS, CRATE_PICKUP_RADIUS, SNAP_TIME_S } from './tuning';
+import { CRATE_PICKUP_RADIUS, RT } from './tuning';
+
+let crateCount = 0;
 
 function pickCratePosition(ctx: Ctx): Vec3 {
-  const x = ctx.rng.range(-CRATE_ARENA_HALF_SIZE, CRATE_ARENA_HALF_SIZE);
-  const z = ctx.rng.range(-CRATE_ARENA_HALF_SIZE, CRATE_ARENA_HALF_SIZE);
-  const probeFrom = 20;
-  const dist = raycastDown(ctx, [x, probeFrom, z], 40);
-  return [x, dist != null ? probeFrom - dist : 0, z];
+  const spots = getCrateSpots();
+  if (spots.length) {
+    const s = spots[ctx.rng.int(0, spots.length - 1)];
+    return [s[0], s[1], s[2]];
+  }
+  const a = getArena(ctx);
+  const ang = ctx.rng.range(0, Math.PI * 2);
+  const r = ctx.rng.range(0, a.radius * 0.6);
+  const x = a.center[0] + Math.cos(ang) * r, z = a.center[2] + Math.sin(ang) * r;
+  const y = groundYBelow(ctx, [x, a.top + 10, z], 20);
+  return [x, y ?? a.top, z];
 }
 
-function scheduleNextWarn(ctx: Ctx): void {
-  getRuntime().nextCrateWarnTurn = ctx.state.turn + ctx.rng.int(CRATE_INTERVAL_TURNS[0], CRATE_INTERVAL_TURNS[1]);
-}
-
-/** À brancher sur `turn:start` : fait vivre le cycle annonce → atterrissage de la caisse. */
-function onTurnStart(ctx: Ctx, turn: number): void {
-  const rt = getRuntime();
+function grab(ctx: Ctx, player: PlayerId): void {
   const crate = ctx.state.crate;
-  if (crate && !crate.landed) {
-    crate.landsInTurns -= 1;
-    if (crate.landsInTurns <= 0) {
-      crate.landed = true;
-      ctx.bus.emit('crate:land', { pos: crate.pos });
-    }
-    return;
-  }
-  if (!crate && turn === rt.nextCrateWarnTurn) {
-    const pos = pickCratePosition(ctx);
-    ctx.state.crate = { pos, landsInTurns: 1, landed: false };
-    ctx.bus.emit('crate:warn', { pos });
-  }
-}
-
-function oldestSlotIndex(player: PlayerId): number {
-  const acquired = getRuntime().players[player].weaponAcquiredTurn;
-  let best = 0;
-  for (let i = 1; i < acquired.length; i++) if (acquired[i] < acquired[best]) best = i;
-  return best;
-}
-
-function applyScannedWeapon(ctx: Ctx, player: PlayerId, weapon: Weapon, slot: number): void {
-  ctx.state.players[player].weapons[slot] = weapon;
-  getRuntime().players[player].weaponAcquiredTurn[slot] = ctx.state.turn;
-}
-
-function finishSnap(ctx: Ctx): void {
-  const rt = getRuntime();
-  if (rt.snapSettled) return;
-  rt.snapSettled = true;
-  if (rt.cancelSnap) { rt.cancelSnap(); rt.cancelSnap = null; }
-  if (ctx.state.phase === 'snap-time') setPhase(ctx, rt.resumePhaseAfterSnap);
-}
-
-/** Touche 1/2/3 pendant `snap-time` : choisit l'emplacement qui recevra l'arme scannée. */
-export function chooseSnapSlot(ctx: Ctx, index: number): void {
-  if (ctx.state.phase !== 'snap-time') return;
-  const rt = getRuntime();
-  rt.snapReplaceIndex = index;
-  if (rt.pendingScannedWeapon) {
-    applyScannedWeapon(ctx, ctx.state.active, rt.pendingScannedWeapon, index);
-    finishSnap(ctx);
-  }
-}
-
-function enterSnapTime(ctx: Ctx, player: PlayerId): void {
-  const rt = getRuntime();
-  rt.resumePhaseAfterSnap = ctx.state.phase === 'aim' ? 'aim' : 'move';
-  rt.snapReplaceIndex = null;
-  rt.pendingScannedWeapon = null;
-  rt.snapSettled = false;
-  cancelGestureTimer();
-  setPhase(ctx, 'snap-time');
-  ctx.bus.emit('scan:start', { player, source: 'crate' });
-
-  const timeoutId = setTimeout(() => {
-    const p = rt.pendingScannedWeapon;
-    if (p) applyScannedWeapon(ctx, player, p, rt.snapReplaceIndex ?? oldestSlotIndex(player));
-    finishSnap(ctx);
-  }, SNAP_TIME_S * 1000);
-  rt.cancelSnap = () => clearTimeout(timeoutId);
-
-  // Stub du lot LI (src/ia) : renvoie une arme factice quasi instantanément. Un appel IA qui échoue
-  // ne bloque jamais le jeu (skill ia-en-jeu) : sans réponse avant les 10 s, on ne change rien.
-  scanObject(`crate:${player}:${ctx.state.turn}`, { player }).then((weapon) => {
-    if (rt.snapSettled) return;
-    rt.pendingScannedWeapon = weapon;
-    ctx.bus.emit('scan:result', { player, weapon });
-    if (rt.snapReplaceIndex != null) {
-      applyScannedWeapon(ctx, player, weapon, rt.snapReplaceIndex);
-      finishSnap(ctx);
-    }
-  }).catch(() => {});
-}
-
-function grabCrate(ctx: Ctx, player: PlayerId): void {
-  if (!ctx.state.crate || !ctx.state.crate.landed) return;
+  if (!crate || !crate.landed) return;
   ctx.state.crate = null;
-  scheduleNextWarn(ctx);
   ctx.bus.emit('crate:grab', { player });
-  enterSnapTime(ctx, player);
+  const rt = getRuntime();
+  const give = (weapon: Weapon) => {
+    if (!inFight(ctx)) return;
+    const ps = ctx.state.players[player];
+    const slot = ps.selected;
+    ps.weapons[slot] = { ...weapon, cooldown: 0 };
+    ps.cooldowns[slot] = 0;
+    ctx.bus.emit('weapon:pick', { player, index: slot });
+    ctx.bus.emit('weapon:ready', { player, index: slot });
+  };
+  if (rt.crateWeapon) { give(rt.crateWeapon); rt.crateWeapon = null; return; }
+  // Sans arme préparée : clé de cache locale, résolue sans réseau (quasi instantané).
+  scanObject(`crate:${player}:${crateCount}`, { player }).then(give).catch(() => {});
 }
 
-/** Appelé après chaque déplacement (movement.ts) : ramasse la caisse si on marche dessus. */
+/** Système : minuterie de la caisse (temps de combat) et ramassage au contact. */
+export function stepCrate(ctx: Ctx): void {
+  if (!inFight(ctx)) return;
+  const rt = getRuntime();
+  if (!ctx.state.crate && rt.fightTime >= rt.nextCrateAt) {
+    rt.nextCrateAt = rt.fightTime + RT.crateEveryS;
+    crateCount += 1;
+    const pos = pickCratePosition(ctx);
+    ctx.state.crate = { pos, landsInTurns: 0, landed: false };
+    ctx.bus.emit('crate:warn', { pos });
+    // Arme bonus préparée pendant l'annonce : le ramassage sera instantané.
+    rt.crateWeapon = null;
+    const seq = rt.matchSeq;
+    scanObject(`crate:${crateCount}`, {}).then((w) => { if (getRuntime().matchSeq === seq) getRuntime().crateWeapon = w; }).catch(() => {});
+    ctx.loop.later(RT.crateWarnS, () => {
+      const c = ctx.state.crate;
+      if (getRuntime().matchSeq !== seq || !c || c.landed) return;
+      c.landed = true;
+      ctx.bus.emit('crate:land', { pos: c.pos });
+    });
+  }
+  const crate = ctx.state.crate;
+  if (!crate || !crate.landed) return;
+  for (const p of [0, 1] as const) {
+    if (getRuntime().players[p].dead) continue;
+    const pos = ctx.state.players[p].pos;
+    if (Math.hypot(pos[0] - crate.pos[0], pos[2] - crate.pos[2]) <= CRATE_PICKUP_RADIUS && Math.abs(pos[1] - crate.pos[1]) < 1.5) {
+      grab(ctx, p);
+      return;
+    }
+  }
+}
+
+/** Appelé après un déplacement (movement.ts) : ramassage immédiat. */
 export function checkCratePickup(ctx: Ctx, player: PlayerId): void {
   const crate = ctx.state.crate;
   if (!crate || !crate.landed) return;
   const pos = ctx.state.players[player].pos;
-  const d = Math.hypot(pos[0] - crate.pos[0], pos[2] - crate.pos[2]);
-  if (d <= CRATE_PICKUP_RADIUS) grabCrate(ctx, player);
+  if (Math.hypot(pos[0] - crate.pos[0], pos[2] - crate.pos[2]) <= CRATE_PICKUP_RADIUS) grab(ctx, player);
 }
 
 export function install(ctx: Ctx): void {
-  ctx.bus.on('turn:start', ({ turn }) => onTurnStart(ctx, turn));
-  ctx.hooks.grabCrate = () => grabCrate(ctx, ctx.state.active);
+  ctx.bus.on('match:start', () => {
+    crateCount = 0;
+    getRuntime().nextCrateAt = RT.crateEveryS;
+  });
+  ctx.hooks.grabCrate = () => {
+    // Test : pose la caisse sous les pieds de P1 et la ramasse.
+    const pos = ctx.state.players[0].pos;
+    ctx.state.crate = { pos: [pos[0], pos[1], pos[2]], landsInTurns: 0, landed: true };
+    grab(ctx, 0);
+  };
 }
