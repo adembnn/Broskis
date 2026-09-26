@@ -10,6 +10,10 @@
   Then knock your bro off the arena: split screen, one keyboard, real time.
 </p>
 
+<p align="center">
+  <a href="https://broskis-dun.vercel.app"><b>▶ Play it now: broskis-dun.vercel.app</b></a>
+</p>
+
 ---
 
 ## The pitch in 10 seconds
