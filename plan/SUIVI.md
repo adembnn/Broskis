@@ -22,6 +22,6 @@ Réserver une ligne **avant** de commencer : nom + heure, commit + push de ce fi
 | LAN | Animation vivante façon Smash | élevé | **Gemini** (CLI) | LA | en cours | Gemini 13h20 | Gemini CLI, branche gem/LAN |
 | DASH | Tableau de bord en direct (localhost:4545) | nul | **Gemini** (CLI) | — | en cours | Gemini 13h20 | npm run dashboard |
 | LBAL | Simulateur d'équilibrage + 4 niveaux de difficulté | nul | **Gemini** (CLI) | LG | en cours | Gemini 13h20 | évalué par l'agent equilibreur |
-| LBK | Banque de voix « barks » (Gemini TTS Fenrir…) + lecteur | faible | **Titouan** | LV | à prendre | | demande la clé Gemini à Adem en privé |
+| LBK | Banque de voix « barks » (Gemini TTS Fenrir…) + lecteur | faible | **Titouan** | LV | en cours | Titouan (Claude, sous-agent) 13h25 | Clé Gemini déjà en .env local |
 | LX | Adversaire IA (vague 2) | moyen | Adem | LG | à prendre | | |
 | LW | Scandex + voix clonée (vague 2) | faible | **Titouan** (Scandex) · Gemini (voix clonée) | LI, LU | à prendre | | |
