@@ -57,15 +57,18 @@ const fluxFile = path.join(DASHBOARD_DIR, 'logs', `${nom}.jsonl`);
 const t0 = Date.now();
 log({ source: 'gemini', kind: mode, status: 'en-cours', lot: id, model: MODEL, title: mode === 'lot' ? `Gemini code le lot ${id}` : `Gemini joue l'agent ${id}`, branche, flux: path.relative(ROOT, fluxFile) });
 const flux = fs.createWriteStream(fluxFile);
-const child = spawn('gemini', ['--skip-trust', '--approval-mode', 'yolo', '-m', MODEL, '-o', 'stream-json', '-p', prompt], {
+// La consigne passe par stdin : sous Windows, le shell découperait un long argument en morceaux.
+const child = spawn('gemini', ['--skip-trust', '--approval-mode', 'yolo', '-m', MODEL, '-o', 'stream-json', '-p', 'GO'], {
   cwd: wt, shell: true, env: { ...process.env, GEMINI_CLI_TRUST_WORKSPACE: 'true' },
 });
+child.stdin.write(`${prompt}\n\n`);
+child.stdin.end();
 child.stdout.pipe(flux);
 child.stderr.on('data', (d) => flux.write(JSON.stringify({ type: 'stderr', text: String(d) }) + '\n'));
 child.on('close', (code) => {
   const minutes = ((Date.now() - t0) / 60000).toFixed(1);
   let resume = '';
-  try { resume = sh(`git log --oneline HEAD ^main`, wt).trim(); } catch {}
+  try { resume = sh(`git log --oneline main..HEAD`, wt).trim(); } catch {}
   if (mode === 'agent') {
     fs.mkdirSync(path.join(ROOT, 'reports'), { recursive: true });
     for (const f of fs.readdirSync(path.join(wt, 'reports')).filter((x) => x.endsWith('.md'))) {
