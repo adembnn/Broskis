@@ -52,9 +52,12 @@ const browser = await chromium.launch({ headless: false, args: [...gpuArgs, ...a
 
 // Instruments posés AVANT le jeu : intervalles entre images, tâches longues, longues frames (avec le script fautif).
 const INSTRUMENTS = () => {
-  const P = (window.__perf = { rec: false, frames: [], long: [], loaf: [] });
+  const P = (window.__perf = { rec: false, frames: [], fins: [], long: [], loaf: [], progs: [] });
   let last = 0;
-  const f = (t) => { if (P.rec && last) P.frames.push(t - last); last = t; requestAnimationFrame(f); };
+  const f = (t) => {
+    if (P.rec && last) { P.frames.push(t - last); P.fins.push(t); window.__rinfoFrame?.(t); }
+    last = t; requestAnimationFrame(f);
+  };
   requestAnimationFrame(f);
   try {
     new PerformanceObserver((l) => { if (P.rec) for (const e of l.getEntries()) P.long.push(Math.round(e.duration)); })
@@ -64,7 +67,7 @@ const INSTRUMENTS = () => {
     new PerformanceObserver((l) => {
       if (!P.rec) return;
       for (const e of l.getEntries()) {
-        P.loaf.push({ d: Math.round(e.duration), scripts: (e.scripts || []).map((s) => ({
+        P.loaf.push({ s: e.startTime, d: Math.round(e.duration), scripts: (e.scripts || []).map((s) => ({
           d: Math.round(s.duration), f: s.sourceFunctionName, u: (s.sourceURL || '').replace(location.origin, ''), inv: s.invoker,
         })) });
       }
@@ -103,12 +106,27 @@ const COMPTEUR_RENDU = (toggles) => {
   if (toggles.includes('nobloom')) c.three.render = () => r.render(c.three.scene, c.three.camera);
   if (toggles.includes('noshadow')) { r.shadowMap.autoUpdate = false; r.shadowMap.needsUpdate = true; }
   if (toggles.includes('pr1')) { r.setPixelRatio(1); window.dispatchEvent(new Event('resize')); }
-  const orig = c.three.render;
+  // Relevé au début de chaque image (le rAF des instruments passe avant celui du jeu) : compte toute l'image
+  // précédente, quel que soit le chemin de rendu (post-traitement ou rendu direct en qualité basse).
   const S = (window.__rinfo = { calls: [], tris: [] });
-  c.three.render = () => {
+  let nProg = r.info.programs.length;
+  window.__rinfoFrame = (t) => {
+    S.calls.push(r.info.render.calls); S.tris.push(r.info.render.triangles);
     r.info.reset();
-    orig();
-    if (window.__perf.rec) { S.calls.push(r.info.render.calls); S.tris.push(r.info.render.triangles); }
+    const progs = r.info.programs;
+    if (progs.length > nProg) {
+      // Qui a demandé ces shaders ? On cherche les objets dont le matériau utilise un des nouveaux programmes.
+      const neufs = new Set(progs.slice(nProg));
+      const noms = [];
+      c.three.scene.traverse((o) => {
+        for (const m of [].concat(o.material || [])) {
+          const pr = r.properties.get(m)?.currentProgram;
+          if (pr && neufs.has(pr)) noms.push(`${o.name || o.parent?.name || o.type}:${m.type}${m.name ? '/' + m.name : ''}`);
+        }
+      });
+      window.__perf.progs.push({ t, noms: noms.length ? noms : progs.slice(nProg).map((p) => p.name || '?') });
+    }
+    nProg = progs.length;
   };
   window.__perfSys = {}; // chrono par système de la boucle (src/core/loop.ts)
 };
@@ -194,7 +212,7 @@ for (const map of MAPS) {
   // Les frames du chargement sont gardées à part : on repart de zéro pour le match lui-même.
   const framesChargement = await page.evaluate(() => {
     const f = window.__perf.frames; const l = window.__perf.long;
-    window.__perf.frames = []; window.__perf.long = []; window.__perf.loaf = [];
+    window.__perf.frames = []; window.__perf.fins = []; window.__perf.long = []; window.__perf.loaf = []; window.__perf.progs = [];
     window.__rinfo.calls = []; window.__rinfo.tris = []; window.__perfSys = {};
     return { pire: Math.round(Math.max(0, ...f)), sup50: f.filter((x) => x > 50).length, longues: l };
   });
@@ -229,6 +247,16 @@ for (const map of MAPS) {
     clearInterval(window.__pilote);
     P.rec = false;
     const loafPires = [...P.loaf].sort((a, b) => b.d - a.d).slice(0, 5);
+    // Images > 50 ms : de nouveaux shaders ont-ils été compilés pendant cette image-là ?
+    const pics = [];
+    P.frames.forEach((ms, i) => {
+      if (ms <= 50) return;
+      const ev = P.progs.find((e) => e.t === P.fins[i]);
+      const lf = P.loaf.find((l) => l.s < P.fins[i] && l.s + l.d > P.fins[i] - ms);
+      const scripts = lf ? lf.scripts.filter((x) => x.d >= 5).map((x) => `${x.f || x.inv}${x.u ? ' ' + x.u.split('/').pop() : ''} ${x.d}ms`) : [];
+      pics.push({ ms: Math.round(ms), nouveauxShaders: ev ? ev.noms : [], scripts });
+    });
+    const shadersEnMatch = P.progs.reduce((n, e) => n + e.noms.length, 0);
     const res = performance.getEntriesByType('resource');
     const parType = {};
     for (const e of res) {
@@ -249,7 +277,7 @@ for (const map of MAPS) {
       reseau: parType,
       canvas: [r.domElement.width, r.domElement.height],
       tour: window.ctx.state.turn, phase: window.ctx.state.phase,
-      msParSystemeParFrame: sys, pireFrameParSysteme: sysPire,
+      msParSystemeParFrame: sys, pireFrameParSysteme: sysPire, pics, shadersEnMatch,
       qualite: window.__qualite ? { niveau: window.__qualite.niveau, medianeMs: window.__qualite.medianeMs } : null,
     };
   });
@@ -268,6 +296,8 @@ for (const map of MAPS) {
     toursJoues: mesure.tour, phaseFinale: mesure.phase,
     msParSystemeParFrame: mesure.msParSystemeParFrame,
     pireFrameParSysteme: mesure.pireFrameParSysteme,
+    shadersCompilesPendantLeMatch: mesure.shadersEnMatch,
+    imagesSup50ms: mesure.pics,
     qualite: mesure.qualite,
     longuesFramesPires: mesure.loafPires,
     profil,
@@ -282,6 +312,8 @@ for (const map of MAPS) {
   console.log(`  chargement : page ${chargement.pageMs} ms · 1er tour ${chargement.premierTourMs} ms · map stable ${chargement.mapStableMs} ms · pire frame au chargement ${framesChargement.pire} ms`);
   console.log(`  systèmes (ms/frame) : ${r.msParSystemeParFrame.slice(0, 8).map(([k, v]) => `${k} ${v}`).join(' · ')}`);
   console.log(`  pire frame par système (ms) : ${r.pireFrameParSysteme.slice(0, 6).map(([k, v]) => `${k} ${v}`).join(' · ')}${r.qualite ? ` · qualité ${r.qualite.niveau} (médiane ${r.qualite.medianeMs?.toFixed?.(1)} ms)` : ''}`);
+  console.log(`  shaders compilés pendant le match : ${r.shadersCompilesPendantLeMatch} · images > 50 ms : ${r.imagesSup50ms.length || 'aucune'}`);
+  for (const p of r.imagesSup50ms.slice(0, 8)) console.log(`    ${p.ms} ms${p.nouveauxShaders.length ? ` · shaders : ${[...new Set(p.nouveauxShaders)].slice(0, 4).join(', ')}` : ''}${p.scripts.length ? ` · scripts : ${p.scripts.slice(0, 3).join(', ')}` : ''}`);
   if (profil) console.log('  profil CPU (temps propre) :\n    ' + profil.slice(0, 15).join('\n    '));
   if (erreurs.length) console.log(`  erreurs : ${erreurs.slice(0, 3).join(' | ')}`);
   await context.close();
