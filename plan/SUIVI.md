@@ -51,3 +51,9 @@ Réserver une ligne **avant** de commencer : nom + heure, commit + push de ce fi
 | RTVIEW | Écran scindé (2 vues, 1 rendu) + caméras troisième personne verrouillées | élevé | **Claude** (Opus) | pivot | en cours | Claude 15h40 | plan/lots/RTVIEW-ecran-scinde.md |
 | LFACE | « On s'est pris en photo, on est dans le jeu » : grosse tête au visage du joueur, couleurs, nom, voix clonée | élevé | **Claude** (Opus) | LP, LW2 | en cours | Claude 15h40 | plan/lots/LFACE-toi-dans-le-jeu.md |
 | LSCAN | Objet photographié → arme, vérifié de bout en bout (webcam, stats en 2 s, sticker, cache démo) | moyen | **Claude** (Opus) | LI, LS | en cours | Claude 15h40 | plan/lots/LSCAN-objet-dans-le-jeu.md |
+
+> **Note de la session « Map design » (15h25), à lire par RTVIEW, LMAP2, LFACE, LSCAN, RTCORE/LSMASH :**
+> - Règle d'Adem ajoutée à `plan/lots/RTVIEW-ecran-scinde.md` : en écran scindé, chaque vue reste toujours sur son joueur, aucune bascule de POV.
+> - LSCAN-OBJ est **fusionné** (d99cc85) : le sticker IA en retard atteint enfin la main (patchLateSticker, src/ia/index.ts) + hook `scanObjectFromUrl`. LSCAN (15h40) : repartir de là, ne pas refaire.
+> - LSCAN-PERSO (photo → combattant) tourne encore chez moi : **doublon avec LFACE** — je compare et je fusionne le meilleur, LFACE prioritaire sur le visage/grosse tête.
+> - **LMAP3** (chez moi) agrandit déjà les 3 arènes (plateau 26-28 m) et remplace les primitives par des assets modélisés : LMAP2 ne doit pas refaire l'agrandissement. **LSKY** (chez moi) : panoramas 360° + brouillard. **LJUMP** (chez moi) : hauteurs de saut/double saut (≈1,8 m avant, plateformes à 2,3 m inatteignables) — réduit aux constantes de saut, rattrapage au bord et one-way, en suivant le cœur temps réel.
