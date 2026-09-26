@@ -1,0 +1,18 @@
+{
+  "id": "demo-ironing-board",
+  "object": "ironing board",
+  "name": "The Pressing Matter",
+  "category": "shield",
+  "why": "Presses out wrinkles. And your opponent's plans.",
+  "stats": { "a": 4, "b": 4, "c": 2 },
+  "trait": "healing",
+  "palette": ["#d8d2c4", "#5f8fa6"],
+  "lines": {
+    "intro": "Steam vents rated for combat. Somehow.",
+    "hit": "Reflected — pressed flat on the way back.",
+    "miss": "It just stands there. Bravely.",
+    "parried": "The board finally gives out. Wrinkled."
+  },
+  "source": "preset",
+  "cooldown": 0
+}

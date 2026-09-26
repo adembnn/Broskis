@@ -1,0 +1,18 @@
+{
+  "id": "demo-baguette",
+  "object": "baguette",
+  "name": "The Stale Mate",
+  "category": "throwable",
+  "why": "Day-old and rock hard. A bakery's fault, not ours.",
+  "stats": { "a": 3, "b": 5, "c": 2 },
+  "trait": "bouncy",
+  "palette": ["#a15c2e", "#e8c987"],
+  "lines": {
+    "intro": "Fresh from the oven. Or last Tuesday.",
+    "hit": "CRACK! That's stale-bread violence.",
+    "miss": "Crumbs. Just crumbs.",
+    "parried": "Snapped back — still somehow whole."
+  },
+  "source": "preset",
+  "cooldown": 0
+}
