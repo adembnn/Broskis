@@ -1,12 +1,13 @@
 // Sert les fonctions api/*.ts (format Vercel : export default async function handler({body, env})) en
-// développement, sans dépendance à Express (lot LI, plan/lots/LI-pipeline-ia.md). Les clés viennent de
+// développement et sous `vite preview` (build de démo : npm run demo), sans dépendance à Express (lot LI,
+// plan/lots/LI-pipeline-ia.md). Les clés viennent de
 // .env via loadEnv et ne passent JAMAIS par import.meta.env / VITE_* (elles ne doivent jamais atteindre
 // le bundle envoyé au navigateur) : chaque handler les reçoit explicitement dans `env`.
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { fileURLToPath } from 'node:url';
-import { defineConfig, loadEnv, type Plugin, type ViteDevServer } from 'vite';
+import { defineConfig, loadEnv, runnerImport, type Plugin, type PreviewServer, type ViteDevServer } from 'vite';
 import type { ApiHandler, ApiResponse } from './api/_types.ts';
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
@@ -50,37 +51,60 @@ function sendResponse(res: ServerResponse, result: ApiResponse) {
   }
 }
 
-/** Plugin dev-only : /api/<nom> -> ssrLoadModule('/api/<nom>.ts').default({ body, env }). */
-function apiDevServerPlugin(env: Record<string, string>): Plugin {
+type Middleware = (req: IncomingMessage, res: ServerResponse, next: () => void) => void;
+
+/** /api/<nom> -> charger('<nom>')({ body, env }). Commun au serveur de dev et à `vite preview`. */
+function apiMiddleware(env: Record<string, string>, charger: (name: string) => Promise<ApiHandler | undefined>): Middleware {
+  return async (req, res, next) => {
+    const url = req.url ? new URL(req.url, 'http://localhost') : null;
+    const match = url ? API_ROUTE.exec(url.pathname) : null;
+    if (!match) return next();
+    const name = match[1];
+    if (name.startsWith('_') || !existsSync(`${ROOT}api/${name}.ts`)) {
+      res.statusCode = 404;
+      res.end('Not found');
+      return;
+    }
+    try {
+      const body = await readRequestBody(req);
+      const handler = await charger(name);
+      if (typeof handler !== 'function') {
+        throw new Error(`api/${name}.ts must have a default export function`);
+      }
+      const result = await handler({ body, env });
+      sendResponse(res, result);
+    } catch (err) {
+      console.error(`[api/${name}]`, err);
+      sendResponse(res, { status: 500, json: { error: String((err as Error)?.message ?? err) } });
+    }
+  };
+}
+
+/** Plugin API : ssrLoadModule en dev ; en `vite preview` (build de démo, lot LPERF), runnerImport transpile
+ * api/<nom>.ts une seule fois puis garde le gestionnaire en mémoire. */
+function apiServerPlugin(env: Record<string, string>): Plugin {
+  const enPreview = new Map<string, Promise<ApiHandler | undefined>>();
   return {
-    name: 'broskis-api-dev-server',
+    name: 'broskis-api-server',
     configureServer(server: ViteDevServer) {
       // Appelé ici (pas dans la fonction retournée) : on s'installe AVANT les middlewares internes de
       // Vite, pour intercepter /api/* avant qu'un autre gestionnaire ne s'en mêle.
-      server.middlewares.use(async (req, res, next) => {
-        const url = req.url ? new URL(req.url, 'http://localhost') : null;
-        const match = url ? API_ROUTE.exec(url.pathname) : null;
-        if (!match) return next();
-        const name = match[1];
-        if (name.startsWith('_') || !existsSync(`${ROOT}api/${name}.ts`)) {
-          res.statusCode = 404;
-          res.end('Not found');
-          return;
+      server.middlewares.use(apiMiddleware(env, async (name) =>
+        (await server.ssrLoadModule(`/api/${name}.ts`)).default as ApiHandler | undefined));
+    },
+    configurePreviewServer(server: PreviewServer) {
+      const charger = (name: string) => {
+        let p = enPreview.get(name);
+        if (!p) {
+          p = runnerImport<{ default?: ApiHandler }>(`${ROOT}api/${name}.ts`).then((r) => r.module.default);
+          p.catch(() => enPreview.delete(name)); // une erreur de chargement ne reste pas en cache
+          enPreview.set(name, p);
         }
-        try {
-          const body = await readRequestBody(req);
-          const mod = await server.ssrLoadModule(`/api/${name}.ts`);
-          const handler = mod.default as ApiHandler | undefined;
-          if (typeof handler !== 'function') {
-            throw new Error(`api/${name}.ts must have a default export function`);
-          }
-          const result = await handler({ body, env });
-          sendResponse(res, result);
-        } catch (err) {
-          console.error(`[api/${name}]`, err);
-          sendResponse(res, { status: 500, json: { error: String((err as Error)?.message ?? err) } });
-        }
-      });
+        return p;
+      };
+      // Préchauffe : sans ça, le 1er scan de la démo attend ~0,8 s de transpilation.
+      for (const f of readdirSync(`${ROOT}api`)) if (f.endsWith('.ts') && !f.startsWith('_')) void charger(f.slice(0, -3)).catch(() => {});
+      server.middlewares.use(apiMiddleware(env, charger));
     },
   };
 }
@@ -88,6 +112,20 @@ function apiDevServerPlugin(env: Record<string, string>): Plugin {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, envDir(), '');
   return {
-    plugins: [apiDevServerPlugin(env)],
+    plugins: [apiServerPlugin(env)],
+    build: {
+      // Lot LPERF : three.js et Rapier (wasm inclus) dans leurs propres fichiers, à côté du code du jeu.
+      rolldownOptions: {
+        output: {
+          codeSplitting: {
+            groups: [
+              { name: 'three', test: /node_modules[\\/]three[\\/]/ },
+              { name: 'rapier', test: /node_modules[\\/]@dimforge[\\/]/ },
+            ],
+          },
+        },
+      },
+      chunkSizeWarningLimit: 4500, // Rapier -compat embarque son wasm en base64 (4,3 Mo) : voir plan/rendus/LPERF.md
+    },
   };
 });
