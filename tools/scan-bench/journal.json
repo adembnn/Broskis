@@ -220,6 +220,121 @@
         "montre": 6.75
       },
       "reprise": true
+    },
+    {
+      "n": 11,
+      "horodatage": "2026-09-26_17h22",
+      "changement": "DA n° 4 et 5 : consigne Nano Banana de la DA (fidélité pièce par pièce, neutres, vue de face ou de profil, pas de marge dessinée) et loi de taille logarithmique (0,62 à 1,45 m) ; nouveaux appels API",
+      "moyenne": 6.11,
+      "fidelite": 6,
+      "esthetique": 5,
+      "grille": 2,
+      "injouables": 1,
+      "notes": {
+        "tasse-verre": 6.63,
+        "chaise-bureau": 6.38,
+        "feutre-velleda": 5.7,
+        "telephone": 5.13,
+        "mocassin": 6.63,
+        "tabouret-rotin": 5.5,
+        "pendule-newton": 6.5,
+        "lampe-champignon": 6.25,
+        "roi-echecs": 6,
+        "montre": 6.38
+      },
+      "reprise": false
+    },
+    {
+      "n": 12,
+      "horodatage": "2026-09-26_17h26",
+      "changement": "A/B de la tranche : couleur de l'objet (assombrie de 15 %) au lieu du vinyle ; mêmes réponses API que le n° 11",
+      "moyenne": 5.4,
+      "fidelite": 4.8,
+      "esthetique": 4.43,
+      "grille": 2,
+      "injouables": 5,
+      "notes": {
+        "tasse-verre": 5.13,
+        "chaise-bureau": 6.13,
+        "feutre-velleda": 4.83,
+        "telephone": 4.5,
+        "mocassin": 5.88,
+        "tabouret-rotin": 6.13,
+        "pendule-newton": 4.75,
+        "lampe-champignon": 5.38,
+        "roi-echecs": 5.63,
+        "montre": 5.63
+      },
+      "reprise": true
+    },
+    {
+      "n": 13,
+      "horodatage": "2026-09-26_17h28",
+      "changement": "tranche vinyle gardée (A/B : 6,11 contre 5,40) ; marge vinyle du code à 2 % au lieu de 3,5 % (elle remplissait les espaces entre les pieds) ; mêmes réponses API que le n° 11",
+      "moyenne": 6.05,
+      "fidelite": 5.5,
+      "esthetique": 5.26,
+      "grille": 2,
+      "injouables": 1,
+      "notes": {
+        "tasse-verre": 6.5,
+        "chaise-bureau": 6,
+        "feutre-velleda": 5.83,
+        "telephone": 5.63,
+        "mocassin": 6.75,
+        "tabouret-rotin": 6.25,
+        "pendule-newton": 4.75,
+        "lampe-champignon": 7,
+        "roi-echecs": 5.5,
+        "montre": 6.25
+      },
+      "reprise": true
+    },
+    {
+      "n": 14,
+      "horodatage": "2026-09-26_17h31",
+      "changement": "consigne : un objet plat montre toujours sa grande face (écran, cadran), jamais sa tranche ; tranche vinyle et marge de 3,5 % (DA) ; nouveaux appels API",
+      "moyenne": 6.08,
+      "fidelite": 5.6,
+      "esthetique": 5.03,
+      "grille": 2,
+      "injouables": 1,
+      "notes": {
+        "tasse-verre": 5.13,
+        "chaise-bureau": 6.5,
+        "feutre-velleda": 6.5,
+        "telephone": 4.88,
+        "mocassin": 6.5,
+        "tabouret-rotin": 5.38,
+        "pendule-newton": 6.38,
+        "lampe-champignon": 6.88,
+        "roi-echecs": 5.88,
+        "montre": 6.75
+      },
+      "reprise": false
+    },
+    {
+      "n": 15,
+      "horodatage": "2026-09-26_17h34",
+      "changement": "consigne : un seul exemplaire vu sous un seul angle (Nano Banana avait dessiné deux téléphones) ; nouveaux appels API",
+      "moyenne": 6.26,
+      "fidelite": 6.1,
+      "esthetique": 5.1,
+      "grille": 2,
+      "injouables": 0,
+      "notes": {
+        "tasse-verre": 5.88,
+        "chaise-bureau": 6.5,
+        "feutre-velleda": 6.38,
+        "telephone": 6.5,
+        "mocassin": 6.63,
+        "tabouret-rotin": 6.38,
+        "pendule-newton": 4.95,
+        "lampe-champignon": 6.25,
+        "roi-echecs": 6.63,
+        "montre": 6.5
+      },
+      "reprise": false
     }
   ]
 }
