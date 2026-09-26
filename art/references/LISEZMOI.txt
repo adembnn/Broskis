@@ -1,2 +1,52 @@
 Dépose ici 3 à 5 images de référence (captures de jeux, illustrations, photos d'ambiance) choisies avec le directeur artistique.
 tools/planche.mjs les place à côté de chaque capture du jeu pour juger l'écart.
+
+Le lot LD (demo/vidéo) a demandé 4 types de références :
+- un stage de Smash Bros ;
+- le style KayKit ;
+- un animateur de ring ou de show TV ;
+- une carte à collectionner cartoon.
+
+## Images déjà présentes dans ce dossier (téléchargées, licence vérifiée)
+
+1. `low-poly-arena-stage.png` — capture de l'asset pack « Low Poly Arena » (de-alpe-game-art,
+   itch.io). Sert de référence pour un stage à la Smash Bros (plateforme flottante, low poly,
+   silhouettes lisibles, contraste fort entre décor et combattants) : les vrais screenshots
+   Nintendo sont protégés par le droit d'auteur, donc évités volontairement.
+   Source : https://de-alpe-game-art.itch.io/low-poly-arena
+   Licence : « This asset pack is completely free for personal and commercial use. Giving credit
+   is not mandatory yet highly appreciated. » — donc crédit ajouté ici par précaution :
+   asset pack par de-alpe-game-art (itch.io).
+
+2. `kaykit-adventurers.png` — image de couverture officielle du pack « KayKit — Adventurers » de
+   Kay Lousberg (itch.io), référence directe pour le style visuel (low poly, couleurs plates,
+   proportions stylisées) déjà utilisé par le jeu (persos KayKit).
+   Source : https://kaylousberg.itch.io/kaykit-adventurers
+   Licence : CC0 (tous les packs KayKit sont CC0 — utilisation libre, sans attribution requise,
+   ne pas revendre tel quel).
+
+3. `ring-announcer-jimmy-lennon-jr.jpg` — photo de Jimmy Lennon Jr. (célèbre annonceur de ring de
+   boxe) en pleine annonce, micro en main, posture de présentateur — référence pour l'animateur
+   IA du jeu (pose, énergie, costume de présentateur de ring/show TV).
+   Source : Wikimedia Commons,
+   https://commons.wikimedia.org/wiki/File:Jimmy_Lennon,_Jr.,_Arthur_Abraham_and_Ulli_Wegner.jpg
+   Licence : CC BY-SA 3.0 — attribution requise si l'image est réutilisée au-delà de cette
+   référence interne (auteur : voir la page Wikimedia Commons ci-dessus).
+
+## Image manquante (à compléter par quelqu'un d'autre, secondaire — ne bloque pas la démo)
+
+4. **Carte à collectionner cartoon** (style Pokémon/Hearthstone mais libre de droits) : je n'ai
+   pas trouvé, dans le temps imparti, d'image téléchargeable automatiquement (Pixabay/Freepik/
+   Vecteezy bloquent le téléchargement direct sans compte ou rendu JS). À chercher manuellement :
+   - Termes de recherche précis : `cartoon trading card template illustration site:pixabay.com`,
+     ou `"trading card" cartoon frame border illustration CC0 -pokemon -pokémon` (éviter tout
+     visuel qui imite une franchise existante, cf. carte fictive de BROSKIS à créer ensuite) ;
+   - Alternative plus sûre : demander au directeur artistique de faire une capture d'écran de la
+     carte d'arme déjà prévue dans le jeu (`reveal` phase, cf. `plan/README.md`) une fois qu'elle
+     existe, pour comparer le style « maison » à une vraie carte à collectionner du commerce.
+   - Pixabay illustration candidate repérée mais non téléchargée : recherche
+     "card, trading card, collectible card" sur pixabay.com (illustration id 985365) — vérifier la
+     licence Pixabay (gratuite, sans attribution) avant usage si quelqu'un la récupère à la main.
+
+Un 5e visuel n'a pas été ajouté faute de temps (secondaire par rapport au script de démo et à
+`parcours.json`) ; les 3 retenues ci-dessus couvrent déjà stage, style KayKit et animateur.

@@ -1,0 +1,79 @@
+<!doctype html>
+<!--
+  Page de test du lot LS (plan/lots/LS-sticker-3d.md).
+  Ouvrir avec `npm run dev` puis http://localhost:5173/src/scene/sticker/preview.html
+  Charge les 3 vraies images de test Nano Banana Pro (public/test/stickers/), les fait tourner en 3D.
+-->
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>LS · Sticker 3D — preview</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #202020; font-family: system-ui, sans-serif; }
+      #hud { position: fixed; top: 8px; left: 8px; color: #eee; font-size: 13px; z-index: 10; }
+      canvas { display: block; }
+    </style>
+  </head>
+  <body>
+    <div id="hud">LS · sticker 3D — duck-grenade / mug-blaster / pan-shield (fallback grenade à droite)</div>
+    <script type="module">
+      import * as THREE from 'three';
+      import { makeSticker, makeFallbackSticker } from './index.ts';
+
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color('#202020');
+      scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 2));
+      const sun = new THREE.DirectionalLight(0xffffff, 2);
+      sun.position.set(4, 8, 5);
+      scene.add(sun);
+
+      const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 100);
+      camera.position.set(0, 1, 7);
+      camera.lookAt(0, 0.5, 0);
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(innerWidth, innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      const groups = [];
+      const specs = [
+        { src: '/test/stickers/duck-grenade.jpg', x: -3.6 },
+        { src: '/test/stickers/mug-blaster.jpg', x: 0 },
+        { src: '/test/stickers/pan-shield.jpg', x: 3.6 },
+      ];
+
+      const t0 = performance.now();
+      for (const spec of specs) {
+        const tStart = performance.now();
+        const g = await makeSticker(spec.src, { height: 1.4 });
+        console.log(`[LS] ${spec.src} : ${(performance.now() - tStart).toFixed(1)} ms, ${g.userData.sticker?.contourPoints ?? '?'} sommets`);
+        g.position.set(spec.x, 0.4, 0);
+        scene.add(g);
+        groups.push(g);
+      }
+      console.log(`[LS] total : ${(performance.now() - t0).toFixed(1)} ms`);
+
+      // Fallback grenade, tout à droite, pour vérifier le chemin de secours.
+      const fallback = makeFallbackSticker('grenade', ['#6E8B3D', '#3a4a1c']);
+      fallback.position.set(6.4, 0.4, 0);
+      scene.add(fallback);
+      groups.push(fallback);
+
+      window.addEventListener('resize', () => {
+        camera.aspect = innerWidth / innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(innerWidth, innerHeight);
+      });
+
+      function tick() {
+        for (const g of groups) g.rotation.y += 0.012;
+        renderer.render(scene, camera);
+        requestAnimationFrame(tick);
+      }
+      tick();
+
+      // Exposé pour capture automatique / debug (convention du harnais).
+      window.gameState = { lot: 'LS', stickers: groups.length };
+    </script>
+  </body>
+</html>
