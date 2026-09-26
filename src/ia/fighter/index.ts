@@ -76,14 +76,13 @@ function modelePour(raw: ScanFighterApiResult): ModelId {
   return 'knight';
 }
 
-async function scanner(base64: string, mimeType: string, resizeMs: number): Promise<FighterScanReport> {
-  const t0 = performance.now();
-  const raw = await postJson<ScanFighterApiResult>('/api/scan-fighter', { imageBase64: base64, mimeType }, SCAN_FIGHTER_TIMEOUT_MS);
-  const total = Math.round(performance.now() - t0);
-  const ms = { resize: resizeMs, total, text: raw?.timings?.textMs, image: raw?.timings?.imageMs };
-  if (!raw) return { fighter: FALLBACK_FIGHTER, issue: total >= SCAN_FIGHTER_TIMEOUT_MS - 50 ? 'timeout' : 'no-portrait', ms };
-  if (raw.faceFound === false && !raw.faceUrl) return { fighter: FALLBACK_FIGHTER, issue: 'no-face', ms };
-  const fighter: FighterDef = {
+/** Le texte arrive vers 3 s : au-delà de ce délai, on n'attend plus que le portrait. */
+const TEXT_TIMEOUT_MS = 12_000;
+
+interface PortraitApiResult { faceUrl?: string; imageReason?: string | null; timings?: { imageMs: number; imageModel?: string } }
+
+function construire(raw: ScanFighterApiResult): FighterDef {
+  return {
     id: makeId(),
     name: raw.nickname || 'Mystery Bro',
     model: modelePour(raw),
@@ -92,22 +91,56 @@ async function scanner(base64: string, mimeType: string, resizeMs: number): Prom
     agility: raw.stats?.agility ?? 3,
     trait: raw.trait,
     catchphrase: raw.catchphrase,
-    portraitUrl: raw.faceUrl,
     look: {
       primary: raw.outfitPrimary,
       secondary: raw.outfitSecondary,
       hair: raw.hairColor,
       accessory: raw.accessory !== 'none' ? raw.accessory : undefined,
-      faceUrl: raw.faceUrl,
     },
   };
-  let issue: FighterScanIssue = null;
-  if (!raw.faceUrl) issue = raw.imageReason === 'IMAGE_SAFETY' ? 'blocked' : raw.imageReason === 'TIMEOUT' ? 'timeout' : 'no-portrait';
-  return { fighter, issue, ms, portraitModel: raw.timings?.imageModel };
 }
 
-/** Photo → combattant avec le compte rendu (problème éventuel, temps mesurés). Ne rejette jamais. */
-export async function scanFighterReport(image: Blob | string): Promise<FighterScanReport> {
+/** Réponse en 2 temps (recherche R3) : nom, stats et couleurs (~3 s, `onText`), puis le portrait (~9 s) qui
+ * complète LE MÊME objet FighterDef (look.faceUrl, portraitUrl). */
+async function scanner(base64: string, mimeType: string, resizeMs: number, onText?: (f: FighterDef) => void): Promise<FighterScanReport> {
+  const t0 = performance.now();
+  const corps = { imageBase64: base64, mimeType };
+  const portraitP = postJson<PortraitApiResult>('/api/scan-fighter', { ...corps, part: 'portrait' }, SCAN_FIGHTER_TIMEOUT_MS);
+  const raw = await postJson<ScanFighterApiResult>('/api/scan-fighter', { ...corps, part: 'text' }, TEXT_TIMEOUT_MS);
+  const textMs = Math.round(performance.now() - t0);
+  let fighter: FighterDef | null = raw && raw.faceFound !== false ? construire(raw) : null;
+  if (fighter) onText?.(fighter);
+  const portrait = await portraitP;
+  const total = Math.round(performance.now() - t0);
+  const ms = { resize: resizeMs, total, text: textMs, image: portrait?.timings?.imageMs };
+  const faceUrl = portrait?.faceUrl;
+  if (!fighter && raw && faceUrl) fighter = construire(raw); // « pas de visage » selon Gemini, mais un portrait quand même
+  if (!fighter && faceUrl) fighter = { ...FALLBACK_FIGHTER, id: makeId(), look: { primary: '#3b6fd8', secondary: '#2b2b2b' } };
+  if (!fighter) {
+    const issue: FighterScanIssue = raw?.faceFound === false ? 'no-face' : total >= SCAN_FIGHTER_TIMEOUT_MS - 50 ? 'timeout' : 'no-portrait';
+    return { fighter: FALLBACK_FIGHTER, issue, ms };
+  }
+  if (faceUrl) {
+    fighter.portraitUrl = faceUrl;
+    if (fighter.look) fighter.look.faceUrl = faceUrl;
+    return { fighter, issue: null, ms, portraitModel: portrait?.timings?.imageModel };
+  }
+  const reason = portrait?.imageReason;
+  const issue: FighterScanIssue = !portrait ? 'timeout' : reason === 'IMAGE_SAFETY' ? 'blocked' : reason === 'TIMEOUT' ? 'timeout' : 'no-portrait';
+  return { fighter, issue, ms };
+}
+
+let prechauffe = false;
+/** Charge le module serveur du scan avant la 1re photo (en dev, le 1er appel coûte jusqu'à 30 s de compilation). */
+export function prechaufferScanFighter(): void {
+  if (prechauffe) return;
+  prechauffe = true;
+  void fetch('/api/scan-fighter', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).catch(() => undefined);
+}
+
+/** Photo → combattant avec le compte rendu (problème éventuel, temps mesurés). Ne rejette jamais.
+ * `onText` : appelé dès que le nom et les couleurs sont connus, avant le portrait. */
+export async function scanFighterReport(image: Blob | string, opts: { onText?: (f: FighterDef) => void } = {}): Promise<FighterScanReport> {
   if (typeof image === 'string' && !isDataUrl(image)) return { fighter: FALLBACK_FIGHTER, issue: 'no-face', ms: { resize: 0, total: 0 } };
   try {
     const t0 = performance.now();
@@ -116,7 +149,7 @@ export async function scanFighterReport(image: Blob | string): Promise<FighterSc
     const cle = empreinte(base64);
     let p = cache.get(cle);
     if (!p) {
-      p = scanner(base64, mimeType, resize);
+      p = scanner(base64, mimeType, resize, opts.onText);
       cache.set(cle, p);
       // Un échec ne reste pas en cache : « Retry » avec la même photo relance vraiment l'IA.
       void p.then((r) => { if (r.issue) cache.delete(cle); });
