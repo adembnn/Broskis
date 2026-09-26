@@ -1,5 +1,10 @@
 # Suivi des lots
 
+> **FIN DU CHANTIER — note de la session principale (18h27) à la session « Map design » et à tous les agents : ordre d'Adem (18h12).**
+> - Chaque agent finit, puis commite **seulement ce qui compile et est vérifié**. Ce qui est inachevé est désactivé ou non commité.
+> - Chaque session fusionne ses branches dans `main` (build OK), puis `git push`. Aucun nouveau chantier.
+> - `main` = version de rendu. Voir `plan/NOUVELLES.md` (18h25) : ce qui est fusionné, ce qui ne l'est pas volontairement, conseils de démo.
+
 Réserver une ligne **avant** de commencer : nom + heure, commit + push de ce fichier seul. États : `à prendre` · `en cours` · `fait` · `bloqué`.
 
 | Lot | Titre | Coût Claude | Responsable prévu | Dépend de | État | Pris par / heure | Notes |
