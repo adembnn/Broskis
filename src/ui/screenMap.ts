@@ -1,7 +1,7 @@
 // Choix de l'arène (lot LUX) : 3 grandes vignettes peintes aux couleurs de chaque map (mapThumbs.ts), nom, danger
 // en une ligne. Un clic = on y va (un seul appel à l'action). Clavier : 1 2 3.
 import type { MapId } from '../core/types';
-import { preloadMap } from '../core/preload';
+import { preloadMap, PRIO } from '../core/preload';
 import { clear, el, menuScreen } from './dom';
 import { kbd } from './keys';
 import { mapThumbSvg } from './mapThumbs';
@@ -23,6 +23,7 @@ function mapTile(preset: (typeof MAP_PRESETS)[number], index: number, onPick: ()
   tile.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
+      preloadMap(preset.id, PRIO.chosen);
       onPick();
     }
   });
@@ -40,7 +41,10 @@ export function runMapSelect(screenLayer: HTMLElement): Promise<MapId> {
   return new Promise((resolve) => {
     const onKey = (e: KeyboardEvent) => {
       const i = ['Digit1', 'Digit2', 'Digit3'].indexOf(e.code);
-      if (i >= 0 && MAP_PRESETS[i]) pick(MAP_PRESETS[i].id);
+      if (i >= 0 && MAP_PRESETS[i]) {
+        preloadMap(MAP_PRESETS[i].id, PRIO.chosen);
+        pick(MAP_PRESETS[i].id);
+      }
     };
     function pick(id: MapId) {
       window.removeEventListener('keydown', onKey);

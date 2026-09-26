@@ -75,7 +75,8 @@ function createPlate(player: PlayerId) {
     update(ctx: Ctx) {
       const ps = ctx.state.players[player] as RtPlayer;
       const f = ps.fighter;
-      const fid = f?.id ?? '';
+      // Lot LE2E : un portrait arrivé en retard (fighter:portrait) change la clé → la plaque montre enfin le visage.
+      const fid = `${f?.id ?? ''}|${f?.look?.faceUrl ? 'visage' : ''}`;
       if (fid !== lastFighter) {
         lastFighter = fid;
         name.textContent = f?.name ?? `Player ${player + 1}`;

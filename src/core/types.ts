@@ -82,7 +82,8 @@ export interface Weapon {
   physics?: WeaponPhysics;
 }
 
-export interface FighterLook { primary: string; secondary: string; hair?: string; accessory?: Accessory; faceUrl?: string }
+/** `faceUrl` : tête de face ; `backUrl` : la même tête vue de dos (lot LFACE, planche découpée par src/ia/fighter). */
+export interface FighterLook { primary: string; secondary: string; hair?: string; accessory?: Accessory; faceUrl?: string; backUrl?: string }
 
 export interface FighterDef {
   id: string;

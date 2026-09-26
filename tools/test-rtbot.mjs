@@ -21,6 +21,7 @@ const captures = args.includes('--captures');
 // Sans rendu (défaut) : le banc mesure le gameplay ; le rendu 3D sans carte graphique ralentit le jeu sous le temps réel.
 const avecRendu = captures || args.includes('--rendu');
 const maps = opt('--maps', 'archipel,galion,cuisine').split(',');
+const graine = Number(opt('--graine', '1000'));
 const OUT = 'captures/rtbot';
 mkdirSync(OUT, { recursive: true });
 
@@ -115,7 +116,7 @@ async function playMatch(page, difficulty, seed, map, tag) {
 }
 
 const jobs = [];
-for (const d of niveaux) for (let i = 0; i < matchs; i++) jobs.push({ d, seed: 1000 + i * 17, map: maps[i % maps.length], tag: `${d}-${i}` });
+for (const d of niveaux) for (let i = 0; i < matchs; i++) jobs.push({ d, seed: graine + i * 17, map: maps[i % maps.length], tag: `${d}-${i}` });
 const results = [];
 async function worker(w) {
   let page;
