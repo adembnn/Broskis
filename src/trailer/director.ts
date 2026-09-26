@@ -1,6 +1,7 @@
 // Réalisateur du trailer : enchaîne les plans de timeline.js, prépare chaque plan hors caméra (pré-roulage
 // non capturé), puis pilote caméra + couche 2D image par image. `window.trailer` dit au rendu quelle image garder.
 import * as THREE from 'three';
+import { maps } from '../art/tokens.js';
 import type { Ctx, FighterDef, PlayerId, Weapon } from '../core/types';
 import { FIGHTER_PRESETS } from '../ui/presets';
 import { applyPose, type Pose } from './cam';
@@ -59,7 +60,7 @@ export async function startTrailer(ctx: Ctx, opts: { cut: string; fps: number; s
     byKey.set(key, { ...p, name: p.weaponName ?? p.name, source: 'preset', cooldown: 0 });
   }
   await Promise.all([...byKey.values()].map((w) => (w.stickerUrl ? keyed(w.stickerUrl).catch(() => '') : '')));
-  try { await Promise.race([document.fonts.load('400 120px "Lilita One"'), new Promise((r) => setTimeout(r, 4000))]); } catch { /* police de secours */ }
+  await waitForFonts();
 
   const env: Env = {
     ctx, o, fps: opts.fps, cut: opts.cut, trim: 0,
@@ -130,8 +131,32 @@ export async function startTrailer(ctx: Ctx, opts: { cut: string; fps: number; s
     if (mat && !Array.isArray(mat) && mat.uniforms && 'sunPosition' in mat.uniforms) skies.push(obj);
   });
 
+  // À la place : le dégradé de ciel de la direction artistique (tokens `maps.<map>.ciel` : haut → horizon → bas).
+  const gradients = new Map<string, THREE.Texture>();
+  const skyGradient = (mapId: string): THREE.Texture | null => {
+    const c = (maps as Record<string, { ciel?: { haut: string; horizon: string; bas: string } }>)[mapId]?.ciel;
+    if (!c) return null;
+    let tex = gradients.get(mapId);
+    if (!tex) {
+      const cv = document.createElement('canvas');
+      cv.width = 4; cv.height = 256;
+      const g = cv.getContext('2d')!;
+      const grad = g.createLinearGradient(0, 0, 0, 256);
+      grad.addColorStop(0, c.haut); grad.addColorStop(0.58, c.horizon); grad.addColorStop(1, c.bas);
+      g.fillStyle = grad; g.fillRect(0, 0, 4, 256);
+      tex = new THREE.CanvasTexture(cv);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      gradients.set(mapId, tex);
+    }
+    return tex;
+  };
+
   function frame(): void {
-    if (!keepSky) for (const s of skies) s.visible = false;
+    if (!keepSky) {
+      for (const s of skies) s.visible = false;
+      const bg = skyGradient(ctx.state.mapId);
+      if (bg && ctx.three.scene.background !== bg) ctx.three.scene.background = bg;
+    }
     if (!shot?.parryLook) { ctx.three.canvas.style.transition = 'none'; ctx.three.canvas.style.filter = 'none'; }
     if (api.done) { api.capture = false; renderThis = false; return; }
     if (!shot) begin();
@@ -182,4 +207,24 @@ function slim(data: unknown): unknown {
     out.weapon = { category: w.category, trait: w.trait, name: w.name };
   }
   return out;
+}
+
+/** Les textes du trailer sont en Lilita One / Nunito (tokens `polices`) : on attend que la feuille Google Fonts
+ * (injectée par src/ui/theme.ts) soit chargée PUIS les fontes elles-mêmes, sinon les premiers plans partent en
+ * police de secours. 8 s maximum : sans réseau, on rend quand même. */
+async function waitForFonts(): Promise<void> {
+  const deadline = new Promise((r) => setTimeout(r, 8000));
+  const load = async () => {
+    let link = document.querySelector<HTMLLinkElement>('link[href*="fonts.googleapis.com/css"]');
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@700;800&display=swap';
+      document.head.appendChild(link);
+    }
+    if (!link.sheet) await new Promise((r) => { link!.addEventListener('load', r, { once: true }); link!.addEventListener('error', r, { once: true }); });
+    await Promise.all([document.fonts.load('400 120px "Lilita One"'), document.fonts.load('800 30px "Nunito"'), document.fonts.load('700 30px "Nunito"')]);
+    await document.fonts.ready;
+  };
+  try { await Promise.race([load(), deadline]); } catch { /* police de secours */ }
 }

@@ -150,7 +150,7 @@ const orbitOn = (o: { on?: 'd' | 'a' | 'mid'; r?: number; h?: number; a0?: numbe
   const base = o.on === 'a' ? f.a : o.on === 'mid' ? f.mid : (o.follow ? env.p(1) : f.d);
   const center = base.clone().add(v3(0, 1.0, 0));
   const sideAngle = THREE.MathUtils.radToDeg(Math.atan2(f.side.x, f.side.z));
-  const pose = orbit(center, Math.max(5.5, o.r ?? 6.5), Math.max(1.4, o.h ?? 1.8), sideAngle + (o.a0 ?? -40), sideAngle + (o.a1 ?? 40), ease.outCubic(clamp01(t / dur)));
+  const pose = orbit(center, Math.max(5.5, o.r ?? 6.5), Math.max(2.1, o.h ?? 2.4), sideAngle + (o.a0 ?? -40), sideAngle + (o.a1 ?? 40), ease.outCubic(clamp01(t / dur)));
   return withShake(pose, env, t, s);
 };
 
@@ -165,8 +165,8 @@ const crane = (o: { y0?: number; y1?: number; dist?: number; along?: number } = 
 /** Par-dessus l'épaule de l'attaquant, la caméra avance physiquement (pas de zoom). */
 const shoulderPush = (o: { back?: number; side?: number; h?: number; push?: number } = {}): CamFn => (env, t, dur, f, s) => {
   const k = ease.outCubic(clamp01(t / dur));
-  const pos = f.a.clone().addScaledVector(f.axis, -(o.back ?? 3.4) + (o.push ?? 1.6) * k).addScaledVector(f.side, o.side ?? 1.2);
-  pos.y += o.h ?? 2.0;
+  const pos = f.a.clone().addScaledVector(f.axis, -(o.back ?? 4.6) + (o.push ?? 1.6) * k).addScaledVector(f.side, o.side ?? 1.9);
+  pos.y += o.h ?? 2.7;
   return withShake({ pos, look: exchangeLook(env, t, f, s) }, env, t, s, 0.12);
 };
 
@@ -174,8 +174,8 @@ const shoulderPush = (o: { back?: number; side?: number; h?: number; push?: numb
 const lowDutch = (o: { roll?: number; dist?: number; slide?: number } = {}): CamFn => (env, t, dur, f, s) => {
   const k = ease.outCubic(clamp01(t / dur));
   const pos = f.d.clone().addScaledVector(f.axis, -(o.dist ?? 4.2)).addScaledVector(f.side, 3.0 + (o.slide ?? 1.2) * k);
-  pos.y += 1.0;
-  const look = env.p(1).add(v3(0, 1.2, 0));
+  pos.y += 1.7;
+  const look = env.p(1).add(v3(0, 1.1, 0));
   return withShake({ pos, look, roll: (o.roll ?? 9) * (1 - 0.3 * k) }, env, t, s, 0.22);
 };
 
@@ -425,9 +425,9 @@ export const SHOTS: Record<string, Shot> = {
   'title-lock': titleLock,
   // Montage (4 temps) : une arme différente par plan.
   m1: attack({ map: 'archipel', weapon: 'baguette', fighters: K2, hp: 100, dist: 7, impactAt: 0.9, cam: sideTrack({ from: -0.4, to: 0.1, dist: 8, h: 1.2 }), seed: 21 }),
-  m2: attack({ map: 'cuisine', weapon: 'smartphone', fighters: BM, hp: 100, impactAt: 1.1, arc: true, cam: crane({ y0: 3, y1: 8, dist: 12 }), seed: 22 }),
+  m2: attack({ map: 'archipel', weapon: 'smartphone', fighters: BM, hp: 100, impactAt: 1.1, arc: true, cam: crane({ y0: 3, y1: 8, dist: 12 }), seed: 22 }),
   m3: attack({
-    map: 'archipel', weapon: 'garden-gnome', fighters: K2, hp: 80, dist: 6, impactAt: 0.95, parry: true, cam: lowDutch({ roll: -8 }), seed: 23,
+    map: 'archipel', weapon: 'garden-gnome', fighters: K2, hp: 80, dist: 6, impactAt: 0.95, parry: true, cam: sideTrack({ from: 0.1, to: 0.35, dist: 6.5, h: 2.6, roll: -6 }), seed: 23,
     overlay: (env, t, _d, s) => { if (s.tFire != null) env.o.slam('Perfect *parry!*', t - (s.tFire + s.travel), { y: -0.6, size: 120, tilt: -4 }); },
   }),
   m4: attack({ map: 'archipel', weapon: 'stapler', fighters: K2, hp: 100, dist: 7.5, impactAt: 0.85, cam: shoulderPush(), seed: 24 }),
