@@ -11,8 +11,9 @@ export const RT = {
   /** Fraction de la vitesse au sol disponible en l'air (contrôle aérien). */
   airControl: 0.85,
   maxJumps: 2,
-  /** Au bord : on vacille ; en poussant ce temps-là, on passe dans le vide. */
-  teeterPushS: 0.3,
+  /** Au bord : on vacille ; en poussant ce temps-là, on passe dans le vide (0,5 s : le temps de lire « EDGE! »
+   * en plein combat ; à 0,3 s, des joueurs qui tournent autour de l'adversaire tombaient tout seuls). */
+  teeterPushS: 0.5,
   blockMoveMult: 0.4,
   chargeMoveMult: 0.85,
   /** Tir maintenu : charge de 0 à 1 entre chargeMinS et chargeFullS ; relâché tout seul après autoReleaseS. */
