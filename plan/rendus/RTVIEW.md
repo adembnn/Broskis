@@ -1,5 +1,5 @@
 # Rendu RTVIEW · Écran scindé + caméras troisième personne verrouillées
-Claude (Opus), 15h40 → 16h45 (horloge du PC). Branche `worktree-agent-af6f158e7ad1c156c`, fusionnée avec `main` à 16h40.
+Claude (Opus), 15h40 → 16h45 (horloge du PC). Branche `worktree-agent-af6f158e7ad1c156c`, `main` fusionnée dedans à 16h42 (LSKY compris) ; build OK.
 
 ## En bref
 - **L'écran scindé marche de bout en bout** avec le cœur temps réel (RTCORE) et le HUD scindé (LUX) : compte à rebours, combat, pertes de vies, KO, écran de fin, sur les 3 maps, **zéro erreur console**, les 2 persos **toujours dans le cadre des 2 vues** (vérifié à chaque échantillon de combat).
@@ -70,7 +70,7 @@ Au repos en écran scindé (Archipel, 6 s) : 127 i/s, médiane 7 ms, 95e centile
 Coût de la caméra (système `la-camera`, moyenne par image, Galion) : 3,16 ms → **0,05 ms** en scindé ; 1,37 ms → 0,05 ms en solo.
 
 ## Bugs trouvés et corrigés en route
-1. **Vue entièrement blanche face au soleil** (Archipel, caméra tournée vers -Z) : le ciel three.js (`Sky`) sortait des valeurs très au-dessus du seuil du bloom. Les caméras du tour par tour ne regardaient jamais par là. Correctif (`render/environment.ts`) : sa composante la plus forte est plafonnée sous le seuil (teinte gardée). Captures `soleil-avant.png` / `soleil-apres.png`. **LSKY : garder le futur panorama sous 0,85 de luminance, sinon le problème revient.**
+1. **Vue entièrement blanche face au soleil** (Archipel, caméra tournée vers -Z) : le ciel three.js (`Sky`) sortait des valeurs très au-dessus du seuil du bloom. Les caméras du tour par tour ne regardaient jamais par là. Correctif (`render/environment.ts`) : sa composante la plus forte est plafonnée sous le seuil (teinte gardée). Captures `soleil-avant.png` / `soleil-apres.png`. Depuis 16h40, LSKY cache ce ciel (panorama peint, `maps/sky.ts`) : **vérifié face au soleil avec le panorama, lisible, pas de voile blanc** (`soleil-panorama.png`). Le plafond reste en place si le `Sky` revient.
 2. **Erreur console à chaque passage** (`Raycaster.camera` + `THREE.Sprite`) : `raycaster.camera` posé ; les rayons sont maintenant sur des boîtes.
 3. **Caméra collée au perso** : la collision rentrait derrière chaque plateforme (`hex_grass` derrière P1 → recul à 34 %). Elle ne rentre plus que si la caméra finirait dans le décor.
 4. **`forwardOf` introuvable par RTCORE** : `gameplay/movement.ts` le cherche dans `src/scene/camera` ; il y est maintenant exporté (avant, le déplacement retombait sur l'axe brut joueur → adversaire).
