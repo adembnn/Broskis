@@ -1,4 +1,5 @@
 # Lot LX · Adversaire IA (mode « vs AI »)
+> **Obsolète depuis le pivot temps réel (15h25)** pour : IA au tour par tour ; remplacée par RTBOT (`plan/lots/RTBOT-ia-temps-reel.md`). Référence : `plan/PIVOT-TEMPS-REEL.md`.
 Exécution : **Gemini** · Dépend de : LG, LK, LBAL (fusionnés) · Démo : l'IA doit être **indispensable** (jury DeepMind), pas décorative.
 
 ## Ce que voit le joueur
