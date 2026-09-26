@@ -172,6 +172,7 @@ async function testerParcours(dossier, port) {
         .catch(async (e) => {
           await page.screenshot({ path: join(OUT, `parcours-echec-p${i}.png`) });
           console.log('panneaux :', await page.evaluate(() => document.querySelector('.fighter-panels')?.innerText));
+          console.log('erreurs console :', erreurs);
           throw e;
         });
       t[`pret${i}`] = Date.now();
@@ -203,7 +204,45 @@ async function testerParcours(dossier, port) {
   }
 }
 
+/** Webcam simulée (fichier y4m d'un visage FICTIF) : ovale de cadrage, capture recadrée, perso prêt. */
+async function testerWebcam(y4m, port) {
+  const url = `http://localhost:${port}`;
+  let serveur = null;
+  if (!(await up(url))) {
+    serveur = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--port', String(port), '--strictPort'], { stdio: 'ignore' });
+    console.log(`Vite lancé (PID ${serveur.pid}) sur ${url}`);
+    for (let i = 0; i < 60 && !(await up(url)); i++) await new Promise((r) => setTimeout(r, 500));
+  }
+  await fetch(`${url}/api/scan-fighter`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }).catch(() => {});
+  const browser = await chromium.launch({ args: [...LANCEMENT, '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', `--use-file-for-fake-video-capture=${y4m}`] });
+  const page = await browser.newPage({ viewport: { width: 1600, height: 900 } });
+  try {
+    await page.goto(url, { waitUntil: 'load', timeout: 120000 });
+    await page.click('.title-play', { timeout: 60000 });
+    await page.click('.snap-tile');
+    await page.click('.capture-row .b-btn:has-text("Use webcam")');
+    await page.waitForTimeout(1500);
+    await page.screenshot({ path: join(OUT, 'webcam-ovale.png') });
+    // Ce que reçoit l'IA : on intercepte l'image recadrée envoyée au serveur (jamais écrite ailleurs que captures/).
+    const envoi = page.waitForRequest((r) => r.url().endsWith('/api/scan-fighter') && (r.postData() ?? '').includes('"part":"portrait"'));
+    const t0 = Date.now();
+    await page.click('.capture-row .b-btn:has-text("Capture")');
+    const req = await envoi;
+    writeFileSync(join(OUT, 'webcam-envoyee.jpg'), Buffer.from(JSON.parse(req.postData()).imageBase64, 'base64'));
+    await page.waitForFunction(() => !!document.querySelector('.fighter-panel.p1 input.name-input'), null, { timeout: 30000 });
+    const nom = Date.now() - t0;
+    await page.waitForFunction(() => !document.querySelector('.fighter-panel.p1 .forge'), null, { timeout: 40000 });
+    console.log(`webcam → nom affiché ${nom} ms, grosse tête prête ${Date.now() - t0} ms`);
+    await page.waitForTimeout(1500);
+    await page.screenshot({ path: join(OUT, 'webcam-pret.png') });
+  } finally {
+    await browser.close();
+    if (serveur) serveur.kill();
+  }
+}
+
 const args = process.argv.slice(2);
 if (args[0] === '--visages') await genererVisages(resolve(args[1]));
+else if (args[0] === '--webcam') await testerWebcam(resolve(args[1]), Number(args[2] ?? 5351));
 else if (args[0] === '--parcours') await testerParcours(resolve(args[1]), Number(args[2] ?? 5351));
 else await testerEnJeu(resolve(args[0]), Number(args[1] ?? 5351));
