@@ -37,6 +37,7 @@ export const ANIM = {
   },
   bord: { moulinetHz: 1.7, moulinet: 1, penche: 16 * DEG },
   accroche: { bras: 165 * DEG, balancement: 7 * DEG },
+  course: { /** Cadence maximale du cycle de course (×). */ cadenceMax: 2 },
   regard: { colonne: 0.3, poitrine: 0.4, tete: 0.3, max: 55 * DEG },
   respiration: { hz: 0.45, amplitude: 1.6 * DEG },
   ressort: { raideur: 220, amortissement: 16 },
