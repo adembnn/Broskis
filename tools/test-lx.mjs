@@ -1,3 +1,5 @@
+// OBSOLÈTE depuis le pivot temps réel (15h25) : ce test attend des tours (gameState.turn) et utilise move/aim/fire au tour par tour.
+// Ne pas s'en servir comme référence : piloter le jeu avec gameHooks.startMatch({ split: true }) + gameHooks.input(player, action, down).
 import { chromium } from 'playwright';
 import fs from 'fs';
 

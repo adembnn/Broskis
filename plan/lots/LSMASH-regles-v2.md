@@ -1,4 +1,5 @@
 # Lot LSMASH · Règles v2 façon Smash / Brawlhalla, jouables par un débutant
+> **Obsolète depuis le pivot temps réel (15h25)** pour : tour par tour, bascule, invulnérabilité « jusqu'à son prochain tour », tir automatique après 15 s ; les règles v2 (%, vies, éjection, bords ouverts, rattrapage) restent valables. Référence : `plan/PIVOT-TEMPS-REEL.md`.
 Exécution : **agent Claude (Opus, game design)** · Priorité 1 · Retours d'Adem et Titouan à 14h, en jouant : « pas vraiment jouable », « on ne comprend pas les mécaniques au clavier ni quelles attaques on peut lancer », « on a dit qu'on pouvait tomber, mais les arènes sont fermées », « pas assez inspiré de Smash et Brawlhalla ».
 
 ## Principe

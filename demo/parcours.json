@@ -1,7 +1,7 @@
 [
   { "nom": "_note", "note": "Pivot temps réel (16h). Seuls des hooks réels de src/core/types.ts : setSeed, startMatch, input, forcerVictoire. capture.mjs appelle un hook avec UN seul argument : input(player, action, down) passe donc par 'attendre' (expression évaluée sur window, qui renvoie vrai). Actions : up down left right jump weapon1 weapon2 weapon3 fire parry. Les écrans photo -> perso / objet -> arme dépendent du réseau et ne sont pas rejoués ici.", "attente": 0 },
   { "nom": "graine-fixe", "hook": "setSeed", "arg": 260926, "attente": 300 },
-  { "nom": "lancement-match-scinde", "hook": "startMatch", "arg": { "split": true }, "attente": 500 },
+  { "nom": "lancement-match-scinde", "hook": "startMatch", "arg": { "split": true }, "attente": 3500 },
   { "nom": "go", "attendre": "gameState.phase === 'fight'", "attente": 300 },
   { "nom": "p1-p2-courent", "attendre": "gameHooks.input(0, 'up', true) ?? gameHooks.input(1, 'left', true) ?? true", "attente": 900 },
   { "nom": "p1-saut", "attendre": "gameHooks.input(0, 'jump', true) ?? true", "attente": 150 },

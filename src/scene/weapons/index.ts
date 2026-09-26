@@ -14,7 +14,6 @@ export function installWeapons(ctx: Ctx): void {
   const flights = installFlights(ctx, {
     blast,
     handPos: hands.handPos,
-    released: hands.released,
     shot: hands.shot,
     arrived: shields.arrived,
   });

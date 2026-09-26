@@ -2,15 +2,21 @@
 // battent sur un îlot de cuisine ; ses bords francs donnent sur le carrelage, très loin en bas (zone de
 // chute). Le grille-pain est un tremplin ; l'éponge balaie une bande annoncée un tour complet avant.
 // Données pures : engine.ts interprète.
-import type { Vec3 } from '../../core/types';
-import { RESTAURANT } from './assets';
-import type { BackdropSpec, GroundPiece, MapDef, OneWaySpec, PropSpec, StaticCollider } from './types';
+import { KIT, RESTAURANT } from './assets';
+import { MAX_LEDGE_HEIGHT, type BackdropSpec, type GroundPiece, type MapDef, type OneWaySpec, type PropSpec, type StaticCollider } from './types';
 
-const TOP_HALF_X = 9;      // plan de travail : 18 m
-const TOP_HALF_Z = 5.6;    // 11,2 m de profondeur
+// LMAP3 : îlot carrelé du kit (plateau_cuisine, 19 x 14 m) agrandi x1,4 = 26,6 x 19,6 m.
+const KIT_SCALE = 1.4;
+const TOP_HALF_X = 9.5 * KIT_SCALE;
+const TOP_HALF_Z = 7 * KIT_SCALE;
+/** Contour exact du dessus (kit.json : rectangle arrondi 9,5 x 7, coins 1,4), en mètres monde. */
+const KIT_OUTLINE: [number, number][] = [
+  [9.5, 0], [9.5, -3.975], [9.453, -5.958], [7.949, -7], [-7.949, -7], [-9.453, -5.958], [-9.5, -3.975],
+  [-9.5, 3.975], [-9.453, 5.958], [-7.949, 7], [7.949, 7], [9.453, 5.958], [9.5, 3.975],
+];
 const COUNTER_H = 14;      // hauteur de l'îlot : le sol de la cuisine est loin
-const PLATFORM_Y = 2.4;
-const SPAWN_X = 5;
+const PLATFORM_Y = MAX_LEDGE_HEIGHT;
+const SPAWN_X = 6.25;      // 12,5 m entre les apparitions
 
 // ---------------------------------------------------------------------------
 // Plateau : l'îlot (KayKit Restaurant, agrandi) ; seul le dessus est jouable.
@@ -18,27 +24,30 @@ const SPAWN_X = 5;
 function plateau(): { pieces: GroundPiece[]; collider: StaticCollider } {
   // kitchencounter_straight_A : x ±1, y [0,1], z [-1, 1.04] (base au sol), agrandi et un peu en retrait
   // sous le billot : le billot déborde comme un vrai plan de travail.
-  const bx = TOP_HALF_X - 0.4, bz = (TOP_HALF_Z - 0.4) / 1.02;
+  const bx = TOP_HALF_X - 0.8, bz = (TOP_HALF_Z - 0.8) / 1.02;
   const pieces: GroundPiece[] = [
-    { id: 'plateau_billot', build: { kind: 'procedural', shape: 'deck', size: [TOP_HALF_X * 2, 0.6, TOP_HALF_Z * 2] }, pos: [0, 0, 0], collider: null },
-    { id: 'plateau_ilot', build: { kind: 'model', url: RESTAURANT.counter }, pos: [0, -COUNTER_H - 0.6, -0.02 * bz], scale: [bx, COUNTER_H, bz], collider: null, tint: 'matiere' },
+    // Dessus carrelé + tiroirs tout autour (kit LKIT, modélisé dans Blender), faïence mouchetée.
+    { id: 'plateau_ilot_kit', build: { kind: 'model', url: KIT.plateauCuisine, graded: false, surface: { detail: 'faience' } }, pos: [0, 0, 0], scale: KIT_SCALE, collider: null },
+    // Le meuble continue jusqu'au sol lointain (placards KayKit).
+    { id: 'plateau_ilot', build: { kind: 'model', url: RESTAURANT.counter }, pos: [0, -COUNTER_H - 6, -0.02 * bz], scale: [bx, COUNTER_H, bz], collider: null, tint: 'matiere' },
   ];
-  return { pieces, collider: { id: 'counter_top', pos: [0, -0.5, 0], collider: { type: 'box', hx: TOP_HALF_X, hy: 0.5, hz: TOP_HALF_Z } } };
+  const outline = KIT_OUTLINE.map(([x, z]) => [x * KIT_SCALE, z * KIT_SCALE] as [number, number]);
+  return { pieces, collider: { id: 'counter_top', pos: [0, 0, 0], collider: { type: 'convex', outline, depth: 0.6 } } };
 }
 
 // ---------------------------------------------------------------------------
 // 2 planches à découper flottantes, au fond de la vue.
 // ---------------------------------------------------------------------------
-function planche(id: string, x: number): OneWaySpec {
-  // cuttingboard : x ±0.75, y [0, 0.15], z ±0.5.
+function planche(id: string, x: number, z: number): OneWaySpec {
+  // planche_L (kit) : planche à découper en hêtre de 24 cm, rainure sombre, dessus à y = 0, 6,2 x 2,8 m.
   return {
-    id, top: [x, PLATFORM_Y, -2.4], halfX: 1.9, halfZ: 1.1, thickness: 0.35,
-    parts: [{ build: { kind: 'model', url: RESTAURANT.cuttingBoard }, offset: [0, -0.35, 0], scale: [2.55, 2.3, 2.2] }],
+    id, top: [x, PLATFORM_Y, z], halfX: 3.05, halfZ: 1.35, thickness: 0.24,
+    parts: [{ build: { kind: 'model', url: KIT.plancheL, graded: false, surface: { detail: 'bois' } }, offset: [0, 0, 0] }],
   };
 }
 
 function plateformes(): OneWaySpec[] {
-  return [planche('board_left', -4.2), planche('board_right', 4.2)];
+  return [planche('board_left', -6.8, -4), planche('board_right', 6.8, -4)];
 }
 
 // ---------------------------------------------------------------------------
@@ -47,38 +56,42 @@ function plateformes(): OneWaySpec[] {
 function accessoires(): PropSpec[] {
   return [
     {
-      id: 'toaster', kind: 'launcher', pos: [-7.2, 0, 3.2],
-      build: { kind: 'procedural', shape: 'toaster', size: [2.2, 1.6, 1.4] },
-      collider: { type: 'box', hx: 1.1, hy: 0.9, hz: 0.8, offset: [0, 0.8, 0] },
-      triggerRadius: 1.3, launchTargets: [[4.2, PLATFORM_Y + 0.1, -2.4], [0, 0.1, 0]], launchDuration: 1.1,
+      id: 'toaster', kind: 'launcher', pos: [-10, 0, 5.2],
+      build: { kind: 'procedural', shape: 'toaster', size: [2.6, 1.9, 1.7] },
+      collider: { type: 'box', hx: 1.3, hy: 1.0, hz: 0.9, offset: [0, 0.95, 0] },
+      triggerRadius: 1.5, launchTargets: [[6.8, PLATFORM_Y + 0.1, -4], [0, 0.1, 0]], launchDuration: 1.2,
     },
     {
-      id: 'rolling_pin', kind: 'knockable', pos: [2.2, 0, 2.6], yaw: 0.35, lieOnSide: true,
-      build: { kind: 'procedural', shape: 'rollingPin', size: [0.42, 3.4, 0] },
-      collider: { type: 'cylinder', radius: 0.42, halfHeight: 1.7, offset: [0, 0.42, 0], rollAxisZ: true },
+      id: 'rolling_pin', kind: 'knockable', pos: [3.4, 0, 4.4], yaw: 0.35, lieOnSide: true,
+      build: { kind: 'procedural', shape: 'rollingPin', size: [0.45, 3.4, 0] },
+      collider: { type: 'cylinder', radius: 0.45, halfHeight: 1.7, offset: [0, 0.45, 0], rollAxisZ: true },
       triggerRadius: 2, impulse: 7,
     },
+    // Couverts à mi-hauteur : marmite de ragoût géante et flacons ketchup / moutarde (KayKit Restaurant).
     {
-      id: 'jar', kind: 'decor', pos: [-2.2, 0, -1.5], scale: 2.4,
-      build: { kind: 'model', url: RESTAURANT.jar },
-      collider: { type: 'cylinder', radius: 0.25, halfHeight: 0.375, offset: [0, 0.375, 0] },
+      id: 'stew_pot', kind: 'decor', pos: [3.6, 0, -2.8], yaw: 0.4, scale: 2,
+      build: { kind: 'model', url: RESTAURANT.stewPot, graded: false, surface: { detail: 'faience' } },
+      collider: { type: 'box', hx: 0.7, hy: 0.26, hz: 0.5, offset: [0, 0.26, 0] },
+    },
+    {
+      id: 'ketchup', kind: 'decor', pos: [-3.6, 0, 2.6], scale: 1.8,
+      build: { kind: 'model', url: RESTAURANT.ketchup, graded: false },
+      collider: { type: 'cylinder', radius: 0.15, halfHeight: 0.39, offset: [0, 0.39, 0] },
+    },
+    {
+      id: 'mustard', kind: 'decor', pos: [-2.9, 0, 3.3], scale: 1.8,
+      build: { kind: 'model', url: RESTAURANT.mustard, graded: false },
+      collider: { type: 'cylinder', radius: 0.15, halfHeight: 0.39, offset: [0, 0.39, 0] },
     },
   ];
 }
 
 // ---------------------------------------------------------------------------
-// Fond : meubles géants dans la pénombre (frigo, four, placards) et le carrelage tout en bas.
+// Fond (LSKY) : le panorama peint (sky.ts) porte le sol, les murs, la fenêtre et les meubles ; les plans de
+// travail latéraux (parallaxe) sont dans dressing.ts.
 // ---------------------------------------------------------------------------
 function fond(): BackdropSpec[] {
-  const floor: BackdropSpec['items'] = [];
-  for (let i = -4; i <= 4; i++) for (let j = -4; j <= 3; j++) floor.push({ pos: [i * 16, -COUNTER_H - 2, j * 16] as Vec3, scale: [4, 1, 4] });
-  return [
-    { build: { kind: 'model', url: RESTAURANT.floor }, items: floor },
-    { build: { kind: 'model', url: RESTAURANT.fridge }, items: [{ pos: [-40, -COUNTER_H - 2, -50], yaw: 0.25, scale: 14 }] },
-    { build: { kind: 'model', url: RESTAURANT.oven }, items: [{ pos: [2, -COUNTER_H - 2, -58], scale: 14 }, { pos: [30, -COUNTER_H - 2, -58], scale: 14 }] },
-    { build: { kind: 'model', url: RESTAURANT.cabinet }, items: [{ pos: [2, -COUNTER_H - 2, -62], scale: 14 }, { pos: [30, -COUNTER_H - 2, -62], scale: 14 }] },
-    { build: { kind: 'model', url: RESTAURANT.wallWindow }, items: [{ pos: [-18, -COUNTER_H - 2, -68], scale: 15 }, { pos: [42, -COUNTER_H - 2, -68], scale: 15 }] },
-  ];
+  return []; // LSKY : sol, murs et meubles sont peints dans le panorama
 }
 
 export function buildCuisineDef(): MapDef {
@@ -86,10 +99,10 @@ export function buildCuisineDef(): MapDef {
   return {
     id: 'cuisine',
     voidY: -5,
-    arena: { center: [0, 0, 0], radius: 9 },
+    arena: { center: [0, 0, 0], radius: 13 },
     respawn: [0, 0.05, 0],
     spawns: [{ pos: [-SPAWN_X, 0.05, 0], yawDeg: -90 }, { pos: [SPAWN_X, 0.05, 0], yawDeg: 90 }],
-    crateSpots: [[0, 0.4, 0], [-4, 0.4, 2.5], [4, 0.4, -2.5]],
+    crateSpots: [[0, 0.4, 0], [-5, 0.4, -3.5], [5, 0.4, 3.5]],
     tiles: [],
     ground: pieces,
     extraColliders: [collider],
@@ -97,6 +110,6 @@ export function buildCuisineDef(): MapDef {
     props: accessoires(),
     backdrop: fond(),
     periodicEvent: { kind: 'sponge', everyTurns: 3, firstTurn: 4, leadTurns: 2 },
-    spongeBand: { centerX: 0, length: TOP_HALF_X * 2, width: 3, zs: [2.6, -2.6] },
+    spongeBand: { centerX: 0, length: TOP_HALF_X * 2, width: 3.2, zs: [3.6, -3.6] },
   };
 }
