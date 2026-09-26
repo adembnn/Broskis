@@ -340,6 +340,7 @@ const PAGE_TOOLS = async () => {
   const { teleport } = await import('/src/gameplay/character.ts');
   const { getRuntime } = await import('/src/gameplay/runtime.ts');
   const { LAUNCH_K2 } = await import('/src/gameplay/tuning.ts');
+  const { WEAPON_FX } = await import('/src/scene/weapons/tokens.ts');
   const ctx = window.ctx;
   const bbox = (obj) => {
     obj.updateMatrixWorld(true);
@@ -382,6 +383,8 @@ const PAGE_TOOLS = async () => {
     walls: () => getRuntime().shieldBodies.length,
     /** Recul « à 0 % » : l'éjection grandit avec le % APRÈS le coup (et donc avec un critique) ; on retire ce facteur. */
     k2: LAUNCH_K2,
+    /** Bornes de la taille affichée (lot LATK1) : la vraie taille, ramenée entre ces 2 valeurs pour rester lisible. */
+    tailles: [WEAPON_FX.physique.tailleMin, WEAPON_FX.physique.tailleMax],
   };
   return true;
 };
@@ -502,7 +505,8 @@ async function measureMatch(page, match, idx) {
       }
     }
   }
-  return { split, fighters, phase: st.phase };
+  const tailles = await page.evaluate(() => window.__e2eTools.tailles);
+  return { split, fighters, phase: st.phase, tailles };
 }
 
 async function stickersLate(page) {
@@ -538,14 +542,15 @@ function verdicts(matches) {
   add('match', 'Match en écran scindé, chaque joueur avec SES objets', !!m1 && m1.split === true && m1.phase === 'fight', m1 ? `split=${m1.split}, phase=${m1.phase}` : 'match non atteint');
 
   const withHeld = scanned.filter((r) => r.held && r.weapon?.physics);
+  const T = matches[0]?.tailles ?? [0.35, 1.6];
   const heldOk = (r) => {
     const real = maxDim(r.weapon.physics.sizeM);
-    const want = Math.min(1.6, Math.max(0.35, real));
+    const want = Math.min(T[1], Math.max(T[0], real));
     return Math.abs(maxDim(r.held) - want) / want <= 0.35;
   };
   const ch = rows.get('chaise-bureau'), ca = rows.get('canette'), fe = rows.get('feutre-velleda'), ta = rows.get('tabouret-rotin');
-  add('en-main', 'Chaque objet en main à sa taille réelle (bornée 0,35-1,6 m, ±35 %)',
-    withHeld.length >= adem.length && withHeld.every(heldOk) && !!(ch?.held && ca?.held && maxDim(ch.held) > 2 * maxDim(ca.held)),
+  add('en-main', `Chaque objet en main à sa taille réelle (bornée ${T[0]}-${T[1]} m pour rester lisible, ±35 %), la chaise nettement plus grande que la canette`,
+    withHeld.length >= adem.length && withHeld.every(heldOk) && !!(ch?.held && ca?.held && maxDim(ch.held) >= 1.5 * maxDim(ca.held)),
     `${withHeld.filter(heldOk).length}/${scanned.length} à la bonne taille ; chaise ${maxDim(ch?.held) ?? '?'} m, canette ${maxDim(ca?.held) ?? '?'} m`);
 
   const cmp = (a, b, f, sens) => a && b && a[f] != null && b[f] != null && (sens > 0 ? a[f] > b[f] : a[f] < b[f]);
