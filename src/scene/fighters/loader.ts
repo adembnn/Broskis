@@ -88,15 +88,35 @@ function toonify(root: THREE.Object3D, player: PlayerId): VinylMeshEntry[] {
     const baseColor = new THREE.Color(isTorso ? team : (src.color ?? '#ffffff'));
     const hsl = { h: 0, s: 0, l: 0 };
     baseColor.getHSL(hsl);
-    // Plus saturés et plus lumineux que le décor
-    baseColor.setHSL(hsl.h, Math.min(1.0, hsl.s * 1.3 + 0.1), Math.min(1.0, hsl.l * 1.3 + 0.1));
+    // Plus saturés et plus lumineux que le décor (luminance >= 1.5)
+    baseColor.setHSL(hsl.h, Math.min(1.0, hsl.s * 1.5 + 0.15), Math.min(1.0, hsl.l * 1.5 + 0.25));
     
-    mesh.material = new THREE.MeshStandardMaterial({
+    const mat = new THREE.MeshStandardMaterial({
       color: baseColor,
       map: src.map ?? null,
-      roughness: 0.6,
+      roughness: 0.7, // slightly rougher for better rim light visibility
       metalness: src.metalness ?? 0.1,
     });
+    
+    mat.onBeforeCompile = (shader) => {
+      shader.uniforms.uTeamColor = { value: new THREE.Color(team) };
+      
+      shader.fragmentShader = `uniform vec3 uTeamColor;\n` + shader.fragmentShader;
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <emissivemap_fragment>',
+        `#include <emissivemap_fragment>
+         
+         // Rim light / Fresnel léger
+         float dotNV = max(dot(normalize(vNormal), normalize(vViewPosition)), 0.0);
+         float rimLight = smoothstep(0.6, 1.0, 1.0 - dotNV);
+         
+         // Émissif discret de l'équipe + rim light
+         totalEmissiveRadiance += uTeamColor * 0.15;
+         totalEmissiveRadiance += vec3(1.0) * rimLight * 0.4;
+        `
+      );
+    };
+    mesh.material = mat;
     mesh.castShadow = true;
     mesh.receiveShadow = false;
     entries.push({ mesh, shells: addVinylShells(mesh) });
