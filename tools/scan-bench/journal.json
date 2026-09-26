@@ -59,6 +59,29 @@
         "montre": 7.6
       },
       "reprise": false
+    },
+    {
+      "n": 4,
+      "horodatage": "2026-09-26_16h58",
+      "changement": "grille v2 du juge (retour d'Adem) : fidélité à la photo comptée double et volume 3D ; même code et mêmes réponses API que le n° 3",
+      "moyenne": 5.98,
+      "fidelite": 5.4,
+      "esthetique": 5.43,
+      "grille": 2,
+      "injouables": 6,
+      "notes": {
+        "tasse-verre": 5.38,
+        "chaise-bureau": 6.25,
+        "feutre-velleda": 5.88,
+        "telephone": 6.25,
+        "mocassin": 6.63,
+        "tabouret-rotin": 6.13,
+        "pendule-newton": 4.33,
+        "lampe-champignon": 6.5,
+        "roi-echecs": 5.75,
+        "montre": 6.75
+      },
+      "reprise": true
     }
   ]
 }
