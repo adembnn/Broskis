@@ -13,11 +13,11 @@ const browser = await chromium.launch({ headless: false, args: ['--ignore-gpu-bl
 const page = await (await browser.newContext({ viewport: { width: 1280, height: 720 } })).newPage();
 page.on('pageerror', (e) => console.log('[pageerror]', e.message));
 await page.goto(url);
-await page.getByRole('button', { name: 'PLAY', exact: true }).click();
-await page.locator('.fighter-tile').first().click();
-await page.getByText('Player 2', { exact: false }).first().waitFor();
-await page.locator('.fighter-tile').nth(1).click();
-await page.getByRole('button', { name: 'Snap an object' }).click();
+await page.locator('.title-play').click({ force: true });
+await page.locator('.fighter-tile:not(.snap-tile)').nth(0).click();
+await page.locator('.fighter-tile:not(.snap-tile)').nth(1).click();
+await page.getByRole('button', { name: 'Ready to fight!' }).click({ force: true }); // bouton animé : jamais « stable »
+await page.locator('.rack-tile.snap-tile').click();
 const t0 = Date.now();
 await page.locator('input[type=file]').setInputFiles(photo);
 await page.locator('.lload-forge').waitFor();

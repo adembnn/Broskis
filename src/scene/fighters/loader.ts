@@ -5,7 +5,7 @@ import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import type { FighterDef, ModelId, PlayerId } from '../../core/types';
-import { addVinylShells, createToonMaterial, type VinylShells } from '../render/toon';
+import { addVinylShells, type VinylShells } from '../render/toon';
 import { teamColor } from '../team';
 
 let sharedLoader: GLTFLoader | null = null;
@@ -58,7 +58,20 @@ function toonify(root: THREE.Object3D, player: PlayerId): VinylMeshEntry[] {
     const src = mesh.material as THREE.MeshStandardMaterial;
     if (Array.isArray(src)) continue; // props/persos KayKit : jamais de multi-matériau
     const isTorso = /_Body$/.test(mesh.name);
-    mesh.material = createToonMaterial(isTorso ? team : (src.color ?? '#ffffff'), { map: src.map ?? undefined });
+    
+    // Rendu stylisé premium façon Smash
+    const baseColor = new THREE.Color(isTorso ? team : (src.color ?? '#ffffff'));
+    const hsl = { h: 0, s: 0, l: 0 };
+    baseColor.getHSL(hsl);
+    // Plus saturés et plus lumineux que le décor
+    baseColor.setHSL(hsl.h, Math.min(1.0, hsl.s * 1.3 + 0.1), Math.min(1.0, hsl.l * 1.3 + 0.1));
+    
+    mesh.material = new THREE.MeshStandardMaterial({
+      color: baseColor,
+      map: src.map ?? null,
+      roughness: 0.6,
+      metalness: src.metalness ?? 0.1,
+    });
     mesh.castShadow = true;
     mesh.receiveShadow = false;
     entries.push({ mesh, shells: addVinylShells(mesh) });

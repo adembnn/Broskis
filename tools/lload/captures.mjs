@@ -28,13 +28,13 @@ const shot = (name) => page.screenshot({ path: `${OUT}/${name}.png` });
 // La forge est sous le râtelier (l'écran d'arsenal défile) : on la ramène à l'écran avant chaque capture.
 const forgeShot = async (name) => { await page.locator('.lload-forge').scrollIntoViewIfNeeded(); await shot(name); };
 await page.goto(url);
-await page.getByRole('button', { name: 'PLAY', exact: true }).click();
-await page.locator('.fighter-tile').first().click();
-await page.getByText('Player 2', { exact: false }).first().waitFor();
-await page.locator('.fighter-tile').nth(1).click();
+await page.locator('.title-play').click({ force: true });
+await page.locator('.fighter-tile:not(.snap-tile)').nth(0).click();
+await page.locator('.fighter-tile:not(.snap-tile)').nth(1).click();
+await page.getByRole('button', { name: 'Ready to fight!' }).click({ force: true }); // bouton animé : jamais « stable »
 
 // Forge : une vraie photo importée (banane du râtelier), scan simulé.
-await page.getByRole('button', { name: 'Snap an object' }).click();
+await page.locator('.rack-tile.snap-tile').click();
 await page.locator('input[type=file]').setInputFiles('public/assets/presets/banana.jpg');
 await page.locator('.lload-forge').waitFor();
 await page.waitForTimeout(600);
@@ -44,10 +44,10 @@ await forgeShot('forge-2-stats');
 await page.waitForTimeout(3600);
 await forgeShot('forge-3-sticker');
 await page.getByRole('button', { name: 'Confirm', exact: true }).click();
-for (let i = 0; i < 2; i++) await page.locator('.rack-tile').nth(i).click();
-await page.getByRole('button', { name: 'Confirm arsenal' }).click();
-for (let i = 0; i < 3; i++) await page.locator('.rack-tile').nth(i + 1).click();
-await page.getByRole('button', { name: 'Confirm arsenal' }).click();
+for (let i = 0; i < 2; i++) await page.locator('.rack-tile:not(.snap-tile)').nth(i).click();
+await page.getByRole('button', { name: 'Ready!' }).click({ force: true });
+for (let i = 0; i < 3; i++) await page.locator('.rack-tile:not(.snap-tile)').nth(i + 1).click();
+await page.getByRole('button', { name: 'Ready!' }).click({ force: true });
 
 // Présentation : la carte arrive tout de suite, la réplique s'écrit.
 await page.locator('.reveal-stage > *').first().waitFor();

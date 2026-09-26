@@ -68,9 +68,9 @@ async function runSnap(ctx: Ctx, screenLayer: HTMLElement, player: PlayerId): Pr
   clear(card);
   card.append(el('h2', 'b-title', 'SNAP TIME!'));
   // LLOAD : forge sur les étapes réelles du scan (photo, nom qui s'écrit, sticker).
-  const forge = mountForgeView({ photoUrl: blob ? URL.createObjectURL(blob) : undefined, label: `Player ${player + 1}` });
+  const forge = mountForgeView({ photoUrl: blob ? URL.createObjectURL(blob) : undefined, label: `Player ${player + 1}`, player });
   card.append(forge.root);
-  const weapon = await scanObject(blob ?? 'mystery object', { player, onProgress: forge.update });
+  const weapon = await scanObject(blob ?? 'mystery object', { player });
 
   const slot = ctx.state.players[player].selected;
   ctx.state.players[player].weapons[slot] = weapon;

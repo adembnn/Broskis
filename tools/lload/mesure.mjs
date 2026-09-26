@@ -31,26 +31,26 @@ const now = () => page.evaluate(() => performance.now());
 const r = {};
 
 await page.goto(url);
-await page.getByRole('button', { name: 'PLAY', exact: true }).waitFor({ timeout: 30000 });
+await page.locator('.title-play').waitFor({ timeout: 30000 });
 r.titreVisibleMs = Math.round(await now());
 if (PAUSE_TITRE) await page.waitForTimeout(PAUSE_TITRE);
 await page.evaluate(() => {
   window.__ev = [];
   window.ctx.bus.onAny((name) => window.__ev.push([performance.now(), name]));
 });
-await page.getByRole('button', { name: 'PLAY', exact: true }).click();
+await page.locator('.title-play').click({ force: true });
 
 // Persos : J1 puis J2 (premières tuiles).
-await page.locator('.fighter-tile').first().click();
-await page.getByText('Player 2', { exact: false }).first().waitFor();
-await page.locator('.fighter-tile').nth(1).click();
+await page.locator('.fighter-tile:not(.snap-tile)').nth(0).click();
+await page.locator('.fighter-tile:not(.snap-tile)').nth(1).click();
+await page.getByRole('button', { name: 'Ready to fight!' }).click({ force: true }); // bouton animé : jamais « stable »
 
 // Arsenal : 3 armes du râtelier pour chacun.
 for (let p = 0; p < 2; p++) {
-  await page.getByText(`Player ${p + 1}: build your arsenal`).waitFor();
-  for (let i = 0; i < 3; i++) await page.locator('.rack-tile').nth(i + p).click();
+  await page.locator(`.arsenal-card.p${p + 1}`).waitFor();
+  for (let i = 0; i < 3; i++) await page.locator('.rack-tile:not(.snap-tile)').nth(i + p).click();
   const tConfirm = await now();
-  await page.getByRole('button', { name: 'Confirm arsenal' }).click();
+  await page.getByRole('button', { name: 'Ready!' }).click({ force: true });
   if (p === 1) r._revealStart = tConfirm;
 }
 

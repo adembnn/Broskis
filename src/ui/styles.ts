@@ -13,7 +13,7 @@ export const CSS_TEXT = `
 
 /* ---------- Le sticker : la grammaire commune à tout élément posé sur la scène ---------- */
 .b-btn, .b-panel, .fighter-tile, .rack-tile, .map-tile, .arsenal-slot, .cat-badge, .turn-banner,
-.center-banner, .commentary, .hp-mult {
+.center-banner, .commentary {
   border:var(--b-trait) solid var(--b-encre); border-radius:var(--b-rayon); box-shadow:var(--b-sticker-shadow);
 }
 .sticker-in { animation:stickerIn var(--b-t-snap) var(--b-claque); }
@@ -59,25 +59,6 @@ h3.b-title { font-size:20px; margin-bottom:6px; }
 .b-bar i, .b-bar s { position:absolute; inset:0; transform-origin:left; }
 .b-bar i { background:var(--b-alerte); transition:transform var(--b-t-snap) linear; z-index:1; }
 .b-bar s { background:var(--b-vinyle); transition:transform var(--b-t-vidange) linear var(--b-t-fantome); }
-
-/* ---------- Arsenal : emplacements ---------- */
-.arsenal-slots { display:flex; gap:10px; margin:16px 0; }
-.arsenal-slot { flex:1; min-width:0; padding:10px 12px; background:var(--b-papier); cursor:pointer; text-align:left; }
-.arsenal-slot.active { background:var(--b-vinyle); }
-.arsenal-slot.empty { opacity:.75; font-style:italic; }
-.slot-index { display:block; font-size:11px; font-weight:800; color:var(--b-muted); margin-bottom:4px; }
-.slot-head { display:flex; align-items:center; gap:8px; }
-.slot-name { font-size:14px; }
-.slot-empty-hint { margin:4px 0 0; font-size:13px; }
-.rack-object { margin:6px 0 0; font-size:12px; font-style:italic; color:var(--b-muted); }
-.weapon-snap-area:not(:empty) { margin-bottom:14px; }
-.weapon-confirm { display:grid; gap:10px; justify-items:center; }
-.cat-badge { display:inline-flex; width:32px; height:32px; min-width:32px; align-items:center; justify-content:center; padding:6px; color:var(--b-encre); }
-.category-pills { display:flex; flex-wrap:wrap; justify-content:center; gap:6px; margin:10px 0; }
-.cat-pill { font:700 12px var(--b-body); text-transform:capitalize; padding:4px 10px; border:2px solid var(--b-encre); border-radius:999px; background:var(--b-papier); cursor:pointer; }
-.cat-pill.active, .cat-pill:disabled { background:var(--b-alerte); cursor:default; }
-.weapon-object { margin:0 0 10px; font-size:12px; font-style:italic; color:var(--b-muted); }
-.weapon-why { margin:8px 0 0; font-style:italic; font-size:14px; }
 
 /* ---------- Capture (webcam / import / glisser-déposer) ---------- */
 .capture { display:grid; gap:12px; margin-top:12px; }
@@ -151,26 +132,6 @@ h3.b-title { font-size:20px; margin-bottom:6px; }
 .map-tile-name { font-family:var(--b-display); font-size:19px; margin:0 0 6px; }
 .map-tile-blurb { font-size:13px; margin:0; }
 
-/* ---------- HUD ---------- */
-.hud-root { position:absolute; inset:0; z-index:5; }
-.hud-top { position:absolute; top:0; left:0; right:0; display:flex; justify-content:space-between; gap:16px; padding:16px; }
-.hud-side { pointer-events:auto; width:min(320px,42vw); padding:10px 14px; background:var(--b-papier); }
-.hud-side.p2 { text-align:right; }
-.hud-name { font-family:var(--b-display); font-size:18px; margin-bottom:4px; }
-.hud-side.p1 .hud-name { color:var(--b-p1-fonce); }
-.hud-side.p2 .hud-name { color:var(--b-p2-fonce); }
-.hud-weapons { display:flex; gap:8px; margin-top:8px; }
-.hud-side.p2 .hud-weapons { justify-content:flex-end; }
-
-.weapon-pip { position:relative; width:34px; height:34px; border-radius:50%; border:2px solid var(--b-encre); background:var(--b-papier); padding:0; transition:box-shadow 120ms var(--b-sortie); }
-.weapon-pip.active { box-shadow:0 0 0 3px var(--b-alerte); }
-.weapon-pip-flip { position:absolute; inset:0; transform-style:preserve-3d; transition:transform var(--b-t-glisse) linear; border-radius:50%; }
-.weapon-pip.cooling .weapon-pip-flip { transform:rotateY(180deg); }
-.weapon-pip-face { position:absolute; inset:0; backface-visibility:hidden; border-radius:50%; display:grid; place-items:center; padding:6px; }
-.weapon-pip-face.front { color:var(--accent); }
-.weapon-pip-face.back { background:var(--b-carton); transform:rotateY(180deg); }
-.pip-cd { font-size:14px; -webkit-text-stroke-width:3px; }
-
 /* ---------- Bandeau de tour (règle 2) : arrive de son côté, tient durees.bandeau ---------- */
 .turn-banner { position:fixed; top:22vh; font-family:var(--b-display); font-size:var(--b-taille-bandeau); color:var(--b-vinyle);
   padding:.15em .6em; white-space:nowrap; }
@@ -190,16 +151,8 @@ h3.b-title { font-size:20px; margin-bottom:6px; }
 .center-banner.grade-miss { color:var(--b-danger); font-size:calc(var(--b-taille-bandeau) * 0.5); }
 .center-banner.ko { font-size:var(--b-taille-bandeau); color:var(--b-vinyle); background:var(--b-encre); }
 
-/* ---------- Chrono, budget de déplacement ---------- */
-.hud-dock { position:absolute; top:16px; left:50%; transform:translateX(-50%); display:flex; gap:10px; }
-.hud-timer, .hud-move { pointer-events:auto; display:flex; align-items:center; gap:8px; padding:4px 12px; background:var(--b-papier); }
-.hud-timer-bar, .hud-move-bar { width:76px; }
-.hud-timer-num { font-size:16px; -webkit-text-stroke-width:4px; }
-.hud-move-label { font-size:12px; font-weight:800; color:var(--b-muted); }
-.hud-move-num { font-size:13px; }
-
 /* ---------- Sous-titres de l'animateur (règle 3) ---------- */
-.commentary { position:absolute; bottom:18px; left:50%; transform:translateX(-50%); display:flex; align-items:flex-end; gap:10px;
+.commentary { position:absolute; top:14px; left:50%; transform:translateX(-50%); display:flex; align-items:flex-end; gap:10px;
   max-width:60vw; background:var(--b-papier); padding:8px 14px; }
 .commentary-portrait { width:var(--b-portrait); height:var(--b-portrait); min-width:var(--b-portrait); border-radius:50%;
   background:var(--b-vinyle); border:var(--b-trait) solid var(--b-encre); }
@@ -209,27 +162,6 @@ h3.b-title { font-size:20px; margin-bottom:6px; }
 .commentary-bubble { font-size:var(--b-taille-sous-titre); font-weight:800; line-height:1.2; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .commentary-bubble .name-p1 { color:var(--b-p1-fonce); }
 .commentary-bubble .name-p2 { color:var(--b-p2-fonce); }
-
-/* ---------- Barre de PV segmentée (règle 4) ---------- */
-.hp-bar { display:flex; align-items:center; gap:8px; margin-top:6px; }
-.hp-bar.p2 { flex-direction:row-reverse; }
-.hp-track { position:relative; display:flex; gap:0; flex:1; height:30px; border:var(--b-trait) solid var(--b-encre); border-radius:6px; overflow:hidden; background:var(--b-carton); }
-.hp-bar.p2 .hp-track { flex-direction:row-reverse; }
-.hp-seg { position:relative; flex:1; height:100%; border-right:var(--b-trait) solid var(--b-encre); }
-.hp-seg:last-child { border-right:0; }
-.hp-seg-ghost, .hp-seg-fill { position:absolute; inset:0; transform-origin:left; }
-.hp-bar.p2 .hp-seg-ghost, .hp-bar.p2 .hp-seg-fill { transform-origin:right; }
-.hp-seg-ghost { background:var(--b-vinyle); transition:transform var(--b-t-vidange) linear var(--b-t-fantome); }
-.hp-seg-fill { background:var(--b-p1); transition:none; }
-.hp-bar.p2 .hp-seg-fill { background:var(--b-p2); }
-.hp-seg-tear { position:absolute; top:0; height:100%; border-right:var(--b-trait) solid var(--b-encre); transition:transform var(--b-t-segment) var(--b-decolle); pointer-events:none; }
-.hp-seg-tear.go { transform:rotate(var(--b-tear-angle)) translateY(calc(-1 * var(--b-tear-offset))); }
-.hp-num { font-size:var(--b-taille-pv); }
-.hp-num.pop { animation:stickerIn var(--b-t-snap) var(--b-claque); }
-.hp-mult { display:none; font-family:var(--b-display); font-size:13px; padding:2px 6px; background:var(--b-alerte);
-  background-image:repeating-linear-gradient(45deg, transparent 0 var(--b-stripe), rgba(43,29,20,.28) 0 calc(var(--b-stripe) * 2));
-  transform:rotate(6deg); }
-.hp-mult:not([hidden]) { display:inline-block; }
 
 /* ---------- Nombres flottants (dégâts) ---------- */
 .floater-layer { position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:8; }
@@ -253,15 +185,12 @@ h3.b-title { font-size:20px; margin-bottom:6px; }
 .snap-countdown { display:block; font-size:48px; margin:6px 0; }
 
 @media (max-width:760px) {
-  .hud-side { width:min(260px,46vw); padding:8px 10px; }
-  .hud-name { font-size:15px; }
-  .weapon-pip { width:28px; height:28px; }
   .report-layout { grid-template-columns:minmax(0,1fr); }
   .b-card { padding:20px 16px; }
   .commentary { max-width:82vw; }
   .commentary-portrait { width:64px; height:64px; min-width:64px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .turn-banner, .center-banner, .floater, .weapon-card-inner, .forge-hammer, .hp-num.pop { animation-duration:.01s; transition-duration:.01s; }
+  .turn-banner, .center-banner, .floater, .weapon-card-inner, .forge-hammer { animation-duration:.01s; transition-duration:.01s; }
 }
 `;

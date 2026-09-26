@@ -1,21 +1,22 @@
 // Forge d'une arme en cours de génération (lot LLOAD). Rien de décoratif sans raison : chaque changement visible
-// correspond à une donnée réellement arrivée (étapes de scanObject).
-//   const forge = mountForgeView({ photoUrl, label: 'Player 1' });
+// correspond à une donnée réellement arrivée, lue sur l'événement `scan:progress` (lot LUX) :
+//   const forge = mountForgeView({ photoUrl, label: 'Player 1' });   // s'abonne tout seul au bus
 //   area.append(forge.root);
-//   const weapon = await scanObject(blob, { onProgress: forge.update });
-// Étapes : 'reading' faisceau de lecture sur la vraie photo + étincelles · 'partial'/'stats' le nom de l'arme s'écrit
-// dès qu'il arrive · 'sticker' le dessin Nano Banana (détouré) claque par-dessus la photo · 'sticker-failed' la photo
-// reste, la scène 3D a sa forme de secours.
-import type { Weapon } from '../../core/types';
+//   const weapon = await scanObject(blob);
+// Étapes : 'reading' faisceau de lecture sur la vraie photo + étincelles · 'partial' (flux Gemini) « Gemini sees:
+// <objet> », puis le nom qui s'écrit · 'stats' « Nano Banana is drawing… » · 'sticker' le dessin détouré claque par-
+// dessus la photo · 'sticker-failed' la photo reste (la 3D a sa forme de secours). `update` reste appelable à la main
+// (ex. scan d'une personne, sans événement).
+import type { PlayerId, Weapon } from '../../core/types';
 import type { ScanStep } from '../../ia';
-import { chromaKey } from '../../scene/sticker';
+import { getRuntimeCtx } from '../../ia/runtime';
+import { detourSticker } from '../sticker2d';
 import { injectLoadingStyles } from './style';
 import { typewriter } from './typewriter';
 
 export interface ForgeView {
   root: HTMLDivElement;
-  /** À passer tel quel en `onProgress` de scanObject (déjà lié, ne jette jamais). */
-  update: (step: ScanStep, weapon?: Partial<Weapon>) => void;
+  update: (step: ScanStep, preview?: Partial<Weapon>) => void;
   dispose(): void;
 }
 
@@ -34,19 +35,18 @@ const SPARKS: [number, number, number, number, number][] = [
   [-5, 80, 50, 100, 460], [5, 95, 60, 100, 540],
 ];
 
-async function keyedSticker(url: string): Promise<string> {
-  try {
-    const img = new Image();
-    img.src = url;
-    await img.decode();
-    return chromaKey(img).toDataURL('image/png');
-  } catch {
-    return url;
-  }
+export interface ForgeOptions {
+  photoUrl?: string;
+  label?: string;
+  /** Joueur qui scanne : les étapes d'un autre joueur sont ignorées (sans lui : un seul scan à la fois). */
+  player?: PlayerId;
+  /** Textes d'étape à remplacer (ex. scan d'une personne). */
+  status?: Partial<Record<ScanStep, string>>;
 }
 
-export function mountForgeView(opts: { photoUrl?: string; label?: string } = {}): ForgeView {
+export function mountForgeView(opts: ForgeOptions = {}): ForgeView {
   injectLoadingStyles();
+  const texts = { ...STATUS, ...opts.status };
   const root = document.createElement('div');
   root.className = 'lload-forge';
   root.dataset.step = 'reading';
@@ -65,37 +65,38 @@ export function mountForgeView(opts: { photoUrl?: string; label?: string } = {})
   const steps = root.querySelectorAll<HTMLLIElement>('.lload-steps li');
   const name = typewriter(root.querySelector<HTMLElement>('.lload-forge-name')!);
   const status = typewriter(root.querySelector<HTMLElement>('.lload-forge-status')!);
-  status.set(opts.label ? `${opts.label}: ${STATUS.reading}` : STATUS.reading);
+  status.set(opts.label ? `${opts.label}: ${texts.reading}` : texts.reading);
   let disposed = false;
   let stickerShown = false;
+  let weaponId: string | undefined;
 
   const markSteps = (statsDone: boolean, stickerDone: boolean) => {
     steps[1].className = statsDone ? 'done' : 'now';
     steps[2].className = stickerDone ? 'done' : statsDone ? 'now' : '';
   };
 
-  const update = (step: ScanStep, weapon?: Partial<Weapon>) => {
+  const update = (step: ScanStep, preview?: Partial<Weapon>) => {
     if (disposed) return;
     try {
-      if (weapon?.name) name.set(weapon.name);
+      if (preview?.name) name.set(preview.name);
       // Flux Gemini : l'objet reconnu s'affiche dès qu'il est écrit (preuve visible que l'IA a compris la photo).
-      if (step === 'partial') { status.set(weapon?.object ? `Gemini sees: ${weapon.object}` : STATUS.partial); return; }
+      if (step === 'partial') { status.set(preview?.object ? `Gemini sees: ${preview.object}` : texts.partial); return; }
       if (step === 'reading') return;
       if (step === 'stats') {
         if (stickerShown) return;
         root.dataset.step = 'stats';
-        status.set(STATUS.stats);
+        status.set(texts.stats);
         markSteps(true, false);
         return;
       }
       // 'sticker' ou 'sticker-failed' : fin de la forge.
       markSteps(true, step === 'sticker');
-      status.set(STATUS[step]);
-      if (step === 'sticker' && weapon?.stickerUrl && !stickerShown) {
+      status.set(texts[step]);
+      if (step === 'sticker' && preview?.stickerUrl && !stickerShown) {
         stickerShown = true;
-        void keyedSticker(weapon.stickerUrl).then((src) => {
+        void detourSticker(preview.stickerUrl).then((src) => {
           if (disposed) return;
-          sticker.src = src;
+          sticker.src = src ?? preview.stickerUrl!;
           root.dataset.step = 'sticker';
           root.classList.add('burst');
           requestAnimationFrame(() => sticker.classList.add('on'));
@@ -108,11 +109,21 @@ export function mountForgeView(opts: { photoUrl?: string; label?: string } = {})
     }
   };
 
+  // Abonnement à `scan:progress` : la 1re arme identifiée devient « la nôtre », les étapes des autres sont ignorées.
+  const off = getRuntimeCtx()?.bus.on('scan:progress', (e) => {
+    if (opts.player != null && e.player !== opts.player) return;
+    if (weaponId && e.weaponId && e.weaponId !== weaponId) return;
+    if (!weaponId && e.weaponId) weaponId = e.weaponId;
+    update(e.step, e.preview);
+    if (e.step === 'sticker' || e.step === 'sticker-failed') off?.(); // forge terminée : plus rien à écouter
+  });
+
   return {
     root,
     update,
     dispose() {
       disposed = true;
+      off?.();
       name.dispose();
       status.dispose();
     },

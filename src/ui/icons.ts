@@ -1,6 +1,7 @@
 // Pictogrammes de catégorie d'arme et de map : SVG trait encre, pas d'emoji (règle anti-slop). Une pastille ronde
 // de la couleur de catégorie (LOCAL_TOKENS.category) sert de fond ; le pictogramme reste à 2 tons (encre + fond).
-import type { Category, MapId } from '../core/types';
+import type { Category, MapId, Weapon } from '../core/types';
+import { LOCAL_TOKENS } from './theme';
 
 const PATHS: Record<Category, string> = {
   // rafale : 3 traits convergents vers une pointe
@@ -27,6 +28,27 @@ export function categoryBadge(category: Category, accent: string): HTMLSpanEleme
   return span;
 }
 
+/** Ce que fait l'arme, en 3 mots : un débutant ne sait pas ce qu'est un « throwable ». */
+export const CATEGORY_DOES: Record<Category, string> = {
+  blaster: 'Straight shot',
+  grenade: 'Lob + blast',
+  throwable: 'Heavy throw',
+  shield: 'Place a wall',
+};
+
+/** Pictogramme de catégorie + mot : `does` = ce que fait l'arme (HUD), sinon le nom de catégorie (BLASTER…). */
+export function categoryTag(weapon: Pick<Weapon, 'category'>, does = false): HTMLSpanElement {
+  const accent = LOCAL_TOKENS.category[weapon.category];
+  const tag = document.createElement('span');
+  tag.className = `cat-tag${does ? ' does' : ''}`;
+  tag.style.setProperty('--accent', accent);
+  const word = document.createElement('span');
+  word.className = 'cat-word';
+  word.textContent = does ? CATEGORY_DOES[weapon.category] : weapon.category;
+  tag.append(categoryBadge(weapon.category, accent), word);
+  return tag;
+}
+
 const MAP_PATHS: Record<MapId, string> = {
   // hexagones dont un s'effrite (ligne de fracture)
   archipel:
@@ -41,6 +63,12 @@ const MAP_PATHS: Record<MapId, string> = {
     '<rect x="3.5" y="3.5" width="17" height="17" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/>' +
     '<path d="M12 3.5v17M3.5 12h17" stroke="currentColor" stroke-width="1.4"/>',
 };
+
+/** Appareil photo trait encre (tuile « Snap a real object », « Snap yourself »). */
+export const CAMERA_SVG =
+  '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M6 16a4 4 0 0 1 4-4h6l3-5h10l3 5h6a4 4 0 0 1 4 4v20a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4z" fill="currentColor" stroke="var(--b-encre)" stroke-width="3" stroke-linejoin="round"/>' +
+  '<circle cx="24" cy="26" r="8.5" fill="var(--b-vinyle)" stroke="var(--b-encre)" stroke-width="3"/><circle cx="24" cy="26" r="3.5" fill="var(--b-encre)"/>' +
+  '<rect x="34" y="17" width="5" height="3" rx="1" fill="var(--b-encre)"/></svg>';
 
 export function mapIconSvg(id: MapId): string {
   return `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none">${MAP_PATHS[id]}</svg>`;

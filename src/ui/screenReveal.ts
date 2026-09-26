@@ -1,7 +1,7 @@
 // Présentation des armes : cartes façon Wacky Packages, révélées une par une (joueur 1 puis joueur 2),
 // sous-titrées par l'animateur (commentary:line). prepareCommentary prépare les répliques ; le passage est possible.
 import type { Ctx, PlayerId, Weapon } from '../core/types';
-import { prepareCommentary, weaponIntro } from '../ia';
+import { prepareCommentary } from '../ia';
 import { button, clear, el, menuScreen } from './dom';
 import { typewriter } from './loading';
 import type { ArsenalResult } from './screenArsenal';
@@ -9,8 +9,14 @@ import { renderWeaponCard } from './weaponCard';
 
 type Advance = 'next' | 'skip';
 
-function waitAdvance(nextBtn: HTMLButtonElement, skipBtn: HTMLButtonElement): Promise<Advance> {
+/** Même cadence que la pesée vocale de l'animateur (src/ia/commentary.ts, lot LVOX) : 1re arme à 1,8 s, puis 3 s
+ *  par arme. Les cartes avancent seules à ce rythme (carte = voix), « Next » reste possible pour aller plus vite. */
+const WEIGH_IN_FIRST_MS = 1800;
+const WEIGH_IN_STEP_MS = 3000;
+
+function waitAdvance(nextBtn: HTMLButtonElement, skipBtn: HTMLButtonElement, autoMs: number): Promise<Advance> {
   return new Promise((resolve) => {
+    const auto = window.setTimeout(() => onNext(), autoMs);
     const onNext = () => {
       cleanup();
       resolve('next');
@@ -26,6 +32,7 @@ function waitAdvance(nextBtn: HTMLButtonElement, skipBtn: HTMLButtonElement): Pr
       }
     };
     function cleanup() {
+      window.clearTimeout(auto);
       nextBtn.removeEventListener('click', onNext);
       skipBtn.removeEventListener('click', onSkip);
       window.removeEventListener('keydown', onKey);
@@ -42,9 +49,11 @@ export async function runReveal(ctx: Ctx, screenLayer: HTMLElement, arsenal: Ars
   card.append(el('h2', 'b-title', 'Weapon Check'));
   const stage = el('div', 'reveal-stage');
   const subtitle = el('p', 'reveal-subtitle');
+  const line = typewriter(subtitle); // LLOAD : la réplique s'écrit au rythme de la voix au lieu d'apparaître d'un bloc
   subtitle.hidden = true;
-  const nextBtn = button('Next', 'b-btn');
+  const nextBtn = button('Announcer is warming up…', 'b-btn');
   const skipBtn = button('Skip presentation', 'b-btn small alt');
+  nextBtn.disabled = true;
   const footer = el('div', 'reveal-footer');
   footer.append(nextBtn, skipBtn);
   card.append(stage, subtitle, footer);
@@ -54,33 +63,44 @@ export async function runReveal(ctx: Ctx, screenLayer: HTMLElement, arsenal: Ars
     ...arsenal.weapons[0].map((weapon) => ({ player: 0 as PlayerId, weapon })),
     ...arsenal.weapons[1].map((weapon) => ({ player: 1 as PlayerId, weapon })),
   ];
+  const showCard = (i: number) => {
+    const { player, weapon } = order[i];
+    clear(stage);
+    stage.append(
+      el('p', `reveal-kicker p${player + 1}`, `Player ${player + 1}`),
+      renderWeaponCard(weapon, { player, cardNumber: i + 1, photoUrl: arsenal.photos.get(weapon.id), reveal: true }),
+    );
+    // Réplique écrite par défaut, remplacée par ce que l'animateur dit RÉELLEMENT (voice:line).
+    subtitle.hidden = false;
+    line.set(weapon.lines.intro);
+  };
+  // La 1re carte est là tout de suite : pas d'écran vide pendant que l'animateur se prépare.
+  if (order.length) showCard(0);
 
-  // LLOAD : plus d'attente ici (25 s mesurées avant). La banque de l'animateur se prépare en fond pendant qu'on
-  // présente ; chaque carte est dite avec sa voix dès qu'elle est prête (déjà vocalisée depuis l'arsenal le plus souvent).
-  void prepareCommentary(order.map((o) => o.weapon));
-  const line = typewriter(subtitle);
-  const offCommentary = ctx.bus.on('commentary:line', ({ text }) => {
+  // L'animateur a 6 s pour se préparer ; passé ce délai (ou sur Skip), on continue avec ses répliques de
+  // secours. Le passage reste toujours possible : un appel IA lent ne doit jamais bloquer le parcours.
+  let skipped = false;
+  await Promise.race([
+    prepareCommentary(order.map((o) => o.weapon)).catch((e) => console.warn('[reveal] animateur indisponible', e)),
+    new Promise((r) => setTimeout(r, 6000)),
+    new Promise<void>((r) => skipBtn.addEventListener('click', () => { skipped = true; r(); }, { once: true })),
+  ]);
+  if (skipped) { line.dispose(); return; }
+  nextBtn.disabled = false;
+  nextBtn.textContent = 'Next';
+
+  const offVoice = ctx.bus.on('voice:line', ({ text, speaker }) => {
+    if (speaker !== 'announcer') return;
     subtitle.hidden = false;
     line.set(text);
   });
 
-  let cardNumber = 0;
-  for (const { player, weapon } of order) {
-    cardNumber += 1;
-    const shown = cardNumber;
-    clear(stage);
-    stage.append(
-      el('p', 'reveal-kicker', `Player ${player + 1}`),
-      renderWeaponCard(weapon, { player, cardNumber, photoUrl: arsenal.photos.get(weapon.id), reveal: true }),
-    );
-    subtitle.hidden = false;
-    line.set(weapon.lines.intro);
-    void weaponIntro(weapon).then(({ text, audioUrl }) => {
-      if (shown === cardNumber && audioUrl) ctx.bus.emit('commentary:line', { text, priority: 3, audioUrl, at: ctx.loop.time });
-    });
-    nextBtn.textContent = cardNumber === order.length ? 'To the map' : 'Next';
-    if ((await waitAdvance(nextBtn, skipBtn)) === 'skip') break;
+  for (let i = 0; i < order.length; i++) {
+    if (i > 0) showCard(i);
+    nextBtn.textContent = i === order.length - 1 ? 'To the map' : 'Next';
+    const autoMs = i === 0 ? WEIGH_IN_FIRST_MS + WEIGH_IN_STEP_MS : WEIGH_IN_STEP_MS;
+    if ((await waitAdvance(nextBtn, skipBtn, autoMs)) === 'skip') break;
   }
+  offVoice();
   line.dispose();
-  offCommentary();
 }

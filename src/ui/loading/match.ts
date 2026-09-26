@@ -2,11 +2,12 @@
 // → le logo → les volets s'ouvrent sur une scène complète, sans image figée ni décor qui apparaît morceau par morceau.
 // Derrière le rideau : lancement du match, attente que la scène ne bouge plus (fichiers arrivés, meshes posés),
 // compilation de tous les shaders en parallèle (renderer.compileAsync), puis 2 vraies images encore cachées
-// (envoi des textures au GPU, post-traitement) avant d'ouvrir. Le temps de jeu est gelé pendant ce temps (le tour
-// ne s'écoule pas sous le rideau).
+// (envoi des textures au GPU, post-traitement) avant d'ouvrir. Le temps de jeu est gelé pendant ce temps.
+// Compte à rebours READY? 3-2-1 GO! (temps réel) : isLoadingCurtainUp() est vrai au match:start ; le lancer sur
+// `transition:open`, émis juste avant l'ouverture des volets (280 ms), pour que le rideau s'ouvre pile sur « 3 ».
 import type { Ctx, MapId } from '../../core/types';
 import { durees } from '../../art/tokens.js';
-import { compileScene, nextFrame as frame, pauseRender, preloadMap, waitSceneStable } from '../../core/preload';
+import { compileScene, nextFrame as frame, pauseRender, preloadMap, setLoadingCurtainUp, waitSceneStable } from '../../core/preload';
 import { getCurtain } from './curtain';
 
 const STEPS = 3; // match lancé · scène posée · shaders compilés
@@ -41,6 +42,7 @@ export async function coverMatchStart(ctx: Ctx, start: () => void, mapId?: MapId
   const marks: Record<string, number> = {};
   const mark = (k: string) => { marks[k] = Math.round(performance.now() - t0); };
   if (mapId) preloadMap(mapId, 40); // au cas où le survol n'a pas suffi : passe devant tout le reste
+  setLoadingCurtainUp(true); // le compte à rebours READY? 3-2-1 attendra transition:open (voir core/preload.ts)
   await curtain.close();
   mark('ferme');
   const closedAt = performance.now();
@@ -69,6 +71,7 @@ export async function coverMatchStart(ctx: Ctx, start: () => void, mapId?: MapId
   const left = MIN_CLOSED_MS - (performance.now() - closedAt);
   if (left > 0) await sleep(left);
   unfreeze();
+  setLoadingCurtainUp(false);
   ctx.bus.emit('transition:open', { mapId: ctx.state.mapId });
   mark('ouverture');
   window.__lloadTransition = marks; // mesures lisibles par les agents de test

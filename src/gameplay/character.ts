@@ -1,11 +1,15 @@
-// Contrôleur de personnage Rapier (capsule) : création des corps, déplacement avec glissement sur les
-// obstacles, arrêt au bord en marchant (raycast vers le sol), saut/gravité. Un seul sol de vérité :
-// pendant que le corps est cinématique, NOUS écrivons `state.players[i].pos` (voir applyMove/stepVertical) ;
-// dès qu'il devient dynamique (recul, voir damage.ts), c'est Rapier qui décide et on relit sa position.
+// Contrôleur de personnage Rapier (capsule TOUJOURS cinématique) : création des corps, déplacement avec
+// glissement sur les obstacles, arrêt au bord (règles v2 : on vacille, puis on passe si on insiste), saut/gravité.
+// Un seul sol de vérité : NOUS écrivons `state.players[i].pos` et le corps suit (setNextKinematicTranslation).
+// Le recul (règles v2) est un vol cinématique intégré par launch.ts, qui passe aussi par `moveKinematic`.
 import type * as RAPIER from '@dimforge/rapier3d-compat';
 import type { Ctx, PlayerId, Vec3 } from '../core/types';
+import { groundYBelow } from './arena';
+import { isGroundReady } from './fallback-ground';
 import { getRuntime } from './runtime';
-import { CHARACTER_HALF_HEIGHT, CHARACTER_RADIUS, EDGE_RAYCAST_AHEAD, EDGE_RAYCAST_DEPTH, GRAVITY } from './tuning';
+import {
+  CHARACTER_HALF_HEIGHT, CHARACTER_RADIUS, EDGE_RAYCAST_AHEAD, EDGE_RAYCAST_DEPTH, GRAVITY, MOVE_SUBSTEP_M,
+} from './tuning';
 
 const CONTROLLER_OFFSET = 0.04;
 
@@ -53,6 +57,7 @@ export function ensurePlayerBody(ctx: Ctx, player: PlayerId): void {
     rt.body.setTranslation(centerFromFeet(pos), true);
     rt.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
     rt.body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+    rt.body.setRotation({ x: 0, y: 0, z: 0, w: 1 }, true);
   }
   rt.vy = 0;
   rt.grounded = true;
@@ -63,105 +68,129 @@ export function ensureAllPlayerBodies(ctx: Ctx): void {
   ensurePlayerBody(ctx, 1);
 }
 
-/** Vrai s'il y a du vide (pas de sol) à `dest`, empêchant un pas en marchant. */
-function isVoidAhead(ctx: Ctx, player: PlayerId, dest: Vec3): boolean {
+/** Téléportation immédiate (réapparition, rattrapage au bord) : état + corps. */
+export function teleport(ctx: Ctx, player: PlayerId, pos: Vec3): void {
   const rt = getRuntime().players[player];
-  const above: Vec3 = [dest[0], dest[1] + 0.5, dest[2]];
-  const dist = raycastDown(ctx, above, 0.5 + EDGE_RAYCAST_DEPTH, rt.collider ?? undefined);
-  return dist == null;
+  ctx.state.players[player].pos = [pos[0], pos[1], pos[2]];
+  rt.body?.setTranslation(centerFromFeet(pos), true);
+  rt.vy = 0;
 }
 
-export interface MoveResult { movedDistance: number; pos: Vec3 }
+/** Pose le perso à `pos` (pieds) pour la prochaine étape physique, sans collisions (vol d'éjection, launch.ts). */
+export function placeKinematic(ctx: Ctx, player: PlayerId, pos: Vec3): void {
+  const rt = getRuntime().players[player];
+  ctx.state.players[player].pos = [pos[0], pos[1], pos[2]];
+  rt.body?.setNextKinematicTranslation(centerFromFeet(pos));
+}
 
-/** Déplacement horizontal borné par le budget côté appelant (hooks.ts). Glisse sur les obstacles (Rapier),
- * s'arrête au bord du vide en marchant (raycast). `dx`/`dz` sont un déplacement désiré en mètres (pas une vitesse). */
-export function applyMove(ctx: Ctx, player: PlayerId, dx: number, dz: number): MoveResult {
+/** Le moteur de map pousse parfois `state.pos` lui-même (apparition, éponge, gîte, catapulte) : le corps suit. */
+export function syncBodyToState(ctx: Ctx, player: PlayerId): void {
+  const rt = getRuntime().players[player];
+  if (!rt.body) return;
+  const t = rt.body.translation();
+  const c = centerFromFeet(ctx.state.players[player].pos);
+  if (Math.abs(t.x - c.x) + Math.abs(t.y - c.y) + Math.abs(t.z - c.z) > 0.02) rt.body.setNextKinematicTranslation(c);
+}
+
+/** Hauteur du dessus d'un collider (plateforme traversable) : `userData.topY` si la map le donne. */
+function colliderTopY(c: RAPIER.Collider): number {
+  const data = c.parent()?.userData as { topY?: number } | undefined;
+  if (typeof data?.topY === 'number') return data.topY;
+  const he = c.halfExtents();
+  const half = he ? he.y : c.halfHeight?.() ?? 0;
+  return c.translation().y + half;
+}
+
+/** Filtre du contrôleur : ignore l'adversaire en vol d'éjection et les plateformes traversables (`userData.oneWay`,
+ * lot LMAP2) tant qu'on monte ou qu'on est sous leur dessus : on les traverse par-dessous, on s'y pose par-dessus. */
+function controllerFilter(ctx: Ctx, player: PlayerId, rising: boolean): (c: RAPIER.Collider) => boolean {
+  const feetY = ctx.state.players[player].pos[1];
+  return (c) => {
+    const data = c.parent()?.userData as { kind?: string; oneWay?: boolean; player?: PlayerId } | undefined;
+    if (data?.kind === 'player') {
+      const other = getRuntime().players[data.player === 0 ? 0 : 1];
+      return !other.launch && !getRuntime().players[player].launch && !other.dead;
+    }
+    if (!data?.oneWay) return true;
+    if (rising) return false;
+    return feetY >= colliderTopY(c) - 0.15;
+  };
+}
+
+/** Déplacement cinématique avec collisions (glisse sur les murs) ; renvoie le déplacement réel et le contact au sol. */
+export function moveKinematic(ctx: Ctx, player: PlayerId, delta: Vec3, rising: boolean): { moved: Vec3; grounded: boolean } {
   const rt = getRuntime().players[player];
   const cur = ctx.state.players[player].pos;
-  if (!rt.body || !rt.controller || !rt.collider || rt.body.isDynamic()) return { movedDistance: 0, pos: cur };
-  let desired: Vec3 = [dx, 0, dz];
-  if (rt.grounded && (dx !== 0 || dz !== 0)) {
-    const len = Math.hypot(dx, dz) || 1;
-    const pushAhead: Vec3 = [
-      cur[0] + dx + (dx / len) * EDGE_RAYCAST_AHEAD,
-      cur[1],
-      cur[2] + dz + (dz / len) * EDGE_RAYCAST_AHEAD,
-    ];
-    if (isVoidAhead(ctx, player, pushAhead)) desired = [0, 0, 0];
-  }
-  rt.controller.computeColliderMovement(rt.collider, { x: desired[0], y: desired[1], z: desired[2] });
-  const moved = rt.controller.computedMovement();
-  rt.grounded = rt.controller.computedGrounded();
-  // Base = state.pos (pas rt.body.translation(), qui ne bouge qu'au world.step() suivant) : ainsi un
-  // déplacement horizontal et l'intégration verticale (stepVerticalMotion) peuvent s'accumuler dans la
-  // même frame au lieu de s'écraser l'un l'autre.
+  if (!rt.body || !rt.controller || !rt.collider) return { moved: [0, 0, 0], grounded: rt.grounded };
+  rt.controller.computeColliderMovement(rt.collider, { x: delta[0], y: delta[1], z: delta[2] }, undefined, undefined,
+    controllerFilter(ctx, player, rising));
+  const m = rt.controller.computedMovement();
+  const grounded = rt.controller.computedGrounded();
+  // Base = state.pos (pas rt.body.translation(), qui ne bouge qu'au world.step() suivant) : ainsi plusieurs
+  // mouvements (horizontal, vertical, éjection) peuvent s'accumuler dans la même frame.
   const base = centerFromFeet(cur);
-  const next = { x: base.x + moved.x, y: base.y + moved.y, z: base.z + moved.z };
+  const next = { x: base.x + m.x, y: base.y + m.y, z: base.z + m.z };
   rt.body.setNextKinematicTranslation(next);
-  const pos: Vec3 = [next.x, next.y - HEIGHT_OFFSET, next.z];
-  ctx.state.players[player].pos = pos;
-  return { movedDistance: Math.hypot(moved.x, moved.z), pos };
+  ctx.state.players[player].pos = [next.x, next.y - HEIGHT_OFFSET, next.z];
+  return { moved: [m.x, m.y, m.z], grounded };
+}
+
+/** Vrai s'il n'y a pas de sol (hors joueurs) sous `dest` : le pas mènerait dans le vide. */
+export function isVoidAt(ctx: Ctx, dest: Vec3): boolean {
+  return groundYBelow(ctx, [dest[0], dest[1] + 0.5, dest[2]], 0.5 + EDGE_RAYCAST_DEPTH) == null;
+}
+
+export interface MoveResult { movedDistance: number; pos: Vec3; blockedByEdge: boolean }
+
+/** Déplacement horizontal borné par le budget côté appelant (movement.ts). Découpé en petits pas : au sol, on
+ * s'arrête au premier pas qui mènerait dans le vide (sauf `allowVoid` : on insiste, on tombe). En l'air : contrôle libre. */
+export function applyMove(ctx: Ctx, player: PlayerId, dx: number, dz: number, allowVoid: boolean): MoveResult {
+  const rt = getRuntime().players[player];
+  const start = ctx.state.players[player].pos;
+  if (!rt.body || !rt.controller || !rt.collider || rt.launch || rt.dead) return { movedDistance: 0, pos: start, blockedByEdge: false };
+  const total = Math.hypot(dx, dz);
+  if (total <= 0) return { movedDistance: 0, pos: start, blockedByEdge: false };
+  const steps = Math.max(1, Math.ceil(total / MOVE_SUBSTEP_M));
+  const sx = dx / steps, sz = dz / steps;
+  const ux = dx / total, uz = dz / total;
+  let moved = 0;
+  let blockedByEdge = false;
+  for (let i = 0; i < steps; i++) {
+    const cur = ctx.state.players[player].pos;
+    if (rt.grounded && !allowVoid) {
+      const ahead: Vec3 = [cur[0] + sx + ux * EDGE_RAYCAST_AHEAD, cur[1], cur[2] + sz + uz * EDGE_RAYCAST_AHEAD];
+      if (isVoidAt(ctx, ahead)) { blockedByEdge = true; break; }
+    }
+    const r = moveKinematic(ctx, player, [sx, 0, sz], false);
+    rt.grounded = r.grounded || (rt.grounded && rt.vy <= 0 && !isVoidAt(ctx, ctx.state.players[player].pos));
+    const step = Math.hypot(r.moved[0], r.moved[2]);
+    moved += step;
+    if (step < 1e-4) break; // bloqué par un mur
+  }
+  return { movedDistance: moved, pos: ctx.state.players[player].pos, blockedByEdge };
 }
 
 /** Amorce un saut (vitesse verticale initiale) ; la gravité est intégrée par `stepVerticalMotion`. */
-export function tryStartJump(player: PlayerId, jumpVelocity: number): boolean {
+export function startJump(player: PlayerId, jumpVelocity: number): void {
   const rt = getRuntime().players[player];
-  if (!rt.body || !rt.grounded || rt.body.isDynamic()) return false;
   rt.vy = jumpVelocity;
   rt.grounded = false;
-  return true;
 }
 
-/** Système à appeler chaque frame (saut/gravité), pour le joueur actif comme pour l'autre (chute possible). */
+/** Système à appeler chaque frame (saut/gravité), pour le joueur actif comme pour l'autre (chute possible).
+ * Ne fait rien pendant une éjection (launch.ts), accroché au bord, mort, ou en vol stationnaire de réapparition. */
 export function stepVerticalMotion(ctx: Ctx, player: PlayerId, dt: number): void {
   const rt = getRuntime().players[player];
-  if (!rt.body || !rt.controller || !rt.collider || rt.body.isDynamic()) return;
-  if (rt.grounded && rt.vy <= 0) { rt.vy = 0; return; }
+  if (!rt.body || !rt.controller || !rt.collider || rt.launch || rt.dead || rt.ledge) return;
+  if (!isGroundReady() || ctx.loop.time < rt.hoverUntil) { rt.vy = 0; return; }
+  if (rt.grounded && rt.vy <= 0) {
+    // Le sol a pu disparaître (dalle qui tombe, gîte) : on vérifie avant de rester posé.
+    if (!isVoidAt(ctx, ctx.state.players[player].pos)) { rt.vy = 0; return; }
+    rt.grounded = false;
+  }
   rt.vy -= GRAVITY * dt;
-  rt.controller.computeColliderMovement(rt.collider, { x: 0, y: rt.vy * dt, z: 0 });
-  const moved = rt.controller.computedMovement();
-  rt.grounded = rt.controller.computedGrounded();
+  const r = moveKinematic(ctx, player, [0, rt.vy * dt, 0], rt.vy > 0);
+  rt.grounded = r.grounded;
   if (rt.grounded && rt.vy < 0) rt.vy = 0;
-  const base = centerFromFeet(ctx.state.players[player].pos);
-  const next = { x: base.x + moved.x, y: base.y + moved.y, z: base.z + moved.z };
-  rt.body.setNextKinematicTranslation(next);
-  ctx.state.players[player].pos = [next.x, next.y - HEIGHT_OFFSET, next.z];
-}
-
-/** Bascule le corps en dynamique pour laisser la physique jouer le recul (voir damage.ts). */
-export function setDynamicForRecovery(ctx: Ctx, player: PlayerId, impulse: Vec3): void {
-  const rt = getRuntime().players[player];
-  if (!rt.body) return;
-  const { RAPIER: R } = ctx.physics;
-  rt.body.setBodyType(R.RigidBodyType.Dynamic, true);
-  rt.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
-  rt.body.setAngvel({ x: 0, y: 0, z: 0 }, true);
-  rt.body.lockRotations(true, true); // un perso qui vrille en continu lit mal ; LA peut animer la culbute lui-même
-  rt.body.applyImpulseAtPoint(
-    { x: impulse[0], y: impulse[1], z: impulse[2] },
-    rt.body.translation(),
-    true,
-  );
-}
-
-/** Relit la position simulée par Rapier pendant le recul (corps dynamique). À appeler chaque frame. */
-export function syncFromDynamicBody(ctx: Ctx, player: PlayerId): void {
-  const rt = getRuntime().players[player];
-  if (!rt.body || !rt.body.isDynamic()) return;
-  const t = rt.body.translation();
-  ctx.state.players[player].pos = [t.x, t.y - HEIGHT_OFFSET, t.z];
-}
-
-/** Repasse le corps en cinématique une fois le recul terminé, à la position actuelle (figée). */
-export function restoreKinematicFromDynamic(ctx: Ctx, player: PlayerId): void {
-  const rt = getRuntime().players[player];
-  if (!rt.body) return;
-  const { RAPIER: R } = ctx.physics;
-  const pos = ctx.state.players[player].pos;
-  rt.body.setBodyType(R.RigidBodyType.KinematicPositionBased, true);
-  rt.body.setTranslation(centerFromFeet(pos), true);
-  rt.body.lockRotations(false, true);
-  rt.body.setRotation({ x: 0, y: 0, z: 0, w: 1 }, true);
-  rt.vy = 0;
-  rt.grounded = true;
+  if (rt.vy > 0 && r.moved[1] < rt.vy * dt * 0.5) rt.vy = 0; // tête contre un plafond
 }

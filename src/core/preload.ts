@@ -15,7 +15,7 @@ import type { Ctx, FighterDef, MapId, ModelId } from './types';
 import { MAPS } from './types';
 import { instantiateFighterModel } from '../scene/fighters/loader';
 import * as MAP_ASSETS from '../scene/maps/assets';
-import { preload as preloadGltf } from '../scene/maps/loader';
+import { instantiate as instantiateMapAsset } from '../scene/maps/loader';
 
 type Status = 'queued' | 'loading' | 'ready' | 'failed';
 interface Job { key: string; priority: number; run: () => Promise<unknown> }
@@ -105,7 +105,8 @@ export function preloadFighters(defs: readonly FighterDef[]): void {
 }
 
 export function preloadMap(mapId: MapId, priority: number = PRIO.hover): void {
-  for (const url of mapUrls(mapId)) enqueue(`gltf:${url}`, priority, () => preloadGltf([url]));
+  // instantiate remplit le cache par URL du chargeur des maps ; la copie rendue est jetée.
+  for (const url of mapUrls(mapId)) enqueue(`gltf:${url}`, priority, () => instantiateMapAsset(url));
 }
 
 export function preloadStatus(): { ready: number; loading: number; queued: number; failed: number; rehearsalMs: number; items: Record<string, Status> } {
@@ -124,22 +125,40 @@ let offscreen: WebGLRenderTarget | null = null;
 /**
  * Compile les shaders de tout ce qui est dans la scène, en parallèle et hors du fil principal quand le pilote le
  * permet (KHR_parallel_shader_compile). À appeler rideau fermé : l'image suivante n'a plus rien à compiler.
- * Le jeu dessine la scène via un post-traitement (src/scene/render/postfx.ts), donc dans une cible hors écran et pas
- * dans le canvas : les programmes GPU dépendent de la cible (espace de couleur de sortie). On compile donc vers une
- * cible hors écran, sinon le premier rendu recompile tout (15 programmes, ~550 ms mesurés).
+ * Les programmes GPU dépendent de la cible (espace de couleur de sortie), pas de la caméra ni de la vue : en qualité
+ * « haute », les 2 vues de l'écran scindé sont dessinées dans la cible du post-traitement (hors écran) ; en « basse »,
+ * directement dans le canvas (src/core/quality.ts). On compile les DEUX variantes : sinon la première image
+ * recompilait tout (15 programmes, ~550 ms mesurés), et la bascule haute → basse aussi.
  */
 export async function compileScene(ctx: Ctx, timeoutMs = 3000): Promise<void> {
   const { renderer: r, scene, camera } = ctx.three;
   offscreen ??= new WebGLRenderTarget(1, 1, { type: HalfFloatType });
   const previous = r.getRenderTarget();
-  let compile: Promise<unknown>;
-  r.setRenderTarget(offscreen);
+  const jobs: Promise<unknown>[] = [];
   try {
-    compile = r.compileAsync ? r.compileAsync(scene, camera) : Promise.resolve(r.compile(scene, camera));
+    for (const target of [offscreen, null]) {
+      r.setRenderTarget(target);
+      jobs.push(r.compileAsync ? r.compileAsync(scene, camera) : Promise.resolve(r.compile(scene, camera)));
+    }
   } finally {
     r.setRenderTarget(previous);
   }
-  await Promise.race([compile.catch(() => undefined), new Promise((res) => setTimeout(res, timeoutMs))]);
+  await Promise.race([Promise.all(jobs).catch(() => undefined), new Promise((res) => setTimeout(res, timeoutMs))]);
+}
+
+let curtainUp = false;
+
+/**
+ * Vrai pendant que le rideau de chargement couvre l'écran (src/ui/loading/match.ts). Contrat pour le compte à
+ * rebours READY? 3-2-1 GO! : s'il est vrai au `match:start`, attendre `transition:open` pour démarrer, afin que le
+ * rideau s'ouvre pile sur « 3 ». Faux (tests, hooks sans interface) : démarrer tout de suite.
+ */
+export function isLoadingCurtainUp(): boolean {
+  return curtainUp;
+}
+
+export function setLoadingCurtainUp(up: boolean): void {
+  curtainUp = up;
 }
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
