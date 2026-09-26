@@ -13,11 +13,13 @@ function css(): string {
 .lscan-side { flex:0 1 310px; min-width:250px; display:grid; gap:10px; align-content:start; text-align:left; }
 
 .lscan-stage { isolation:isolate; }
-.lscan-photo { position:absolute; left:10%; top:7%; width:80%; height:86%; object-fit:cover; display:block;
+.lscan-stage .lscan-photo { position:absolute; left:10%; top:7%; right:auto; width:80%; height:86%;
   border:3px solid var(--b-vinyle); outline:2px solid var(--b-encre); box-shadow:0 4px 0 var(--b-encre);
   transform:rotate(-${ui.inclinaison * 0.6}deg); transform-origin:100% 0;
   transition:transform ${durees.glisse * 2}ms ${ui.courbes.sortie}; }
-.lscan-stage.has-sticker .lscan-photo { transform:translate(4%, -2%) scale(.36) rotate(${ui.inclinaison * 1.4}deg); filter:grayscale(1) contrast(1.12); z-index:2; }
+.lscan-photo-img { display:block; width:100%; height:100%; object-fit:cover; }
+.lscan-stage.has-sticker .lscan-photo { transform:translate(4%, -2%) scale(.36) rotate(${ui.inclinaison * 1.4}deg); z-index:2; }
+.lscan-stage.has-sticker .lscan-photo-img { filter:grayscale(1) contrast(1.12); }
 .lscan-beam { position:absolute; left:6%; right:6%; top:0; height:14%; z-index:1; background:${palette.lumiere}; opacity:.75;
   border-top:${ui.trait}px solid var(--b-encre); border-bottom:${ui.trait}px solid var(--b-encre); will-change:transform;
   animation:lscanBeam ${durees.dramatique * 1.2}ms linear infinite; }

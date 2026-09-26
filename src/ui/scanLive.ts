@@ -4,7 +4,7 @@
 //   catégorie, nom, stats calculées par le code, trait, phrase → « Nano Banana is drawing… » → le sticker se révèle
 //   (flou → net) → l'objet 3D du jeu se gonfle et tourne sur la carte → Confirm s'allume.
 // Confirm reste éteint tant que sticker ET objet 3D ne sont pas prêts. Échec, refus ou 30 s sans résultat : message
-// clair + « Retry » + « Use a backup weapon », le joueur choisit (jamais de sortie automatique). Chaque carte suit SON
+// clair + « Retry » + « Use a default weapon », le joueur choisit (jamais de sortie automatique). Chaque carte suit SON
 // scan (scanObject onProgress) : plusieurs cartes et 2 joueurs peuvent scanner en même temps sans se mélanger.
 import { durees } from '../art/tokens.js';
 import type { Category, PlayerId, Weapon } from '../core/types';
@@ -37,8 +37,8 @@ export interface LiveScan {
 
 /** Au-delà, le joueur voit le message de lenteur et choisit (le scan continue derrière : s'il arrive, la carte finit). */
 const SLOW_MS = 30000;
-/** Budget du JSON dans l'arsenal : le joueur voit le flux, on ne coupe pas un Gemini lent à 9 s. */
-const JSON_BUDGET_MS = 20000;
+/** Budget du JSON dans l'arsenal : le joueur voit le flux, on ne coupe pas un Gemini lent (réseau chargé : 8 s par appel). */
+const JSON_BUDGET_MS = SLOW_MS;
 
 type Fail = 'offline' | 'substituted' | 'sticker' | 'shape' | 'slow';
 const FAIL_TEXT: Record<Fail, string> = {
@@ -125,13 +125,17 @@ export function mountLiveScan(opts: LiveScanOptions): LiveScan {
   band.append(catLabel, el('span', 'wc-number', `#${String(opts.cardNumber).padStart(2, '0')}`));
 
   const stage = el('div', 'wc-illustration lscan-stage');
-  const photo = el('img', 'lscan-photo');
+  // La vraie photo (classe wc-photo-wrap comme sur la carte finale : les outils de test la masquent) ; elle part
+  // s'agrafer dans le coin quand le sticker arrive.
+  const photoWrap = el('div', 'wc-photo-wrap lscan-photo');
+  const photo = el('img', 'lscan-photo-img');
   photo.src = opts.photoUrl;
   photo.alt = '';
+  photoWrap.append(photo);
   const beam = el('div', 'lscan-beam');
   const sticker = el('img', 'lscan-sticker');
   sticker.alt = '';
-  stage.append(photo, beam, sticker);
+  stage.append(photoWrap, beam, sticker);
 
   const nameBand = el('div', 'wc-band-name lscan-name');
   const nameText = el('span', 'lscan-name-text');
@@ -185,7 +189,7 @@ export function mountLiveScan(opts: LiveScanOptions): LiveScan {
   const failText = el('p', 'lscan-fail-text');
   const failRow = el('div', 'confirm-row');
   const retryBtn = button('Retry', 'b-btn');
-  const backupBtn = button('Use a backup weapon', 'b-btn small alt');
+  const backupBtn = button('Use a default weapon', 'b-btn small alt');
   failRow.append(retryBtn, backupBtn);
   failBox.append(failText, failRow);
   const actions = el('div', 'confirm-row lscan-actions');

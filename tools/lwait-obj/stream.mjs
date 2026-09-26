@@ -83,7 +83,7 @@ try {
   }
   const scans = await page.evaluate(() => window.__scans);
   vu.push(`__scans : ${JSON.stringify(scans)}`);
-  const etapes = await page.evaluate(() => window.__lscan);
+  const etapes = (await page.evaluate(() => window.__lscan)) ?? [];
   vu.push('__lscan :', ...etapes.map((e) => `  carte ${e.card} ${String(e.t).padStart(6)} ms ${e.step}${e.fields ? ` [${e.fields}]` : ''}`));
   console.log(vu.join('\n'));
   writeFileSync(`${OUT}/chronologie.txt`, vu.join('\n'));
