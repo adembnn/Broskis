@@ -5,7 +5,7 @@ Réserver une ligne **avant** de commencer : nom + heure, commit + push de ce fi
 | Lot | Titre | Coût Claude | Responsable prévu | Dépend de | État | Pris par / heure | Notes |
 |---|---|---|---|---|---|---|---|
 | L0 | Fondations et contrats | moyen | Adem (session principale) | — | fait | Claude (Adem) 12h00 → 12h25 | Ajouts au contrat : événements `match:start` et `demo:cue` ; `ctx.three.uiRoot` et `ctx.three.render` (remplaçable par LA). Stubs prêts : `src/ia` (scanObject…), `src/ia/fighter`, `src/scene/sticker`, `src/scene/fighter-custom`. |
-| LH | Correctifs du harnais | faible | Adem (sous-agent) | — | en cours | Adem (sous-agent) 12h10 | |
+| LH | Correctifs du harnais | faible | Adem (sous-agent) | — | fait | Adem (sous-agent) 12h10 | Fusionné. Nouveaux : agent `relecteur`, hook heure, `captures --out`. À faire : skills-lock.json encore sur les 7 skills rangés. |
 | DA | Direction artistique + tokens | moyen (Opus) | Adem | — | en cours | Adem (sous-agent) 12h10 | |
 | LA | Rendu, persos, caméra, effets | élevé | Adem (sous-agent) | L0 | en cours | Adem (sous-agent) 12h10 | |
 | LM | Maps + décor dynamique | élevé | Adem (sous-agent) | L0, packs | en cours | Adem (sous-agent) 12h10 | Packs téléchargés dans public/assets/packs (hexagon, pirate, restaurant, furniture). |
