@@ -7,7 +7,7 @@
 // Choix automatique : nom de la puce (WEBGL_debug_renderer_info), puis micro-banc de remplissage à l'écran-titre
 // (~0,3 s de GPU, résultat gardé par puce dans le navigateur). En match, résolution dynamique (moyen et bas) :
 // image médiane > 18 ms pendant 1 s → échelle 1 → 0,85 → 0,7 → 0,6 ; remonte d'un cran après 5 s stables
-// (10, 20, 40 s après un essai raté). Encore trop lent à 0,6 : le palier baisse (shaders compilés d'abord).
+// (10, 20, 40 s après un essai raté). Le palier, lui, ne change jamais en plein match (recompilation).
 // Mesuré (plan/rendus/LPERF.md) : sur la puce Intel UHD, le post-traitement seul coûte ~20 ms par image.
 // Réglages : ?q=haut|moyen|bas (ou high|medium|low), écran Settings via setQuality('auto'|'high'|'medium'|'low').
 import * as THREE from 'three';
@@ -52,7 +52,6 @@ const PALIERS: Record<Palier, { postfx: boolean; ombres: boolean; ratio1: boolea
   moyen: { postfx: false, ombres: true, ratio1: true, particules: 1, lointain: true },
   bas: { postfx: false, ombres: false, ratio1: true, particules: 0.5, lointain: false },
 };
-const ORDRE: Palier[] = ['haut', 'moyen', 'bas'];
 const ECHELLES = [1, 0.85, 0.7, 0.6];
 const SEUIL_MS = 18;
 const ATTENTE_S = 1.5; // après le début du match : préchauffe des shaders (shaders.ts), on ne la compte pas
@@ -195,13 +194,11 @@ export function createQualite(b: Bus, preparer: (n: Qualite) => Promise<unknown>
   return q;
 }
 
-/** Un cran plus léger : d'abord la résolution (moyen, bas), puis le palier (en auto seulement). */
+/** Un cran plus léger : la résolution seulement (paliers moyen et bas). JAMAIS le palier en plein match :
+ * changer de palier recompile tous les matériaux (mesuré sur la Cuisine : 141 shaders compilés en combat,
+ * images de 1,1 s), et les à-coups de compilation faisaient eux-mêmes croire à un GPU trop lent. */
 function plusLeger(): void {
-  if (!q) return;
-  if (q.palier !== 'haut' && changerEchelle(+1)) return;
-  if (reglage !== 'auto') return;
-  const i = ORDRE.indexOf(q.palier);
-  if (i < ORDRE.length - 1) appliquerPalier(ORDRE[i + 1], true);
+  if (q && q.palier !== 'haut') changerEchelle(+1);
 }
 
 function changerEchelle(sens: 1 | -1): boolean {
