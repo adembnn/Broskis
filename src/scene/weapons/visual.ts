@@ -76,15 +76,16 @@ function normalize(obj: THREE.Object3D): THREE.Object3D {
   return wrap;
 }
 
-/** Épaisseur du carton = profondeur réelle de l'objet, plafonnée (banc LBENCH : ×3 au plus et au plus 25 % de
- *  la largeur, sinon un objet profond devient une brique). */
+/** Épaisseur du carton = profondeur réelle de l'objet, bornée (banc LBENCH : entre 8 et 15 % de la largeur et ×3
+ *  au plus, sinon un objet profond devient une brique et un objet plat une feuille). */
 function thicknessScale(n: THREE.Object3D, weapon: Weapon): number {
   n.updateMatrixWorld(true);
   const s = new THREE.Box3().setFromObject(n).getSize(new THREE.Vector3());
   const z = Math.max(1e-3, s.z);
   const want = lookOf(weapon).depthRatio * Math.max(s.x, s.y);
   const cap = Math.min(WEAPON_FX.epaisseur.max, (WEAPON_FX.epaisseur.largeur * s.x) / z);
-  return Math.max(0.05, Math.min(cap, Math.max(0.5, want / z)));
+  const floor = (WEAPON_FX.epaisseur.min * s.x) / z;
+  return Math.max(0.05, Math.min(cap, Math.max(floor, want / z)));
 }
 
 function ownMaterials(root: THREE.Object3D, edge: THREE.Color | null): THREE.Material[] {
