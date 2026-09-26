@@ -76,6 +76,47 @@ const hex = (v: unknown, fallback: string) => (typeof v === 'string' && HEX.test
 const TEXT_TIMEOUT_MS = 10_000;
 const IMAGE_TIMEOUT_MS = 23_000;
 
+/** Nano Banana 2 (modèle cité dans le SDK @google/genai) : ~9 s contre 16 à 21 s pour Pro, rendu aussi drôle
+ * et ressemblant sur ce style de portrait (mesuré le 26/09, voir plan/rendus/LFACE.md). */
+const FACE_FAST_MODEL = 'gemini-3.1-flash-image';
+
+interface Portrait { url?: string; reason: string | null; model: string; ms: number }
+
+async function genererPortrait(ai: GoogleGenAI, model: string, data: string, mimeType: string, t0: number): Promise<Portrait> {
+  try {
+    const res = await ai.models.generateContent({
+      model,
+      contents: [{ role: 'user', parts: [{ text: buildImagePrompt() }, { inlineData: { mimeType, data } }] }],
+      config: { responseModalities: [Modality.IMAGE], abortSignal: serverTimeout(IMAGE_TIMEOUT_MS) },
+    });
+    const candidate = res.candidates?.[0];
+    if (candidate?.finishReason === FinishReason.IMAGE_SAFETY) return { reason: 'IMAGE_SAFETY', model, ms: Date.now() - t0 };
+    const part = candidate?.content?.parts?.find((p) => p.inlineData?.data);
+    if (!part?.inlineData?.data) return { reason: 'NO_IMAGE', model, ms: Date.now() - t0 };
+    return { url: `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`, reason: null, model, ms: Date.now() - t0 };
+  } catch (err) {
+    // Jamais le contenu de la requête dans les logs : seulement le message.
+    const msg = String((err as Error)?.message ?? err);
+    console.error(`[api/scan-fighter] portrait ${model} :`, msg.slice(0, 200));
+    return { reason: /abort|timeout/i.test(msg) ? 'TIMEOUT' : 'ERROR', model, ms: Date.now() - t0 };
+  }
+}
+
+/** Le premier portrait valide ; si aucun, le dernier motif d'échec. */
+function premierPortrait(ps: Promise<Portrait>[]): Promise<Portrait> {
+  return new Promise((resolve) => {
+    let restants = ps.length;
+    let dernier: Portrait | null = null;
+    for (const p of ps) {
+      void p.then((r) => {
+        if (r.url) return resolve(r);
+        dernier = r.reason === 'IMAGE_SAFETY' || !dernier ? r : dernier;
+        if (--restants === 0) resolve(dernier);
+      });
+    }
+  });
+}
+
 const handler: ApiHandler<ScanFighterRequest> = async ({ body, env }) => {
   if (!body?.imageBase64) return fail(400, 'missing imageBase64');
   const apiKey = env.GEMINI_API_KEY;
@@ -99,35 +140,17 @@ const handler: ApiHandler<ScanFighterRequest> = async ({ body, env }) => {
         abortSignal: serverTimeout(TEXT_TIMEOUT_MS),
       },
     }).finally(() => { textMs = Date.now() - t0; });
+    void textPromise.catch(() => undefined); // un échec rapide du texte ne doit pas faire tomber le serveur de dev
 
-    let imageReason: string | null = null;
-    const imagePromise = ai.models.generateContent({
-      model: GEMINI_IMAGE_MODEL,
-      contents: [{ role: 'user', parts: [{ text: buildImagePrompt() }, { inlineData: { mimeType: body.mimeType || mimeType, data } }] }],
-      config: {
-        responseModalities: [Modality.IMAGE],
-        abortSignal: serverTimeout(IMAGE_TIMEOUT_MS),
-      },
-    }).catch((err) => {
-      // Jamais le contenu de la requête dans les logs : seulement le message.
-      console.error('[api/scan-fighter] image:', (err as Error)?.message ?? err);
-      imageReason = /abort|timeout/i.test(String((err as Error)?.message)) ? 'TIMEOUT' : 'ERROR';
-      return null;
-    }).finally(() => { imageMs = Date.now() - t0; });
-
-    const [textRes, imageRes] = await Promise.all([textPromise, imagePromise]);
+    // Portrait : Nano Banana 2 et Nano Banana Pro en parallèle, le premier portrait valide gagne (en pratique
+    // Nano Banana 2 vers 9 s ; Pro sert de filet si l'autre échoue ou refuse).
+    const portraits = [FACE_FAST_MODEL, GEMINI_IMAGE_MODEL].map((model) => genererPortrait(ai, model, data, body.mimeType || mimeType, t0));
+    const portrait = await premierPortrait(portraits);
+    imageMs = portrait.ms;
+    const textRes = await textPromise;
     const raw = JSON.parse(textRes.text ?? '{}');
-
-    let faceUrl: string | undefined;
-    if (imageRes) {
-      const candidate = imageRes.candidates?.[0];
-      if (candidate?.finishReason === FinishReason.IMAGE_SAFETY) imageReason = 'IMAGE_SAFETY';
-      else {
-        const part = candidate?.content?.parts?.find((p) => p.inlineData?.data);
-        if (part?.inlineData?.data) faceUrl = `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
-        else imageReason = 'NO_IMAGE';
-      }
-    }
+    const faceUrl = portrait.url;
+    const imageReason = portrait.reason;
 
     const stats = raw.stats ?? {};
     const clampInt = (v: unknown, lo: number, hi: number, d: number) => (Number.isFinite(v) ? Math.min(hi, Math.max(lo, Math.round(v as number))) : d);
@@ -145,7 +168,7 @@ const handler: ApiHandler<ScanFighterRequest> = async ({ body, env }) => {
       catchphrase: capChars(stripBannedWords(String(raw.catchphrase || 'Let us fight!')), 48),
       faceUrl,
       imageReason: faceUrl ? null : imageReason,
-      timings: { textMs, imageMs },
+      timings: { textMs, imageMs, imageModel: portrait.model },
     });
   } catch (err) {
     console.error('[api/scan-fighter]', (err as Error)?.message ?? err);
