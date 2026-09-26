@@ -37,7 +37,7 @@ interface ScanFighterApiResult {
   catchphrase: string;
   faceUrl?: string;
   imageReason?: string | null;
-  timings?: { textMs: number; imageMs: number };
+  timings?: { textMs: number; imageMs: number; imageModel?: string };
 }
 
 /** Ce qui a coincé, pour un message clair à l'écran (null = tout va bien). */
@@ -48,6 +48,8 @@ export interface FighterScanReport {
   issue: FighterScanIssue;
   /** Temps mesurés (ms) : préparation de la photo, aller-retour serveur, et côté serveur texte / portrait. */
   ms: { resize: number; total: number; text?: number; image?: number };
+  /** Modèle qui a dessiné le portrait (Nano Banana Pro, ou Nano Banana 2 en secours rapide). */
+  portraitModel?: string;
 }
 
 /** Message joueur (anglais) pour chaque problème. */
@@ -101,7 +103,7 @@ async function scanner(base64: string, mimeType: string, resizeMs: number): Prom
   };
   let issue: FighterScanIssue = null;
   if (!raw.faceUrl) issue = raw.imageReason === 'IMAGE_SAFETY' ? 'blocked' : raw.imageReason === 'TIMEOUT' ? 'timeout' : 'no-portrait';
-  return { fighter, issue, ms };
+  return { fighter, issue, ms, portraitModel: raw.timings?.imageModel };
 }
 
 /** Photo → combattant avec le compte rendu (problème éventuel, temps mesurés). Ne rejette jamais. */
