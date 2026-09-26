@@ -1,0 +1,2 @@
+Dépose ici 3 à 5 images de référence (captures de jeux, illustrations, photos d'ambiance) choisies avec le directeur artistique.
+tools/planche.mjs les place à côté de chaque capture du jeu pour juger l'écart.

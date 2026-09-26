@@ -1,0 +1,6 @@
+[
+  { "nom": "ouverture", "attente": 4000 },
+  { "nom": "premiere-action", "hook": "action", "arg": "exemple d'action normale", "attente": 2500 },
+  { "nom": "moment-jury", "hook": "action", "arg": "une pluie de baguettes de pain", "attente": 4000 },
+  { "nom": "climax", "hook": "forcerVictoire", "attente": 3000 }
+]
