@@ -49,6 +49,7 @@ export function raycastOcclusion(view: PlayerId, decor: THREE.Object3D[], camera
     if (dist <= 0.3) continue;
     dir.normalize();
     raycaster.set(camera.position, dir);
+    raycaster.camera = camera; // exigé par THREE.Sprite.raycast (sinon une erreur à chaque passage)
     raycaster.near = 0.05;
     raycaster.far = dist - 0.3; // marge : ne masque jamais la cible elle-même
     for (const hit of raycaster.intersectObjects(decor, true)) {
