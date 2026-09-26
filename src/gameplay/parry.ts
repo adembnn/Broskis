@@ -1,12 +1,13 @@
 // Parade — module ISOLÉ et facile à régler (cadrage Adem du 26/09) : timing en millisecondes réelles
-// (performance.now()/event.timeStamp), jamais en images. J1 = Space, J2 = Enter (event.code), chacun avec
-// sa propre touche. `gameHooks.parry(offsetMs)` reste utilisable par script (agents de test, sans clavier).
+// (performance.now()/event.timeStamp), jamais en images. Chaque joueur a sa touche, RÉGLABLE (src/core/input.ts ;
+// par défaut J1 = Space, J2 = Enter). `gameHooks.parry(offsetMs)` reste utilisable par script (sans clavier).
 // Plusieurs attaques peuvent menacer le même défenseur en même temps (rafale du blaster) : une LISTE par
 // joueur, on pare toujours celle qui arrive le plus tôt.
 // Repères visuels, combos, jauge BRO, feintes : PAS ICI, ce sera un lot dédié après fusion (voir la table
 // PARRY_WINDOWS ci-dessous, déjà prête à recevoir des paliers par tour).
 import type { Ctx, ParryGrade, PlayerId, Weapon } from '../core/types';
-import { getParryWindow, PARRY_KEY_CODE, PARRY_OFFSET_MS, PARRY_REWARD_SLOWMO } from './tuning';
+import { matches } from '../core/input';
+import { getParryWindow, PARRY_OFFSET_MS, PARRY_REWARD_SLOWMO } from './tuning';
 
 export interface ParryOutcome { grade: ParryGrade; deltaMs: number }
 
@@ -189,10 +190,15 @@ export function emitPerfectReflectReward(ctx: Ctx): void {
 }
 
 export function install(ctx: Ctx): void {
+  // Touche de parade du DÉFENSEUR (celui qui a une attaque en approche), relue à chaque appui. Sans attaque en
+  // approche, l'appui ne fait rien ici : la même touche peut servir au saut pendant son propre tour (Espace de J1).
   window.addEventListener('keydown', (e) => {
     if (e.repeat) return;
-    if (e.code === PARRY_KEY_CODE[0]) { e.preventDefault(); handleKeyParry(ctx, 0, e.timeStamp); }
-    else if (e.code === PARRY_KEY_CODE[1]) { e.preventDefault(); handleKeyParry(ctx, 1, e.timeStamp); }
+    for (const p of [0, 1] as const) {
+      if (!matches(e.code, p, 'parry') || pending[p].length === 0) continue;
+      e.preventDefault();
+      handleKeyParry(ctx, p, e.timeStamp);
+    }
   });
   ctx.hooks.parry = (offsetMs) => handleHookParry(ctx, offsetMs ?? 0);
 }

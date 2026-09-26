@@ -1,10 +1,12 @@
 // Visée et tir, règles v2 « on comprend en 10 s » : en entrant en visée, la visée se CALE sur l'adversaire ;
-// la souris ajuste (au-delà de quelques pixels, avec un aimant près de l'adversaire) ; clic maintenu OU `F`
-// maintenu = charge, relâcher = tir. 1/2/3 choisissent l'arme (refusé si elle recharge) — ou l'emplacement Snap
-// pendant `snap-time` (voir crate.ts). `aim:update` prévoit trajectoire, impact, recul, éjection.
+// la souris ajuste (au-delà de quelques pixels, avec un aimant près de l'adversaire) ; clic maintenu OU touche
+// « fire » maintenue = charge, relâcher = tir. Armes 1/2/3 (refusées si elles rechargent) — ou l'emplacement
+// Snap pendant `snap-time` (voir crate.ts). Touches RÉGLABLES du joueur actif (src/core/input.ts), relues à
+// chaque événement ; la souris vaut pour tous. `aim:update` prévoit trajectoire, impact, recul, éjection.
 // Hooks `aim(yaw,pitch)`/`fire(power)` pour les agents de test et l'adversaire IA.
 import * as THREE from 'three';
 import type { Ctx, PlayerId, Vec3 } from '../core/types';
+import { matches, type Action } from '../core/input';
 import { chooseSnapSlot } from './crate';
 import { previewDamage, previewLaunchSpeed } from './damage';
 import { launchVector } from './formulas';
@@ -13,7 +15,7 @@ import { noteGesture, setPhase } from './phases';
 import { aimOrigin, performFire } from './projectiles';
 import { getRuntime, otherPlayer, type PlayerRuntime } from './runtime';
 import {
-  AIM_CHARGE_MS, AIM_LOCK_BREAK_PX, AIM_MAGNET_M, AIM_OVERHOLD_MS, FIRE_KEY, SHOT_ORIGIN_HEIGHT,
+  AIM_CHARGE_MS, AIM_LOCK_BREAK_PX, AIM_MAGNET_M, AIM_OVERHOLD_MS, SHOT_ORIGIN_HEIGHT,
 } from './tuning';
 import { predictTrajectory } from './trajectory';
 import { normalize, normalizeXZ, sub } from './vec3';
@@ -22,7 +24,9 @@ const raycaster = new THREE.Raycaster();
 const aimPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -SHOT_ORIGIN_HEIGHT);
 const ndc = new THREE.Vector2();
 const hitPoint = new THREE.Vector3();
-const DIGIT_KEYS = new Map<string, number>([['Digit1', 0], ['Digit2', 1], ['Digit3', 2], ['Numpad1', 0], ['Numpad2', 1], ['Numpad3', 2]]);
+const WEAPON_ACTIONS: readonly Action[] = ['weapon1', 'weapon2', 'weapon3'];
+/** Touche qui a lancé la charge en cours (son relâchement tire) ; null si c'est la souris. */
+let chargeKey: string | null = null;
 const NICE_PULSE_MS = 400;
 const NICE_WINDOW_MS = 100;
 let pulsesEmitted = 0;
@@ -194,20 +198,27 @@ function releaseCharge(ctx: Ctx): void {
 
 export function install(ctx: Ctx): void {
   ctx.three.canvas.addEventListener('mousemove', (e) => aimFromMouse(ctx, e));
-  ctx.three.canvas.addEventListener('mousedown', (e) => { if (e.button === 0) startCharge(ctx); });
-  window.addEventListener('mouseup', (e) => { if (e.button === 0) releaseCharge(ctx); });
+  ctx.three.canvas.addEventListener('mousedown', (e) => { if (e.button === 0) { chargeKey = null; startCharge(ctx); } });
+  window.addEventListener('mouseup', (e) => { if (e.button === 0 && chargeKey === null) releaseCharge(ctx); });
   window.addEventListener('keydown', (e) => {
-    if (e.code === FIRE_KEY) {
-      if (!e.repeat && (ctx.state.phase === 'move' || ctx.state.phase === 'aim')) { e.preventDefault(); startCharge(ctx); }
+    const player = ctx.state.active; // touches du joueur actif (ou de celui qui a la caisse, en snap-time)
+    if (matches(e.code, player, 'fire')) {
+      if (!e.repeat && (ctx.state.phase === 'move' || ctx.state.phase === 'aim')) {
+        e.preventDefault();
+        startCharge(ctx);
+        if (getRuntime().players[player].charging) chargeKey = e.code;
+      }
       return;
     }
-    const idx = DIGIT_KEYS.get(e.code);
-    if (idx === undefined) return;
+    const idx = WEAPON_ACTIONS.findIndex((a) => matches(e.code, player, a));
+    if (idx < 0) return;
     e.preventDefault();
     pickWeapon(ctx, idx);
   });
-  window.addEventListener('keyup', (e) => { if (e.code === FIRE_KEY) releaseCharge(ctx); });
-  window.addEventListener('blur', () => { if (getRuntime().players[ctx.state.active].charging) releaseCharge(ctx); });
+  window.addEventListener('keyup', (e) => {
+    if (chargeKey !== null && e.code === chargeKey) { chargeKey = null; releaseCharge(ctx); }
+  });
+  window.addEventListener('blur', () => { chargeKey = null; if (getRuntime().players[ctx.state.active].charging) releaseCharge(ctx); });
 
   ctx.loop.addSystem('gameplay-aim-charge', () => {
     if (ctx.state.phase !== 'aim') return;

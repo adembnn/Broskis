@@ -116,8 +116,10 @@ export const AIM_OVERHOLD_MS = 1500;
 export const AIM_LOCK_BREAK_PX = 40;
 /** Aimant : un point visé à moins de cette distance (m) de l'adversaire se cale sur lui. */
 export const AIM_MAGNET_M = 1.8;
+/** Obsolètes pour le gameplay (touches réglables par joueur : src/core/input.ts) ; gardées, alignées sur les
+ * touches par défaut de J1, pour les écrans qui les lisent encore. */
 export const FIRE_KEY = 'KeyF';
-export const JUMP_KEY = 'ShiftLeft'; // Espace/Entrée réservés à la parade (voir parry.ts)
+export const JUMP_KEY = 'Space';
 /** Hauteur du point de tir/visée au-dessus des pieds (mains/torse). */
 export const SHOT_ORIGIN_HEIGHT = 1.1;
 /** Petit délai avant qu'un renvoi (parade parfaite, throwable/shield) ne touche l'attaquant d'origine. */
