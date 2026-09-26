@@ -62,7 +62,7 @@ Captures (dossier ignoré par git, à regarder en local) : `captures/lload/avant
 - `getCurtain()` : volets P1 rouge / P2 bleu en biais, couture encre + vinyle, logo BROSKIS qui claque puis oscille, pastilles d'étapes réelles, astuce si l'attente dépasse `durees.dramatique`. Construit à l'avance (idle).
 - `mountForgeView({ photoUrl, label, player?, status? })` : s'abonne tout seul à `scan:progress` ; la vraie photo sous un faisceau de lecture et des étincelles, « Gemini sees: <objet> », nom qui s'écrit, « Nano Banana is drawing your sticker… », puis le sticker détouré (`detourSticker` de LUX) qui claque sur la photo.
 - `typewriter(el)` : texte au fil de l'eau (un flux qui s'allonge continue, ne recommence pas).
-- `mountTips` / `TIPS` : 8 astuces en anglais. **À revoir pour le temps réel** (elles parlent encore de tours et de parade à ESPACE/ENTRÉE) : elles ne s'affichent que si le rideau dure plus de 0,9 s.
+- `mountTips` / `TIPS` : 8 astuces en anglais, aux règles du temps réel (sans nom de touche : elles sont réglables) ; affichées seulement si le rideau dure plus de 0,9 s.
 - Valeurs visuelles tirées de `src/art/tokens.js` ; seuls `transform` et `opacity` sont animés (le rideau bouge même quand le fil principal compile).
 
 ## 4. Branchements dans les fichiers de LUX (état après fusion)
