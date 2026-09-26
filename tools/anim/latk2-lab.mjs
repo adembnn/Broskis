@@ -256,7 +256,7 @@ await page.evaluate(() => window.gameHooks.startMatch({ seed: 1234 }));
 await page.waitForFunction(() => {
   const F = window.__fighters;
   return F && F.rigs[0] && F.rigs[1] && F.packData() && F.rigs[0].animator.has('throwP');
-}, null, { timeout: 30000 });
+}, null, { timeout: 120000 });
 await page.waitForTimeout(2500); // bandeau de début de tour
 // Gel du gameplay (pas de tir automatique ni de tour qui passe) : phase inerte, seuls les persos bougent.
 await page.evaluate(() => { window.__lab.install(); window.__fighters.ctx.state.phase = 'resolve'; });
