@@ -7,8 +7,8 @@ import { makeSticker } from '../sticker/index';
 
 /** Réglages de la grosse tête (valeurs visuelles locales au lot, comme scene/localTokens.ts). */
 const TETE = {
-  /** Hauteur de la grosse tête / hauteur de la tête KayKit d'origine. */
-  echelle: 1.6,
+  /** Hauteur de la grosse tête / hauteur de la tête KayKit d'origine (consigne d'Adem 16h45 : ×1,8 à ×2, goofy). */
+  echelle: 1.9,
   /** Part de la grosse tête qui descend sous le cou (le menton couvre le col). */
   menton: 0.04,
   /** Avancée vers l'avant (fraction de la hauteur) : le visage ne rentre pas dans le buste. */
