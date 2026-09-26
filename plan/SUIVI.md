@@ -5,13 +5,13 @@ Réserver une ligne **avant** de commencer : nom + heure, commit + push de ce fi
 | Lot | Titre | Coût Claude | Responsable prévu | Dépend de | État | Pris par / heure | Notes |
 |---|---|---|---|---|---|---|---|
 | L0 | Fondations et contrats | moyen | Adem (session principale) | — | fait | Claude (Adem) 12h00 → 12h25 | Ajouts au contrat : événements `match:start` et `demo:cue` ; `ctx.three.uiRoot` et `ctx.three.render` (remplaçable par LA). Stubs prêts : `src/ia` (scanObject…), `src/ia/fighter`, `src/scene/sticker`, `src/scene/fighter-custom`. |
-| LH | Correctifs du harnais | faible | Adem (sous-agent) | — | à prendre | | |
-| DA | Direction artistique + tokens | moyen (Opus) | Adem | — | à prendre | | |
-| LA | Rendu, persos, caméra, effets | élevé | Adem (sous-agent) | L0 | à prendre | | |
-| LM | Maps + décor dynamique | élevé | Adem (sous-agent) | L0, packs | à prendre | | |
-| LG | Gameplay | élevé | Adem (sous-agent) | L0 | à prendre | | Parade : attendre la validation d'Adem |
-| LI | Pipeline IA + serveur | moyen | Adem (sous-agent) | L0 | à prendre | | |
-| LU | Interface | moyen | Adem (sous-agent) | L0, DA | à prendre | | |
+| LH | Correctifs du harnais | faible | Adem (sous-agent) | — | en cours | Adem (sous-agent) 12h10 | |
+| DA | Direction artistique + tokens | moyen (Opus) | Adem | — | en cours | Adem (sous-agent) 12h10 | |
+| LA | Rendu, persos, caméra, effets | élevé | Adem (sous-agent) | L0 | en cours | Adem (sous-agent) 12h10 | |
+| LM | Maps + décor dynamique | élevé | Adem (sous-agent) | L0, packs | en cours | Adem (sous-agent) 12h10 | Packs téléchargés dans public/assets/packs (hexagon, pirate, restaurant, furniture). |
+| LG | Gameplay | élevé | Adem (sous-agent) | L0 | en cours | Adem (sous-agent) 12h10 | Parade : attendre la validation d'Adem |
+| LI | Pipeline IA + serveur | moyen | Adem (sous-agent) | L0 | en cours | Adem (sous-agent) 12h10 | |
+| LU | Interface | moyen | Adem (sous-agent) | L0, DA | en cours | Adem (sous-agent) 12h10 | |
 | LP | Perso photo en direct | moyen | Adem (sous-agent) | LI | à prendre | | |
 | LS | Sticker 3D | faible | **Titouan** | — | à prendre | | Autonome, peut démarrer tout de suite |
 | LV | Audio et voix | faible | **Titouan** | L0 | à prendre | | |
