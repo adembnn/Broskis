@@ -30,8 +30,8 @@ export const LOCAL_TOKENS = {
     koOrbitHeight: 2.6,      // durée et nombre de tours de l'orbite : juice.victoire.ralentiMs / .orbite
     impactPushDuration: 0.32,
     impactPushAmount: 0.9,   // rapprochement (unités monde) vers le point d'impact
-    occlusionOpacity: 0.2,
-    occlusionFadeMs: 160,
+    occlusionOpacity: 0.15,
+    occlusionFadeMs: 200,
   },
   // manifest.json (public/assets/characters) : perso KayKit ≈2,4-2,7 de haut ; ≈0,7 le ramène à l'échelle
   // "mètres" du reste du jeu (arène ≈24 m, budget de déplacement 6 m).
