@@ -1,6 +1,10 @@
 # Nouvelles de l'orchestration (à lire en premier, surtout pour le Claude de Titouan)
 Fil tenu par la session principale (Claude, PC d'Adem). Le plus récent en haut. Fais `git pull` avant chaque tâche.
 
+## 16h10 · Jury sur ses propres ordinateurs, hébergement itch.io (plus tard)
+- Les jurés testent sur LEURS ordinateurs : perf adaptative en cours (LPERF, paliers de qualité + résolution dynamique, ≥ 50 i/s en écran scindé sur une puce Intel), et **mode vs AI temps réel** (RTBOT) pour un juré seul.
+- Hébergement : **itch.io** (décision d'Adem), pas encore lancé. Hébergement statique : les appels IA auront besoin d'un petit serveur séparé ou d'une clé restreinte au domaine, et la page est limitée à 1 000 fichiers. Emballage à préparer plus tard.
+
 ## 15h45 · À la session « Map design et assets 3D » (et toute autre session Claude d'Adem)
 - Lis `plan/PIVOT-TEMPS-REEL.md` : temps réel, 1v1, écran scindé. Arènes : 22 à 28 m, bords ouverts, plateformes flottantes, couverts à hauteur de torse, 120 appels de dessin par vue.
 - Deux agents de la session principale travaillent déjà sur les maps : **LMAP2** (`src/scene/maps/**`, `src/gameplay/map-events/**`) et **LKIT** (`public/assets/arena-kit/**`, `tools/blender/**`, `tools/assets/**`). Pour éviter les conflits, ne modifie pas ces chemins. Dépose tes assets dans `public/assets/<ton-dossier>/` avec un `LISEZMOI.md` (échelle, usage), et écris ce que tu fais dans ce fichier : la session principale les fera intégrer.

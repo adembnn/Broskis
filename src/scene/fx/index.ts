@@ -8,7 +8,6 @@ import type { Category, Ctx, PlayerId } from '../../core/types';
 import { cameraShake } from '../api';
 import { LOCAL_TOKENS } from '../localTokens';
 import { excludeFromOcclusion } from '../registry';
-import { makeFallbackSticker, makeSticker } from '../sticker';
 import { teamColorLight } from '../team';
 import { installImpactFx } from './impact';
 import { installOnomato } from './onomato';
@@ -34,12 +33,6 @@ export function installFx(ctx: Ctx): void {
   const impact = installImpactFx(scene);
   const onomato = installOnomato(ctx);
 
-  const shieldStickers: [THREE.Object3D | null, THREE.Object3D | null] = [null, null];
-  function clearShield(player: PlayerId): void {
-    shieldStickers[player]?.removeFromParent();
-    shieldStickers[player] = null;
-  }
-
   // Alerte caisse Snap : disque pulsant (ombre annoncée), ui.alerte. Un seul à la fois (une caisse en vol).
   const crateWarn = new THREE.Mesh(
     new THREE.CircleGeometry(1.1, 24),
@@ -51,7 +44,7 @@ export function installFx(ctx: Ctx): void {
   scene.add(crateWarn);
   excludeFromOcclusion(crateWarn);
 
-  ctx.bus.on('match:start', () => { clearShield(0); clearShield(1); crateWarn.visible = false; });
+  ctx.bus.on('match:start', () => { crateWarn.visible = false; });
 
   ctx.bus.on('fire', ({ player, weapon }) => {
     const pos = ctx.state.players[player].pos;
@@ -64,8 +57,10 @@ export function installFx(ctx: Ctx): void {
     const count = crit ? juice.critique.particules : juice.toucher.particules;
     fxAdd.burst(p, { count, color: [...weapon.palette, '#ffffff'], speed: [2, crit ? 8 : 5], life: [0.25, 0.55], size: [0.12, 0.3], gravity: CATEGORY_GRAVITY[weapon.category] ?? 1 });
     impact.hitFlash(target);
-    impact.damageNumber(p.clone().setY(p.y + 1), damage, weapon.palette[0]);
-    onomato.spawn(weapon.category, pos, weapon.palette[0]);
+    // Écran épuré (retour d'Adem) : plus de chiffres de dégâts (le % du HUD fait foi, façon Smash), onomatopée
+    // seulement sur les gros coups.
+    void damage;
+    if (crit) onomato.spawn(weapon.category, pos, weapon.palette[0]);
   });
 
   ctx.bus.on('parry:result', ({ player, grade }) => {
@@ -75,21 +70,7 @@ export function installFx(ctx: Ctx): void {
     impact.shockwave(new THREE.Vector3(p[0], 0.5, p[2]), rendu.contour.encre, j.onde);
   });
 
-  ctx.bus.on('shield:placed', ({ player, weapon, pos }) => {
-    clearShield(player);
-    (async () => {
-      let group: THREE.Object3D;
-      try {
-        group = weapon.stickerUrl ? await makeSticker(weapon.stickerUrl, { height: 1.4 }) : makeFallbackSticker(weapon.category, weapon.palette);
-      } catch (e) { console.error('[fx] shield sticker', e); group = makeFallbackSticker(weapon.category, weapon.palette); }
-      group.position.set(pos[0], 0.9, pos[2]);
-      const towardCenter = Math.atan2(-pos[0], -pos[2]);
-      group.rotation.y = towardCenter;
-      scene.add(group);
-      excludeFromOcclusion(group);
-      shieldStickers[player] = group;
-    })().catch((e) => console.error('[fx] shield:placed', e));
-  });
+  // Mur-bouclier (shield:placed) : src/scene/weapons/shield.ts (lot LATK1).
 
   ctx.bus.on('crate:warn', ({ pos }) => {
     crateWarn.position.set(pos[0], 0.03, pos[2]);
@@ -104,7 +85,6 @@ export function installFx(ctx: Ctx): void {
   });
 
   ctx.bus.on('ko', ({ player }) => {
-    clearShield(player);
     const winner = other(player);
     const from = new THREE.Color(scene.background instanceof THREE.Color ? scene.background.getHex() : 0x000000);
     const to = new THREE.Color(teamColorLight(winner));

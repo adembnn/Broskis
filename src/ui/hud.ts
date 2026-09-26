@@ -1,21 +1,27 @@
-// HUD du match façon Smash (lot LUX) : en bas, un encart par joueur (portrait, nom, % énorme qui saute et change de
-// couleur, vies, jauge BRO), au centre la barre des 3 armes du joueur actif (sticker, nom, catégorie, touche,
-// recharge), au-dessus l'aide contextuelle (help.ts). Bandeaux READY? / GO! / GAME!, bandeau de tour, notes de
-// parade, sous-titres de l'animateur en haut. Monter AVANT ctx.hooks.startMatch (le 1er turn:start est synchrone).
+// HUD du temps réel, écran scindé (lot LUX, pivot 15h25) : chaque moitié a le sien — en bas, l'encart du joueur
+// (portrait, nom, % énorme qui saute et change de couleur, vies, jauge BRO, BLOCK), sa barre de 3 armes (sticker,
+// touche, anneau de recharge en secondes, charge du tir), sa carte de commandes (help.ts), son anneau de parade et
+// ses bandeaux (PERFECT!, EDGE!). Au centre : séparateur fin et chrono du match (mort subite à 3:00). En travers :
+// READY? 3-2-1 GO! et GAME!. Contre l'IA : une seule vue plein écran, l'IA n'a que son encart.
+// Lecture de l'état à chaque image (recharges, charge, blocage) : robuste même si un événement manque.
 import { durees } from '../art/tokens.js';
-import type { Ctx, PlayerId, Weapon } from '../core/types';
+import type { Ctx, PlayerId, PlayerState, Weapon } from '../core/types';
 import { createCommentary } from './commentary';
 import { el } from './dom';
-import { categoryTag } from './icons';
 import { createFloaters } from './floaters';
-import { mountHelp } from './help';
-import { kbd } from './keys';
+import { createControlsCard, createControlsMode, createParryRing } from './help';
+import { CATEGORY_DOES, categoryIconSvg } from './icons';
+import { kbd, onBindingsChange, weaponKeys } from './keys';
 import { fighterPortrait } from './portraits';
 import { weaponSticker } from './sticker2d';
 import { LOCAL_TOKENS } from './theme';
 
-const MATCH_PHASES = new Set(['turn-intro', 'move', 'aim', 'resolve', 'snap-time', 'ko']);
-const ARSENAL_SIZE = 3;
+/** Champs du temps réel (plan/PIVOT-TEMPS-REEL.md), ajoutés par le lot règles : lus s'ils existent. */
+type RtPlayer = PlayerState & { cooldowns?: number[]; charge?: number; blocking?: boolean };
+
+const PRE_MATCH = new Set(['title', 'fighter-select', 'arsenal', 'reveal', 'map-select']);
+/** Durée du match avant la mort subite (s), plan/PIVOT-TEMPS-REEL.md. */
+const MATCH_S = 180;
 
 /** Couleur du % façon Smash : blanc → jaune → orange → rouge → rouge sombre (paliers LOCAL_TOKENS.pct). */
 function pctColor(pct: number): string {
@@ -56,16 +62,18 @@ function createPlate(player: PlayerId) {
   const broFill = el('i');
   const broLabel = el('span', 'bro-label', 'BRO');
   bro.append(broFill, broLabel);
+  const block = el('span', 'plate-block', 'BLOCK');
   body.append(name, pct, stocks);
-  root.append(portrait, body, bro);
+  root.append(portrait, body, bro, block);
 
   let lastPct = -1;
   let lastStocks = -1;
   let lastFighter = '';
+  let lastBlock = false;
   return {
     root,
-    sync(ctx: Ctx) {
-      const ps = ctx.state.players[player];
+    update(ctx: Ctx) {
+      const ps = ctx.state.players[player] as RtPlayer;
       const f = ps.fighter;
       const fid = f?.id ?? '';
       if (fid !== lastFighter) {
@@ -83,18 +91,21 @@ function createPlate(player: PlayerId) {
       const s = Math.max(0, ps.stocks ?? 0);
       if (s !== lastStocks) {
         const total = Math.max(s, ctx.state.demo ? 1 : 2, lastStocks);
-        stocks.replaceChildren(
-          ...Array.from({ length: total }, (_, i) => el('span', `stock${i < s ? '' : ' lost'}`)),
-        );
+        stocks.replaceChildren(...Array.from({ length: total }, (_, i) => el('span', `stock${i < s ? '' : ' lost'}`)));
         if (lastStocks > s) replay(stocks, 'lost-one');
         lastStocks = s;
       }
-      root.classList.toggle('active', ctx.state.active === player && MATCH_PHASES.has(ctx.state.phase));
+      const blocking = !!ps.blocking;
+      if (blocking !== lastBlock) {
+        lastBlock = blocking;
+        root.classList.toggle('blocking', blocking);
+      }
       root.classList.toggle('ledge', !!ps.onLedge);
     },
     setBro(value: number, ready: boolean) {
       broFill.style.transform = `scaleX(${Math.max(0, Math.min(1, value))})`;
       bro.classList.toggle('ready', ready);
+      bro.classList.toggle('on', ready || value > 0);
       broLabel.textContent = ready ? 'BRO SMASH READY' : 'BRO';
     },
     reset() {
@@ -104,32 +115,114 @@ function createPlate(player: PlayerId) {
   };
 }
 
-// ---------- Barre d'armes du joueur actif ----------
-function createWeaponCard(index: number) {
+// ---------- Carte d'arme de la barre ----------
+function createWeaponCard() {
   const root = el('div', 'wcard');
-  const key = kbd(String(index + 1), 'wcard-key');
+  const key = el('span', 'wcard-keyslot');
   const art = el('div', 'wcard-art');
   const name = el('div', 'wcard-name');
-  const tagSlot = el('div', 'wcard-tag');
-  const cd = el('div', 'wcard-cd', 'READY IN 1 TURN');
-  root.append(key, art, name, tagSlot, cd);
+  const does = el('div', 'wcard-does');
+  const cd = el('div', 'wcard-cd');
+  const cdNum = el('span', 'wcard-cd-num');
+  cd.append(cdNum);
+  const charge = el('div', 'wcard-charge');
+  const chargeFill = el('i');
+  charge.append(chargeFill);
+  root.append(key, art, name, does, cd, charge);
   let lastId = '';
   let lastSticker = '';
+  let lastKey = '';
+  let total = 0;
+  let wasCooling = false;
   return {
     root,
-    update(w: Weapon | undefined, selected: boolean) {
+    update(w: Weapon | undefined, selected: boolean, keyLabel: string, cooldown: number | null, chargeK: number) {
       root.hidden = !w;
       if (!w) return;
       if (w.id !== lastId || (w.stickerUrl ?? '') !== lastSticker) {
         lastId = w.id;
         lastSticker = w.stickerUrl ?? '';
+        total = 0;
         art.replaceChildren(weaponSticker(w, 'wcard-sticker'));
         name.textContent = w.name;
-        tagSlot.replaceChildren(categoryTag(w, true));
+        does.innerHTML = `<span class="wcard-ico" style="--accent:${LOCAL_TOKENS.category[w.category]}">${categoryIconSvg(w.category)}</span>`;
+        does.append(CATEGORY_DOES[w.category]);
+      }
+      if (keyLabel !== lastKey) {
+        lastKey = keyLabel;
+        key.replaceChildren(kbd(keyLabel, 'wcard-key'));
       }
       root.classList.toggle('selected', selected);
-      root.classList.toggle('cooling', w.cooldown > 0);
-      cd.textContent = w.cooldown > 1 ? `READY IN ${w.cooldown} TURNS` : 'READY IN 1 TURN';
+      // Recharge : en secondes (temps réel, `cooldowns`), sinon en tours (ancien `cooldown`).
+      const cooling = cooldown != null ? cooldown > 0.05 : w.cooldown > 0;
+      if (cooling) {
+        if (cooldown != null) {
+          if (cooldown > total) total = cooldown;
+          cd.style.setProperty('--cd', String(total > 0 ? cooldown / total : 1));
+          cdNum.textContent = cooldown >= 1 ? cooldown.toFixed(0) : cooldown.toFixed(1);
+        } else {
+          cd.style.setProperty('--cd', '1');
+          cdNum.textContent = `${w.cooldown}`;
+        }
+      } else if (wasCooling) {
+        total = 0;
+        replay(root, 'ready-pop');
+      }
+      wasCooling = cooling;
+      root.classList.toggle('cooling', cooling);
+      const k = selected ? Math.max(0, Math.min(1, chargeK)) : 0;
+      charge.classList.toggle('on', k > 0.02);
+      chargeFill.style.transform = `scaleX(${k})`;
+    },
+  };
+}
+
+// ---------- Une moitié d'écran ----------
+function createHalf(ctx: Ctx, player: PlayerId, mode: ReturnType<typeof createControlsMode>) {
+  const root = el('div', `half p${player + 1}`);
+  const plate = createPlate(player);
+  const wbar = el('div', 'wbar');
+  const cards = Array.from({ length: 3 }, () => createWeaponCard());
+  wbar.append(...cards.map((c) => c.root));
+  const ctrl = createControlsCard(player, mode);
+  const row = el('div', 'half-row');
+  row.append(plate.root, wbar);
+  const bottom = el('div', 'half-bottom');
+  bottom.append(ctrl.root, row);
+  const banner = el('div', 'half-banner');
+  banner.hidden = true;
+  const edge = el('div', 'half-edge', 'EDGE!');
+  edge.hidden = true;
+  const ring = createParryRing(ctx, player);
+  root.append(ring.root, banner, edge, bottom);
+
+  let bannerTimer = 0;
+  let keys = weaponKeys(player);
+  const offKeys = onBindingsChange(() => (keys = weaponKeys(player)));
+  return {
+    root,
+    plate,
+    ring,
+    showBanner(text: string, cls: string, ms: number) {
+      banner.className = `half-banner ${cls}`;
+      banner.textContent = text;
+      banner.hidden = false;
+      replay(banner, 'enter');
+      window.clearTimeout(bannerTimer);
+      bannerTimer = window.setTimeout(() => (banner.hidden = true), ms);
+    },
+    setEdge(on: boolean) {
+      edge.hidden = !on;
+    },
+    update() {
+      plate.update(ctx);
+      const ps = ctx.state.players[player] as RtPlayer;
+      cards.forEach((c, i) => c.update(ps.weapons[i], i === ps.selected, keys[i] ?? String(i + 1), ps.cooldowns ? ps.cooldowns[i] ?? 0 : null, ps.charge ?? 0));
+    },
+    dispose() {
+      offKeys();
+      ctrl.dispose();
+      window.clearTimeout(bannerTimer);
     },
   };
 }
@@ -142,88 +235,66 @@ export interface Hud {
 export function mountHud(ctx: Ctx): Hud {
   const root = el('div', 'hud-root');
   root.hidden = true;
-  const plates = [createPlate(0), createPlate(1)];
-  const wbar = el('div', 'wbar');
-  const cards = Array.from({ length: ARSENAL_SIZE }, (_, i) => createWeaponCard(i));
-  wbar.append(...cards.map((c) => c.root));
-
-  const turnBanner = el('div', 'turn-banner');
-  turnBanner.hidden = true;
+  const mode = createControlsMode(ctx);
+  const halves = [createHalf(ctx, 0, mode), createHalf(ctx, 1, mode)];
+  const sep = el('div', 'split-sep');
+  const clock = el('div', 'match-clock');
+  clock.hidden = true;
   const centerBanner = el('div', 'center-banner');
   centerBanner.hidden = true;
   const bigBanner = el('div', 'big-banner');
   bigBanner.hidden = true;
-
   const commentary = createCommentary();
+  const top = el('div', 'hud-top');
+  top.append(clock, commentary.root);
   const floaters = createFloaters(ctx);
-  const help = mountHelp(ctx);
-  // Colonne du bas, au centre : sous-titre de l'animateur (2 s), aide à touches, barre d'armes. Rien d'autre.
-  const bottom = el('div', 'hud-bottom');
-  bottom.append(commentary.root, help.root, wbar);
-  root.append(help.world, plates[0].root, plates[1].root, bottom, turnBanner, centerBanner, bigBanner, floaters.root, help.defend);
+  root.append(halves[0].root, halves[1].root, sep, top, centerBanner, bigBanner, floaters.root);
 
-  const bro = [
-    { value: 0, ready: false },
-    { value: 0, ready: false },
-  ];
-
-  const sync = () => {
-    plates[0].sync(ctx);
-    plates[1].sync(ctx);
-    const active = ctx.state.players[ctx.state.active];
-    cards.forEach((c, i) => c.update(active.weapons[i], i === active.selected));
-    wbar.classList.toggle('p1', ctx.state.active === 0);
-    wbar.classList.toggle('p2', ctx.state.active === 1);
-    // La barre n'est utile qu'au joueur qui agit : estompée pendant le vol et la parade.
-    const phase = ctx.state.phase;
-    wbar.classList.toggle('idle', (phase !== 'move' && phase !== 'aim') || !help.defend.hidden);
-  };
-
-  let turnBannerTimer = 0;
-  function showTurnBanner(active: PlayerId) {
-    const ai = ctx.state.vsAI && active === 1;
-    turnBanner.className = `turn-banner p${active + 1}`;
-    turnBanner.textContent = ai ? "AI'S TURN" : `P${active + 1}'S TURN`;
-    turnBanner.hidden = false;
-    replay(turnBanner, 'enter');
-    window.clearTimeout(turnBannerTimer);
-    turnBannerTimer = window.setTimeout(() => {
-      turnBanner.hidden = true;
-    }, durees.bandeau);
+  const isAI = (p: PlayerId) => ctx.state.vsAI && p === 1;
+  function layout() {
+    // Deux humains : écran scindé ; contre l'IA : plein écran, l'IA n'a que son encart.
+    root.classList.toggle('split', !ctx.state.vsAI);
+    root.classList.toggle('solo', ctx.state.vsAI);
   }
 
-  let centerBannerTimer = 0;
+  let centerTimer = 0;
   function showCenterBanner(text: string, cls: string, ms: number) {
     centerBanner.className = `center-banner ${cls}`;
     centerBanner.textContent = text;
     centerBanner.hidden = false;
     replay(centerBanner, 'enter');
-    window.clearTimeout(centerBannerTimer);
-    centerBannerTimer = window.setTimeout(() => {
-      centerBanner.hidden = true;
-    }, ms);
+    window.clearTimeout(centerTimer);
+    centerTimer = window.setTimeout(() => (centerBanner.hidden = true), ms);
   }
 
-  // READY? → GO! → (match) → GAME! Émis par les règles (match:banner) ; repli local si elles ne le font pas.
+  // READY? → 3, 2, 1 → GO! → (combat) → GAME! Émis par les règles ; repli local si elles ne le font pas.
   let bigTimer = 0;
   let lastBannerAt = 0;
   let gameShown = false;
-  function showBig(kind: 'ready' | 'go' | 'game') {
+  function showBig(text: string, cls: string, hold: number) {
     lastBannerAt = performance.now();
-    if (kind === 'game') gameShown = true;
-    bigBanner.className = `big-banner ${kind}`;
-    bigBanner.textContent = kind === 'ready' ? 'READY?' : kind === 'go' ? 'GO!' : 'GAME!';
+    bigBanner.className = `big-banner ${cls}`;
+    bigBanner.textContent = text;
     bigBanner.hidden = false;
     replay(bigBanner, 'slam');
     window.clearTimeout(bigTimer);
-    const hold = kind === 'go' ? durees.dramatique : kind === 'ready' ? durees.bandeau * 2 : durees.ko * 2;
     bigTimer = window.setTimeout(() => {
       bigBanner.classList.add('leave');
-      bigTimer = window.setTimeout(() => {
-        bigBanner.hidden = true;
-      }, durees.decolle);
+      bigTimer = window.setTimeout(() => (bigBanner.hidden = true), durees.decolle);
     }, hold);
   }
+  const showBanner = (kind: 'ready' | 'go' | 'game') => {
+    if (kind === 'game') gameShown = true;
+    if (kind === 'go') fightStart = ctx.loop.time;
+    if (kind === 'ready') showBig('READY?', 'ready', durees.bandeau * 6);
+    else if (kind === 'go') showBig('GO!', 'go', durees.dramatique);
+    else showBig('GAME!', 'game', durees.ko * 2);
+  };
+
+  // Chrono du match : 3:00 → 0:00 depuis GO!, puis mort subite.
+  let fightStart = -1;
+  let lastClock = '';
+  let suddenShown = false;
 
   function commentaryNames(): { name: string; color: string }[] {
     const names: { name: string; color: string }[] = [];
@@ -235,87 +306,115 @@ export function mountHud(ctx: Ctx): Hud {
     return names;
   }
 
+  const bro = [
+    { value: 0, ready: false },
+    { value: 0, ready: false },
+  ];
+
   const offs = [
     ctx.bus.on('phase:change', ({ to }) => {
-      root.hidden = !MATCH_PHASES.has(to) && to !== 'end';
-      sync();
+      root.hidden = PRE_MATCH.has(to);
     }),
     ctx.bus.on('match:start', () => {
       gameShown = false;
-      plates.forEach((p) => p.reset());
-      bro.forEach((b, i) => {
-        b.value = 0;
-        b.ready = false;
-        plates[i].setBro(0, false);
+      suddenShown = false;
+      fightStart = -1;
+      lastClock = '';
+      clock.hidden = true;
+      layout();
+      halves.forEach((h, i) => {
+        h.plate.reset();
+        h.setEdge(false);
+        h.ring.hide();
+        bro[i] = { value: 0, ready: false };
+        h.plate.setBro(0, false);
       });
       root.hidden = false;
-      sync();
       const startedAt = performance.now();
-      // Repli : sans match:banner des règles dans les 150 ms, on joue READY? / GO! nous-mêmes (affichage seul).
       window.setTimeout(() => {
-        if (lastBannerAt >= startedAt) return;
-        showBig('ready');
-        window.setTimeout(() => showBig('go'), 1200);
+        if (lastBannerAt >= startedAt) return; // les règles jouent READY?/GO! elles-mêmes
+        showBanner('ready');
+        window.setTimeout(() => showBanner('go'), 1200);
       }, 150);
     }),
-    ctx.bus.on('match:banner', ({ kind }) => showBig(kind)),
+    ctx.bus.on('match:banner', ({ kind }) => showBanner(kind)),
     ctx.bus.on('match:end', () => {
-      if (!gameShown) showBig('game');
+      if (!gameShown) showBanner('game');
     }),
-    ctx.bus.on('turn:start', ({ active }) => {
-      showTurnBanner(active);
-      sync();
+    ctx.bus.onAny((name, payload) => {
+      // Événements du temps réel pas encore dans le contrat partagé : lus par leur nom (plan/PIVOT-TEMPS-REEL.md).
+      if ((name as string) === 'countdown') {
+        const n = (payload as { n?: number })?.n;
+        if (typeof n === 'number' && n > 0) showBig(String(n), 'count', 800);
+      }
     }),
-    // Pas de chiffre flottant (désencombrement) : c'est le % de l'encart qui saute, tremble et change de couleur.
-    ctx.bus.on('hit', () => sync()),
+    ctx.bus.on('projectile:incoming', ({ target, etaMs, id }) => {
+      if (!isAI(target)) halves[target].ring.show(etaMs, id);
+    }),
+    ctx.bus.on('parry:result', ({ player, grade }) => {
+      halves[player].ring.hide();
+      if (grade === 'perfect') halves[player].showBanner('PERFECT!', 'perfect', durees.dramatique);
+      else if (grade === 'good') halves[player].showBanner('BLOCKED', 'good', durees.dramatique * 0.7);
+    }),
+    ctx.bus.on('hit', ({ target }) => halves[target].ring.hide()),
+    ctx.bus.on('teeter', ({ player, on }) => halves[player].setEdge(on)),
     ctx.bus.on('stock:lost', ({ player, stocksLeft }) => {
-      sync();
+      halves[player].setEdge(false);
       const label = stocksLeft <= 0 ? `P${player + 1} — OUT!` : stocksLeft === 1 ? `P${player + 1} — LAST LIFE!` : `P${player + 1} — ${stocksLeft} LIVES LEFT`;
       showCenterBanner(label, `ko p${player + 1}`, durees.ko);
     }),
-    ctx.bus.on('respawn', () => sync()),
-    ctx.bus.on('ledge:grab', () => sync()),
-    ctx.bus.on('ledge:climb', () => sync()),
-    ctx.bus.on('weapon:pick', () => sync()),
-    ctx.bus.on('fire', () => sync()),
-    ctx.bus.on('scan:result', () => sync()),
-    ctx.bus.on('parry:window', () => sync()),
-    ctx.bus.on('parry:result', ({ grade, deltaMs }) => {
-      const label = grade === 'perfect' ? 'PERFECT!' : grade === 'good' ? 'GOOD!' : deltaMs < 0 ? 'TOO EARLY' : 'TOO LATE';
-      showCenterBanner(label, `grade-${grade}`, durees.dramatique);
-    }),
     ctx.bus.on('bro:gauge', ({ player, value }) => {
       bro[player].value = value;
-      plates[player].setBro(value, bro[player].ready);
+      halves[player].plate.setBro(value, bro[player].ready);
     }),
     ctx.bus.on('super:ready', ({ player }) => {
       bro[player].ready = true;
-      plates[player].setBro(1, true);
+      halves[player].plate.setBro(1, true);
     }),
     ctx.bus.on('super:fire', ({ player }) => {
-      bro[player].ready = false;
-      bro[player].value = 0;
-      plates[player].setBro(0, false);
+      bro[player] = { value: 0, ready: false };
+      halves[player].plate.setBro(0, false);
     }),
-    // Lot LVOX (une seule voix) : le sous-titre de la carte animateur = ce qui est RÉELLEMENT entendu
-    // (`voice:line`, émis par src/audio/barks.ts au démarrage d'une réplique), jamais `commentary:line`.
-    // Seulement l'animateur : un bark de perso ou la provocation de l'IA n'ont rien à faire sur sa carte.
+    // Lot LVOX : le sous-titre = ce qui est RÉELLEMENT entendu (`voice:line`), animateur seulement.
     ctx.bus.on('voice:line', ({ text, speaker }) => {
       if (speaker !== 'announcer') return;
       commentary.show(text, commentaryNames());
     }),
   ];
 
+  ctx.loop.addSystem(
+    'ui-hud',
+    () => {
+      if (root.hidden) return;
+      halves[0].update();
+      halves[1].update();
+      if (fightStart >= 0) {
+        const left = Math.max(0, MATCH_S - (ctx.loop.time - fightStart));
+        const txt = left > 0 ? `${Math.floor(left / 60)}:${String(Math.floor(left % 60)).padStart(2, '0')}` : 'SUDDEN DEATH';
+        if (txt !== lastClock) {
+          lastClock = txt;
+          clock.textContent = txt;
+          clock.hidden = false;
+          clock.classList.toggle('late', left <= 10);
+          if (left <= 0 && !suddenShown) {
+            suddenShown = true;
+            showCenterBanner('SUDDEN DEATH!', 'ko', durees.ko);
+          }
+        }
+      }
+    },
+    900,
+  );
+
   return {
     root,
     dispose() {
       for (const off of offs) off();
-      window.clearTimeout(turnBannerTimer);
-      window.clearTimeout(centerBannerTimer);
+      halves.forEach((h) => h.dispose());
+      window.clearTimeout(centerTimer);
       window.clearTimeout(bigTimer);
       commentary.dispose();
       floaters.dispose();
-      help.dispose();
     },
   };
 }
