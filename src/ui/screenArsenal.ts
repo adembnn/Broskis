@@ -2,15 +2,14 @@
 // « Snap a real object » (webcam/import/glisser-déposer), forge, puis carte d'arme (relance en catégorie imposée).
 // La photo réellement capturée est gardée à part (photos, par id d'arme) : le contrat Weapon ne la porte pas,
 // mais la présentation (règle 5 du DA) veut la vraie preuve webcam sur la carte.
-import type { Category, PlayerId, Weapon } from '../core/types';
-import { primeWeapon, scanNote, scanObject } from '../ia';
+import type { PlayerId, Weapon } from '../core/types';
+import { primeWeapon } from '../ia';
 import { mountCapture } from './capture';
 import { button, clear, el, menuScreen } from './dom';
-import { mountForgeView } from './loading';
 import { CAMERA_SVG, categoryTag } from './icons';
 import { presetsReady, weaponPresets } from './presets';
+import { mountLiveScan } from './scanLive';
 import { weaponSticker } from './sticker2d';
-import { renderWeaponCard } from './weaponCard';
 
 export interface ArsenalResult {
   weapons: [Weapon[], Weapon[]];
@@ -61,81 +60,38 @@ function snapTile(onClick: () => void): HTMLDivElement {
   return tile;
 }
 
-const NOTE_TEXT = {
-  offline: "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again.",
-  substituted: "Nice try. Real weapons and people don't count. Have this instead.",
-} as const;
-
-async function forgeAndCard(
-  area: HTMLElement,
-  blob: Blob,
-  photoUrl: string,
-  category: Category | undefined,
-  label: string,
-  player: PlayerId,
-  slotNumber: number,
-): Promise<Weapon> {
-  clear(area);
-  // LLOAD : forge branchée sur les étapes réelles du scan (scan:progress) ; elle reste à côté de la carte jusqu'au sticker.
-  const forge = mountForgeView({ photoUrl, label });
-  area.append(forge.root);
-  const weapon = await scanObject(blob, category ? { category } : {});
-  return new Promise((resolve) => {
+/**
+ * Photo → carte d'arme EN DIRECT (lot LWAIT-OBJ, src/ui/scanLive.ts) : chaque résultat s'affiche à son arrivée, et
+ * l'arme ne se valide qu'avec son sticker ET son objet 3D prêts (plus de validation avant le sticker). Échec, refus ou
+ * lenteur : le joueur choisit Retry ou une arme de secours. « New photo » ramène à la capture.
+ */
+async function snapObjectFlow(area: HTMLElement, player: PlayerId, slotNumber: number): Promise<{ weapon: Weapon; photoUrl?: string }> {
+  for (;;) {
     clear(area);
-    const wrap = el('div', 'weapon-confirm');
-    // Lot LSCAN : une arme de secours (réseau lent, objet refusé) est expliquée au joueur, jamais muette.
-    const note = scanNote(weapon.id);
-    if (note) wrap.append(el('p', 'capture-error', NOTE_TEXT[note]));
-    const pair = el('div', 'lload-pair');
-    wrap.append(pair);
-    pair.append(forge.root);
-    pair.append(
-      renderWeaponCard(weapon, {
-        player,
-        cardNumber: slotNumber,
-        photoUrl,
-        onCategoryChange: (cat) => {
-          forgeAndCard(area, blob, photoUrl, cat, label, player, slotNumber).then(resolve);
-        },
-      }),
-    );
-    const row = el('div', 'confirm-row');
-    row.append(
-      button('Confirm', 'b-btn', () => resolve(weapon)),
-      button('Retry', 'b-btn small alt', () => {
-        snapObjectFlow(area, label, player, slotNumber).then(({ weapon: w }) => resolve(w));
-      }),
-    );
-    wrap.append(row);
-    area.append(wrap);
-  });
-}
-
-async function snapObjectFlow(
-  area: HTMLElement,
-  label: string,
-  player: PlayerId,
-  slotNumber: number,
-): Promise<{ weapon: Weapon; photoUrl: string }> {
-  clear(area);
-  const capture = mountCapture('Point the camera at an object, or drop in a photo.');
-  area.append(capture.root);
-  const shot = await capture.result;
-  capture.dispose();
-  const weapon = await forgeAndCard(area, shot.blob, shot.url, undefined, label, player, slotNumber);
-  return { weapon, photoUrl: shot.url };
+    const capture = mountCapture('Point the camera at an object, or drop in a photo.');
+    area.append(capture.root);
+    const shot = await capture.result;
+    capture.dispose();
+    clear(area);
+    const live = mountLiveScan({ blob: shot.blob, photoUrl: shot.url, player, cardNumber: slotNumber });
+    area.append(live.root);
+    const out = await live.outcome;
+    live.dispose();
+    if (out !== 'resnap') return out;
+  }
 }
 
 function pickArsenal(screenLayer: HTMLElement, player: PlayerId, photos: Map<string, string>): Promise<Weapon[]> {
   clear(screenLayer);
   const { root, card } = menuScreen(`arsenal-card p${player + 1}`);
-  const label = `Player ${player + 1}`;
   const head = el('div', 'screen-head');
   head.append(el('span', `ptoken p${player + 1}`, `P${player + 1}`), el('h2', 'b-title', 'Pick 3 weapons'));
   card.append(head);
 
   const slots: (Weapon | null)[] = [null, null, null];
   let current = 0;
+  /** Lot LWAIT-OBJ : un scan en cours bloque la sortie de l'arsenal (on ne quitte pas l'écran avant la fin). */
+  let scanning = false;
   const slotsRow = el('div', 'arsenal-slots');
   const rack = el('div', 'weapon-rack');
   const snapArea = el('div', 'weapon-snap-area');
@@ -157,11 +113,10 @@ function pickArsenal(screenLayer: HTMLElement, player: PlayerId, photos: Map<str
       ),
     );
     const filled = slots.filter(Boolean).length;
-    confirmBtn.disabled = filled < 3;
-    confirmBtn.textContent = filled < 3 ? `Pick ${3 - filled} more` : 'Ready!';
+    confirmBtn.disabled = filled < 3 || scanning;
+    confirmBtn.textContent = scanning ? 'Forging your weapon…' : filled < 3 ? `Pick ${3 - filled} more` : 'Ready!';
   }
-  function assign(weapon: Weapon, photoUrl?: string) {
-    const slotIndex = current;
+  function assign(weapon: Weapon, photoUrl?: string, slotIndex = current) {
     const cloned: Weapon = { ...weapon, id: `${weapon.id}-p${player}-${slotIndex}` };
     void primeWeapon(cloned); // LLOAD : sa réplique de pesée se vocalise dès maintenant, pas à la présentation
     slots[slotIndex] = cloned;
@@ -175,15 +130,22 @@ function pickArsenal(screenLayer: HTMLElement, player: PlayerId, photos: Map<str
   renderSlots();
   rack.append(
     snapTile(() => {
+      if (scanning) return;
       rack.hidden = true;
-      snapObjectFlow(snapArea, label, player, current + 1).then(({ weapon, photoUrl }) => assign(weapon, photoUrl));
+      scanning = true;
+      const slotIndex = current; // l'arme finie va dans l'emplacement choisi au SNAP
+      renderSlots();
+      snapObjectFlow(snapArea, player, slotIndex + 1).then(({ weapon, photoUrl }) => {
+        scanning = false;
+        assign(weapon, photoUrl, slotIndex);
+      });
     }),
   );
   for (const preset of weaponPresets()) rack.append(rackTile(preset, () => assign(preset)));
 
   return new Promise((resolve) => {
     confirmBtn.addEventListener('click', () => {
-      if (slots.every((w): w is Weapon => !!w)) resolve(slots as Weapon[]);
+      if (!scanning && slots.every((w): w is Weapon => !!w)) resolve(slots as Weapon[]);
     });
   });
 }

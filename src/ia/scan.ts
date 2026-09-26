@@ -7,7 +7,7 @@
 // (changer de catégorie ne redessine rien) et vérifié (fond magenta) ; JSON avec relance et 9 s au total (au lieu d'un
 // repli muet à 4 s qui collait un nain de jardin sur la photo d'un mug) ; chaque arme de secours porte une note
 // (`scanNote`) pour que l'interface explique pourquoi.
-import type { Category, PlayerId, Weapon } from '../core/types';
+import type { Category, Material, ObjectShape, PlayerId, Weapon } from '../core/types';
 import type { EventMap } from '../core/events';
 import { createRng } from '../core/rng';
 import { getCached, hashImage, setCached } from './cache';
@@ -15,7 +15,7 @@ import { ENDPOINTS, TIMEOUTS } from './config';
 import { loadDemoFallback, loadDemoObject } from './demo-cache';
 import { postJson } from './fetch-json';
 import { isDataUrl, toResizedJpegBase64 } from './image';
-import { clampPhysics, deriveStats } from './physics';
+import { MASS_MAX_KG, MASS_MIN_KG, MATERIALS, SHAPES, SIZE_MAX_M, SIZE_MIN_M, clampPhysics, deriveStats } from './physics';
 import { findPresetByObjectName, pickPreset } from './presets';
 import { activePlayer, getRuntimeCtx } from './runtime';
 import {
@@ -32,7 +32,27 @@ import {
 export interface ScanOptions {
   category?: Category;
   player?: PlayerId;
+  /** Lot LWAIT-OBJ : étapes de CE scan seulement (chaque carte de l'arsenal a son propre flux, même en parallèle). */
+  onProgress?: (step: ScanStep, preview?: ScanPreview, weaponId?: string) => void;
+  /** Budget du JSON (ms), défaut TIMEOUTS.scan. L'arsenal attend plus : le joueur y voit le flux, jamais de repli muet. */
+  timeoutMs?: number;
 }
+
+/** Physique écrite par Gemini jusqu'ici (flux), champ par champ, déjà bornée (listes fermées, 0,02-25 kg, 0,03-2,5 m). */
+export interface PhysicsPreview {
+  material?: Material;
+  shape?: ObjectShape;
+  heightM?: number;
+  widthM?: number;
+  depthM?: number;
+  massKg?: number;
+  bounciness?: number;
+  fragile?: boolean;
+  liquid?: boolean;
+}
+
+/** Aperçu d'un scan en cours : champs complets de l'arme + physique partielle (lot LWAIT-OBJ). */
+export type ScanPreview = Partial<Weapon> & { physicsPreview?: PhysicsPreview };
 
 /** Pourquoi une arme n'est pas la lecture directe de la photo (affiché sur la carte, lot LSCAN). */
 export type ScanNote = 'offline' | 'substituted';
@@ -122,18 +142,61 @@ function partialField(text: string, key: string): string | undefined {
   try { return JSON.parse(`"${m[1]}"`) as string; } catch { return undefined; }
 }
 
-/** Aperçu nettoyé (mêmes bornes que l'arme finale) ; rien si l'aperçu ressemble à une vraie arme ou une personne. */
-function previewOf(text: string, forced: Category | undefined): Partial<Weapon> | null {
+/** Nombre ou booléen d'un JSON en cours d'écriture, seulement une fois terminé (suivi d'une virgule, d'une accolade…). */
+function partialNumber(text: string, key: string): number | undefined {
+  const m = new RegExp(`"${key}"\\s*:\\s*(-?\\d+(?:\\.\\d+)?(?:[eE][+-]?\\d+)?)\\s*[,}\\s]`).exec(text);
+  const n = m ? Number(m[1]) : NaN;
+  return Number.isFinite(n) ? n : undefined;
+}
+function partialBool(text: string, key: string): boolean | undefined {
+  const m = new RegExp(`"${key}"\\s*:\\s*(true|false)\\b`).exec(text);
+  return m ? m[1] === 'true' : undefined;
+}
+const borne = (v: number | undefined, lo: number, hi: number) => (v === undefined ? undefined : Math.min(hi, Math.max(lo, v)));
+
+/** Physique partielle (lot LWAIT-OBJ) : chaque champ apparaît dès que Gemini l'a fini, borné comme l'arme finale. */
+function physicsPreviewOf(text: string): PhysicsPreview {
+  const ph: PhysicsPreview = {};
+  const material = partialField(text, 'material');
+  if (material && (MATERIALS as readonly string[]).includes(material)) ph.material = material as Material;
+  const shape = partialField(text, 'shape');
+  if (shape && (SHAPES as readonly string[]).includes(shape)) ph.shape = shape as ObjectShape;
+  ph.heightM = borne(partialNumber(text, 'heightM'), SIZE_MIN_M, SIZE_MAX_M);
+  ph.widthM = borne(partialNumber(text, 'widthM'), SIZE_MIN_M, SIZE_MAX_M);
+  ph.depthM = borne(partialNumber(text, 'depthM'), SIZE_MIN_M, SIZE_MAX_M);
+  ph.massKg = borne(partialNumber(text, 'massKg'), MASS_MIN_KG, MASS_MAX_KG);
+  ph.bounciness = borne(partialNumber(text, 'bounciness'), 0, 1);
+  ph.fragile = partialBool(text, 'fragile');
+  ph.liquid = partialBool(text, 'liquid');
+  for (const k of Object.keys(ph) as (keyof PhysicsPreview)[]) if (ph[k] === undefined) delete ph[k];
+  return ph;
+}
+
+/** Aperçu nettoyé (mêmes bornes que l'arme finale) ; rien si l'aperçu ressemble à une vraie arme ou une personne.
+ *  Lot LWAIT-OBJ : + physique champ par champ, puis stats et trait calculés PAR LE CODE dès que physique et
+ *  catégorie sont écrites (mêmes formules que le serveur : l'aperçu vaut l'arme finale). */
+function previewOf(text: string, forced: Category | undefined): ScanPreview | null {
+  if (/"substituted"\s*:\s*true/.test(text)) return null; // refus en cours : rien de l'original à l'écran
   const object = partialField(text, 'object');
   const name = partialField(text, 'weaponName');
   const why = partialField(text, 'why');
   if (looksUnsafe(object, name, why)) return null;
-  const w: Partial<Weapon> = {};
+  const w: ScanPreview = {};
   if (object) w.object = clampObject(object);
   if (name) w.name = clampWeaponName(name);
   if (why) w.why = clampWhy(why);
   const cat = /"category"\s*:\s*"(\w+)"/.exec(text)?.[1];
   if (cat) w.category = clampCategory(cat, forced);
+  const ph = physicsPreviewOf(text);
+  if (Object.keys(ph).length) w.physicsPreview = ph;
+  if (w.category && /"physicsConfidence"\s*:\s*"\w+"/.test(text)) {
+    const physics = clampPhysics(ph, w.category, w.object ?? '');
+    const trait = partialField(text, 'trait');
+    const derived = deriveStats(physics, w.category, trait ? clampTrait(trait, w.category.length) : undefined);
+    w.physics = physics;
+    w.stats = derived.stats;
+    if (trait) w.trait = derived.trait;
+  }
   return Object.keys(w).length ? w : null;
 }
 
@@ -148,10 +211,11 @@ async function fetchStats(
   mimeType: string,
   category: Category | undefined,
   timing: ScanTiming,
-  onPartial: (w: Partial<Weapon>) => void,
+  onPartial: (w: ScanPreview) => void,
+  budgetMs: number = TIMEOUTS.scan,
 ): Promise<ScanObjectApiResult | null> {
   const body = { imageBase64: base64, mimeType, category };
-  const deadline = performance.now() + TIMEOUTS.scan;
+  const deadline = performance.now() + budgetMs;
   const left = () => Math.max(500, deadline - performance.now());
   const retry = () => {
     if (deadline - performance.now() < 1500) return null;
@@ -316,6 +380,15 @@ export async function scanObject(image: Blob | string, opts: ScanOptions = {}): 
     return weapon;
   }
 
+  // Lot LWAIT-OBJ : chaque étape part sur le bus ET vers le scan qui l'a demandée (carte d'arsenal, flux propre).
+  const progress = (step: ScanStep, weaponId?: string, preview?: ScanPreview) => {
+    emitScanProgress(opts.player, step, weaponId, preview);
+    try {
+      opts.onProgress?.(step, preview, weaponId);
+    } catch (e) {
+      console.error('[ia] scan onProgress', e);
+    }
+  };
   const tEnter = performance.now();
   const { base64, mimeType } = await photoBase64(image);
   const imgKey = hashImage(base64);
@@ -323,19 +396,20 @@ export async function scanObject(image: Blob | string, opts: ScanOptions = {}): 
   const cached = getCached(jsonKey);
   if (cached) {
     // Même photo déjà scannée : la forge (lot LLOAD) passe directement aux stats, et au sticker s'il est là.
-    emitScanProgress(opts.player, 'stats', cached.id, cached);
-    if (cached.stickerUrl) emitScanProgress(opts.player, 'sticker', cached.id, cached);
+    progress('stats', cached.id, cached);
     emitScanResult(opts.player, cached);
+    if (cached.stickerUrl) progress('sticker', cached.id, cached);
+    else attachSticker(cached, stickerFor(imgKey, base64, mimeType), jsonKey, opts.player, progress); // Retry après un sticker raté
     return cached;
   }
 
   const t0 = performance.now();
   const timing: ScanTiming = { id: '', start: Math.round(t0), prep: Math.round(t0 - tEnter), tries: 0 };
   timings.push(timing);
-  emitScanProgress(opts.player, 'reading');
+  progress('reading');
   // Les deux appels partent dès que la photo est prête, en parallèle (le sticker n'attend jamais les stats).
   const stickerPromise = stickerFor(imgKey, base64, mimeType);
-  const raw = await fetchStats(base64, mimeType, opts.category, timing, (preview) => emitScanProgress(opts.player, 'partial', undefined, preview));
+  const raw = await fetchStats(base64, mimeType, opts.category, timing, (preview) => progress('partial', undefined, preview), opts.timeoutMs);
 
   let weapon: Weapon;
   let note: ScanNote | undefined;
@@ -363,33 +437,45 @@ export async function scanObject(image: Blob | string, opts: ScanOptions = {}): 
     setCached(jsonKey, weapon);
     setCached(weapon.object, weapon);
   }
-  emitScanProgress(opts.player, 'stats', weapon.id, weapon);
+  progress('stats', weapon.id, weapon);
   emitScanResult(opts.player, weapon);
 
   // Le sticker de la photo ne vaut que pour une vraie lecture de la photo (pas pour une arme de secours).
   if (note || offline || weapon.stickerUrl) {
-    if (weapon.stickerUrl) emitScanProgress(opts.player, 'sticker', weapon.id, weapon);
-    else emitScanProgress(opts.player, 'sticker-failed', weapon.id);
+    if (weapon.stickerUrl) progress('sticker', weapon.id, weapon);
+    else progress('sticker-failed', weapon.id);
     return weapon;
   }
+  attachSticker(weapon, stickerPromise, jsonKey, opts.player, progress, timing, t0);
+  return weapon;
+}
+
+/** Pose le sticker de la photo sur l'arme à son arrivée (cache, bus, scan demandeur) ; 'sticker-failed' sinon. */
+function attachSticker(
+  weapon: Weapon,
+  stickerPromise: Promise<string | null>,
+  jsonKey: string,
+  player: PlayerId | undefined,
+  progress: (step: ScanStep, weaponId?: string, preview?: ScanPreview) => void,
+  timing?: ScanTiming,
+  t0 = performance.now(),
+): void {
   stickerPromise
     .then((url) => {
-      timing.sticker = url ? Math.round(performance.now() - t0) : 'failed';
+      if (timing) timing.sticker = url ? Math.round(performance.now() - t0) : 'failed';
       if (!url) {
-        emitScanProgress(opts.player, 'sticker-failed', weapon.id);
+        progress('sticker-failed', weapon.id);
         return;
       }
       weapon.stickerUrl = url;
       setCached(jsonKey, weapon);
       setCached(weapon.object, weapon);
-      emitScanProgress(opts.player, 'sticker', weapon.id, weapon);
-      emitScanResult(opts.player, weapon);
+      progress('sticker', weapon.id, weapon);
+      emitScanResult(player, weapon);
     })
     .catch(() => {
       /* le sticker est un bonus visuel : une scène de secours (lot LS) existe déjà sans lui */
-      timing.sticker = 'failed';
-      emitScanProgress(opts.player, 'sticker-failed', weapon.id);
+      if (timing) timing.sticker = 'failed';
+      progress('sticker-failed', weapon.id);
     });
-
-  return weapon;
 }

@@ -12,7 +12,7 @@ import { scanFighter } from './fighter';
 import { scanObject } from './scan';
 import { setRuntimeCtx } from './runtime';
 
-export type { ScanNote, ScanOptions, ScanStep } from './scan';
+export type { PhysicsPreview, ScanNote, ScanOptions, ScanPreview, ScanStep } from './scan';
 export { scanNote, scanObject } from './scan';
 export { prepareCommentary, primeWeapon } from './commentary';
 
