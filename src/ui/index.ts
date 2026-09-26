@@ -95,7 +95,7 @@ export const install: Install = (ctx) => {
     const fighters = await runFighterSelect(screenLayer, settings.vsAI);
 
     ctx.bus.emit('phase:change', { from: 'fighter-select', to: 'arsenal' });
-    const arsenal = await runArsenal(screenLayer);
+    const arsenal = await runArsenal(screenLayer, settings.vsAI);
 
     ctx.bus.emit('phase:change', { from: 'arsenal', to: 'reveal' });
     await runReveal(ctx, screenLayer, arsenal);

@@ -175,10 +175,19 @@ function pickArsenal(screenLayer: HTMLElement, player: PlayerId, photos: Map<str
   });
 }
 
-export async function runArsenal(screenLayer: HTMLElement): Promise<ArsenalResult> {
+/** Contre l'IA : 3 vraies armes différentes tirées au hasard, une par catégorie autant que possible. */
+function aiArsenal(): Weapon[] {
+  const pool = [...weaponPresets()].sort(() => Math.random() - 0.5);
+  const picked: Weapon[] = [];
+  for (const w of pool) if (picked.length < 3 && !picked.some((p) => p.category === w.category)) picked.push(w);
+  for (const w of pool) if (picked.length < 3 && !picked.includes(w)) picked.push(w);
+  return picked.map((w, i) => ({ ...w, id: `${w.id}-p1-${i}` }));
+}
+
+export async function runArsenal(screenLayer: HTMLElement, vsAI = false): Promise<ArsenalResult> {
   await presetsReady; // les 8 vraies armes (stickers) : fichier local, déjà là en pratique
   const photos = new Map<string, string>();
   const p0 = await pickArsenal(screenLayer, 0, photos);
-  const p1 = await pickArsenal(screenLayer, 1, photos);
+  const p1 = vsAI ? aiArsenal() : await pickArsenal(screenLayer, 1, photos);
   return { weapons: [p0, p1], photos };
 }

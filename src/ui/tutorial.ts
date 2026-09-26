@@ -73,6 +73,10 @@ export function installTutorial(ctx: Ctx, layer: HTMLElement): void {
       }
       if (to === 'end' || to === 'title') bubble.hidden = true;
     }),
+    // Une bulle d'attaque ne concerne que son joueur : cachée pendant le tour de l'autre, remise à son retour.
+    ctx.bus.on('turn:start', ({ active }) => {
+      if (step >= 1 && step <= 3) bubble.hidden = active !== learner;
+    }),
     ctx.bus.on('move:update', ({ player, moveLeft }) => {
       if (step !== 1 || player !== learner || movedFrom - moveLeft < 1) return;
       show(2, 'Pick a weapon', keyLine(['Press', ['1'], 'to grab your first weapon']));
