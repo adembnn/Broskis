@@ -20,7 +20,7 @@ export interface MapDecorGrade { saturation: number; teinte: string }
 export interface ArchipelTokens {
   palette: MapPalette;
   ciel: { haut: string; horizon: string; bas: string };
-  panorama: { image: string; rotation: number; intensite: number; repetitions: number; horizon: number; haut: string; bas: string; chroma: number }; // LSKY
+  panorama: { image: string; rotation: number; intensite: number; repetitions: number; horizon: number; haut: string; bas: string; chroma: number; brume: number }; // LSKY
   brouillard: { couleur: string; debut: number; fin: number };
   hemi: { ciel: string; sol: string; intensite: number };
   principale: MapLightDirectional;
@@ -31,7 +31,7 @@ export interface ArchipelTokens {
 export interface GalionTokens {
   palette: MapPalette;
   ciel: { haut: string; horizon: string; bas: string };
-  panorama: { image: string; rotation: number; intensite: number; repetitions: number; horizon: number; haut: string; bas: string; chroma: number }; // LSKY
+  panorama: { image: string; rotation: number; intensite: number; repetitions: number; horizon: number; haut: string; bas: string; chroma: number; brume: number }; // LSKY
   brouillard: { couleur: string; debut: number; fin: number };
   hemi: { ciel: string; sol: string; intensite: number };
   principale: MapLightDirectional;
@@ -44,7 +44,7 @@ export interface GalionTokens {
 export interface CuisineTokens {
   palette: MapPalette;
   ciel: { haut: string; horizon: string; bas: string };
-  panorama: { image: string; rotation: number; intensite: number; repetitions: number; horizon: number; haut: string; bas: string; chroma: number }; // LSKY
+  panorama: { image: string; rotation: number; intensite: number; repetitions: number; horizon: number; haut: string; bas: string; chroma: number; brume: number }; // LSKY
   brouillard: { couleur: string; debut: number; fin: number };
   hemi: { ciel: string; sol: string; intensite: number };
   principale: MapLightSpot;

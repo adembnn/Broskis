@@ -16,8 +16,14 @@ interface PanoramaTokens {
   image: string; rotation: number; intensite: number; repetitions: number;
   horizon: number; haut: string; bas: string; // horizon : fraction de la hauteur de l'image, depuis le haut
   chroma: number; // saturation visée À L'ÉCRAN (1 = celle de la peinture), après l'étalonnage de postfx
+  brume: number;  // part de la couleur du brouillard mêlée à la peinture : le fond et la 3D lointaine se fondent
 }
-type MapSkyTokens = { panorama?: PanoramaTokens; decor?: { saturation?: number } };
+type MapSkyTokens = {
+  panorama?: PanoramaTokens; decor?: { saturation?: number }; brouillard?: { couleur: string };
+  eclair?: { fond: string; facteur: number };
+};
+/** Plafond du flash d'éclair sur le panorama (au-delà, le bloom lave l'image). */
+const ECLAIR_MAX = 1.8;
 
 /** Rayon du cylindre (m) : loin devant l'arène (parallaxe faible), dans le plan lointain de la caméra (400). */
 const RAYON = 300;
@@ -32,13 +38,16 @@ function tokens(mapId: MapId): MapSkyTokens | undefined {
 
 /** L'étalonnage final (postfx) désature toute l'image de `decor.saturation` : la peinture est compensée ici
  *  (même formule inversée, luminance conservée) pour arriver à `chroma` à l'écran. */
-function compenser(mat: THREE.MeshBasicMaterial, sat: number): void {
+function compenser(mat: THREE.MeshBasicMaterial, sat: number, brume: THREE.Color, part: number): void {
   mat.onBeforeCompile = (shader) => {
     shader.uniforms.uSkySat = { value: sat };
+    shader.uniforms.uBrume = { value: brume };
+    shader.uniforms.uPart = { value: part };
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nuniform float uSkySat;')
+      .replace('#include <common>', '#include <common>\nuniform float uSkySat;\nuniform vec3 uBrume;\nuniform float uPart;')
       .replace('#include <map_fragment>', `#include <map_fragment>
-  diffuseColor.rgb = max(mix(vec3(dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114))), diffuseColor.rgb, uSkySat), 0.0);`);
+  diffuseColor.rgb = max(mix(vec3(dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114))), diffuseColor.rgb, uSkySat), 0.0);
+  diffuseColor.rgb = mix(diffuseColor.rgb, uBrume, uPart);`);
   };
 }
 
@@ -65,7 +74,8 @@ export function applySky(scene: THREE.Scene, mapId: MapId): void {
     const h = (2 * Math.PI * RAYON / p.repetitions) * (img.height / img.width);
     const geo = new THREE.CylinderGeometry(RAYON, RAYON, h, 96, 1, false);
     const mats = [fondMat(0xffffff, tex), fondMat(p.haut), fondMat(p.bas)];
-    for (const m of mats) compenser(m, sat);
+    const brume = new THREE.Color(t?.brouillard?.couleur ?? '#ffffff');
+    for (const m of mats) compenser(m, sat, brume, p.brume);
     base = p.intensite;
     for (const m of mats) m.color.multiplyScalar(base);
     mats[0].userData.teinte = 0xffffff;
@@ -79,6 +89,15 @@ export function applySky(scene: THREE.Scene, mapId: MapId): void {
     root.renderOrder = -1000;
     root.frustumCulled = false;
     root.raycast = () => {};
+    // Éclairs (galion) : render/environment.ts passe le fond à `eclair.fond` pendant le flash ; le fond étant
+    // caché par le panorama, on reporte ce flash sur la peinture elle-même.
+    const eclair = t?.eclair ? new THREE.Color(t.eclair.fond) : null;
+    const flash = Math.min(ECLAIR_MAX, t?.eclair?.facteur ?? 1);
+    let actif = 1;
+    root.onBeforeRender = (_r, sc) => {
+      const f = eclair && sc.background instanceof THREE.Color && sc.background.equals(eclair) ? flash : 1;
+      if (f !== actif) { actif = f; setSkyFlash(f); }
+    };
     excludeFromOcclusion(root);
     scene.add(root);
   });

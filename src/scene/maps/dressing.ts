@@ -59,20 +59,10 @@ function archipel(): BackdropSpec[] {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Galion : une bataille navale dans la tempête. Flotte ennemie au large, épave, îlots à palmiers, phare
-// sur un rocher, barques à la dérive : l'horizon raconte « Pirate Ship ».
+// Galion : la bataille navale (flotte, phare, éclairs) est peinte dans le panorama (LSKY).
 // ---------------------------------------------------------------------------------------------------------
-const PIR = '/assets/packs/pirate';
-const SEA = -3.2; // SEA_Y de galion.ts
-
 function galion(): BackdropSpec[] {
-  const w = SEA - 0.6; // les coques s'enfoncent un peu dans la houle
-  return [
-    // LSKY : la flotte et le phare sont peints dans le panorama ; restent 2 navires et l'épave (mi-distance).
-    model(`${PIR}/ship-pirate-large.glb`, [[30, w, -36, 1.9, -0.5]]),
-    model(`${PIR}/ship-pirate-medium.glb`, [[-44, w, -16, 1.6, 1.1]]),
-    model(`${PIR}/ship-wreck.glb`, [[-36, SEA - 1.2, 22, 1.6, 2.2]]),
-  ];
+  return []; // LSKY : la flotte est peinte dans le panorama ; la houle 3D du moteur donne la parallaxe
 }
 
 // ---------------------------------------------------------------------------------------------------------

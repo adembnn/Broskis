@@ -4,7 +4,8 @@
 #  3. redimensionne à LARGEUR px et écrit public/assets/sky/<map>.webp ;
 #  4. affiche les couleurs `haut` / `bas` à reporter dans tokens.js maps.<map>.panorama, et la couleur de
 #     l'horizon (fraction donnée) pour maps.<map>.brouillard.couleur.
-# Usage : python tools/sky/finish-pano.py captures/sky-raw/galion-1.png galion 0.556 [qualité]
+# Usage : python tools/sky/finish-pano.py captures/sky-raw/galion-1.png galion 0.556 [qualité] [flou px]
+#  flou : profondeur de champ légère (le décor peint se lit « derrière » la 3D nette), raccord de couture conservé.
 import os
 import sys
 import numpy as np
@@ -12,6 +13,7 @@ from PIL import Image
 
 src, carte, horizon = sys.argv[1], sys.argv[2], float(sys.argv[3])
 QUALITE = int(sys.argv[4]) if len(sys.argv) > 4 else 88
+FLOU = float(sys.argv[5]) if len(sys.argv) > 5 else 0
 BANDE = 0.05   # largeur du fondu de couture (fraction de la largeur)
 POLE = 0.06    # hauteur des bords haut/bas fondus (fraction de la hauteur)
 LARGEUR = 4096
@@ -23,6 +25,12 @@ debut = im[:, :b] * t + im[:, -b:] * (1 - t)
 im = np.concatenate([debut, im[:, b:-b]], axis=1)
 H = round(LARGEUR * im.shape[0] / im.shape[1])
 im = np.asarray(Image.fromarray(np.clip(im, 0, 255).astype(np.uint8)).resize((LARGEUR, H), Image.LANCZOS)).astype(np.float32)
+if FLOU > 0:  # flou gaussien sur une image prolongée des deux côtés (elle boucle) : pas de couture
+    from PIL import ImageFilter
+    m = int(FLOU * 4) + 1
+    ext = np.concatenate([im[:, -m:], im, im[:, :m]], axis=1)
+    ext = np.asarray(Image.fromarray(np.clip(ext, 0, 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(FLOU))).astype(np.float32)
+    im = ext[:, m:-m]
 
 p = int(H * POLE)
 couleurs = {}

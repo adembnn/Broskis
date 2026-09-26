@@ -71,14 +71,11 @@ function couverts(): PropSpec[] {
 }
 
 // ---------------------------------------------------------------------------
-// Fond (LSKY) : le panorama peint (sky.ts) porte la tempête, la flotte et le phare. Ici, seulement la
-// parallaxe de mi-distance (≥ 22 m du centre) : un navire fantôme et deux récifs.
+// Fond (LSKY) : le panorama peint (sky.ts) porte la tempête, la flotte et le phare ; la houle 3D du moteur
+// (buildSea) donne la parallaxe.
 // ---------------------------------------------------------------------------
 function fond(): BackdropSpec[] {
-  return [
-    { build: { kind: 'model', url: PIRATE.shipGhost, hide: ['sail-a', 'sail-b'] }, items: [{ pos: [-38, SEA_Y - 1.5, -42], yaw: 0.5, scale: 1.9 }] },
-    { build: { kind: 'model', url: PIRATE.rocks }, items: [{ pos: [-26, SEA_Y - 1, -24], scale: 2.4 }, { pos: [30, SEA_Y - 1, -20], yaw: 2, scale: 2 }] },
-  ];
+  return []; // LSKY : flotte, récifs et phare sont peints (les modèles 3D lointains faisaient « primitives »)
 }
 
 export function buildGalionDef(): MapDef {
