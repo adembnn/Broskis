@@ -23,9 +23,18 @@ import {
   clampWhy,
 } from './sanitize';
 
+/**
+ * Étapes réelles d'un scan (lot LLOAD), pour une progression honnête à l'écran :
+ * 'reading' photo envoyée (stats + sticker partis en parallèle) · 'partial' champs du JSON arrivés au fil de l'eau
+ * · 'stats' arme complète · 'sticker' dessin arrivé · 'sticker-failed' pas de dessin (forme de secours).
+ */
+export type ScanStep = 'reading' | 'partial' | 'stats' | 'sticker' | 'sticker-failed';
+
 export interface ScanOptions {
   category?: Category;
   player?: PlayerId;
+  /** Appelé à chaque étape réelle ; `weapon` est partiel pour 'partial', complet ensuite. Ne doit pas jeter. */
+  onProgress?: (step: ScanStep, weapon?: Partial<Weapon>) => void;
 }
 
 interface ScanObjectApiResult {
@@ -110,48 +119,66 @@ async function resolveByKey(key: string, opts: ScanOptions): Promise<Weapon> {
  * sans réseau — pratique pour les agents de test et la régie de démo.
  */
 export async function scanObject(image: Blob | string, opts: ScanOptions = {}): Promise<Weapon> {
-  if (typeof image === 'string' && !isDataUrl(image)) {
-    const weapon = await resolveByKey(image, opts);
+  const progress = (step: ScanStep, w?: Partial<Weapon>) => {
+    try { opts.onProgress?.(step, w); } catch (e) { console.error('[ia] onProgress', e); }
+  };
+  const finishKnown = (weapon: Weapon) => {
     emitScanResult(opts.player, weapon);
+    progress('stats', weapon);
+    progress(weapon.stickerUrl ? 'sticker' : 'sticker-failed', weapon);
     return weapon;
+  };
+
+  if (typeof image === 'string' && !isDataUrl(image)) {
+    progress('reading');
+    return finishKnown(await resolveByKey(image, opts));
   }
 
   const { base64, mimeType } = await toResizedJpegBase64(image);
   const imgKey = hashImage(base64);
   const cached = getCached(imgKey);
-  if (cached) {
-    emitScanResult(opts.player, cached);
-    return cached;
-  }
+  if (cached) return finishKnown(cached);
 
+  // Les deux appels partent dès que la photo est prête, en parallèle (le sticker n'attend jamais les stats).
   const stickerPromise = postJson<StickerApiResult>(
     ENDPOINTS.sticker,
     { imageBase64: base64, mimeType, category: opts.category },
     TIMEOUTS.sticker,
   );
+  progress('reading');
 
-  const raw = await postJson<ScanObjectApiResult>(
-    ENDPOINTS.scanObject,
-    { imageBase64: base64, mimeType, category: opts.category },
-    TIMEOUTS.scan,
-  );
+  const raw = await fetchStats(base64, mimeType, opts.category, (partial) => progress('partial', partial));
 
   const weapon = raw ? fromApiResult(raw, opts.category) : pickPreset(Math.random, opts.category);
   setCached(imgKey, weapon);
   setCached(weapon.object, weapon);
   emitScanResult(opts.player, weapon);
+  progress('stats', weapon);
 
   stickerPromise
     .then((sticker) => {
-      if (!sticker?.dataUrl) return;
+      if (!sticker?.dataUrl) { progress('sticker-failed', weapon); return; }
       weapon.stickerUrl = sticker.dataUrl;
       setCached(imgKey, weapon);
       setCached(weapon.object, weapon);
       emitScanResult(opts.player, weapon);
+      progress('sticker', weapon);
     })
     .catch(() => {
       /* le sticker est un bonus visuel : une scène de secours (lot LS) existe déjà sans lui */
+      progress('sticker-failed', weapon);
     });
 
   return weapon;
+}
+
+/** Stats JSON de l'arme. `onPartial` reçoit les champs déjà lisibles quand le serveur les envoie au fil de l'eau. */
+async function fetchStats(
+  base64: string,
+  mimeType: string,
+  category: Category | undefined,
+  onPartial: (w: Partial<Weapon>) => void,
+): Promise<ScanObjectApiResult | null> {
+  void onPartial;
+  return postJson<ScanObjectApiResult>(ENDPOINTS.scanObject, { imageBase64: base64, mimeType, category }, TIMEOUTS.scan);
 }

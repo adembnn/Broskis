@@ -11,9 +11,9 @@ import { loadDemoCommentaryBank } from './demo-cache';
 import { postJson } from './fetch-json';
 import { FALLBACK_COMMENTARY } from './presets';
 import { getRuntimeCtx } from './runtime';
-import { synthesizeLine, synthesizeMany } from './tts-client';
+import { cachedLine, synthesizeLine, synthesizeMany, TTS_PRIORITY } from './tts-client';
 
-interface PreparedLine {
+export interface PreparedLine {
   text: string;
   audioUrl?: string;
 }
@@ -60,54 +60,99 @@ function hpRatio(player: PlayerId): number | null {
   return max > 0 ? p.hp / max : null;
 }
 
-/**
- * Génère 5 variantes par moment (hit, crit, miss, parry-perfect, low-hp, ko — plus match-start et
- * crate-grab, préparés dans le même appel réseau) + les 4 répliques de chaque arme, vocalise tout via
- * api/tts, et garde le résultat en mémoire pour `say`. Appelé pendant la présentation des armes.
- */
-export async function prepareCommentary(weapons: Weapon[]): Promise<void> {
-  genericBank.clear();
-  genericCursor.clear();
-  weaponBank.clear();
+// Lot LLOAD : tout part de façon SPÉCULATIVE, dès que l'information existe, au lieu d'attendre la fin de
+// l'arsenal. Une arme connue (scan ou râtelier) → ses 4 répliques partent tout de suite (intro d'abord) ; la banque
+// générique part dès l'écran d'arsenal, puis est refaite avec les vraies armes (la plus récente gagne, l'ancienne
+// reste utilisable en attendant). Rien ici ne bloque un écran.
+const weaponJobs = new Map<string, Promise<void>>();
+let bankGeneration = 0;
+let appliedGeneration = 0;
+let bankKey: string | null = null;
+let bankJob: Promise<void> | null = null;
 
-  const ctx = getRuntimeCtx();
-  const kinds = [...COMMENTARY_KINDS];
-  const demoBank = ctx?.demo ? await loadDemoCommentaryBank() : null;
-
-  const apiResult = demoBank
-    ? null
-    : await postJson<{ lines: Record<string, string[]> }>(
-        ENDPOINTS.commentary,
-        {
-          kinds,
-          variantsPerKind: VARIANTS_PER_KIND,
-          weapons: weapons.map((w) => ({ name: w.name, object: w.object, category: w.category })),
-        },
-        TIMEOUTS.commentary,
-      );
-  const linesByKind: Partial<Record<CommentaryKind, string[]>> = demoBank ?? apiResult?.lines ?? {};
-
-  const genericJobs = kinds.map(async (kind) => {
-    const texts = linesByKind[kind]?.length ? linesByKind[kind]! : FALLBACK_COMMENTARY[kind];
-    const audioUrls = await synthesizeMany(texts);
-    genericBank.set(kind, texts.map((text, i) => ({ text, audioUrl: audioUrls[i] })));
-    genericCursor.set(kind, 0);
-  });
-
-  const weaponJobs = weapons.map(async (w) => {
-    const entry: Partial<Record<WeaponLineKey, PreparedLine>> = {};
+/** Vocalise les 4 répliques d'une arme dès qu'elle est connue (intro en priorité : c'est elle qu'on entend en premier). */
+export function primeWeapon(w: Weapon): Promise<void> {
+  const existing = weaponJobs.get(w.id);
+  if (existing) return existing;
+  const job = (async () => {
+    const entry: Partial<Record<WeaponLineKey, PreparedLine>> = weaponBank.get(w.id) ?? {};
+    weaponBank.set(w.id, entry);
     const keys = Object.keys(w.lines) as WeaponLineKey[];
     await Promise.all(
       keys.map(async (line) => {
         const text = w.lines[line];
-        const audioUrl = await synthesizeLine(text);
+        const audioUrl = await synthesizeLine(text, undefined, line === 'intro' ? TTS_PRIORITY.soon : TTS_PRIORITY.normal);
         entry[line] = { text, audioUrl };
       }),
     );
-    weaponBank.set(w.id, entry);
-  });
+  })();
+  weaponJobs.set(w.id, job);
+  return job;
+}
 
-  await Promise.all([...genericJobs, ...weaponJobs]);
+/**
+ * Banque générique (5 variantes × 8 moments), vocalisée en fond. Appelée plusieurs fois sans risque : même lot
+ * d'armes = même appel ; lot différent = nouvel appel, dont le résultat remplace l'ancien seulement s'il est plus récent.
+ */
+export function warmGenericBank(weapons: Weapon[] = []): Promise<void> {
+  const key = weapons.map((w) => `${w.name}|${w.object}`).join(',');
+  if (bankJob && key === bankKey) return bankJob;
+  const generation = ++bankGeneration;
+  bankKey = key;
+  bankJob = (async () => {
+    const ctx = getRuntimeCtx();
+    const kinds = [...COMMENTARY_KINDS];
+    const demoBank = ctx?.demo ? await loadDemoCommentaryBank() : null;
+    const apiResult = demoBank
+      ? null
+      : await postJson<{ lines: Record<string, string[]> }>(
+          ENDPOINTS.commentary,
+          {
+            kinds,
+            variantsPerKind: VARIANTS_PER_KIND,
+            weapons: weapons.map((w) => ({ name: w.name, object: w.object, category: w.category })),
+          },
+          TIMEOUTS.commentary,
+        );
+    const linesByKind: Partial<Record<CommentaryKind, string[]>> = demoBank ?? apiResult?.lines ?? {};
+    const next = new Map<CommentaryKind, PreparedLine[]>();
+    await Promise.all(
+      kinds.map(async (kind) => {
+        const texts = linesByKind[kind]?.length ? linesByKind[kind]! : FALLBACK_COMMENTARY[kind];
+        const audioUrls = await synthesizeMany(texts, undefined, TTS_PRIORITY.background);
+        next.set(kind, texts.map((text, i) => ({ text, audioUrl: audioUrls[i] })));
+      }),
+    );
+    if (generation < appliedGeneration) return; // une banque plus récente est déjà en place
+    appliedGeneration = generation;
+    genericBank.clear();
+    genericCursor.clear();
+    for (const [kind, lines] of next) { genericBank.set(kind, lines); genericCursor.set(kind, 0); }
+  })();
+  return bankJob;
+}
+
+/** Réplique de présentation d'une arme, avec sa voix si elle arrive avant `maxWaitMs` (sinon texte seul). */
+export async function weaponIntro(w: Weapon, maxWaitMs = 1200): Promise<PreparedLine> {
+  const text = w.lines.intro;
+  const ready = cachedLine(text);
+  if (ready) return { text, audioUrl: ready };
+  void primeWeapon(w);
+  const audioUrl = await Promise.race([
+    synthesizeLine(text, undefined, TTS_PRIORITY.now),
+    new Promise<undefined>((r) => setTimeout(() => r(undefined), maxWaitMs)),
+  ]);
+  return { text, audioUrl };
+}
+
+/**
+ * Génère 5 variantes par moment (hit, crit, miss, parry-perfect, low-hp, ko — plus match-start et
+ * crate-grab, préparés dans le même appel réseau) + les 4 répliques de chaque arme, vocalise tout via
+ * api/tts, et garde le résultat en mémoire pour `say`. Signature inchangée ; depuis le lot LLOAD, l'appelant
+ * n'a plus besoin de l'attendre (`say` retombe sur la banque de secours tant que rien n'est prêt).
+ */
+export async function prepareCommentary(weapons: Weapon[]): Promise<void> {
+  await Promise.all([...weapons.map(primeWeapon), warmGenericBank(weapons)]);
 }
 
 interface ResolvedLine {
