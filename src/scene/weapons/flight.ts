@@ -546,6 +546,7 @@ export function installFlights(ctx: Ctx, deps: FlightDeps) {
       _qt.setFromAxisAngle(X, 0.25 * Math.sin(f.t * 5)); // léger roulis : montre l'épaisseur du carton
       m.root.quaternion.setFromUnitVectors(Z, f.axis).multiply(_qt).multiply(f.rot);
     }
+    (m.root.userData.le2eFace ??= new THREE.Quaternion()).copy(m.root.quaternion);
     // Grossit en arrivant sur le défenseur (lisible au moment de parer), sans dépasser une taille lisible ;
     // bouncy : s'écrase comme du caoutchouc.
     let k = f.size;
@@ -594,6 +595,22 @@ export function installFlights(ctx: Ctx, deps: FlightDeps) {
       (f.shadow.material as THREE.MeshBasicMaterial).opacity = Math.min(0.85, rendu.ombres.tache * (0.6 + 1.1 * f.look.weight)) * Math.max(0.25, 1 - h / 10);
     }
   }
+
+  // Lot LE2E : la face du sticker regarde le défenseur ; depuis la caméra du LANCEUR on ne voyait que le dos carton (la
+  // chaise lancée était méconnaissable). Avant chaque vue, un objet vu de dos fait demi-tour autour de la verticale :
+  // chaque vue voit sa face, la rotation propre (forme, masse) est gardée.
+  const _demiTour = new THREE.Quaternion().setFromAxisAngle(UP, Math.PI);
+  const _cam = new THREE.Vector3();
+  ctx.three.onBeforeView((view) => {
+    view.camera.getWorldPosition(_cam);
+    for (const f of flights) {
+      const m = f.model;
+      const face = m?.root.userData.le2eFace as THREE.Quaternion | undefined;
+      if (!m || !face || !m.root.visible) continue;
+      m.root.quaternion.copy(face);
+      if (_v.copy(_cam).sub(m.root.position).dot(f.axis) < 0) m.root.quaternion.premultiply(_demiTour);
+    }
+  });
 
   return { update };
 }
