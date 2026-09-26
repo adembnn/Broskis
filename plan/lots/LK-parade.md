@@ -47,7 +47,8 @@ Aucun autre lot ne touche ces fichiers pendant LK :
 - **Son** : tic (T−600), tic (T−300), TAC (T). Programmé en Web Audio à T − `outputLatency`.
 - **BLASTER** : anneaux numérotés, et le motif rythmique s'entend.
 - **GRENADE** : marque au sol et « tok » à chaque rebond ; l'anneau ne vise que le contact final.
-- **Pas de ralenti avant l'impact** : à la place, zoom, décor désaturé et musique étouffée (filtre passe-bas).
+- **Bascule vers le défenseur** : au lâcher, la caméra rejoint la vue épaule du défenseur en environ 0,7 s, avec le projectile au ralenti ×0,25 **pendant la bascule seulement**. L'anneau n'apparaît qu'ensuite, à vitesse constante (« l'anneau ne ment jamais »).
+- **Pas de ralenti juste avant l'impact** : à la place, zoom, décor désaturé et musique étouffée (filtre passe-bas).
 
 ## Retours
 - **PERFECT!** :

@@ -34,11 +34,17 @@ Installer le 2e PC (Titouan) :
   6. Duel à 2 sur le même PC.
   7. KO au ralenti, « Damage Report », revanche.
 - **Tour (20 s maximum)** :
-  1. Bandeau « P2 — YOUR TURN! » pendant 1 s, et la caméra tourne vers le joueur actif (vue épaule, 3 s maximum, un clic la saute).
+  1. Bandeau « P2 — YOUR TURN! » pendant 1 s. La caméra est déjà derrière le joueur actif (vue 3e personne, épaule).
   2. **Déplacement** : 6 m (anneau au sol qui se vide) + 1 saut (qui coûte 1,5 m).
-  3. **Arme** 1/2/3 → visée à la souris (trajectoire en pointillés, cercle d'impact, flèche de recul) → charge.
-  4. **Parade** du défenseur avec ESPACE.
-  5. Impact, décor qui réagit, réplique de l'animateur.
+  3. **Arme** 1/2/3 → visée à la souris (trajectoire en pointillés, cercle d'impact, flèche de recul) → charge → lâcher.
+  4. **Bascule vers le défenseur (validée par Adem)** :
+     - au lâcher, la caméra tourne en arc (environ 0,7 s) jusqu'à la vue épaule du **défenseur**, en gardant le projectile dans le cadre ;
+     - le projectile vole au ralenti ×0,25 **pendant la bascule seulement**, puis à vitesse constante ;
+     - le coup arrive **vers la caméra** du défenseur.
+  5. **Parade** du défenseur (J1 Espace, J2 Entrée) : l'anneau n'apparaît qu'après la bascule.
+  6. Impact, décor qui réagit, réplique de l'animateur. Le défenseur devient l'attaquant suivant, **sans nouvelle bascule** : une seule rotation par tour.
+  - SHIELD, ou tour sans projectile : pas de bascule de défense, la caméra passe au joueur suivant.
+  - Contre l'IA, quand l'humain attaque : caméra de suivi, impact vu de côté.
 - **4 raisons de bouger** :
   - **Caisse Snap** : tous les 2 à 3 tours, annoncée par son ombre ; l'atteindre donne 10 s pour scanner un objet en plein combat ;
   - **angle** : pousser l'autre vers le vide ;

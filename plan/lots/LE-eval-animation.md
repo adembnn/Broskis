@@ -6,7 +6,7 @@ Responsable : Claude (sous-agent Sonnet), car c'est de l'évaluation · Dépend 
 
 ## Sortie attendue
 1. **`tools/anim/scenarios.json`** : un scénario = `{ name, player, camera: 'side'|'front'|'threeQuarter', steps: [{ hook, args, waitMs }], captureMs: 1600, intervalMs: 66 }`.
-   - Scénarios : `idle` (3 s), `walk`, `run`, `jump`, `throw-grenade`, `throwable`, `blaster`, `shield`, `hit-front`, `hit-back`, `ko`, `teeter` (au bord du vide), `parry`, `turn-swing` (bascule de caméra).
+   - Scénarios : `idle` (3 s), `walk`, `run`, `jump`, `throw-grenade`, `throwable`, `blaster`, `shield`, `hit-front`, `hit-back`, `ko`, `teeter` (au bord du vide), `parry`, `defense-swing` (bascule vers la vue du défenseur au lâcher, via `camera:cue {shot:'turn-swing', target: défenseur}`).
    - Hooks utilisés : `startMatch`, `animCamera`, `animPlay`, `move`, `jump`, `pickWeapon`, `aim`, `fire`, `parry` (contrat dans `plan/lots/LAN-animation.md`).
 2. **`tools/anim/anim-eval.mjs`** (Playwright, en reprenant le lancement du serveur de `tools/capture.mjs`) :
    - ouvre `/?demo=1&animtest=1` ;
