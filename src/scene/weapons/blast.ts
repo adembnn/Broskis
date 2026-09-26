@@ -250,7 +250,7 @@ export function installBlast(ctx: Ctx): BlastFx {
 
   // Bouffées d'explosion (dessin animé) : sphères plates + contour d'encre, 2 draw calls.
   const puffGeo = new THREE.IcosahedronGeometry(1, 1);
-  const puffMat = new THREE.MeshBasicMaterial({ color: '#ffffff' });
+  const puffMat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.55, depthWrite: false }); // translucide : on voit le perso au travers
   const puffInkMat = new THREE.MeshBasicMaterial({ color: rendu.contour.encre, side: THREE.BackSide });
   const puffN = WEAPON_FX.budget.bouffees;
   const puffMesh = new THREE.InstancedMesh(puffGeo, puffMat, puffN);
@@ -321,7 +321,7 @@ export function installBlast(ctx: Ctx): BlastFx {
       if (!p) break;
       const a = Math.random() * Math.PI * 2;
       const r = radius * 0.35 * Math.sqrt(Math.random());
-      p.active = true; p.t = 0; p.delay = k * 0.018; p.dur = 0.55 + Math.random() * 0.35;
+      p.active = true; p.t = 0; p.delay = k * 0.018; p.dur = 0.22 + Math.random() * 0.12; // critique AAA 18h21 : à 0,55-0,9 s les bouffées cachaient le perso touché dans sa propre vue
       p.pos.set(pos.x + Math.cos(a) * r, pos.y + 0.2 + Math.random() * radius * 0.35, pos.z + Math.sin(a) * r);
       p.size = radius * (0.22 + Math.random() * 0.16);
       p.rise = 0.6 + Math.random() * 0.9;
