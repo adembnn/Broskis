@@ -36,7 +36,8 @@ const MATCHES = [
 ];
 const FIRE = ['KeyF', 'KeyL'];
 const WEAPON_KEYS = [['Digit1', 'Digit2', 'Digit3'], ['Digit8', 'Digit9', 'Digit0']];
-const MASK = ['img[src^="blob:"]', '.wc-photo-wrap', '.lload-forge-photo', '.capture-zone', 'video'];
+// Seuls les endroits où la VRAIE photo apparaît (carte, forge, capture) : les stickers et portraits restent visibles.
+const MASK = ['.wc-photo-wrap', '.lload-forge-photo', '.capture-zone', 'video'];
 
 const log = (...a) => console.log(`[e2e ${new Date().toTimeString().slice(0, 8)}]`, ...a);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -115,10 +116,12 @@ const RECORDER = () => {
     for (const k of Object.keys(v)) o[k] = /Url$/.test(k) ? (v[k] ? `${String(v[k]).length}c` : null) : slim(v[k], d + 1);
     return o;
   };
-  const E = (window.__e2e = { ev: [], hooked: false });
+  const E = (window.__e2e = { ev: [], hooked: false, glLost: [] });
   const hook = () => {
     const ctx = window.ctx;
     if (!ctx?.bus) return false;
+    // Contexte WebGL perdu (processus GPU tombé, machine saturée) : la scène 3D devient blanche, à signaler.
+    ctx.three?.canvas?.addEventListener('webglcontextlost', () => E.glLost.push(Math.round(performance.now())));
     ctx.bus.onAny((name, p) => {
       if (!KEEP.has(name)) return;
       const rec = { t: performance.now(), name, p: slim(p) };
@@ -147,11 +150,17 @@ async function waitEv(page, n, pred, timeout = 8000) {
 
 async function shot(page, name, legend, opts = {}) {
   const file = `${name}.jpg`;
-  try {
-    const mask = opts.noMask ? [] : MASK.map((s) => page.locator(s));
-    await page.screenshot({ path: join(OUT, file), type: 'jpeg', quality: 62, mask, maskColor: '#2a2530', ...opts });
-    shots.push({ file, legend, group: opts.group });
-  } catch (e) { errors.push(`capture ${name} : ${e.message}`); }
+  const mask = opts.noMask ? [] : MASK.map((s) => page.locator(s));
+  for (let essai = 0; essai < 2; essai++) {
+    try {
+      await page.screenshot({ path: join(OUT, file), type: 'jpeg', quality: 62, mask, maskColor: '#2a2530', clip: opts.clip });
+      shots.push({ file, legend, group: opts.group });
+      return;
+    } catch (e) {
+      if (essai) errors.push(`capture ${name} : ${e.message.split('\n')[0]}`);
+      else await sleep(400);
+    }
+  }
 }
 
 /** Étape nommée du parcours : journal, et capture + message si elle casse (le parcours s'arrête là). */
@@ -607,22 +616,31 @@ async function main() {
   const gpu = ['--use-angle=d3d11', '--ignore-gpu-blocklist', '--enable-gpu-rasterization', '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding', '--disable-background-timer-throttling', '--autoplay-policy=no-user-gesture-required'];
   const browser = await chromium.launch({ headless: !HEADED, args: gpu });
   const matches = [];
+  let renderer = '?', glLost = [];
+  let page = null;
   try {
     const canette = await photoCanette(browser);
     const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
     await context.addInitScript(RECORDER);
-    const page = await context.newPage();
+    page = await context.newPage();
     page.on('pageerror', (e) => errors.push(`erreur page : ${String(e.message).slice(0, 160)}`));
     await page.goto(`${base}/`, { waitUntil: 'load', timeout: 180000 });
     await page.waitForFunction(() => window.__e2e?.hooked, null, { timeout: 120000 });
-    const renderer = await page.evaluate(() => {
+    renderer = await page.evaluate(() => {
       const gl = window.ctx?.three?.renderer?.getContext();
       const d = gl?.getExtension('WEBGL_debug_renderer_info');
       return d ? gl.getParameter(d.UNMASKED_RENDERER_WEBGL) : 'inconnu';
     });
     log(`rendu : ${renderer}`);
     for (let m = 0; m < (UN_MATCH ? 1 : MATCHES.length); m++) {
-      await step(page, `match ${m + 1} : titre`, () => page.locator('.title-play').click({ timeout: 60000, force: true }));
+      // Titre : le clic peut tomber pendant l'apparition de l'écran (après « Menu ») → on reclique jusqu'aux persos.
+      await step(page, `match ${m + 1} : titre`, async () => {
+        for (let essai = 0; essai < 6; essai++) {
+          await page.locator('.title-play').click({ timeout: 60000, force: true });
+          if (await page.locator('.fighter-grid').waitFor({ timeout: 4000 }).then(() => true, () => false)) return;
+        }
+        throw new Error('écran des persos jamais atteint');
+      });
       await step(page, `match ${m + 1} : persos`, () => pickFighters(page, m === 0));
       await step(page, `match ${m + 1} : arsenal`, () => runArsenal(page, MATCHES[m], canette));
       await step(page, `match ${m + 1} : vers le combat`, () => toFight(page));
@@ -630,23 +648,31 @@ async function main() {
       await page.evaluate(() => window.gameHooks.forcerVictoire(0));
       if (m + 1 < (UN_MATCH ? 1 : MATCHES.length)) {
         await page.locator('button:has-text("Menu")').waitFor({ timeout: 20000 });
-        await page.locator('button:has-text("Menu")').click();
+        await sleep(600);
+        await page.locator('button:has-text("Menu")').click({ force: true });
+        await page.locator('.title-play').waitFor({ timeout: 20000 });
+        await sleep(1200);
       }
     }
-    await stickersLate(page);
-    writeFileSync(join(OUT, 'evenements.json'), JSON.stringify(await page.evaluate(() => window.__e2e.ev.slice(-800))));
-    await context.close();
-    matches.renderer = renderer;
   } catch (e) {
     errors.push(`arrêt du parcours : ${e.message.split('\n')[0]}`);
   } finally {
+    // Toujours : stickers arrivés, journal des événements, pertes du contexte WebGL.
+    if (page) {
+      try {
+        await stickersLate(page);
+        glLost = await page.evaluate(() => window.__e2e.glLost);
+        writeFileSync(join(OUT, 'evenements.json'), JSON.stringify(await page.evaluate(() => window.__e2e.ev.filter((e) => e.name !== 'weapon:pick').slice(-900))));
+      } catch (e) { errors.push(`fin : ${e.message.split('\n')[0]}`); }
+    }
     await browser.close().catch(() => {});
     stopServer();
   }
+  if (glLost.length) errors.push(`contexte WebGL perdu ${glLost.length} fois (scène blanche sur les captures suivantes : processus GPU saturé)`);
   let branch = '?', commit = '?';
   try { branch = execSync('git branch --show-current').toString().trim(); commit = execSync('git rev-parse --short HEAD').toString().trim(); } catch { /* hors git */ }
   const V = verdicts(matches);
-  const meta = { date: new Date().toLocaleString('fr-FR'), branch, commit, dureeS: Math.round((Date.now() - t0) / 1000), rendu: matches.renderer };
+  const meta = { date: new Date().toLocaleString('fr-FR'), branch, commit, dureeS: Math.round((Date.now() - t0) / 1000), rendu: renderer, glLost };
   writeFileSync(join(OUT, 'mesures.json'), JSON.stringify({ meta, verdicts: V, matches, objets: [...rows.values()], erreurs: errors }, null, 1));
   writeFileSync(join(OUT, 'index.html'), html(V, matches, meta));
   for (const v of V) log(`${v.ok ? 'VERT ' : 'ROUGE'} ${v.label} — ${v.detail}`);
