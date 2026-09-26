@@ -69,11 +69,17 @@ export function installFighters(ctx: Ctx): FighterSystem {
   /** Garde tenue d'après l'événement `block` (temps réel). */
   const blockOn: [boolean, boolean] = [false, false];
   const L = LOCAL_TOKENS.locomotion;
+  /** Banc LATK2 (tools/anim/latk2-lab.mjs) : position et charge imposées, sinon celles du jeu. */
+  const lab: { pos: [Vec3 | null, Vec3 | null]; charge: [number | null, number | null]; flying: [boolean | null, boolean | null] } = {
+    pos: [null, null], charge: [null, null], flying: [null, null],
+  };
   loadPack().catch(() => { /* déjà journalisé : les clips du perso suffisent */ });
 
   // ------------------------------------------------------------------ lectures d'état
 
   function chargeOf(p: PlayerId): number {
+    const forced = lab.charge[p];
+    if (forced !== null) return forced;
     const ps = ctx.state.players[p] as unknown as { charge?: number };
     if (typeof ps.charge === 'number') return ps.charge;
     return runtimeOf(p)?.charging ? Math.max(0.05, lastPower[p]) : 0;
@@ -188,8 +194,13 @@ export function installFighters(ctx: Ctx): FighterSystem {
     const rig = rigs[player];
     ctx.bus.emit('anim:release', { player, weapon, handPos: hand });
     animMetricsImpl.addEvent({ t: Date.now(), player, kind: 'release', handPos: hand });
-    // Le corps se détend d'un coup : petit étirement (lancer) ou écrasement (objet planté au sol).
-    rig?.animator.bump(weapon.category === 'shield' ? juice.action.squash : 1.12);
+    if (!rig) return;
+    // Le corps se détend d'un coup et suit l'objet : fente vers l'avant + étirement (lancer), ou plongée vers
+    // le sol + écrasement (objet planté).
+    const fwd = tmpDir.set(Math.sin(rig.facing), 0, Math.cos(rig.facing));
+    const shield = weapon.category === 'shield';
+    rig.animator.kickWhip(fwd, shield ? ANIM.bouclier.plongee : ANIM.lancer.fente);
+    rig.animator.bump(shield ? juice.action.squash : 1.12);
   }
 
   function endAttack(rig: FighterRig): void {
@@ -284,6 +295,8 @@ export function installFighters(ctx: Ctx): FighterSystem {
       // Contre : coup d'épaule sec vers l'attaquant, corps qui se ramasse puis se détend.
       a.playUpper(a.pick('guardCounter', 'block'), { fade: 0.03, timeScale: 1.25, onFinished: back });
       a.bump(0.86);
+      const opp = rigs[opponentOf(player)];
+      if (opp) a.kickWhip(tmpDir.subVectors(opp.container.position, rig.container.position).setY(0).normalize(), ANIM.parade.contre);
     } else {
       a.playUpper(a.pick('guardHit', 'block'), { fade: 0.03, onFinished: back });
       const opp = rigs[opponentOf(player)];
@@ -405,7 +418,7 @@ export function installFighters(ctx: Ctx): FighterSystem {
       const b = rig.body;
       const ps = ctx.state.players[p];
       const rt = runtimeOf(p);
-      const pos = ps.pos;
+      const pos = lab.pos[p] ?? ps.pos;
       tmpTarget.set(pos[0], pos[1], pos[2]);
 
       // Vitesse réelle (position physique d'une image à l'autre), lissée : pilote course, orientation, saut.
@@ -449,7 +462,7 @@ export function installFighters(ctx: Ctx): FighterSystem {
 
       // Fin de la vrille : le vol est fini (runtime) ou, sans runtime, il a repris pied.
       if (tumbling) {
-        const flying = rt ? !!rt.launch : rig.airborne;
+        const flying = lab.flying[p] ?? (rt ? !!rt.launch : rig.airborne);
         if (!flying && !hanging) {
           b.spinRate = 0;
           a.land(juice.toucher.squash);
@@ -541,6 +554,7 @@ export function installFighters(ctx: Ctx): FighterSystem {
       pr.lookWeight = tumbling || hanging || b.outcome || b.teeter ? 0 : rig.locked ? 0.9 : rig.moving ? 0 : 0.55;
       pr.charge = b.upper === 'charge' ? (weapon?.category === 'blaster' ? charge * 0.4 : charge) : 0;
       pr.hang = hanging;
+      pr.guard = b.upper === 'guard' || b.upper === 'react' ? 1 : 0;
       if (b.teeter && !hanging && !rig.moving) {
         const c = arenaCenter();
         pr.teeter = voidDirs[p].set(cp.x - c[0], 0, cp.z - c[2]).normalize();
@@ -600,7 +614,7 @@ export function installFighters(ctx: Ctx): FighterSystem {
   };
 
   // Accès de mise au point (banc LATK2, tools/anim) : jamais utilisé par le jeu.
-  (window as unknown as { __fighters?: unknown }).__fighters = { rigs, fakeHit, blockOn };
+  (window as unknown as { __fighters?: unknown }).__fighters = { rigs, fakeHit, blockOn, lab, ctx, packData };
 
   return { getRig: (p) => rigs[p] };
 }
