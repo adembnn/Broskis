@@ -39,3 +39,6 @@ captures
 
 # Déploiement Vercel (paquet généré, lien du projet)
 /.vercel/
+
+.vercel
+.env*
