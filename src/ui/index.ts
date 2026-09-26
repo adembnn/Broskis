@@ -72,9 +72,12 @@ export const install: Install = (ctx) => {
     return { fighters, weapons: arsenal.weapons, map };
   }
 
+  let globalVsAI = false;
+  let globalDifficulty: 'easy' | 'medium' | 'hard' | 'hardcore' = 'medium';
+
   async function playMatch(picks: Picks): Promise<void> {
     applyPicksToState(ctx, picks);
-    ctx.hooks.startMatch({ fighters: picks.fighters, weapons: picks.weapons, map: picks.map });
+    ctx.hooks.startMatch({ fighters: picks.fighters, weapons: picks.weapons, map: picks.map, vsAI: globalVsAI, difficulty: globalDifficulty });
     const action = await runEndScreen(ctx, screenLayer, matchLog);
     if (action === 'rematch') return playMatch(picks);
     return preMatchLoop();
@@ -85,7 +88,13 @@ export const install: Install = (ctx) => {
   }
 
   async function boot() {
-    await mountTitle(screenLayer);
+    const titleOpts = await mountTitle(screenLayer);
+    if (titleOpts && titleOpts.vsAI) {
+      globalVsAI = titleOpts.vsAI;
+      if (titleOpts.difficulty) globalDifficulty = titleOpts.difficulty;
+    } else {
+      globalVsAI = false;
+    }
     await preMatchLoop();
   }
 
