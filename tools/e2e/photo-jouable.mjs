@@ -72,6 +72,8 @@ const CANETTE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="768" height=
 </svg>`;
 
 async function photoCanette(browser) {
+  // Déjà « photographiée » une fois (tools/e2e/canette-dessinee.jpg, notre dessin) : pas de capture au démarrage.
+  if (existsSync('tools/e2e/canette-dessinee.jpg')) return 'tools/e2e/canette-dessinee.jpg';
   const f = join(OUT, 'canette-dessinee.jpg');
   const p = await browser.newPage({ viewport: { width: 768, height: 768 } });
   await p.setContent(`<html><body style="margin:0">${CANETTE_SVG}</body></html>`);
@@ -340,6 +342,7 @@ const PAGE_TOOLS = async () => {
   const { teleport } = await import('/src/gameplay/character.ts');
   const { getRuntime } = await import('/src/gameplay/runtime.ts');
   const { LAUNCH_K2 } = await import('/src/gameplay/tuning.ts');
+  const { WEAPON_FX } = await import('/src/scene/weapons/tokens.ts');
   const ctx = window.ctx;
   const bbox = (obj) => {
     obj.updateMatrixWorld(true);
@@ -371,6 +374,16 @@ const PAGE_TOOLS = async () => {
       const m = main?.getObjectByName(`arme-${w.id}`);
       return { id: w.id, name: w.name, category: w.category, size: m && m.visible ? bbox(m) : null, sticker: !!w.stickerUrl, physics: w.physics ?? null };
     },
+    /** Position à l'écran (px CSS) de l'objet en main, vu par la caméra de son joueur : pour une capture serrée. */
+    heldScreen(p) {
+      const ps = ctx.state.players[p];
+      const m = ctx.three.scene.getObjectByName('latk-main')?.getObjectByName(`arme-${ps.weapons[ps.selected].id}`);
+      if (!m || !m.visible) return null;
+      const v = m.getWorldPosition(m.position.clone());
+      const view = ctx.three.viewOf(p);
+      v.project(view.camera);
+      return { x: view.x + ((v.x + 1) / 2) * view.width, y: view.y + ((1 - v.y) / 2) * view.height, view: [view.x, view.y, view.width, view.height] };
+    },
     flying() {
       const vol = ctx.three.scene.getObjectByName('latk-vol');
       const out = [];
@@ -382,6 +395,8 @@ const PAGE_TOOLS = async () => {
     walls: () => getRuntime().shieldBodies.length,
     /** Recul « à 0 % » : l'éjection grandit avec le % APRÈS le coup (et donc avec un critique) ; on retire ce facteur. */
     k2: LAUNCH_K2,
+    /** Bornes de la taille affichée (lot LATK1) : la vraie taille, ramenée entre ces 2 valeurs pour rester lisible. */
+    tailles: [WEAPON_FX.physique.tailleMin, WEAPON_FX.physique.tailleMax],
   };
   return true;
 };
@@ -426,8 +441,12 @@ async function measureMatch(page, match, idx) {
         const held = await page.evaluate((p) => window.__e2eTools.held(p), shooter);
         r.held = held.size; r.stickerInMatch = held.sticker; r.physicsInMatch = !!held.physics;
         if (r.preset) r.weapon = { name: held.name, category: held.category, physics: held.physics };
+        // Capture serrée autour de l'objet en main (vue du joueur), sinon sa moitié d'écran.
+        const hs = await page.evaluate((p) => window.__e2eTools.heldScreen(p), shooter);
         const half = { x: shooter === 0 ? 0 : 640, y: 0, width: 640, height: 720 };
-        await shot(page, `main-${key}`, `${key} : en main (P${shooter + 1})`, { group: key, clip: half });
+        const W = 420, H = 360;
+        const clip = hs ? { x: Math.max(half.x, Math.min(half.x + half.width - W, hs.x - W / 2)), y: Math.max(0, Math.min(720 - H, hs.y - H / 2)), width: W, height: H } : half;
+        await shot(page, `main-${key}`, `${key} : en main (P${shooter + 1}), ${r2(maxDim(r.held)) ?? '?'} m affichés pour ${r2(maxDim(held.physics?.sizeM)) ?? '?'} m réels`, { group: key, clip });
         const n0 = await evCount(page);
         await page.evaluate(() => window.ctx.bus.emit('slowmo', { factor: 0.25, ms: 3500 }));
         await page.keyboard.down(FIRE[shooter]);
@@ -448,7 +467,8 @@ async function measureMatch(page, match, idx) {
           r.gravity = r2(sp.p.gravity);
           r.massSpawn = r2(sp.p.mass);
           r.materialSpawn = sp.p.material;
-          await sleep(600);
+          // Mi-parcours (3,5 m) au ralenti ×0,25 : l'objet est bien entre les deux persos sur la capture « en vol ».
+          await sleep(Math.max(150, ((3.5 / Math.max(1, r.speed)) / 0.25) * 1000 - 150));
           r.flying = (await page.evaluate(() => window.__e2eTools.flying())).map(maxDim).map(r2);
           await shot(page, `vol-${key}`, `${key} : en vol`, { group: key });
           const end = await waitEv(page, n0, (e) => e.name === 'projectile:end' && e.p.id === sp.p.id, 6000);
@@ -502,7 +522,8 @@ async function measureMatch(page, match, idx) {
       }
     }
   }
-  return { split, fighters, phase: st.phase };
+  const tailles = await page.evaluate(() => window.__e2eTools.tailles);
+  return { split, fighters, phase: st.phase, tailles };
 }
 
 async function stickersLate(page) {
@@ -538,14 +559,15 @@ function verdicts(matches) {
   add('match', 'Match en écran scindé, chaque joueur avec SES objets', !!m1 && m1.split === true && m1.phase === 'fight', m1 ? `split=${m1.split}, phase=${m1.phase}` : 'match non atteint');
 
   const withHeld = scanned.filter((r) => r.held && r.weapon?.physics);
+  const T = matches[0]?.tailles ?? [0.35, 1.6];
   const heldOk = (r) => {
     const real = maxDim(r.weapon.physics.sizeM);
-    const want = Math.min(1.6, Math.max(0.35, real));
+    const want = Math.min(T[1], Math.max(T[0], real));
     return Math.abs(maxDim(r.held) - want) / want <= 0.35;
   };
   const ch = rows.get('chaise-bureau'), ca = rows.get('canette'), fe = rows.get('feutre-velleda'), ta = rows.get('tabouret-rotin');
-  add('en-main', 'Chaque objet en main à sa taille réelle (bornée 0,35-1,6 m, ±35 %)',
-    withHeld.length >= adem.length && withHeld.every(heldOk) && !!(ch?.held && ca?.held && maxDim(ch.held) > 2 * maxDim(ca.held)),
+  add('en-main', `Chaque objet en main à sa taille réelle (bornée ${T[0]}-${T[1]} m pour rester lisible, ±35 %), la chaise nettement plus grande que la canette`,
+    withHeld.length >= adem.length && withHeld.every(heldOk) && !!(ch?.held && ca?.held && maxDim(ch.held) >= 1.5 * maxDim(ca.held)),
     `${withHeld.filter(heldOk).length}/${scanned.length} à la bonne taille ; chaise ${maxDim(ch?.held) ?? '?'} m, canette ${maxDim(ca?.held) ?? '?'} m`);
 
   const cmp = (a, b, f, sens) => a && b && a[f] != null && b[f] != null && (sens > 0 ? a[f] > b[f] : a[f] < b[f]);

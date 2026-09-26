@@ -1,0 +1,21 @@
+{
+ "retardS": 32,
+ "ecranDebloqueS": 29,
+ "messageEcran": [
+  "The AI took too long. Try again, or fight as is."
+ ],
+ "portraitRenduApresS": 32,
+ "combatS": 39,
+ "teteAuDebutDuMatch": true,
+ "evenement": [
+  {
+   "t": 37910.40000000596,
+   "id": "custom-fighter-muijdunh-1"
+  }
+ ],
+ "teteEnMatch": true,
+ "teteArriveeS": 39,
+ "phaseALArrivee": "fight",
+ "hudVisage": true,
+ "verdict": "ROUGE"
+}
