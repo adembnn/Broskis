@@ -13,7 +13,7 @@ Réserver une ligne **avant** de commencer : nom + heure, commit + push de ce fi
 | LI | Pipeline IA + serveur | moyen | Adem (sous-agent) | L0 | en cours | Adem (sous-agent) 12h10 | |
 | LU | Interface | moyen | Adem (sous-agent) | L0, DA | en cours | Adem (sous-agent) 12h10 | |
 | LP | Perso photo en direct | moyen | Adem (sous-agent) | LI | à prendre | | |
-| LS | Sticker 3D | faible | **Titouan** | — | à prendre | | Autonome, peut démarrer tout de suite |
+| LS | Sticker 3D | faible | **Titouan** | — | en cours | Titouan (Claude) 11h26 | toon-kit.js d'Adem pas accessible sur ce PC, je démarre sans en attendant |
 | LV | Audio et voix | faible | **Titouan** | L0 | à prendre | | |
 | LP2 | Vedettes 3D préparées | faible | **Titouan** | clé Tripo | à prendre | | |
 | LD | Démo, vidéo, bande-annonce | faible | **Titouan** (+ Adem) | — | à prendre | | Références visuelles dès maintenant |
