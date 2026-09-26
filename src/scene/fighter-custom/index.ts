@@ -3,6 +3,7 @@
 // Tout reste en mémoire : le portrait n'est jamais écrit nulle part.
 import * as THREE from 'three';
 import type { FighterLook } from '../../core/types';
+import { rendu } from '../../art/tokens.js';
 import { makeSticker } from '../sticker/index';
 
 /** Réglages de la grosse tête (valeurs visuelles locales au lot, comme scene/localTokens.ts). */
@@ -15,8 +16,11 @@ const TETE = {
   avance: 0.1,
   /** Épaisseur du carton (fraction de la hauteur). */
   epaisseur: 0.06,
-  /** Le visage reste lisible à contre-jour : part d'auto-éclairage du portrait. */
-  emissif: 0.3,
+  /** Le visage reste lisible à contre-jour : part d'auto-éclairage du portrait. Faible : au-delà, le bord blanc
+   * du sticker passe le seuil du bloom et la tête « brille » à contre-jour (vu en match). */
+  emissif: 0.12,
+  /** Arrière du crâne : couleur des cheveux, éclaircie jusqu'à cette luminosité (des cheveux noirs faisaient un trou). */
+  dosLuminositeMin: 0.2,
   /** Tête à ressort : raideur (1/s²), amorti (1/s), gain (rad par m/s²), inclinaison max (rad). */
   ressort: { raideur: 110, amorti: 7, gain: 0.012, max: 0.42, gainVertical: 0.006, maxVertical: 0.16 },
 };
@@ -265,11 +269,17 @@ async function poserGrosseTete(root: THREE.Object3D, look: FighterLook): Promise
   face.map = tex;
   face.transparent = false;
   face.alphaTest = 0.5;
-  face.emissive = new THREE.Color(0xffffff);
+  // Blancs du portrait ramenés au vinyle de la DA (luminance 0,82, sous le seuil du bloom) : plus de halo.
+  face.color = new THREE.Color(rendu.contour.vinyle);
+  face.emissive = new THREE.Color(rendu.contour.vinyle);
   face.emissiveMap = tex;
   face.emissiveIntensity = TETE.emissif;
   face.needsUpdate = true;
-  peindreArriere(mesh, new THREE.MeshStandardMaterial({ color: look.hair ?? '#3a2a20', roughness: 0.8 }));
+  const cheveux = new THREE.Color(look.hair ?? '#3a2a20');
+  const hsl = { h: 0, s: 0, l: 0 };
+  cheveux.getHSL(hsl);
+  cheveux.setHSL(hsl.h, hsl.s, Math.max(hsl.l, TETE.dosLuminositeMin));
+  peindreArriere(mesh, new THREE.MeshStandardMaterial({ color: cheveux, roughness: 0.6 }));
 
   // Mesures dans le repère du perso, en pose de repos (avant toute animation).
   root.updateMatrixWorld(true);
