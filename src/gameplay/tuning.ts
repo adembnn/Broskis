@@ -29,11 +29,18 @@ export const RT = {
   /** Rayon des projectiles pour le contact avec la capsule d'un perso (m). */
   radius: { blaster: 0.22, throwable: 0.38, grenade: 0.3, shield: 0 } as Record<Category, number>,
   grenadeGravity: 14,
+  /** Portée de base d'une grenade (m) ; × physique (objet lourd = plus court) × charge. */
+  grenadeBaseRange: 22,
+  /** Relèvement max d'un lancer tendu d'objet lourd (degrés) : au-delà de sa portée, il retombe court. */
+  throwMaxElevationDeg: 25,
+  /** Objet fragile : éclats (rayon m, fraction des dégâts) ; objet liquide : sol glissant (rayon m, durée ms). */
+  shards: { radius: 1.3, damage: 0.35, grenadeRadiusMult: 0.75 },
+  puddle: { radius: 1.8, ms: 3000, accel: 1.6 },
   /** Durée de vol de la grenade : min + distance × perM, plafonnée. */
   grenadeFlight: { min: 0.55, perM: 0.035, max: 1.1 },
   projectileMaxLifeS: 3.5,
   /** Blocage maintenu : dégâts ÷ 3, recul ÷ 2 ; parade parfaite si le blocage a commencé < perfectMs avant l'impact. */
-  block: { damageMult: 1 / 3, launchMult: 0.5, perfectMs: 150 },
+  block: { damageMult: 1 / 3, launchMult: 0.5, perfectMs: 150, remashMs: 300 },
   parrySlowmo: { factor: 0.3, ms: 300 },
   reflectSpeedMult: 1.15,
   /** `projectile:incoming` émis ce temps avant l'impact prévu (anneau de repère). */
@@ -67,18 +74,25 @@ export const SETTLE_TIMEOUT_MS = 7000;
 
 // ---------- Déplacement (le budget lui-même est MOVE_BUDGET/JUMP_COST dans core/state.ts) ----------
 export const MOVE_SPEED = 4; // m/s au clavier
-/** Sauts (temps réel, exigences LJUMP) : avec GRAVITY = 20, saut ≈ 1,4 m + double saut ≈ 1,3 m = 2,7 m
- * (≥ 2,6 m : les plateformes à 2,3 m sont atteignables). */
-export const JUMP_VELOCITY = 7.5; // m/s, vitesse verticale initiale du saut
-/** 2e saut (seulement en l'air) : le saut de rattrapage. */
-export const AIR_JUMP_VELOCITY = 7.2;
+// Lot LJUMP (plan/lots/LJUMP-saut.md). Avant : 5,6 / 6,4 m/s -> saut 0,78 m, double saut ≈ 1,8 m, plateformes
+// (2,0 à 2,4 m) inatteignables. Hauteur d'un saut = v² / (2 × GRAVITY), intégration exacte (character.ts).
+export const JUMP_VELOCITY = 6.6; // m/s -> apex 1,09 m : franchit une marche de 1 m (dalle tombée, rebord, caisse)
+/** 2e saut (en l'air) : plus fort, c'est le saut de rattrapage. Au sommet du 1er : +1,50 m -> apex ≈ 2,59 m, dessus
+ * d'une plateforme de 2,0 m (MAX_LEDGE_HEIGHT de LMAP3) avec 0,6 m de marge ; ≈ 2,37 m s'il part 0,15 s en retard. */
+export const AIR_JUMP_VELOCITY = 7.75;
 export const MAX_JUMPS_PER_TURN = 2;
 /** « Coyote time » : on peut encore faire le saut du sol juste après avoir quitté le bord (s). */
 export const COYOTE_S = 0.1;
 /** Élan aérien : en l'air, la vitesse horizontale rejoint la direction voulue à ce rythme (1/s), et se garde sans entrée. */
 export const AIR_ACCEL = 5;
 export const AIR_DRAG = 0.4;
+/** Élan maximal (m/s) gardé quand on sort du plateau en marchant : le rattrapage au bord reste à portée. */
+export const WALKOFF_MAX_SPEED = 3;
 export const GRAVITY = 20; // m/s², un peu plus nerveux que la gravité par défaut du monde Rapier
+/** Plateforme traversable : au sommet du saut ou en descente, pieds jusqu'à ce nombre de m sous son dessus
+ * (corps dans son emprise) -> posé dessus. Évite de rater une plateforme de quelques centimètres. */
+export const ONEWAY_SNAP_BELOW = 0.35;
+export const ONEWAY_SNAP_MAX_VY = 1.5; // m/s
 export const EDGE_RAYCAST_AHEAD = 0.35; // m devant les pieds, dans la direction du pas
 export const EDGE_RAYCAST_DEPTH = 1.35; // m sous les pieds : au-delà, c'est le vide
 /** Bord : on s'arrête et on vacille (`teeter`) ; en insistant ce temps-là, on marche dans le vide. */

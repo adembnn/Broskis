@@ -1,5 +1,5 @@
 // Noms et données des événements du bus — figés (plan/README.md). Un nouvel événement = une ligne ici + une note dans plan/SUIVI.md.
-import type { MapId, ParryGrade, Phase, PlayerId, Vec3, Weapon } from './types';
+import type { MapId, Material, ParryGrade, Phase, PlayerId, Vec3, Weapon } from './types';
 
 export interface EventMap {
   'phase:change': { from: Phase; to: Phase };
@@ -14,9 +14,13 @@ export interface EventMap {
   'aim:update': { player: PlayerId; dir: Vec3; power: number; path?: Vec3[]; impact?: Vec3; knockback?: Vec3; ejects?: boolean };
   'fire': { player: PlayerId; weapon: Weapon; dir: Vec3; power: number };
   /** Temps réel : `gravity` (m/s², 0 = tir tendu) et `owner` permettent de rejouer exactement le vol côté rendu. */
-  'projectile:spawn': { id: string; weapon: Weapon; from: Vec3; vel: Vec3; gravity?: number; owner?: PlayerId };
+  'projectile:spawn': { id: string; weapon: Weapon; from: Vec3; vel: Vec3; gravity?: number; owner?: PlayerId; mass?: number; material?: Material | null; size?: Vec3 };
   /** Temps réel : fin d'un projectile (touché, mur, sol, paré-renvoyé, trop loin), pour retirer son visuel. */
   'projectile:end': { id: string; pos: Vec3; reason: 'hit' | 'world' | 'parried' | 'expired' };
+  /** Temps réel : rebond d'un objet lancé sur le décor (selon sa `bounciness`), pour le « tok » et la poussière. */
+  'projectile:bounce': { id: string; pos: Vec3; vel: Vec3 };
+  /** Temps réel : un objet LIQUIDE a giclé, le sol est glissant `ms` millisecondes dans ce rayon (visuel de flaque). */
+  'ground:slippery': { pos: Vec3; radius: number; ms: number };
   /** Part ~1,2 s avant l'impact : déclenche les repères de parade. */
   'projectile:incoming': { id: string; target: PlayerId; etaMs: number };
   'parry:cue': { defender: PlayerId; attacker: PlayerId };
@@ -28,7 +32,7 @@ export interface EventMap {
   'feint': { player: PlayerId };
   'parry:result': { player: PlayerId; grade: ParryGrade; deltaMs: number };
   /** pct = % du défenseur après le coup ; launch = vitesse d'éjection (m/s) ; willKo = l'éjection sortira de l'arène (déclenche le zoom KO). */
-  'hit': { target: PlayerId; attacker: PlayerId; weapon: Weapon; damage: number; knockback: Vec3; crit: boolean; pos: Vec3; pct?: number; launch?: Vec3; willKo?: boolean };
+  'hit': { target: PlayerId; attacker: PlayerId; weapon: Weapon; damage: number; knockback: Vec3; crit: boolean; pos: Vec3; pct?: number; launch?: Vec3; willKo?: boolean; mass?: number; material?: Material | null; size?: Vec3 };
   'shield:placed': { player: PlayerId; weapon: Weapon; pos: Vec3 };
   'map:warn': { mapId: MapId; kind: string; turnsLeft: number; area?: Vec3[] };
   'map:event': { mapId: MapId; kind: string };
