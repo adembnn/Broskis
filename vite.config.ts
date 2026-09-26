@@ -113,6 +113,12 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, envDir(), '');
   return {
     plugins: [apiServerPlugin(env)],
+    // Les copies de travail des agents (.claude/worktrees, chacune avec son node_modules et son dist), les captures
+    // et les rapports ne font pas partie du jeu : ne pas les surveiller ni les analyser (serveur de dev figé sinon).
+    server: {
+      watch: { ignored: ['**/.claude/**', '**/captures/**', '**/reports/**', '**/dist/**', '**/dashboard/**'] },
+    },
+    optimizeDeps: { entries: ['index.html'] },
     build: {
       // Lot LPERF : three.js et Rapier (wasm inclus) dans leurs propres fichiers, à côté du code du jeu.
       rolldownOptions: {
