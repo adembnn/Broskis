@@ -69,6 +69,7 @@ export function installCamera(ctx: Ctx): CameraDirector {
   // "Un clic ou une touche la saute" : skip() est un no-op hors transition, donc jamais de risque de gêner
   // les autres lots qui écoutent aussi le clic/clavier (on ne consomme jamais l'évènement : pas de preventDefault).
   ctx.hooks.skipCamera = () => director.skip();
+  ctx.hooks.animCamera = (player, shot) => director.forceAnimCamera(player, shot);
   ctx.three.canvas.addEventListener('pointerdown', () => director.skip());
   window.addEventListener('keydown', (e) => { if (!e.repeat) director.skip(); });
 
