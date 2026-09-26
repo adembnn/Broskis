@@ -21,6 +21,6 @@ export const WEAPON_FX = {
   // Traits (couleur du soin : la DA n'a pas de vert, voir plan/rendus/LATK1.md).
   soin: '#7BD66A',
   // Matières sans couleur d'objet évidente (éclat de verre, sciure, pierre) : teintes neutres.
-  matiere: { verre: '#DDF3FF', sciure: '#B07A45', pierre: '#8C8579' },
+  matiere: { verre: '#DDF3FF', sciure: '#B07A45', pierre: '#8C8579', eau: '#8FD3F0' },
   budget: { additif: 180, normal: 120, eclats: 72, bouffees: 32 },
 } as const;

@@ -42,7 +42,12 @@ const cache = new WeakMap<Weapon, WeaponPhysics>();
 
 /** Physique réelle de l'arme, ou estimation (mots-clés de l'objet, sinon catégorie). */
 export function physicsOf(w: Weapon): WeaponPhysics {
-  if (w.physics) return w.physics;
+  return w.physics ?? guessPhysics(w);
+}
+
+/** Estimation seule (presets et vieux caches sans `physics`) : réutilisable par le lot IA pour remplir
+ *  `weapon.physics` des presets, afin que le gameplay (physics-feel.ts) et le rendu disent la même chose. */
+export function guessPhysics(w: Weapon): WeaponPhysics {
   let p = cache.get(w);
   if (p) return p;
   const name = `${w.object ?? ''} ${w.name ?? ''}`.toLowerCase();

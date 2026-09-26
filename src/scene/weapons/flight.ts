@@ -11,6 +11,7 @@ import type { Ctx, PlayerId, Vec3, Weapon } from '../../core/types';
 import { liveProjectiles } from '../../gameplay/projectiles';
 import { lerp } from '../../gameplay/trajectory';
 import { GRENADE_RADIUS_MAX, GRENADE_RADIUS_MIN, SHOT_ORIGIN_HEIGHT, TRAIT_TUNING } from '../../gameplay/tuning';
+import { cameraShake } from '../api';
 import { excludeFromOcclusion } from '../registry';
 import type { BlastFx, ObjectHit } from './blast';
 import { lookOf, type ObjectLook } from './physics';
@@ -101,6 +102,12 @@ export function installFlights(ctx: Ctx, deps: FlightDeps) {
 
   const flights: Flight[] = [];
   let pendingReflect: { flight: Flight; at: number } | null = null;
+  /** Dernier objet liquide qui a giclé (couleur de la flaque du gameplay). */
+  let lastLiquid: { pos: THREE.Vector3; color: string; t: number } | null = null;
+
+  function cameraShakeFor(f: Flight, k: number): void {
+    cameraShake(THREE.MathUtils.lerp(WEAPON_FX.trauma.impactLeger, WEAPON_FX.trauma.impactLourd, f.look.weight) * k);
+  }
 
   // Tache d'encre sous l'objet (rendu.ombres.tache) : se lit comme la hauteur de la cloche.
   const shadowGeo = new THREE.CircleGeometry(0.5, 20);
@@ -312,6 +319,7 @@ export function installFlights(ctx: Ctx, deps: FlightDeps) {
     const g = new THREE.Vector3(at.x, at.y - gy < 3 ? gy : at.y, at.z);
     // Pour le son (clang, crash, splash…) : matière et masse réelles de l'objet.
     ctx.bus.emit('weapon:impact', { pos: [at.x, at.y, at.z], weaponId: w.id, category: w.category, material: p.material, massKg: p.massKg, fragile: p.fragile, liquid: p.liquid, on });
+    if (p.liquid) lastLiquid = { pos: at.clone(), color: w.palette[0], t: performance.now() };
     if (f.kind === 'grenade') {
       // L'explosion part du point d'impact ; son anneau au sol montre le VRAI rayon de dégâts. La matière s'y
       // lit aussi : une bouteille éclate en verre et gicle, un canard en caoutchouc part en morceaux jaunes.
@@ -426,6 +434,25 @@ export function installFlights(ctx: Ctx, deps: FlightDeps) {
 
   ctx.bus.on('hit', ({ weapon, attacker }) => {
     if (weapon.trait === 'healing') blast.heal(chest(attacker));
+  });
+
+  // Rebond réel (gameplay, selon `bounciness`) : l'objet s'écrase, soulève un peu de poussière, et sa matière
+  // parle (étincelles du métal, échardes du bois…) en petit.
+  ctx.bus.on('projectile:bounce', ({ id, pos }) => {
+    const f = flights.find((x) => x.id === id && x.state === 'flying');
+    if (!f) return;
+    const at = new THREE.Vector3(pos[0], pos[1], pos[2]);
+    f.squash = 1;
+    blast.dust(at, 0.5 + 0.9 * f.look.weight, 4 + Math.round(8 * f.look.weight));
+    blast.materialBurst(at, at.y, { ...objectHitOf(f), liquid: false, fragile: false }, 0.25);
+    cameraShakeFor(f, 0.35);
+  });
+
+  // Flaque glissante du gameplay (objet liquide) : à la couleur du dernier objet liquide qui a giclé là.
+  ctx.bus.on('ground:slippery', ({ pos, radius, ms }) => {
+    const at = new THREE.Vector3(pos[0], groundBelow(new THREE.Vector3(pos[0], pos[1] + 0.5, pos[2])), pos[2]);
+    const color = lastLiquid && lastLiquid.pos.distanceTo(at) < 3 && performance.now() - lastLiquid.t < 1000 ? lastLiquid.color : WEAPON_FX.matiere.eau;
+    blast.puddle(at, color, radius, ms);
   });
 
   ctx.bus.on('match:start', () => {

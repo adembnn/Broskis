@@ -387,9 +387,9 @@ export function installBlast(ctx: Ctx): BlastFx {
       fxAdd.burst(pos, { count: n(14), color: [palette.lumiere, WEAPON_FX.matiere.verre], speed: [3, 7], life: [0.1, 0.3], size: [0.06, 0.14], gravity: 8 });
     }
     if (o.liquid) {
-      // Giclée de la couleur de l'objet + flaque brillante au sol.
+      // Giclée de la couleur de l'objet. La flaque, elle, suit `ground:slippery` (rayon et durée du gameplay).
       fxNorm.burst(_p.copy(pos).addScaledVector(UP, 0.1), { count: n(22), color: [c0, c1, c0], speed: [2.5, 6], life: [0.45, 0.8], size: [0.14, 0.3], gravity: 14, drag: 0.6, direction: UP, spread: 1.6 });
-      puddle(g, c0, 0.9 + 0.8 * o.size, 4000);
+      void g;
     }
     switch (o.material) {
       case 'metal':
