@@ -6,6 +6,7 @@ import type { Ctx, PlayerId, Vec3 } from '../core/types';
 import * as cameraApi from '../scene/camera';
 import { applyMove, dropThrough, standingOnOneWay, startJump, stepVerticalMotion, syncBodyToState } from './character';
 import type { PlayerInput } from './controls';
+import { getArena } from './arena';
 import { checkCratePickup } from './crate';
 import { setTeeter, stepFalls } from './launch';
 import { inFight } from './phases';
@@ -84,7 +85,15 @@ export function moveBy(ctx: Ctx, player: PlayerId, dx: number, dz: number, dt: n
     return;
   }
   const slide = performance.now() < rt.slipperyUntilMs ? 1 + TRAIT_TUNING.slippery.driftMult : 1;
-  const insist = forceVoid || rt.edgePushS >= RT.teeterPushS;
+  // Retour d'Adem (17h19) : « on doit pouvoir tomber dans le vide ». Courir VERS l'extérieur de l'arène fait
+  // quitter le bord tout de suite (façon Smash) ; en tournant autour de l'adversaire (déplacement tangent au
+  // bord), on vacille toujours avant de tomber, pour ne pas chuter tout seul.
+  const arena = getArena(ctx);
+  const pos = ctx.state.players[player].pos;
+  const ox = pos[0] - arena.center[0], oz = pos[2] - arena.center[2];
+  const olen = Math.hypot(ox, oz), mlen = Math.hypot(dx, dz);
+  const outward = olen > 1e-3 && mlen > 1e-6 && (dx * ox + dz * oz) / (olen * mlen) > RT.walkOffOutwardDot;
+  const insist = forceVoid || outward || rt.edgePushS >= RT.teeterPushS;
   const r = applyMove(ctx, player, dx * slide, dz * slide, insist);
   if (r.blockedByEdge) { setTeeter(ctx, player, true); rt.edgePushS += dt; }
   else if (r.movedDistance > 0.005 && !insist) { rt.edgePushS = 0; setTeeter(ctx, player, false); }

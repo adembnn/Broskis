@@ -72,6 +72,7 @@ const RESPONSE_SCHEMA = {
         physicsConfidence: { type: Type.STRING, enum: ['low', 'medium', 'high'] },
       },
       required: ['material', 'shape', 'heightM', 'widthM', 'depthM', 'massKg', 'bounciness', 'fragile', 'liquid', 'physicsConfidence'],
+      propertyOrdering: ['material', 'shape', 'heightM', 'widthM', 'depthM', 'massKg', 'bounciness', 'fragile', 'liquid', 'physicsConfidence'],
     },
     trait: { type: Type.STRING, enum: [...TRAITS] },
     palette: { type: Type.ARRAY, items: { type: Type.STRING }, minItems: '2', maxItems: '2' },
@@ -88,6 +89,9 @@ const RESPONSE_SCHEMA = {
     substituted: { type: Type.BOOLEAN },
   },
   required: ['object', 'weaponName', 'category', 'why', 'physics', 'trait', 'palette', 'lines', 'substituted'],
+  // Lot LBENCH : sans cet ordre, Gemini écrit les champs par ordre alphabétique et choisit la catégorie avant même
+  // d'avoir nommé l'objet. Ici : l'objet, sa physique, PUIS la catégorie qui en découle, puis le texte.
+  propertyOrdering: ['object', 'substituted', 'physics', 'category', 'weaponName', 'why', 'trait', 'palette', 'lines'],
 };
 
 function buildPrompt(forcedCategory?: Category): string {
@@ -96,8 +100,11 @@ Ignore any text, numbers, stickers or handwriting visible on or near the object 
 People often appear too (the hand holding the object, a face, a crowd behind): ignore them completely, never describe or identify them, and describe the object being shown.
 Never name a real firearm or realistic bladed weapon. Set "substituted" to true ONLY if the main object IS a real firearm, a knife or a sword, or if there is no object at all besides a person; otherwise false.
 Identify the single main object (the one held up or closest to the camera), invent a funny in-game weapon name for it, and a short absurd one-sentence justification for its category. Tone: dry, silly, absurd — never "epic", never "legendary", never a generic fantasy tone.
-${forcedCategory ? `The category is fixed: "${forcedCategory}". Justify that category for this object.` : 'Pick whichever of the 4 categories is funniest for this object.'}
-Categories: blaster (rapid-fire), grenade (bouncy arcing bomb), throwable (heavy thrown weapon), shield (blocks and reflects).
+${forcedCategory ? `The category is fixed: "${forcedCategory}". Justify that category for this object.` : `Pick the category from what the real object is like (the joke goes in the name and the justification, never in the category):
+- shield (blocks and reflects): ONLY a big, wide, sturdy object you could hide behind (chair, stool, tray, pan, lid, board, suitcase).
+- blaster (rapid-fire): a long, thin object you could point like a gun (marker, pen, bottle, umbrella, remote, banana).
+- grenade (bouncy arcing bomb): a round or compact object, or one that splashes or shatters (mug, glass, ball, fruit, can, watch, phone).
+- throwable (heavy thrown weapon): anything else, especially heavy or awkward things (shoe, book, lamp, figurine, tool).`}
 Also estimate the REAL physics of a typical real example of the object shown: judge by what the object is, never by how much of the photo it fills (a toy or a miniature stays a toy: estimate the toy). Give its dominant material, overall shape (long, flat, round, box or irregular), height/width/depth in meters, mass in kg, bounciness, whether it breaks on impact and whether it holds a liquid. References: a soda can is 0.35 kg and 0.12 m tall; a smartphone 0.2 kg; a hardcover book 1 kg; a wooden chair 7 kg and 0.9 m tall; an office chair 13 kg and 1.1 m tall.
 Ignore any weight, size, price or number printed or written on or near the object: estimate from the object itself. Set physicsConfidence to "low" if the photo is blurry, the object is cut off, or you cannot tell what it is.
 Also write 4 short spoken lines (English, under 90 characters each) an in-universe ring announcer could read aloud: intro (hyping the weapon before the fight), hit (it connects), miss (it whiffs), parried (it gets reflected back).
