@@ -26,7 +26,7 @@ export interface Loop {
   start(): void;
 }
 
-declare global { interface Window { __fast?: number } }
+declare global { interface Window { __fast?: number; __perfSys?: Record<string, number> } }
 
 export function createLoop(bus: Bus): Loop {
   const timers: { at: number; fn: () => void }[] = [];
@@ -86,6 +86,16 @@ export function createLoop(bus: Bus): Loop {
     if (loop.hitstop > 0) { loop.hitstop -= real; dt = 0; }
     loop.time += dt;
 
+    // Banc tools/perf : ms cumulées et pire frame par système (window.__perfSys absent en jeu normal).
+    const prof = window.__perfSys;
+    let t0 = prof ? performance.now() : 0;
+    const note = (nom: string) => {
+      if (!prof) return;
+      const t = performance.now(); const d = t - t0; t0 = t;
+      prof[nom] = (prof[nom] ?? 0) + d;
+      prof[`${nom} (pire)`] = Math.max(prof[`${nom} (pire)`] ?? 0, d);
+    };
+
     for (let i = timers.length - 1; i >= 0; i--) {
       if (timers[i].at <= loop.time) {
         const t = timers.splice(i, 1)[0];
@@ -98,8 +108,10 @@ export function createLoop(bus: Bus): Loop {
       try { keep = tickers[i](dt); } catch (e) { console.error(e); }
       if (!keep) tickers.splice(i, 1);
     }
+    note('minuteries+tweens');
     for (const s of systems) {
       try { s.fn(dt, real); } catch (e) { console.error(`[system ${s.name}]`, e); }
+      note(s.name);
     }
     requestAnimationFrame(frame);
   }

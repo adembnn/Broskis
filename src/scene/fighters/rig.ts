@@ -5,7 +5,7 @@ import type { FighterDef, PlayerId, Ctx } from '../../core/types';
 import { LOCAL_TOKENS } from '../localTokens';
 import { setVinylRenderOrder } from '../render/toon';
 import { FighterAnimator } from './animator';
-import { instantiateFighterModel, type VinylMeshEntry } from './loader';
+import { instantiateFighterModel, loadMovementClips, type VinylMeshEntry } from './loader';
 
 export interface FighterRig {
   container: THREE.Group;
@@ -18,6 +18,13 @@ export interface FighterRig {
   moving: boolean;
   lastMoveAt: number;
   facing: number;
+  /** Locomotion (fighters/index.ts) : dernière position cible, vitesses lissées, état en l'air. */
+  prevTarget: THREE.Vector3;
+  velXZ: THREE.Vector2;
+  velY: number;
+  airborne: boolean;
+  groundedFor: number;
+  minVelY: number;
 }
 
 /** Règle 2 (DA) : intercale les combattants du plus loin au plus proche (`rank` 0/1), sinon la marge vinyle
@@ -40,7 +47,12 @@ export function defaultFighter(player: 0 | 1): FighterDef {
 }
 
 export async function buildFighterRig(fighter: FighterDef, player: PlayerId, ctx: Ctx): Promise<FighterRig> {
-  const { root, animations, vinylMeshes } = await instantiateFighterModel(fighter, player);
+  const [{ root, animations: own, vinylMeshes }, movement] = await Promise.all([
+    instantiateFighterModel(fighter, player),
+    loadMovementClips(),
+  ]);
+  // Un GLB vedette (LP2) peut ne pas avoir le squelette KayKit : on n'ajoute les clips du pack que s'il l'a.
+  const animations = root.getObjectByName('hips') ? [...own, ...movement] : own;
   if (fighter.look) {
     try { await applyFighterLook(root, fighter.look); } catch (e) { console.error('[fighters] applyFighterLook', e); }
   }
@@ -65,6 +77,12 @@ export async function buildFighterRig(fighter: FighterDef, player: PlayerId, ctx
     moving: false,
     lastMoveAt: -Infinity,
     facing: 0,
+    prevTarget: new THREE.Vector3(),
+    velXZ: new THREE.Vector2(),
+    velY: 0,
+    airborne: false,
+    groundedFor: 0,
+    minVelY: 0,
   };
 }
 

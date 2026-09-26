@@ -49,7 +49,8 @@ const STYLE = `
 #trailer .tr-shutter { left: 50%; bottom: 5%; width: 104px; height: 104px; border-radius: 50%; border: 9px solid ${ui.vinyle}; }
 #trailer .tr-shutter::after { content: ''; position: absolute; inset: 9px; border-radius: 50%; background: ${ui.vinyle}; }
 #trailer .tr-rec { left: 5%; top: 6%; font-family: ${polices.texte}; font-weight: 800; font-size: 30px; color: ${ui.vinyle}; letter-spacing: 0.1em; }
-#trailer .tr-card { left: 50%; top: 50%; perspective: 1600px; }
+#trailer .tr-card { left: 50%; top: 50%; width: 320px; height: 448px; perspective: 1600px; }
+#trailer .tr-card .weapon-card { width: 320px; height: 448px; }
 #trailer .tr-wave { left: 50%; bottom: 12%; height: 180px; display: none; align-items: center; gap: 7px; }
 #trailer .tr-wave span { display: block; width: 12px; border-radius: 6px; background: ${ui.vinyle}; box-shadow: 0 0 0 3px ${ui.encre}; }
 #trailer .tr-logo { left: 50%; top: 44%; padding: 26px 70px 18px; background: ${ui.papier}; color: ${ui.encre};
@@ -189,9 +190,13 @@ export function createOverlay(): Overlay {
       if (photoImg.src !== img) photoImg.src = img;
       const lift = clamp01((u - flashAt) / 0.25);
       const bob = Math.sin(u * 3.1) * 6 * (1 - lift);
+      // Avant le flash : une photo prise au téléphone (terne, un peu floue). Au flash : le sticker vif, détouré,
+      // avec sa marge vinyle et son ombre dure — la transformation « objet réel → arme » en une image.
       css(photo, {
         transform: `translate(-50%, -50%) translateY(${bob - lift * 30}px) rotate(${lift * -4}deg) scale(${1 + ease.outBack(lift, 2) * 0.1})`,
-        filter: lift > 0 ? `${VINYL_OUTLINE(9 * lift)} drop-shadow(18px 22px 0 ${ui.encre})` : 'saturate(0.9)',
+        filter: lift > 0
+          ? `${VINYL_OUTLINE(9 * lift)} drop-shadow(18px 22px 0 ${ui.encre})`
+          : `saturate(0.45) contrast(0.85) brightness(0.92) blur(${(1.6 - Math.min(1, u / 0.55) * 1.2).toFixed(2)}px)`,
       });
       // Crochets de mise au point : se referment sur l'objet en 3 petits sauts (verrouillage façon appareil photo).
       const lock = Math.floor(clamp01(u / 0.55) * 3) / 3;
@@ -232,8 +237,9 @@ export function createOverlay(): Overlay {
       }
       const flip = ease.outBack(clamp01(u / 0.45), 1.3);
       const slide = u * 90; // travelling latéral continu
-      css(cardWrap, { transform: `translate(-50%, -50%) translate(${200 - slide}px, 20px) scale(1.7)` });
-      if (cardInner) css(cardInner, { transform: `rotateY(${(1 - flip) * 180}deg) rotateZ(${-3 + (1 - flip) * 8}deg)`, 'transform-style': 'preserve-3d' });
+      css(cardWrap, { transform: `translate(-50%, -50%) translate(${220 - slide}px, 10px) scale(1.75)` });
+      const inner = cardInner?.querySelector<HTMLElement>('.weapon-card-inner');
+      if (inner) css(inner, { transition: 'none', transform: `rotateY(${(1 - flip) * 180}deg) rotateZ(${-3 + (1 - flip) * 8}deg)` });
     },
 
     wave(t, level) {

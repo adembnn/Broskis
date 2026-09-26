@@ -6,6 +6,7 @@ import { DEMO_SEED, installDemoKeys, isDemo } from './demo';
 import { createHooks } from './hooks';
 import { createLoop } from './loop';
 import { createPhysics } from './physics';
+import { createQualite } from './quality';
 import { createRng } from './rng';
 import { createState, exposeState } from './state';
 import type { Ctx, Three } from './types';
@@ -19,7 +20,7 @@ const TONE_MAPPING: Record<string, THREE.ToneMapping> = {
 
 function createThree(root: HTMLElement): Three {
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, rendu.pixelRatioMax));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = TONE_MAPPING[rendu.toneMapping] ?? THREE.NoToneMapping;
@@ -75,7 +76,20 @@ export async function createCtx(root: HTMLElement): Promise<Ctx> {
   if (demo) installDemoKeys(bus);
 
   loop.addSystem('physics', (dt) => physics.step(dt), 100);
-  loop.addSystem('render', () => ctx.three.render(), 1000);
+  // Qualité « basse » (GPU faible, voir quality.ts) : rendu direct dans le canvas (MSAA natif), sans la chaîne
+  // de post-traitement. Le canvas garde sa définition : le réduire forcerait Chrome à le mettre à l'échelle,
+  // mesuré plus saccadé (images de 56-63 ms) même sur la carte NVIDIA.
+  const { renderer, scene, camera } = three;
+  const qualite = createQualite(bus, async (n) => {
+    if (n !== 'basse') return;
+    renderer.setRenderTarget(null); // shaders du rendu direct (sortie sRGB), compilés sans bloquer l'image
+    await renderer.compileAsync(scene, camera);
+  });
+  loop.addSystem('render', (_dt, real) => {
+    qualite.frame(real);
+    if (qualite.niveau === 'basse') renderer.render(scene, camera);
+    else ctx.three.render();
+  }, 1000);
 
   window.ctx = ctx; // débogage : ctx.bus.emit('hit', …) depuis la console
   return ctx;

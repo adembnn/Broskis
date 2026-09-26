@@ -1,16 +1,22 @@
 import * as THREE from 'three';
 import { animMetricsImpl } from './metrics';
+import { LOCAL_TOKENS } from '../localTokens';
 import type { Ctx, PlayerId } from '../../core/types';
 
 export interface PlayOptions {
   loop?: boolean;
   fade?: number;
+  /** Vitesse de lecture d'un clip ponctuel (les boucles run/walk suivent la vitesse au sol). */
+  speed?: number;
   onFinished?: () => void;
 }
 
+/** Clips que la locomotion ne doit pas couper (tir, coup reçu, parade…) : voir `isBusy()`. */
+const LOCOMOTION = new Set(['idle', 'run', 'walk', 'jumpAir', 'jumpStart', 'jumpLand', 'jump']);
+
 interface SpringState { k: number; v: number }
 
-const STIFFNESS = 180;
+const STIFFNESS = 140; // ressort un peu plus lent : écrasements lisibles (≥ 60 ms sous 0,95)
 const DAMPING = 12;
 
 export class FighterAnimator {
@@ -31,6 +37,10 @@ export class FighterAnimator {
   private groundSpeed = 0;
   private animRate = 1;
   private footSlideCm: [number, number] = [0, 0];
+  /** Clip ponctuel non-locomotion en cours : la locomotion attend sa fin avant de reprendre la main. */
+  private busyAction: THREE.AnimationAction | null = null;
+  /** Vitesse au sol fournie par l'appelant (m/s) — la mesurer sur le wrapper de squash donnait toujours 0. */
+  private externalSpeed: number | null = null;
 
   constructor(root: THREE.Object3D, clips: THREE.AnimationClip[], baseScale: number, player: PlayerId, ctx: Ctx) {
     this.mixer = new THREE.AnimationMixer(root);
@@ -52,8 +62,21 @@ export class FighterAnimator {
     return this.actions.has(name);
   }
 
+  get current(): string | null {
+    return this.currentName;
+  }
+
+  /** Vrai tant qu'un clip ponctuel (tir, coup, parade, KO) joue : ne pas le couper par idle/run. */
+  isBusy(): boolean {
+    return this.busyAction !== null && this.busyAction === this.currentAction;
+  }
+
+  setGroundSpeed(speed: number): void {
+    this.externalSpeed = speed;
+  }
+
   play(name: string, opts: PlayOptions = {}): void {
-    const { loop = true, fade = 0.08, onFinished } = opts;
+    const { loop = true, fade = 0.08, speed = 1, onFinished } = opts;
     const action = this.actions.get(name);
     if (!action) return;
     
@@ -71,9 +94,10 @@ export class FighterAnimator {
     if (name === 'run' || name === 'walk') {
       action.timeScale = this.animRate;
     } else {
-      action.timeScale = 1;
+      action.timeScale = speed;
     }
     action.play();
+    this.busyAction = !loop && !LOCOMOTION.has(name) ? action : null;
     
     if (prevAction && prevAction !== action) {
       prevAction.crossFadeTo(action, fade, false);
@@ -125,6 +149,7 @@ export class FighterAnimator {
       const handler = (e: { action: THREE.AnimationAction }) => {
         if (e.action !== action) return;
         this.mixer.removeEventListener('finished', handler);
+        if (this.currentAction !== action) return; // déjà remplacé : ne pas écraser le clip suivant
         onFinished();
       };
       this.mixer.addEventListener('finished', handler);
@@ -149,14 +174,13 @@ export class FighterAnimator {
     
     const worldPos = wrapper.position.clone();
     const dist = worldPos.distanceTo(this.lastPos);
-    if (dt > 0) {
-      this.groundSpeed = dist / dt;
-    }
+    if (this.externalSpeed !== null) this.groundSpeed = this.externalSpeed;
+    else if (dt > 0) this.groundSpeed = dist / dt;
     this.lastPos.copy(worldPos);
     
     if (this.groundSpeed > 0.1) {
-      this.animRate = this.groundSpeed / 4.0;
-      this.animRate = Math.max(0.8, Math.min(1.2, this.animRate));
+      this.animRate = this.groundSpeed / LOCAL_TOKENS.locomotion.runRefSpeed;
+      this.animRate = Math.max(LOCAL_TOKENS.locomotion.runRateMin, Math.min(LOCAL_TOKENS.locomotion.runRateMax, this.animRate));
       if (this.currentName === 'run' && this.currentAction) {
         this.currentAction.timeScale = this.animRate;
       }
@@ -170,8 +194,8 @@ export class FighterAnimator {
     }
 
     let lean = 0;
-    if (this.groundSpeed > 0.5 && this.spine) {
-      lean = Math.min(12 * (Math.PI / 180), this.groundSpeed * 0.1);
+    if (this.groundSpeed > 0.5 && this.spine && this.currentName === 'run') {
+      lean = Math.min(LOCAL_TOKENS.locomotion.leanMaxDeg * (Math.PI / 180), this.groundSpeed * 0.1);
       this.spine.rotateX(lean);
     }
     

@@ -1,88 +1,98 @@
-// Fin de match sur match:end : « Damage Report » façon addition (inspiré de src/wow/endscreen.js de
-// bagarre-de-taverne, « L'Addition »), meilleur coup, arme MVP, Rematch (touche R) et New fighters.
+// Écran de fin (lot LUX) : le gagnant en grand (portrait, nom, couleur de son coin), puis pour chacun le % final,
+// les éjections infligées et les dégâts, l'arme MVP avec son sticker, les nouveautés du Scandex (lot LW).
+// Deux choix seulement : REMATCH (touche R) et MENU. L'enchaînement (relance, retour au titre) vit dans index.ts.
 import type { Ctx, PlayerId } from '../core/types';
-import { button, clear, el, menuScreen } from './dom';
+import { button, el, menuScreen } from './dom';
+import { kbd } from './keys';
 import type { MatchLog } from './matchLog';
+import { fighterPortrait } from './portraits';
 import { openScandexScreen } from './scandex/screen';
 import { getNewSinceMatchStart } from './scandex/store';
+import { weaponSticker } from './sticker2d';
 
-function billLine(label: string, amount: number): HTMLLIElement {
-  const li = el('li', 'bill-line');
-  li.append(el('span', 'bill-label', label), el('span', 'bill-dots'), el('span', 'num bill-amount', String(Math.round(amount))));
-  return li;
+/** 'none' : un autre match a été lancé pendant l'affichage (hooks, labo) — rien à faire. */
+export type EndAction = 'rematch' | 'menu' | 'none';
+
+function playerColumn(ctx: Ctx, log: MatchLog, player: PlayerId, winner: PlayerId): HTMLDivElement {
+  const ps = ctx.state.players[player];
+  const other = (player === 0 ? 1 : 0) as PlayerId;
+  const kos = log.falls[other] || (log.lastKo?.player === other ? 1 : 0);
+  const col = el('div', `end-col p${player + 1}${player === winner ? ' won' : ''}`);
+  const head = el('div', 'end-col-head');
+  head.append(fighterPortrait(ps.fighter, player), el('span', 'end-col-name', ps.fighter?.name ?? `Player ${player + 1}`));
+  const stats = el('div', 'end-stats');
+  const stat = (value: string, label: string) => {
+    const box = el('div', 'end-stat');
+    box.append(el('span', 'end-stat-value', value), el('span', 'end-stat-label', label));
+    return box;
+  };
+  stats.append(
+    stat(`${Math.round(ps.pct ?? 0)}%`, 'final damage'),
+    stat(String(kos), kos === 1 ? 'KO' : 'KOs'),
+    stat(String(Math.round(log.totalDamageBy(player))), 'dealt'),
+  );
+  col.append(head, stats);
+  return col;
 }
 
-function renderReport(ctx: Ctx, card: HTMLDivElement, log: MatchLog, winner: PlayerId) {
-  const winnerName = ctx.state.players[winner].fighter?.name ?? `Player ${winner + 1}`;
-  card.append(el('h2', 'b-title', 'Damage Report'), el('p', 'b-lede', `${winnerName} takes the win.`));
-
-  const layout = el('div', 'report-layout');
-  const bill = el('section', 'report-bill');
-  bill.append(el('h3', 'b-title', 'The Bill'));
-  const lines = el('ul', 'bill-lines');
-  const recent = log.lines.slice(-10);
-  if (!recent.length) lines.append(el('li', 'bill-empty', 'Not a single hit landed. Riveting.'));
-  for (const line of recent) lines.append(billLine(`${line.weaponName} on P${line.target + 1}${line.crit ? ' (crit)' : ''}`, line.damage));
-  bill.append(lines);
-  const total = el('p', 'bill-total');
-  total.append(el('span', '', 'Total dealt by winner'), el('b', 'num', String(Math.round(log.totalDamageBy(winner)))));
-  bill.append(total);
-
-  const side = el('section', 'report-side');
-  side.append(el('h3', 'b-title', 'Best Hit'));
-  side.append(el('p', 'report-best', log.bestHit ? `${log.bestHit.weaponName} — ${Math.round(log.bestHit.damage)} damage` : 'No standout hit this match.'));
-  const mvp = log.mvpWeapon();
-  side.append(el('h3', 'b-title', 'MVP Weapon'));
-  side.append(el('p', 'report-mvp', mvp ? `${mvp.name} — ${Math.round(mvp.total)} total damage` : 'No weapon stood out.'));
-  if (log.lastKo) side.append(el('p', 'report-cause', log.lastKo.cause === 'ringout' ? 'Ended in a ring out.' : 'Ended on hit points.'));
-
-  layout.append(bill, side);
-  card.append(layout);
-
-  // Lot LW (Scandex) : met en avant les armes fraîchement scannées pendant ce match.
-  const newWeapons = getNewSinceMatchStart();
-  if (newWeapons.length) {
-    const scandexSection = el('section', 'report-scandex');
-    scandexSection.append(el('h3', 'b-title', 'New in Scandex'));
-    const names = newWeapons.map((w) => w.name).join(', ');
-    scandexSection.append(el('p', '', names));
-    card.append(scandexSection);
-  }
-}
-
-export type EndAction = 'rematch' | 'new-fighters';
-
-/** Se réabonne à chaque appel : à n'appeler qu'une fois par match (voir src/ui/index.ts). */
-export function runEndScreen(ctx: Ctx, screenLayer: HTMLElement, log: MatchLog): Promise<EndAction> {
+/** Monte l'écran de fin et attend le choix du joueur. */
+export function showEndScreen(ctx: Ctx, screenLayer: HTMLElement, log: MatchLog, winner: PlayerId): Promise<EndAction> {
   return new Promise((resolve) => {
-    const off = ctx.bus.on('match:end', ({ winner }) => {
-      off();
-      // LG (gameplay) est encore un stub : au cas où rien d'autre ne l'a fait, on referme la phase proprement.
-      if (ctx.state.phase !== 'end') ctx.bus.emit('phase:change', { from: ctx.state.phase, to: 'end' });
-      const { root, card } = menuScreen('end-card');
-      renderReport(ctx, card, log, winner);
+    const { root, card } = menuScreen(`end-card p${winner + 1}`);
+    const wps = ctx.state.players[winner];
+    const winnerName = wps.fighter?.name ?? `Player ${winner + 1}`;
+    const hero = el('div', 'end-hero');
+    const title = el('div', 'end-title');
+    title.append(el('span', `ptoken p${winner + 1}`, ctx.state.vsAI && winner === 1 ? 'AI' : `P${winner + 1}`), el('span', 'end-name', winnerName));
+    hero.append(fighterPortrait(wps.fighter, winner), title, el('div', 'end-wins', 'WINS!'));
+    card.append(hero);
 
-      const actions = el('div', 'report-actions');
-      const rematchBtn = button('Rematch (R)', 'b-btn');
-      const newFightersBtn = button('New fighters', 'b-btn small alt');
-      const newWeaponKeys = new Set(getNewSinceMatchStart().map((w) => w.object.trim().toLowerCase()));
-      const scandexBtn = button('Scandex', 'b-btn small', () => openScandexScreen(screenLayer, { highlightObjects: newWeaponKeys }));
-      actions.append(rematchBtn, newFightersBtn, scandexBtn);
-      card.append(actions);
-      clear(screenLayer);
-      screenLayer.append(root);
+    const cols = el('div', 'end-cols');
+    cols.append(playerColumn(ctx, log, 0, winner), playerColumn(ctx, log, 1, winner));
+    card.append(cols);
 
-      const onKey = (e: KeyboardEvent) => {
-        if (e.key.toLowerCase() === 'r') finish('rematch');
-      };
-      function finish(action: EndAction) {
-        window.removeEventListener('keydown', onKey);
-        clear(screenLayer);
-        resolve(action);
-      }
-      window.addEventListener('keydown', onKey);
-      rematchBtn.addEventListener('click', () => finish('rematch'));
-      newFightersBtn.addEventListener('click', () => finish('new-fighters'));
-    });
+    const mvp = log.mvpWeapon();
+    const mvpWeapon = mvp && ctx.state.players.flatMap((p) => p.weapons).find((w) => w.id === mvp.id);
+    if (mvp && mvpWeapon) {
+      const row = el('div', 'end-mvp');
+      row.append(
+        weaponSticker(mvpWeapon, 'end-mvp-sticker'),
+        el('span', 'end-mvp-label', 'MVP weapon'),
+        el('strong', 'end-mvp-name', mvp.name),
+        el('span', 'end-mvp-total', `${Math.round(mvp.total)}% dealt`),
+      );
+      card.append(row);
+    }
+
+    // Lot LW (Scandex) : les armes fraîchement scannées pendant ce match.
+    const newWeapons = getNewSinceMatchStart();
+    const actions = el('div', 'screen-foot end-actions');
+    const rematchBtn = button('', 'b-btn cta');
+    rematchBtn.append(kbd('R'), document.createTextNode(' Rematch'));
+    const menuBtn = button('Menu', 'b-btn');
+    actions.append(rematchBtn, menuBtn);
+    if (newWeapons.length) {
+      const keys = new Set(newWeapons.map((w) => w.object.trim().toLowerCase()));
+      actions.append(
+        button(`Scandex (+${newWeapons.length} new)`, 'b-btn small', () => openScandexScreen(screenLayer, { highlightObjects: keys })),
+      );
+    }
+    card.append(actions);
+    screenLayer.replaceChildren(root);
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.repeat || screenLayer.querySelector('.scandex-card')) return;
+      if (e.key.toLowerCase() === 'r') finish('rematch');
+    };
+    const offStart = ctx.bus.on('match:start', () => finish('none'));
+    function finish(action: EndAction) {
+      offStart();
+      window.removeEventListener('keydown', onKey);
+      if (action !== 'none') screenLayer.replaceChildren();
+      resolve(action);
+    }
+    window.addEventListener('keydown', onKey);
+    rematchBtn.addEventListener('click', () => finish('rematch'));
+    menuBtn.addEventListener('click', () => finish('menu'));
   });
 }
