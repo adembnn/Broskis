@@ -176,14 +176,18 @@ export function mountHud(ctx: Ctx): Hud {
     ctx.bus.on('commentary:line', ({ text }) => commentary.show(text, commentaryNames())),
   ];
 
+  let lastTimerK = -1;
   ctx.loop.addSystem(
     'ui-hud-timer',
     (_dt, real) => {
       // Ne défile que pendant un tour actif : sinon les écrans de choix (perso/arsenal/présentation/map, qui
       // n'ont pas de limite de temps) videraient le chrono avant même le premier match:start.
       if (TICKING_PHASES.has(ctx.state.phase)) ctx.state.timerLeft = Math.max(0, ctx.state.timerLeft - real);
-      timerBar.set(ctx.state.timerLeft / turnStartTimer);
-      timerNum.textContent = fmtSeconds(ctx.state.timerLeft);
+      // perf : on n'écrit dans le DOM que si l'affichage change (sinon style + mise en page à chaque image).
+      const k = ctx.state.timerLeft / turnStartTimer;
+      if (Math.abs(k - lastTimerK) > 0.002) { lastTimerK = k; timerBar.set(k); }
+      const txt = fmtSeconds(ctx.state.timerLeft);
+      if (timerNum.textContent !== txt) timerNum.textContent = txt;
     },
     900,
   );
