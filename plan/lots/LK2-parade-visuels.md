@@ -1,4 +1,5 @@
 # Lot LK2 · Parade : repères visuels, HUD, sons, « NICE! » et feintes
+> **Obsolète depuis le pivot temps réel (15h25)** pour : feintes, NICE, repères de parade au tour par tour ; remplacés par l'anneau du projectile entrant. Référence : `plan/PIVOT-TEMPS-REEL.md`.
 Exécution : **Gemini** · Dépend de : LK (logique fusionnée : événements `parry:cue`, `parry:window`, `parry:streak`, `bro:gauge`, `super:ready`, `attack:nice`, `feint` dans `src/core/events.ts`)
 
 Spécification complète dans `plan/lots/LK-parade.md` (validée par Adem). LK a fait la logique dans `src/gameplay/parry.ts`, mais **pas** les repères ni la commande d'action de l'attaquant. **Crée les dossiers** listés ci-dessous : ils n'existent pas encore, c'est normal.

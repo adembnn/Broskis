@@ -5,20 +5,23 @@
 // sécurité si ce fichier manque ou que le réseau est coupé (c'est le cas dans CE worktree).
 import type { Weapon } from '../core/types';
 import type { CommentaryKind } from './config';
+import { clampPhysics, defaultPhysics, deriveStats, tablePhysics } from './physics';
 import { primeAudioUrl } from './tts-client';
 import {
   clampCategory,
   clampLines,
   clampObject,
   clampPalette,
-  clampStats,
   clampTrait,
   clampWeaponName,
   clampWhy,
 } from './sanitize';
 
+/** Lot LSCAN : physique d'un objet courant (table de src/ia/physics.ts) et stats qui en découlent, comme un scan. */
 function preset(w: Omit<Weapon, 'source' | 'cooldown'>): Weapon {
-  return { ...w, source: 'preset', cooldown: 0 };
+  const physics = w.physics ?? tablePhysics(w.object) ?? defaultPhysics(w.category);
+  const { stats, trait } = deriveStats(physics, w.category, w.trait);
+  return { ...w, physics, stats, trait, source: 'preset', cooldown: 0 };
 }
 
 export const PRESET_WEAPONS: Weapon[] = [
@@ -166,6 +169,7 @@ interface RemotePresetRaw {
   palette?: unknown;
   lines?: unknown;
   stickerUrl?: unknown;
+  physics?: unknown;
   /** Ligne d'intro déjà vocalisée (fichier .wav), voir public/assets/presets/presets.json sur main. */
   voiceUrl?: unknown;
 }
@@ -175,16 +179,20 @@ function mapRemotePreset(raw: RemotePresetRaw): Weapon | null {
   const category = clampCategory(raw.category);
   const object = clampObject(raw.object);
   if (object === 'mystery object') return null; // rien d'exploitable, on ignore plutôt que de polluer la banque
+  // Physique écrite par tools/lscan/prefill-physics.mjs (sinon table/défaut) ; stats et trait en découlent.
+  const physics = clampPhysics(raw.physics, category, object);
+  const { stats, trait } = deriveStats(physics, category, clampTrait(raw.trait, category.length));
   return {
     id: typeof raw.id === 'string' && raw.id ? raw.id : `preset-remote-${object.replace(/\s+/g, '-')}`,
     object,
     name: clampWeaponName(raw.weaponName ?? raw.name),
     category,
     why: clampWhy(raw.why),
-    stats: clampStats(raw.stats),
-    trait: clampTrait(raw.trait, category.length),
+    stats,
+    trait,
     palette: clampPalette(raw.palette),
     stickerUrl: typeof raw.stickerUrl === 'string' ? raw.stickerUrl : undefined,
+    physics,
     lines: clampLines(raw.lines),
     source: 'preset',
     cooldown: 0,

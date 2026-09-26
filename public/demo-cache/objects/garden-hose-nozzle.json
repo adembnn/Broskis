@@ -4,9 +4,16 @@
   "name": "Old Faithful Jr.",
   "category": "blaster",
   "why": "Technically a fire hose. Mostly a soaking hazard.",
-  "stats": { "a": 3, "b": 4, "c": 3 },
+  "stats": {
+    "a": 2,
+    "b": 4,
+    "c": 4
+  },
   "trait": "slippery",
-  "palette": ["#3b7a57", "#c9a227"],
+  "palette": [
+    "#3b7a57",
+    "#c9a227"
+  ],
   "lines": {
     "intro": "Hope you brought a towel.",
     "hit": "Soaked and shocked!",
@@ -14,5 +21,18 @@
     "parried": "Redirected, still dripping."
   },
   "source": "preset",
-  "cooldown": 0
+  "cooldown": 0,
+  "physics": {
+    "massKg": 0.35,
+    "sizeM": [
+      0.16,
+      0.06,
+      0.14
+    ],
+    "material": "metal",
+    "shape": "irregular",
+    "bounciness": 0.1,
+    "fragile": false,
+    "liquid": true
+  }
 }

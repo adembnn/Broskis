@@ -4,7 +4,7 @@
 // allocation par image une fois lancé ; 300 particules au plus pour tout le lot.
 import * as THREE from 'three';
 import { palette, polices, rendu, ui } from '../../art/tokens.js';
-import type { Ctx } from '../../core/types';
+import type { Ctx, Material, PlayerId } from '../../core/types';
 import { cameraShake } from '../api';
 import { ParticleBurstSystem } from '../fx/particles';
 import { excludeFromOcclusion } from '../registry';
@@ -136,18 +136,27 @@ interface Timed { t: number; dur: number; active: boolean }
 interface Ring extends Timed { mesh: THREE.Mesh; fill: THREE.Mesh; radius: number; hold: number }
 interface Decal extends Timed { mesh: THREE.Mesh; fadeFrom: number }
 interface Flash extends Timed { mesh: THREE.Mesh; radius: number }
-interface Word extends Timed { sprite: THREE.Sprite; size: number }
+interface Word extends Timed { sprite: THREE.Sprite; size: number; viewer: PlayerId | null; alpha: number }
 interface Wave extends Timed { mesh: THREE.Mesh; radius: number }
 interface Puff { active: boolean; t: number; dur: number; pos: THREE.Vector3; size: number; rise: number; delay: number; c0: THREE.Color; c1: THREE.Color }
-interface Shard { active: boolean; t: number; life: number; pos: THREE.Vector3; vel: THREE.Vector3; rot: THREE.Euler; spin: THREE.Vector3; ground: number; size: number }
+interface Shard { active: boolean; t: number; life: number; pos: THREE.Vector3; vel: THREE.Vector3; rot: THREE.Euler; spin: THREE.Vector3; ground: number; scale: THREE.Vector3; gravity: number; drag: number }
 
-export interface BoomOptions { big?: boolean; air?: boolean; word?: boolean }
+/** Forme des éclats : morceau, écharde (bois), confetti (papier, voile de verre). */
+export type ShardForm = 'chunk' | 'splinter' | 'flake';
+
+/** `viewer` : joueur dont la vue affiche le mot (le tireur) ; absent = toutes les vues. */
+export interface BoomOptions { big?: boolean; air?: boolean; word?: boolean; viewer?: PlayerId }
+
+/** Ce qu'un objet réel fait en touchant quelque chose : poids (0..1) et matière (contrat WeaponPhysics). */
+export interface ObjectHit { colors: [string, string]; weight: number; size: number; material: Material; fragile: boolean; liquid: boolean; viewer?: PlayerId }
 
 export interface BlastFx {
   /** Explosion au rayon réel `radius` (m) centrée sur `pos` (au sol, sauf `air`). */
   explosion(pos: THREE.Vector3, radius: number, colors: [string, string], opts?: BoomOptions): void;
-  /** Gros impact direct d'un objet lancé (dir = sens du vol). */
-  wham(pos: THREE.Vector3, ground: number, colors: [string, string], heavy: boolean): void;
+  /** Impact d'un objet lancé : force selon son poids, effet selon sa matière. */
+  objectHit(pos: THREE.Vector3, ground: number, o: ObjectHit): void;
+  /** Signature de matière seule (grenade qui explose : le verre se brise, le liquide gicle…). */
+  materialBurst(pos: THREE.Vector3, ground: number, o: ObjectHit, k?: number): void;
   /** Petit impact de tir (blaster) ou de ricochet. */
   sparks(pos: THREE.Vector3, colors: [string, string], count?: number, dir?: THREE.Vector3 | null): void;
   dust(pos: THREE.Vector3, radius: number, count?: number): void;
@@ -155,7 +164,7 @@ export interface BlastFx {
   splat(pos: THREE.Vector3, color: string, radius: number): void;
   soundWaves(pos: THREE.Vector3, color: string): void;
   heal(pos: THREE.Vector3): void;
-  word(pos: THREE.Vector3, text: string, color: string, size?: number): void;
+  word(pos: THREE.Vector3, text: string, color: string, size?: number, viewer?: PlayerId): void;
   flash(pos: THREE.Vector3, radius: number): void;
   fxAdd: ParticleBurstSystem;
   fxNorm: ParticleBurstSystem;
@@ -212,12 +221,20 @@ export function installBlast(ctx: Ctx): BlastFx {
   const texPuddle = new Map<string, THREE.CanvasTexture>();
   const texSplat = new Map<string, THREE.CanvasTexture>();
 
-  // Mots (BOOM, WHAM) : sprites qui claquent puis s'envolent.
+  // Mots (BOOM, WHAM…) : sprites qui claquent puis s'envolent. Écran scindé : le mot est la récompense du TIREUR,
+  // il n'apparaît que dans sa vue (jamais un mot géant collé sur la caméra de celui qui se fait toucher).
   const words: Word[] = [];
-  for (let i = 0; i < 3; i++) {
-    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, depthWrite: false, depthTest: false }));
+  for (let i = 0; i < 4; i++) {
+    const mat = new THREE.SpriteMaterial({ transparent: true, depthWrite: false, depthTest: false });
+    const sprite = new THREE.Sprite(mat);
     sprite.visible = false; sprite.renderOrder = 30; noRay(sprite); root.add(sprite);
-    words.push({ sprite, t: 0, dur: 0.75, active: false, size: 2 });
+    const w: Word = { sprite, t: 0, dur: 0.75, active: false, size: 2, viewer: null, alpha: 1 };
+    sprite.onBeforeRender = (_r, _s, cam) => {
+      const cams = ctx.three.cameras;
+      const inOther = !!cams && w.viewer != null && cams[w.viewer] !== cam && (cams[0] === cam || cams[1] === cam);
+      mat.opacity = inOther ? 0 : w.alpha;
+    };
+    words.push(w);
   }
 
   // Ondes sonores (trait loud) : anneaux face caméra.
@@ -247,7 +264,7 @@ export function installBlast(ctx: Ctx): BlastFx {
   const shardN = WEAPON_FX.budget.eclats;
   const shardMesh = new THREE.InstancedMesh(shardGeo, shardMat, shardN);
   shardMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage); shardMesh.frustumCulled = false; shardMesh.count = 0; noRay(shardMesh); root.add(shardMesh);
-  const shards: Shard[] = Array.from({ length: shardN }, () => ({ active: false, t: 0, life: 1, pos: new THREE.Vector3(), vel: new THREE.Vector3(), rot: new THREE.Euler(), spin: new THREE.Vector3(), ground: 0, size: 0.1 }));
+  const shards: Shard[] = Array.from({ length: shardN }, () => ({ active: false, t: 0, life: 1, pos: new THREE.Vector3(), vel: new THREE.Vector3(), rot: new THREE.Euler(), spin: new THREE.Vector3(), ground: 0, scale: new THREE.Vector3(), gravity: 18, drag: 0 }));
   for (let i = 0; i < shardN; i++) shardMesh.setColorAt(i, _c.set('#ffffff'));
 
   function take<T extends { active: boolean }>(pool: T[], older?: (a: T, b: T) => number): T {
@@ -283,12 +300,14 @@ export function installBlast(ctx: Ctx): BlastFx {
     d.mesh.visible = true;
   }
 
-  function word(pos: THREE.Vector3, text: string, color: string, size = 2.2): void {
+  function word(pos: THREE.Vector3, text: string, color: string, size = 2.2, viewer?: PlayerId): void {
     const w = take(words, (a, b) => b.t - a.t);
     w.active = true; w.t = 0; w.dur = 0.8; w.size = size;
-    w.sprite.material.map = wordTex(text, color);
+    w.viewer = viewer ?? null;
+    // Objet très sombre (téléphone noir…) : le mot prend la couleur claire de sa palette, sinon il disparaît.
+    w.sprite.material.map = wordTex(text, _c.set(color).getHSL({ h: 0, s: 0, l: 0 }).l < 0.18 ? palette.lumiere : color);
     w.sprite.material.needsUpdate = true;
-    w.sprite.material.opacity = 1;
+    w.alpha = 1;
     w.sprite.position.copy(pos);
     w.sprite.scale.set(0.01, 0.01, 1);
     w.sprite.visible = true;
@@ -310,7 +329,7 @@ export function installBlast(ctx: Ctx): BlastFx {
     }
   }
 
-  function shardBurst(pos: THREE.Vector3, count: number, colors: string[], speed: number, size: number): void {
+  function shardBurst(pos: THREE.Vector3, count: number, colors: string[], speed: number, size: number, form: ShardForm = 'chunk', ground = pos.y): void {
     for (let k = 0; k < count; k++) {
       const s = shards.find((e) => !e.active);
       if (!s) break;
@@ -318,22 +337,29 @@ export function installBlast(ctx: Ctx): BlastFx {
       const a = Math.random() * Math.PI * 2;
       const up = 0.45 + Math.random() * 0.9;
       const v = speed * (0.5 + Math.random() * 0.7);
-      s.active = true; s.t = 0; s.life = 1.1 + Math.random() * 0.8;
+      s.active = true; s.t = 0; s.life = (form === 'flake' ? 1.8 : 1.1) + Math.random() * 0.8;
       s.pos.copy(pos).addScaledVector(UP, 0.25);
       s.vel.set(Math.cos(a) * v, up * v, Math.sin(a) * v);
       s.rot.set(Math.random() * 6, Math.random() * 6, Math.random() * 6);
-      s.spin.set((Math.random() - 0.5) * 18, (Math.random() - 0.5) * 18, (Math.random() - 0.5) * 18);
-      s.ground = pos.y;
-      s.size = size * (0.6 + Math.random() * 0.8);
+      const sp = form === 'flake' ? 8 : 18;
+      s.spin.set((Math.random() - 0.5) * sp, (Math.random() - 0.5) * sp, (Math.random() - 0.5) * sp);
+      s.ground = ground;
+      const k1 = size * (0.6 + Math.random() * 0.8);
+      // Écharde : longue et fine ; confetti : plat et léger (il flotte en retombant).
+      if (form === 'splinter') s.scale.set(k1 * 0.35, k1 * 0.35, k1 * 2.6);
+      else if (form === 'flake') s.scale.set(k1 * 1.3, k1 * 0.08, k1 * 1.3);
+      else s.scale.setScalar(k1);
+      s.gravity = form === 'flake' ? 3 : 18;
+      s.drag = form === 'flake' ? 2.2 : 0;
       shardMesh.setColorAt(i, _c.set(colors[k % colors.length]));
     }
     if (shardMesh.instanceColor) shardMesh.instanceColor.needsUpdate = true;
   }
 
   function explosion(pos: THREE.Vector3, radius: number, colors: [string, string], opts: BoomOptions = {}): void {
-    const { big = false, air = false, word: withWord = true } = opts;
+    const { big = false, air = false, word: withWord = true, viewer } = opts;
     const R = Math.max(1, radius);
-    flash(_p.copy(pos).addScaledVector(UP, 0.5), R * WEAPON_FX.boom.flash);
+    flash(_p.copy(pos).addScaledVector(UP, 0.5), Math.min(1.6, R * WEAPON_FX.boom.flash)); // borné : ne blanchit pas la vue du défenseur
     puffCluster(pos, R, big ? WEAPON_FX.boom.bouffeesExplosive : WEAPON_FX.boom.bouffees, colors);
     if (!air) ring(pos, radius, palette.lumiere, colors[0], WEAPON_FX.boom.anneauTenue);
     shardBurst(pos, WEAPON_FX.boom.eclats + (big ? 8 : 0), [colors[0], colors[1], colors[0], rendu.contour.vinyle], 7 + R * 1.2, 0.09 + R * 0.012);
@@ -341,7 +367,7 @@ export function installBlast(ctx: Ctx): BlastFx {
     fxNorm.burst(_p.copy(pos).addScaledVector(UP, 0.6), { count: big ? 22 : 14, color: [rendu.contour.encre, colors[1], ui.carton], speed: [0.6, 2.2], life: [0.8, 1.5], size: [0.5, 1.1], gravity: -1.4, drag: 1.6 });
     if (!air) decal(pos, texScorch, R * WEAPON_FX.boom.trace, 7, 0.75);
     cameraShake((big ? WEAPON_FX.trauma.boomExplosive : WEAPON_FX.trauma.boom) * (air ? 0.5 : 1));
-    if (withWord) word(_p.copy(pos).addScaledVector(UP, 1.6 + R * 0.25), big ? 'KABOOM!' : 'BOOM!', colors[0], big ? 3.2 : 2.6);
+    if (withWord) word(_p.copy(pos).addScaledVector(UP, 1.6 + R * 0.25), big ? 'KABOOM!' : 'BOOM!', colors[0], big ? 3.2 : 2.6, viewer);
   }
 
   function dust(pos: THREE.Vector3, radius: number, count = 14): void {
@@ -349,15 +375,59 @@ export function installBlast(ctx: Ctx): BlastFx {
     fxNorm.burst(_p.copy(pos).addScaledVector(UP, 0.15), { count, color: [ui.carton, ui.papier], speed: [1.5, 3.5 + radius], life: [0.45, 0.9], size: [0.3, 0.6], gravity: 2.5, drag: 3, direction: UP, spread: 3 });
   }
 
-  function wham(pos: THREE.Vector3, ground: number, colors: [string, string], heavy: boolean): void {
-    const g = _s.set(pos.x, ground, pos.z).clone();
-    flash(pos, heavy ? 1.1 : 0.8);
-    dust(g, heavy ? WEAPON_FX.wham.poussiereHeavy : WEAPON_FX.wham.poussiere, heavy ? 22 : 14);
-    fxAdd.burst(pos, { count: 16, color: [palette.lumiere, colors[0]], speed: [4, 9], life: [0.15, 0.35], size: [0.1, 0.24], gravity: 4 });
-    shardBurst(pos, heavy ? 10 : 6, [colors[0], colors[1]], 5, 0.07);
-    decal(g, texCrack, WEAPON_FX.wham.fissure * (heavy ? 1.4 : 1), 6, 0.8);
-    cameraShake(heavy ? WEAPON_FX.trauma.whamHeavy : WEAPON_FX.trauma.wham);
-    word(_p.copy(pos).addScaledVector(UP, 1.3), heavy ? 'THUD!' : 'WHAM!', colors[0], 2.3);
+  /** Signature de la matière (lot « une chaise n'est pas une canette ») ; k = intensité (0..1+). */
+  function materialBurst(pos: THREE.Vector3, ground: number, o: ObjectHit, k = 1): void {
+    const g = new THREE.Vector3(pos.x, ground, pos.z);
+    const [c0, c1] = o.colors;
+    const n = (x: number) => Math.max(1, Math.round(x * k));
+    if (o.fragile) {
+      // Verre, céramique : l'objet se brise en éclats (morceaux à sa couleur + voile clair qui brille).
+      shardBurst(pos, n(18), [c0, c1, c0, WEAPON_FX.matiere.verre], 5 + 3 * o.weight, 0.06 + 0.05 * o.size, 'chunk', ground);
+      shardBurst(pos, n(8), [WEAPON_FX.matiere.verre, palette.lumiere], 4, 0.05, 'flake', ground);
+      fxAdd.burst(pos, { count: n(14), color: [palette.lumiere, WEAPON_FX.matiere.verre], speed: [3, 7], life: [0.1, 0.3], size: [0.06, 0.14], gravity: 8 });
+    }
+    if (o.liquid) {
+      // Giclée de la couleur de l'objet. La flaque, elle, suit `ground:slippery` (rayon et durée du gameplay).
+      fxNorm.burst(_p.copy(pos).addScaledVector(UP, 0.1), { count: n(22), color: [c0, c1, c0], speed: [2.5, 6], life: [0.45, 0.8], size: [0.14, 0.3], gravity: 14, drag: 0.6, direction: UP, spread: 1.6 });
+      void g;
+    }
+    switch (o.material) {
+      case 'metal':
+        fxAdd.burst(pos, { count: n(26), color: [palette.lumiere, palette.danger, c0], speed: [5, 11], life: [0.15, 0.4], size: [0.06, 0.14], gravity: 12, drag: 1 });
+        break;
+      case 'wood':
+        shardBurst(pos, n(12), [WEAPON_FX.matiere.sciure, c0, c1], 5, 0.07 + 0.04 * o.size, 'splinter', ground);
+        break;
+      case 'fabric':
+        puffCluster(pos, 1 + o.size, n(5), [c0, c1]); // bouffée molle, pas d'éclat
+        break;
+      case 'paper':
+        shardBurst(pos, n(22), [c0, c1, palette.matiere, rendu.contour.vinyle], 4, 0.09, 'flake', ground);
+        break;
+      case 'food':
+        splat(g, c0, 0.8 + 0.6 * o.size);
+        break;
+      case 'stone':
+        shardBurst(pos, n(12), [WEAPON_FX.matiere.pierre, c0], 5, 0.09 + 0.05 * o.size, 'chunk', ground);
+        fxNorm.burst(pos, { count: n(10), color: [WEAPON_FX.matiere.pierre, ui.carton], speed: [1, 3], life: [0.5, 1], size: [0.3, 0.6], gravity: 1, drag: 2.5 });
+        break;
+      default: // plastique, caoutchouc : l'objet rebondit (voir flight.ts), quelques éclats de sa couleur
+        shardBurst(pos, n(5), [c0, c1], 4, 0.06, 'chunk', ground);
+    }
+  }
+
+  /** Impact d'un objet : un objet lourd frappe fort (secousse, poussière, fissure, THUD), un léger fait « pop ». */
+  function objectHit(pos: THREE.Vector3, ground: number, o: ObjectHit): void {
+    const g = new THREE.Vector3(pos.x, ground, pos.z);
+    const w = o.weight;
+    flash(pos, 0.3 + 0.5 * w);
+    fxAdd.burst(pos, { count: Math.round(6 + 14 * w), color: [palette.lumiere, o.colors[0]], speed: [3, 6 + 5 * w], life: [0.12, 0.3], size: [0.08, 0.2], gravity: 4 });
+    if (w > 0.25 && pos.y - ground < 2.5) dust(g, 0.8 + 2.2 * w, Math.round(6 + 18 * w));
+    if (w > 0.45 && pos.y - ground < 2.5) decal(g, texCrack, WEAPON_FX.wham.fissure * (0.7 + w), 6, 0.8);
+    materialBurst(pos, ground, o, 0.7 + 0.6 * w);
+    cameraShake(THREE.MathUtils.lerp(WEAPON_FX.trauma.impactLeger, WEAPON_FX.trauma.impactLourd, w));
+    const text = o.fragile ? 'CRASH!' : o.liquid ? 'SPLASH!' : o.material === 'metal' ? 'CLANG!' : w > 0.6 ? 'THUD!' : w < 0.25 ? 'POP!' : 'WHAM!';
+    word(_p.copy(pos).addScaledVector(UP, 1.1 + 0.4 * w), text, o.colors[0], 1.5 + 1.3 * w, o.viewer);
   }
 
   function sparks(pos: THREE.Vector3, colors: [string, string], count = 10, dir: THREE.Vector3 | null = null): void {
@@ -441,7 +511,7 @@ export function installBlast(ctx: Ctx): BlastFx {
       const k = u < 0.18 ? easeOutBack(u / 0.18) : 1 + 0.06 * (u - 0.18);
       w.sprite.scale.set(w.size * 2 * k, w.size * k, 1);
       w.sprite.position.y += real * 0.9;
-      w.sprite.material.opacity = u > 0.7 ? 1 - (u - 0.7) / 0.3 : 1;
+      w.alpha = u > 0.7 ? 1 - (u - 0.7) / 0.3 : 1;
     }
     for (const w of waves) {
       if (!w.active) continue;
@@ -486,15 +556,17 @@ export function installBlast(ctx: Ctx): BlastFx {
       if (!s.active) { shardMesh.setMatrixAt(i, _m.makeScale(0, 0, 0)); continue; }
       s.t += dt;
       if (s.t >= s.life) { s.active = false; shardMesh.setMatrixAt(i, _m.makeScale(0, 0, 0)); continue; }
-      s.vel.y -= 18 * dt;
+      s.vel.y -= s.gravity * dt;
+      if (s.drag > 0) { const d = Math.exp(-s.drag * dt); s.vel.x *= d; s.vel.z *= d; s.vel.y = Math.max(s.vel.y, -1.2); } // confetti : flotte
       s.pos.addScaledVector(s.vel, dt);
-      if (s.pos.y < s.ground + s.size * 0.5) {
-        s.pos.y = s.ground + s.size * 0.5;
+      const half = Math.min(s.scale.x, s.scale.y, s.scale.z) * 0.5;
+      if (s.pos.y < s.ground + half) {
+        s.pos.y = s.ground + half;
         if (s.vel.y < 0) { s.vel.y *= -0.35; s.vel.x *= 0.6; s.vel.z *= 0.6; s.spin.multiplyScalar(0.5); }
       }
       s.rot.x += s.spin.x * dt; s.rot.y += s.spin.y * dt; s.rot.z += s.spin.z * dt;
       const shrink = s.t > s.life - 0.25 ? (s.life - s.t) / 0.25 : 1;
-      _m.compose(s.pos, _q.setFromEuler(s.rot), _s.setScalar(s.size * shrink));
+      _m.compose(s.pos, _q.setFromEuler(s.rot), _s.copy(s.scale).multiplyScalar(shrink));
       shardMesh.setMatrixAt(i, _m);
       alive++;
     }
@@ -502,5 +574,5 @@ export function installBlast(ctx: Ctx): BlastFx {
     shardMesh.instanceMatrix.needsUpdate = true;
   }
 
-  return { explosion, wham, sparks, dust, puddle, splat, soundWaves, heal, word, flash, fxAdd, fxNorm, clear, update };
+  return { explosion, objectHit, materialBurst, sparks, dust, puddle, splat, soundWaves, heal, word, flash, fxAdd, fxNorm, clear, update };
 }

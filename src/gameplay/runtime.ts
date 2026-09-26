@@ -19,7 +19,7 @@ export interface PlayerRuntime {
   charging: boolean;
   chargeStartMs: number;
   /** Éjection en cours (vol cinématique intégré par launch.ts), null sinon. */
-  launch: { vel: Vec3; grounded: boolean; attacker: PlayerId; t: number } | null;
+  launch: { vel: Vec3; grounded: boolean; attacker: PlayerId; t: number; acc: number } | null;
   /** Sauts faits depuis le dernier appui au sol (2 au plus : saut + double saut). */
   jumpsUsed: number;
   /** Au bord du vide (animation d'équilibre), et depuis combien de temps on pousse vers le vide. */
@@ -36,8 +36,9 @@ export interface PlayerRuntime {
   /** Jauge BRO (0..100) et BRO SMASH armé pour le prochain tir. */
   bro: number;
   superReady: boolean;
-  /** Blocage : début (ms réel, horloge des événements clavier) pour la parade parfaite. */
+  /** Blocage : début et dernière fin (ms réel, horloge des événements clavier) pour la parade parfaite. */
   blockStartMs: number;
+  blockEndMs: number;
   /** Vitesse estimée (m/s), pour l'avance de visée de l'adversaire. */
   vel: Vec3;
   prevPos: Vec3;
@@ -45,6 +46,8 @@ export interface PlayerRuntime {
   hvel: [number, number];
   /** Dernier instant (temps de jeu) où le perso touchait le sol : « coyote time ». */
   lastGroundedAt: number;
+  /** Au sol à l'image précédente (détection d'une sortie du plateau en marchant). */
+  wasGrounded: boolean;
 }
 
 export type CancelFn = () => void;
@@ -63,6 +66,8 @@ export interface GameplayRuntime {
   nextCrateAt: number;
   /** Arme bonus en cours de préparation (scan en cache) pour la caisse posée. */
   crateWeapon: Weapon | null;
+  /** Flaques glissantes laissées par les objets liquides (jusqu'à `until`, temps de jeu). */
+  puddles: { pos: Vec3; radius: number; until: number }[];
 }
 
 function makePlayerRuntime(): PlayerRuntime {
@@ -87,10 +92,12 @@ function makePlayerRuntime(): PlayerRuntime {
     bro: 0,
     superReady: false,
     blockStartMs: 0,
+    blockEndMs: -1e9,
     vel: [0, 0, 0],
     prevPos: [0, 0, 0],
     hvel: [0, 0],
     lastGroundedAt: 0,
+    wasGrounded: true,
   };
 }
 
@@ -103,6 +110,7 @@ function makeRuntime(): GameplayRuntime {
     shieldBodies: [],
     nextCrateAt: 0,
     crateWeapon: null,
+    puddles: [],
   };
 }
 

@@ -22,10 +22,11 @@ Objets réels à avoir sous la main pendant la démo (table à côté de la webc
 
 ## Utilisation
 
-- Objets 1, 4 et 8 sont les priorités absolues (scan en 0:10–0:40, mug déjà pré-caché ; peluche et
-  casque en solution de repli si le mug rate le scan en live).
-- L'objet du jury (Caisse Snap, 0:40–1:20) est volontairement inconnu à l'avance : ne pas le
-  remplacer par un objet de cette liste, c'est la preuve live que ça marche sur n'importe quoi.
+- Objets 1, 4 et 8 sont les priorités absolues : armes de départ pré-cachées (Adem et les 2 autres
+  armes de Titouan) ; peluche et casque en solution de repli si l'objet du juré rate le scan.
+- L'objet du juré (scanné en direct à 0:26–0:42, pendant l'arsenal, voir `demo/SCRIPT.md`) est
+  volontairement inconnu à l'avance : c'est la preuve live que ça marche sur n'importe quoi. Depuis le
+  pivot temps réel, la Caisse Snap ne scanne plus en direct : elle donne une arme déjà scannée.
 - Pré-générer le cache IA (catégorie/stats/trait/répliques + sticker) pour les objets 1 à 8 fait
   partie du lot LI (pipeline IA) — coordination avec Adem, cache attendu dans
   `public/demo-cache/` (utilisé automatiquement en mode `?demo=1`).
