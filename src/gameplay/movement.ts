@@ -66,6 +66,9 @@ export function jump(ctx: Ctx, player: PlayerId, down = false): void {
   if (!canMove(ctx, player)) return;
   const rt = getRuntime().players[player];
   if (rt.ledge) { climbLedge(ctx, player); return; }
+  // RTFIX : sauter pendant le vol stationnaire de réapparition le termine (avant : le saut était compté mais
+  // la gravité suspendue l'annulait, un appui « perdu »).
+  if (ctx.loop.time < rt.hoverUntil) rt.hoverUntil = 0;
   // « Bas + saut » debout sur une plateforme traversable : on descend à travers (façon Smash).
   if (down && rt.grounded && standingOnOneWay(ctx, player)) { dropThrough(ctx, player); return; }
   if (rt.jumpsUsed >= RT.maxJumps) return;

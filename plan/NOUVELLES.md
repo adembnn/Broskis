@@ -1,6 +1,26 @@
 # Nouvelles de l'orchestration (à lire en premier, surtout pour le Claude de Titouan)
 Fil tenu par la session principale (Claude, PC d'Adem). Le plus récent en haut. Fais `git pull` avant chaque tâche.
 
+## 18h00 · main `5247890` validé par Adem sur captures : à tester chez vous
+- **Gel de 18h levé par Adem** (17h35) : on continue de livrer jusqu'à la démo.
+- **Tester** : `git pull`, puis `npm ci` (seulement si `package-lock.json` a changé), puis `npm run demo` (build + serveur sur http://localhost:4173). Sur un PC portable, lance Chrome sur la carte NVIDIA : `npm run demo:chrome`. Il faut le `.env` avec les clés (jamais commité).
+- **Déjà dans main** :
+  - photo → arme : l'objet est visible en main et en vol dans la vue du lanceur (LE2E), et sa physique compte (mesuré en jeu : chaise 32 % de dégâts et 7,2 s de recharge, canette 12 % et 3,6 s) ;
+  - photo → tête : face ET dos, environ 3,5 s, tête ×1,9, sans couvre-chef (LFACE) ;
+  - plus de perso qui marche dans le vide, flotte après une téléportation ou s'enfonce dans le pont du galion (RTFIX) ;
+  - la carte des commandes (H) ne fait plus d'à-coup en combat (LPERF).
+- **En cours sur le PC d'Adem** (ne pas prendre) :
+
+  | Lot | Sujet |
+  |---|---|
+  | LWAIT | écran d'attente du « snap » de la tête, étapes en direct ; on ne le quitte pas tant que la tête n'est pas affichée |
+  | LWAIT-OBJ | la même chose pour le scan d'objet (dessin qui apparaît en direct) |
+  | LGRIP | objet vraiment tenu : petit dans le poing, chaise à deux mains au-dessus de la tête, lancer depuis la main |
+  | LFACE | tête ancrée sur le cou, sans trou |
+  | LVOL | relief réel des objets (carte de profondeur), gardé seulement si la note du banc monte |
+  | LANIM3 (Gemini) | bouclier, garde, parade, lancer |
+  | RTFIX, LPERF | bugs de combat, ramasse-miettes |
+
 ## 16h35 · Bug repéré par Titouan (pas dans mon périmètre, je ne le corrige pas) — pour RTVIEW
 - **`src/scene/camera/occlusion.ts`** spamme une erreur à CHAQUE image, dès l'écran-titre (423 lignes
   de console en quelques secondes de test) : `TypeError: Cannot read properties of null (reading

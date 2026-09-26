@@ -91,26 +91,37 @@ export function createControlsCard(player: PlayerId, mode: ControlsMode): Contro
     it.append(k, el('span', 'ctrl-label', label));
     return it;
   };
-  function render() {
-    root.classList.toggle('big', mode.big);
-    const items = [
-      item(moveKeys(player), 'Move'),
-      item([jumpKey(player)], 'Jump ×2'),
-      item([fireKey(player)], mode.big ? 'Fire · hold = charge' : 'Fire'),
-      item([parryKey(player)], mode.big ? 'Block · tap as the ring closes' : 'Block'),
-      item(weaponKeys(player), 'Weapons'),
-    ];
+  // perf (LPERF) : le DOM n'est construit qu'au départ et quand les touches changent (Settings). La bascule
+  // grande / compacte (H, ou 10 s après GO!) ne touche que la classe et 3 textes : reconstruire toute la carte
+  // en plein combat coûtait jusqu'à 150 ms (mesuré, tools/perf/aide.mjs).
+  const labels: { el: HTMLElement; big: string; small: string }[] = [];
+  const label = (big: string, small: string) => {
+    const it = { el: el('span', 'ctrl-label', mode.big ? big : small), big, small };
+    labels.push(it);
+    return it.el;
+  };
+  function build() {
+    labels.length = 0;
+    const fire = item([fireKey(player)], '');
+    fire.lastElementChild!.replaceWith(label('Fire · hold = charge', 'Fire'));
+    const parry = item([parryKey(player)], '');
+    parry.lastElementChild!.replaceWith(label('Block · tap as the ring closes', 'Block'));
     const hint = el('span', 'ctrl-hint');
-    hint.append(kbd('H'), el('span', '', mode.big ? 'hide' : 'help'));
-    root.replaceChildren(...items, hint);
+    hint.append(kbd('H'), label('hide', 'help'));
+    root.replaceChildren(item(moveKeys(player), 'Move'), item([jumpKey(player)], 'Jump ×2'), fire, parry, item(weaponKeys(player), 'Weapons'), hint);
+    toggle();
   }
-  render();
-  mode.listeners.add(render);
-  const offBindings = onBindingsChange(render);
+  function toggle() {
+    root.classList.toggle('big', mode.big);
+    for (const l of labels) l.el.textContent = mode.big ? l.big : l.small;
+  }
+  build();
+  mode.listeners.add(toggle);
+  const offBindings = onBindingsChange(build);
   return {
     root,
     dispose() {
-      mode.listeners.delete(render);
+      mode.listeners.delete(toggle);
       offBindings();
     },
   };
