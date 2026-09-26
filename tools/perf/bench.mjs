@@ -5,12 +5,13 @@
 //   --gpu nvidia  : force la carte NVIDIA (--force_high_performance_gpu) ; défaut « intel » = ce que Chrome
 //                   choisit tout seul sur ce PC portable (la puce Intel intégrée, voir gpu-probe.mjs).
 //   --preview     : sert le build de production (`vite preview`, faire `npx vite build` avant) au lieu du dev.
-//   --q haute|basse : force la qualité (sinon choix automatique au 1er tour, src/core/quality.ts).
+//   --q haut|moyen|bas : force le palier graphique (sinon choix automatique, src/core/quality.ts).
 //   --shot        : capture d'écran en fin de match (tools/perf/out/<map>-<gpu>-<q>.png).
 //   --profile     : profil CPU (échantillonneur Chrome) pendant le match, top des fonctions les plus coûteuses.
 //   --toggle      : essais A/B à chaud (nobloom = rendu direct sans post-traitement, noshadow = ombres figées,
 //                   pr1 = ratio de pixels 1, unelumiere = une seule pile de lumières au lieu de deux,
-//                   split / splitombres2 = maquette d'écran scindé, ombres une fois / une fois par vue).
+//                   vues2 = maquette d'écran scindé (tous paliers) tant que le vrai n'est pas là,
+//                   split / splitombres2 = ancienne maquette, post-traitement seulement).
 // Sans --url, lance son propre Vite sur --port (5300-5399) et n'arrête QUE ce processus-là à la fin.
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
@@ -57,11 +58,15 @@ const browser = await chromium.launch({ headless: false, args: [...gpuArgs, ...a
 // Instruments posés AVANT le jeu : intervalles entre images, tâches longues, longues frames (avec le script fautif).
 const INSTRUMENTS = () => {
   const P = (window.__perf = { rec: false, frames: [], fins: [], long: [], loaf: [], progs: [] });
-  let last = 0;
-  const f = (t) => {
+  // Images réellement traitées par la boucle du jeu (src/core/loop.ts appelle __perfTick ; avec le plafond
+  // à ~60 i/s, un écran 144 Hz ne traite qu'un rafraîchissement sur 2). Repli : chaque requestAnimationFrame.
+  let last = 0; let viaJeu = false;
+  const note = (t) => {
     if (P.rec && last) { P.frames.push(t - last); P.fins.push(t); window.__rinfoFrame?.(t); }
-    last = t; requestAnimationFrame(f);
+    last = t;
   };
+  window.__perfTick = (t) => { viaJeu = true; note(t); };
+  const f = (t) => { if (!viaJeu) note(t); requestAnimationFrame(f); };
   requestAnimationFrame(f);
   try {
     new PerformanceObserver((l) => { if (P.rec) for (const e of l.getEntries()) P.long.push(Math.round(e.duration)); })
@@ -129,6 +134,48 @@ const COMPTEUR_RENDU = (toggles) => {
   if (toggles.includes('nobloom')) c.three.render = () => r.render(c.three.scene, c.three.camera);
   if (toggles.includes('noshadow')) { r.shadowMap.autoUpdate = false; r.shadowMap.needsUpdate = true; }
   if (toggles.includes('pr1')) { r.setPixelRatio(1); window.dispatchEvent(new Event('resize')); }
+  // Maquette d'écran scindé (--toggle vues2) tant que le vrai (lot RTVIEW, ctx.three.views) n'est pas là : chaque
+  // rendu de la scène par la caméra principale devient 2 demi-vues (viewport + scissor), ombres calculées une
+  // fois, dans la cible en cours (post-traitement) ou dans le canvas (rendu direct des paliers moyen et bas).
+  if (toggles.includes('vues2') && !c.three.views) {
+    window.__rinfo_vues2 = true;
+    const cam1 = c.three.camera; const cam2 = cam1.clone();
+    const orig = r.render.bind(r);
+    const taille = { x: 0, y: 0, set(x, y) { this.x = x; this.y = y; return this; } };
+    let dedans = false;
+    r.shadowMap.autoUpdate = false;
+    r.render = (scene, cam) => {
+      if (dedans || scene !== c.three.scene || cam !== cam1) return orig(scene, cam);
+      dedans = true;
+      const rt = r.getRenderTarget();
+      const a = c.state.players[0].pos; const b = c.state.players[1].pos;
+      const mx = (a[0] + b[0]) / 2; const mz = (a[2] + b[2]) / 2;
+      cam2.position.set(2 * mx - cam1.position.x, cam1.position.y, 2 * mz - cam1.position.z);
+      cam2.lookAt(mx, 1, mz);
+      const asp = cam1.aspect;
+      r.shadowMap.needsUpdate = true;
+      r.getSize(taille);
+      const W = rt ? rt.width : taille.x; const H = rt ? rt.height : taille.y;
+      for (const [i, cc] of [[0, cam1], [1, cam2]]) {
+        const x = Math.round((i * W) / 2); const w = Math.round(W / 2);
+        if (rt) { rt.viewport.set(x, 0, w, H); rt.scissor.set(x, 0, w, H); rt.scissorTest = true; r.setRenderTarget(rt); }
+        else { r.setViewport(x, 0, w, H); r.setScissor(x, 0, w, H); r.setScissorTest(true); }
+        cc.aspect = w / H; cc.updateProjectionMatrix();
+        orig(scene, cc);
+      }
+      if (rt) { rt.viewport.set(0, 0, W, H); rt.scissor.set(0, 0, W, H); rt.scissorTest = false; r.setRenderTarget(rt); }
+      else { r.setViewport(0, 0, W, H); r.setScissor(0, 0, W, H); r.setScissorTest(false); }
+      cam1.aspect = asp; cam1.updateProjectionMatrix();
+      dedans = false;
+    };
+  }
+  // sanscontours / sanslointain : essais pour le palier bas (coques de contour, décor lointain instancié).
+  if (toggles.includes('sanscontours') || toggles.includes('sanslointain')) {
+    setInterval(() => c.three.scene.traverse((o) => {
+      if (toggles.includes('sanscontours') && (o.name?.endsWith('__outline') || o.userData.isOutline)) o.visible = false;
+      if (toggles.includes('sanslointain') && o.userData.lointain) o.visible = false;
+    }), 500);
+  }
   // unelumiere : une seule pile de lumières (celle de la map, intensités ×2) au lieu de LA + map superposées.
   if (toggles.includes('unelumiere')) c.bus.on('phase:change', ({ to }) => {
     const map = c.three.scene.children.find((o) => o.name?.startsWith('map-'));
@@ -194,6 +241,9 @@ for (const map of MAPS) {
   await page.waitForFunction(() => window.ctx && typeof window.gameHooks?.startMatch === 'function', null, { timeout: 60000 });
   const chargement = { pageMs: Date.now() - tNav };
   await page.waitForTimeout(1500); // écran titre posé
+  // Répétition générale de LLOAD (map construite puis retirée derrière le menu) : l'attendre, sinon son nettoyage
+  // peut retirer la map du match lancé pendant ce temps (course signalée dans plan/rendus/LPERF.md).
+  await page.waitForFunction(() => window.__preload && window.__preload().rehearsalMs !== -1, null, { timeout: 30000 }).catch(() => {});
 
   const gpuNom = await page.evaluate(() => {
     const gl = window.ctx.three.renderer.getContext();
@@ -216,7 +266,7 @@ for (const map of MAPS) {
       if (toggles.includes('crt1')) cp.setPixelRatio(1);
       if (toggles.includes('crt075')) cp.setPixelRatio(0.75);
       if (toggles.includes('crt05')) cp.setPixelRatio(0.5);
-      // Maquette d'écran scindé (plan/PIVOT-TEMPS-REEL.md) pour chiffrer son coût avant le lot RTVIEW : les
+      // Ancienne maquette (post-traitement seulement ; préférer --toggle vues2) pour chiffrer le coût avant RTVIEW : les
       // 2 vues sont dessinées dans la cible du post-traitement (viewport + scissor), bloom et sortie une fois.
       // split = ombres calculées une fois par image ; splitombres2 = ombres recalculées pour chaque vue.
       if (toggles.includes('split') || toggles.includes('splitombres2')) {
@@ -338,7 +388,9 @@ for (const map of MAPS) {
       canvas: [r.domElement.width, r.domElement.height],
       tour: window.ctx.state.turn, phase: window.ctx.state.phase,
       msParSystemeParFrame: sys, pireFrameParSysteme: sysPire, pics, shadersEnMatch,
-      qualite: window.__qualite ? { niveau: window.__qualite.niveau, medianeMs: window.__qualite.medianeMs } : null,
+      qualite: window.__qualite ? { palier: window.__qualite.palier, echelle: window.__qualite.echelle, niveau: window.__qualite.niveau,
+        medianeMs: window.__qualite.medianeMs, banc: window.__qualite.banc, ratio: r.getPixelRatio() } : null,
+      vues: window.ctx.three.views ? window.ctx.three.views().length : (window.__rinfo_vues2 ? 2 : 1),
     };
   });
 
@@ -359,7 +411,7 @@ for (const map of MAPS) {
     pireFrameParSysteme: mesure.pireFrameParSysteme,
     shadersCompilesPendantLeMatch: mesure.shadersEnMatch,
     imagesSup50ms: mesure.pics,
-    qualite: mesure.qualite,
+    qualite: mesure.qualite, vues: mesure.vues,
     longuesFramesPires: mesure.loafPires,
     profil,
     erreurs: erreurs.slice(0, 10),
@@ -372,7 +424,8 @@ for (const map of MAPS) {
   console.log(`  tâches longues ${r.tachesLongues.n} (total ${r.tachesLongues.totalMs} ms, pire ${r.tachesLongues.pireMs} ms) · tours joués ${r.toursJoues}`);
   console.log(`  chargement : page ${chargement.pageMs} ms · 1er tour ${chargement.premierTourMs} ms · map stable ${chargement.mapStableMs} ms · pire frame au chargement ${framesChargement.pire} ms`);
   console.log(`  systèmes (ms/frame) : ${r.msParSystemeParFrame.slice(0, 8).map(([k, v]) => `${k} ${v}`).join(' · ')}`);
-  console.log(`  pire frame par système (ms) : ${r.pireFrameParSysteme.slice(0, 6).map(([k, v]) => `${k} ${v}`).join(' · ')}${r.qualite ? ` · qualité ${r.qualite.niveau} (médiane ${r.qualite.medianeMs?.toFixed?.(1)} ms)` : ''}`);
+  console.log(`  pire frame par système (ms) : ${r.pireFrameParSysteme.slice(0, 6).map(([k, v]) => `${k} ${v}`).join(' · ')}`);
+  if (r.qualite) console.log(`  qualité : palier ${r.qualite.palier} · échelle ${r.qualite.echelle} · ratio ${r.qualite.ratio} · banc ${r.qualite.banc?.toFixed?.(3)} ms · vues ${r.vues} · image médiane (1 s) ${r.qualite.medianeMs?.toFixed?.(1)} ms`);
   console.log(`  shaders compilés pendant le match : ${r.shadersCompilesPendantLeMatch} · images > 50 ms : ${r.imagesSup50ms.length || 'aucune'}`);
   for (const p of r.imagesSup50ms.slice(0, 8)) console.log(`    ${p.ms} ms${p.nouveauxShaders.length ? ` · shaders : ${[...new Set(p.nouveauxShaders)].slice(0, 4).join(', ')}` : ''}${p.scripts.length ? ` · scripts : ${p.scripts.slice(0, 3).join(', ')}` : ''}`);
   if (profil) console.log('  profil CPU (temps propre) :\n    ' + profil.slice(0, 15).join('\n    '));
