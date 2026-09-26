@@ -1,0 +1,102 @@
+{
+ "meta": {
+  "date": "26/09/2026 18:26:57",
+  "branch": "main",
+  "commit": "8a67ec2",
+  "dureeS": 146,
+  "rendu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 5060 Laptop GPU (0x00002D59) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "glLost": []
+ },
+ "verdicts": [
+  {
+   "id": "arsenal",
+   "label": "Arsenal : la carte se remplit (nom, catégorie, stats, physique) pour chaque photo",
+   "ok": false,
+   "detail": "0 cartes ; physique sur l'arme : 0 ; physique affichée sur la carte : 0"
+  },
+  {
+   "id": "sticker",
+   "label": "On valide sans attendre le sticker ; le sticker arrive ensuite et passe sur l'arme en match",
+   "ok": false,
+   "detail": "validés avant le sticker : 0/0 ; stickers arrivés : 0 ; sur l'arme en match : 0"
+  },
+  {
+   "id": "persos",
+   "label": "2 persos tirés de photos (visages fictifs)",
+   "ok": false,
+   "detail": "match non atteint"
+  },
+  {
+   "id": "match",
+   "label": "Match en écran scindé, chaque joueur avec SES objets",
+   "ok": false,
+   "detail": "match non atteint"
+  },
+  {
+   "id": "en-main",
+   "label": "Chaque objet en main à la taille que le jeu tire de sa taille réelle (échelle lisible 0.35-1.6 m, ±35 %), la chaise nettement plus grande que la canette",
+   "ok": false,
+   "detail": "0/0 à la bonne taille ; chaise ? m, canette ? m"
+  },
+  {
+   "id": "chaise-canette",
+   "label": "Chaise contre canette (toutes deux lancées) : plus de dégâts, plus de recul, plus lente, moins loin, recharge plus longue",
+   "ok": false,
+   "detail": "plus de dégâts NON · plus de recul NON · plus lente NON · moins loin NON · recharge plus longue NON"
+  },
+  {
+   "id": "quatre",
+   "label": "Feutre, canette, tabouret, chaise : plus c'est lourd, plus ça frappe et recule, plus c'est lent et long à recharger",
+   "ok": false,
+   "detail": "objets manquants"
+  },
+  {
+   "id": "fragile",
+   "label": "Un objet fragile se brise (éclats à l'impact)",
+   "ok": false,
+   "detail": "aucun objet fragile détecté"
+  },
+  {
+   "id": "liquide",
+   "label": "Un liquide gicle (sol glissant)",
+   "ok": false,
+   "detail": "aucun objet liquide détecté"
+  },
+  {
+   "id": "rebond",
+   "label": "Un objet rebondissant rebondit",
+   "ok": false,
+   "detail": "aucun objet rebondissant détecté"
+  },
+  {
+   "id": "dix",
+   "label": "Les 10 objets d'Adem : physique plausible, lancés en match avec LEUR masse",
+   "ok": false,
+   "detail": "tasse-verre ✗ pas de physique · chaise-bureau ✗ pas de physique · feutre-velleda ✗ pas de physique · telephone ✗ pas de physique · mocassin ✗ pas de physique · tabouret-rotin ✗ pas de physique · pendule-newton ✗ pas de physique · lampe-champignon ✗ pas de physique · roi-echecs ✗ pas de physique · montre ✗ pas de physique"
+  }
+ ],
+ "matches": [],
+ "objets": [
+  {
+   "key": "chaise-bureau",
+   "player": 0,
+   "slot": 0
+  },
+  {
+   "key": "feutre-velleda",
+   "player": 0,
+   "slot": 1
+  },
+  {
+   "key": "tasse-verre",
+   "player": 0,
+   "slot": 2
+  }
+ ],
+ "erreurs": [
+  "arsenal chaise-bureau : locator.waitFor: Timeout 30000ms exceeded.",
+  "arsenal feutre-velleda : locator.click: Timeout 30000ms exceeded.",
+  "arsenal tasse-verre : locator.click: Timeout 30000ms exceeded.",
+  "arrêt du parcours : match 1 : arsenal : locator.waitFor: Timeout 30000ms exceeded."
+ ]
+}

@@ -268,7 +268,8 @@ async function scanInArsenal(page, player, slot, key, canette) {
   const t0 = Date.now();
   await page.locator(`${scope} .weapon-rack .snap-tile`).click();
   await importPhoto(page, scope, file, player === 1);
-  await page.locator(`${scope} .weapon-confirm`).waitFor({ timeout: 30000 });
+  // LWAIT-OBJ : la carte en direct (.lscan) ne se valide qu une fois le sticker ET l objet 3D prêts.
+  await page.locator(`${scope} .lscan .lscan-actions button:has-text("Confirm"):enabled`).waitFor({ timeout: 60000 });
   r.cardS = (Date.now() - t0) / 1000;
   let card = await readCard(page, scope);
   log(`  P${player + 1} emplacement ${slot + 1} : ${key} → « ${card.name} » (${card.category}) en ${r.cardS} s${card.physicsText ? ` · ${card.physicsText}` : ''}`);
@@ -277,7 +278,7 @@ async function scanInArsenal(page, player, slot, key, canette) {
     r.categoryScan = card.category;
     await page.locator(`${scope} .cat-pill:has-text("throwable")`).first().click();
     await page.waitForFunction((s) => {
-      const c = document.querySelector(`${s} .weapon-confirm .wc-category`);
+      const c = document.querySelector(`${s} .lscan .wc-category`);
       return c && c.textContent.trim().toLowerCase().includes('throwable');
     }, scope, { timeout: 30000 }).catch(() => errors.push(`${key} : relance en throwable sans effet`));
     card = await readCard(page, scope);
@@ -288,9 +289,9 @@ async function scanInArsenal(page, player, slot, key, canette) {
   r.weapon = res?.p.weapon ?? null;
   r.card = card;
   r.stickerAtConfirm = !!(r.weapon && list.some((e) => e.sticker && e.p.weaponId === r.weapon.id));
-  await shot(page, `carte-${key}`, `Carte d'arme : ${key} (photo masquée)`, { group: 'cartes', clip: await clipOf(page, `${scope} .weapon-confirm`) });
+  await shot(page, `carte-${key}`, `Carte d'arme : ${key} (photo masquée)`, { group: 'cartes', clip: await clipOf(page, `${scope} .lscan`) });
   r.confirmAt = Date.now();
-  await page.locator(`${scope} .weapon-confirm button:has-text("Confirm")`).click();
+  await page.locator(`${scope} .lscan .lscan-actions button:has-text("Confirm"):enabled`).click({ timeout: 60000 });
 }
 
 async function clipOf(page, sel) {
@@ -301,14 +302,14 @@ async function clipOf(page, sel) {
 
 async function readCard(page, scope) {
   return page.evaluate((s) => {
-    const q = (x) => document.querySelector(`${s} .weapon-confirm ${x}`);
+    const q = (x) => document.querySelector(`${s} .lscan ${x}`);
     const card = q('.weapon-card');
     return {
       name: q('.wc-band-name')?.textContent?.trim() ?? null,
       category: q('.wc-category')?.textContent?.trim().toLowerCase() ?? null,
       object: q('.weapon-object')?.textContent?.trim() ?? null,
-      pips: document.querySelectorAll(`${s} .weapon-confirm .pip.filled`).length,
-      physicsText: q('.wc-physics')?.textContent?.trim() ?? null,
+      pips: document.querySelectorAll(`${s} .lscan .pip.filled`).length,
+      physicsText: q('.lscan-phys')?.textContent?.trim() ?? null,
       text: card?.textContent?.replace(/\s+/g, ' ').trim().slice(0, 300) ?? null,
     };
   }, scope);
