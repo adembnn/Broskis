@@ -64,7 +64,7 @@ interface AnimSample { t: number; player: 0|1; clip: string; weight: number;
   footSlideCm: [number, number];                    // glissement des pieds posés, par image
   footGapCm: [number, number];                      // écart pied-sol (+ = en l'air, − = dans le sol)
   facingErrDeg: number; lookErrDeg: number;         // vers la cible ou l'adversaire
-  handPos: [number, number, number];
+  handPos: [number, number, number];               // mètres, repère monde (comme spawnPos)
   spineRotVar: number;                              // variation, pour détecter un idle figé
   layers: { footIK: boolean; lookAt: boolean; lean: number; squash: number } }
 interface AnimEvent { t: number; player: 0|1;
