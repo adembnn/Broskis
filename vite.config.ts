@@ -3,12 +3,21 @@
 // .env via loadEnv et ne passent JAMAIS par import.meta.env / VITE_* (elles ne doivent jamais atteindre
 // le bundle envoyé au navigateur) : chaque handler les reçoit explicitement dans `env`.
 import { existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, loadEnv, type Plugin, type ViteDevServer } from 'vite';
 import type { ApiHandler, ApiResponse } from './api/_types.ts';
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
+
+// Dossier du .env : le plus proche en remontant. Les copies de travail des agents (.claude/worktrees/*) utilisent
+// ainsi le .env unique du dépôt principal, sans jamais le recopier.
+function envDir(): string {
+  let d = process.cwd();
+  while (!existsSync(join(d, '.env'))) { const p = dirname(d); if (p === d) return process.cwd(); d = p; }
+  return d;
+}
 
 const API_ROUTE = /^\/api\/([a-zA-Z0-9_-]+)$/;
 
@@ -77,7 +86,7 @@ function apiDevServerPlugin(env: Record<string, string>): Plugin {
 }
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '');
+  const env = loadEnv(mode, envDir(), '');
   return {
     plugins: [apiDevServerPlugin(env)],
   };
