@@ -5,6 +5,7 @@
 // Il gère aussi les plateformes traversables (one-way), le danger périodique de chaque map (annoncé par
 // une zone d'alerte qui clignote), les accessoires déclenchés par les tirs et la mort subite.
 // Lumières, ciel, brouillard et post-traitement : PAS ici (src/scene/render/**, lot LDA2).
+import { dressing } from './dressing';
 import * as THREE from 'three';
 import type RAPIER from '@dimforge/rapier3d-compat';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -519,7 +520,7 @@ async function buildVisuals(ctx: Ctx, map: LoadedMap) {
   await buildGroundVisuals(map);
   await buildPlatformVisuals(map);
   await buildPropVisuals(map);
-  for (const b of map.def.backdrop) await buildBackdrop(map, b);
+  for (const b of [...map.def.backdrop, ...dressing(map.def.id)]) await buildBackdrop(map, b); // + habillage LDECOR
   if (map.def.id === 'archipel') await buildCatapult(map);
   else if (map.def.id === 'galion') buildSea(map);
   else if (map.def.id === 'cuisine') buildSponge(map);

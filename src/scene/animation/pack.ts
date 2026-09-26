@@ -2,14 +2,14 @@
 // que les persos). Chargés une fois en tâche de fond, puis ajoutés à chaque animateur. On ne garde que les
 // rotations (et la hauteur du bassin, recalée sur le perso) : les longueurs d'os du mannequin ne doivent
 // jamais déformer un perso. Jamais T-Pose. Choix des clips : plan/rendus/LATK2.md.
-// Les images clés (armé, lâcher, impact) sont MESURÉES sur le squelette du pack (vitesse de la main), pas
-// devinées : le lâcher tombe sur la bonne image quel que soit le clip.
+// Les images clés (armé, lâcher, impact) et la vitesse naturelle de la course sont MESURÉES sur le squelette
+// du pack (vitesse de la main, pied d'appui), pas devinées.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const DIR = '/assets/packs/animations/Rig_Medium_';
 
-type PackFile = 'General' | 'CombatRanged' | 'CombatMelee' | 'MovementBasic' | 'Simulation';
+type PackFile = 'General' | 'CombatRanged' | 'CombatMelee' | 'MovementBasic' | 'MovementAdvanced' | 'Simulation';
 
 /** Nom interne → [fichier, clip du pack]. */
 export const PACK_CLIPS: Record<string, [PackFile, string]> = {
@@ -20,29 +20,30 @@ export const PACK_CLIPS: Record<string, [PackFile, string]> = {
   shoot1h: ['CombatRanged', 'Ranged_1H_Shoot'],
   // bouclier : l'objet planté au sol d'un coup sec
   slam: ['CombatMelee', 'Melee_2H_Attack_Chop'],
-  // parade : garde levée, tenue, choc encaissé, contre
+  // garde : levée, tenue, choc encaissé, contre (parade parfaite)
   guardUp: ['CombatMelee', 'Melee_Block'],
   guardHold: ['CombatMelee', 'Melee_Blocking'],
   guardHit: ['CombatMelee', 'Melee_Block_Hit'],
   guardCounter: ['CombatMelee', 'Melee_Block_Attack'],
-  // coups reçus, KO, réapparition
-  hitA: ['General', 'Hit_A'],
-  hitB: ['General', 'Hit_B'],
+  // KO (fin de match) et réapparition ; les coups reçus (Hit_A, Hit_B) sont déjà dans chaque perso
   deathB: ['General', 'Death_B'],
   spawnAir: ['General', 'Spawn_Air'],
-  // vol et réception
-  airborne: ['MovementBasic', 'Jump_Idle'],
-  land: ['MovementBasic', 'Jump_Land'],
-  jumpStart: ['MovementBasic', 'Jump_Start'],
+  // course directionnelle (visée verrouillée : on court de côté ou à reculons en gardant l'adversaire en face)
+  runRef: ['MovementBasic', 'Running_A'],
+  strafeL: ['MovementAdvanced', 'Running_Strafe_Left'],
+  strafeR: ['MovementAdvanced', 'Running_Strafe_Right'],
+  backpedal: ['MovementAdvanced', 'Walking_Backwards'],
+  // saut périlleux du double saut
+  dodgeF: ['MovementAdvanced', 'Dodge_Forward'],
   // victoire
   cheering: ['Simulation', 'Cheering'],
 };
 
 /** Images clés mesurées (secondes dans le clip). */
 export interface KeyTimes {
-  /** Main la plus en arrière avant le lâcher (fin de l'élan). */
+  /** Main la plus en arrière (ou la plus haute) avant le lâcher : fin de l'élan. */
   windup: number;
-  /** Vitesse de la main maximale vers l'avant : l'objet quitte la main. */
+  /** Vitesse de la main maximale vers l'avant (ou vers le bas) : l'objet quitte la main. */
   release: number;
 }
 
@@ -51,12 +52,16 @@ export interface PackData {
   keys: Map<string, KeyTimes>;
   /** Hauteur de repos du bassin du mannequin (pour recaler hips.position sur chaque perso). */
   hipsRest: THREE.Vector3;
+  /** Vitesse au sol naturelle des clips de course (unités du modèle / s, avant l'échelle du perso). */
+  speeds: Map<string, number>;
+  /** Raccourci : vitesse naturelle de la course (Running_A = clip `run` des persos). */
+  runSpeed: number;
 }
 
 let promise: Promise<PackData> | null = null;
 let ready: PackData | null = null;
 
-/** Données du pack si déjà chargées (sinon null : l'animateur garde les 13 clips du perso en attendant). */
+/** Données du pack si déjà chargées (sinon null : l'animateur garde les clips du perso en attendant). */
 export function packData(): PackData | null {
   return ready;
 }
@@ -97,37 +102,48 @@ async function doLoad(): Promise<PackData> {
     const clip = clips.get(name);
     if (clip) keys.set(name, measureKeys(skel, clip, name === 'slam'));
   }
+  const speeds = new Map<string, number>();
+  for (const name of ['runRef', 'strafeL', 'strafeR', 'backpedal']) {
+    const clip = clips.get(name);
+    if (clip) speeds.set(name, measureStride(skel, clip));
+  }
+  clips.delete('runRef'); // mesure seulement : les persos ont déjà ce clip sous le nom `run`
   // Libère la géométrie des mannequins : seuls les clips servent.
   for (const g of gltfs.values()) g.scene.traverse((o) => { if ((o as THREE.Mesh).isMesh) (o as THREE.Mesh).geometry.dispose(); });
-  return { clips, keys, hipsRest };
+  return { clips, keys, hipsRest, speeds, runSpeed: speeds.get('runRef') ?? 0 };
 }
 
-/**
- * Mesure l'armé et le lâcher d'un geste de la main droite : échantillonne le clip à 120 i/s sur le squelette
- * de mesure, suit `handslotr` dans le repère du perso (+Z = devant). Lâcher = pic de vitesse vers l'avant
- * (ou vers le bas pour un coup planté au sol) ; armé = main la plus en arrière (ou la plus haute) avant.
- */
-function measureKeys(skel: THREE.Object3D, clip: THREE.AnimationClip, downward: boolean): KeyTimes {
-  const hand = skel.getObjectByName('handslotr');
-  if (!hand) return { windup: clip.duration * 0.3, release: clip.duration * 0.45 };
+/** Échantillonne `bone` (repère du mannequin) sur tout le clip, à 120 i/s. */
+function sampleBone(skel: THREE.Object3D, clip: THREE.AnimationClip, boneName: string): THREE.Vector3[] {
+  const bone = skel.getObjectByName(boneName);
+  if (!bone) return [];
   const mixer = new THREE.AnimationMixer(skel);
   const action = mixer.clipAction(clip);
   action.play();
   const step = 1 / 120;
   const n = Math.max(2, Math.floor(clip.duration / step));
-  const pos: THREE.Vector3[] = [];
+  const out: THREE.Vector3[] = [];
   const inv = new THREE.Matrix4();
-  const p = new THREE.Vector3();
   for (let i = 0; i <= n; i++) {
     mixer.setTime(Math.min(clip.duration, i * step));
     skel.updateMatrixWorld(true);
     inv.copy(skel.matrixWorld).invert();
-    p.setFromMatrixPosition(hand.matrixWorld).applyMatrix4(inv);
-    pos.push(p.clone());
+    out.push(new THREE.Vector3().setFromMatrixPosition(bone.matrixWorld).applyMatrix4(inv));
   }
   action.stop();
   mixer.uncacheRoot(skel);
-  // Composante suivie : avant (+Z) pour un lancer, bas (-Y) pour un coup planté.
+  return out;
+}
+
+/**
+ * Armé et lâcher d'un geste de la main droite (`handslotr`, repère du perso, +Z = devant). Lâcher = pic de
+ * vitesse vers l'avant (ou vers le bas pour un coup planté au sol) ; armé = main la plus en arrière (ou la
+ * plus haute) avant ce pic.
+ */
+function measureKeys(skel: THREE.Object3D, clip: THREE.AnimationClip, downward: boolean): KeyTimes {
+  const pos = sampleBone(skel, clip, 'handslotr');
+  if (pos.length < 3) return { windup: clip.duration * 0.3, release: clip.duration * 0.45 };
+  const step = 1 / 120;
   const comp = (v: THREE.Vector3) => (downward ? -v.y : v.z);
   let release = 1, best = -Infinity;
   for (let i = 1; i < pos.length; i++) {
@@ -139,6 +155,26 @@ function measureKeys(skel: THREE.Object3D, clip: THREE.AnimationClip, downward: 
     if (comp(pos[i]) < back) { back = comp(pos[i]); windup = i; }
   }
   return { windup: windup * step, release: release * step };
+}
+
+/**
+ * Vitesse au sol naturelle d'un cycle de course : vitesse horizontale moyenne du pied d'appui (le plus bas)
+ * par rapport au bassin. Jouer le clip à (vitesse réelle / cette vitesse) = pieds qui ne patinent pas.
+ */
+function measureStride(skel: THREE.Object3D, clip: THREE.AnimationClip): number {
+  const l = sampleBone(skel, clip, 'footl');
+  const r = sampleBone(skel, clip, 'footr');
+  if (l.length < 3 || l.length !== r.length) return 0;
+  const step = 1 / 120;
+  let sum = 0, n = 0;
+  for (let i = 1; i < l.length; i++) {
+    const low = l[i].y <= r[i].y ? l : r;
+    const other = low === l ? r : l;
+    if (other[i].y - low[i].y < 0.05) continue; // double appui : ambigu
+    sum += Math.hypot(low[i].x - low[i - 1].x, low[i].z - low[i - 1].z) / step;
+    n++;
+  }
+  return n ? sum / n : 0;
 }
 
 /** Clip du pack recalé sur un perso : hips.position décalée de (repos du perso − repos du mannequin). */
