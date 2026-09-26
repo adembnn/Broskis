@@ -38,3 +38,4 @@ Réserver une ligne **avant** de commencer : nom + heure, commit + push de ce fi
 | LSMASH-FX | Effets Smash : traînées d'éjection, zoom KO, explosion de sortie, star KO, BRO SMASH | moyen | **Gemini** (CLI) | contrat v2 | en cours | Gemini 14h15 | plan/lots/LSMASH-FX-effets.md |
 | LBK2 | Voix des combattants en Gradium (re-casting énergique jugé par Gemini, meilleure de 3 prises) | faible | **Gemini** (CLI) | LBK | en cours | Gemini 14h15 | plan/lots/LBK2-voix-gradium.md |
 | LAB | Labo de test ?lab=1 : lancer un match, déclencher chaque mécanique, régler en direct | faible | **Gemini** (CLI) | — | en cours | Gemini 14h15 | plan/lots/LAB-labo-de-test.md |
+| LLOAD | Zéro attente perçue : préchargement pendant les menus, IA spéculative, transitions et forge animées, streaming | moyen | **Claude** (Opus) | — | en cours | Claude 14h25 | plan/lots/LLOAD-zero-attente.md |
