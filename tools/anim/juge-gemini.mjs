@@ -1,7 +1,7 @@
 // Juge vidéo Gemini (lot LE, plan/lots/LE-eval-animation.md) : envoie chaque vidéo de scénario
 // (captures/anim/video/<scénario>.webm) au modèle ci-dessous avec une grille de correction, et récupère un
 // verdict JSON contraint. Écrit captures/anim/gemini-verdict.json. Lancé par anim-eval.mjs (sauf --no-gemini),
-// ou directement : node tools/anim/juge-gemini.mjs [--env <chemin du .env>] [--videos <dossier>] [--out <fichier>]
+// ou directement : node tools/anim/juge-gemini.mjs [--env <chemin du .env>] [--videos <dossier>] [--out <fichier>] [--notes <json>]
 // (--env : depuis une copie de travail sans .env, l'outil lit lui-même celui du dépôt principal).
 const MODELE = 'gemini-3.1-pro-preview'; // le meilleur modèle disponible (consigne du lot LE) — ne pas changer sans consigne.
 const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODELE}:generateContent`;
@@ -104,7 +104,8 @@ const SCHEMA_REPONSE = {
 
 // ---- Scénarios (pour enrichir la grille avec joueur/caméra/note) : optionnel, jamais bloquant. ----
 function chargerScenarios() {
-  try { return JSON.parse(readFileSync('tools/anim/scenarios.json', 'utf8')); } catch { return []; }
+  // --notes <fichier> : contexte des scénarios d'un autre banc (ex. captures/latk/video/notes.json du banc LATK2)
+  try { return JSON.parse(readFileSync(arg('--notes', 'tools/anim/scenarios.json'), 'utf8')); } catch { return []; }
 }
 
 function extraireJson(texte) {
