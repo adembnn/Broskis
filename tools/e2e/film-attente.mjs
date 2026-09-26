@@ -5,8 +5,9 @@
 // Rapport : reports/e2e/attente-<horodatage>/index.html (+ images de chaque bande, resultat.json).
 import { spawn, execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, mkdirSync, unlinkSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { chromium } from 'playwright';
 
 const args = process.argv.slice(2);
@@ -155,7 +156,7 @@ async function objetCoupe(page, base) {
   return { objet: film, boutons: film.at(-1)?.boutons ?? [] };
 }
 
-const bande = (film, legende) => `<h3>${legende}</h3><div class="bande">${film.filter((f) => f.fichier).map((f) => `<figure><img loading="lazy" src="${f.fichier}"><figcaption>${f.t} s${f.affiche ? ' ✓' : ''}${f.bouton === 'actif' ? ' ▶' : ''}</figcaption></figure>`).join('')}</div>`;
+const bande = (nom, legende) => existsSync(join(OUT, `bande-${nom}.jpg`)) ? `<h3>${legende}</h3><img class="planche" src="bande-${nom}.jpg" alt="">` : '';
 
 // ---------------------------------------------------------------------------------------------------------------
 for (let i = 0; i < 20 && (await up(`http://localhost:${PORT}/`)); i++) PORT += 1;
@@ -166,13 +167,32 @@ try {
   for (let i = 0; i < 120 && !(await up(`${base}/`)); i++) await sleep(500);
   log(`Vite (PID ${server.pid}) sur ${PORT}`);
   const browser = await chromium.launch({ headless: true, args: ['--use-angle=d3d11', '--ignore-gpu-blocklist', '--enable-gpu-rasterization', '--force_high_performance_gpu'] });
-  const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+  // Un contexte neuf par passage : aucun cache (scan, sticker, portrait) ne court-circuite le réseau ralenti ou coupé.
+  const nouvellePage = async () => (await browser.newContext({ viewport: { width: 1280, height: 720 } })).newPage();
   for (const reseau of ['normal', 'lent', 'coupe']) {
     log(`passage ${reseau}`);
+    const page = await nouvellePage();
     try { R[reseau] = await passage(page, base, reseau); } catch (e) { R[reseau] = { erreur: e.message.split('\n')[0] }; log(`  ${reseau} : ${R[reseau].erreur}`); }
+    await page.context().close();
   }
   log('passage objet API coupée');
+  const page = await nouvellePage();
   try { R.coupeObjet = await objetCoupe(page, base); } catch (e) { R.coupeObjet = { erreur: e.message.split('\n')[0] }; }
+  await page.context().close();
+  // Planches chronologiques : chaque film devient UNE image (8 vignettes par ligne, temps sous chacune), puis les images
+  // unitaires sont effacées (le rapport reste léger).
+  const films = { 'normal-tete': R.normal?.tete, 'normal-objet': R.normal?.objet, 'lent-tete': R.lent?.tete, 'lent-objet': R.lent?.objet, 'coupe-tete': R.coupe?.tete, 'coupe-objet': R.coupeObjet?.objet };
+  const planche = await (await browser.newContext({ viewport: { width: 1480, height: 400 } })).newPage();
+  for (const [nom, film] of Object.entries(films)) {
+    const vues = (film ?? []).filter((f) => f.fichier);
+    if (!vues.length) continue;
+    const dossier = pathToFileURL(resolve(OUT)).href;
+    await planche.setContent(`<html><body style="margin:0;background:#f6f3ee;font:12px system-ui"><div style="display:grid;grid-template-columns:repeat(8,180px);gap:4px;padding:4px">${vues.map((f) => `<div><img src="${dossier}/${f.fichier}" style="width:180px;display:block;border:2px solid ${f.affiche ? '#1f8a4c' : '#e2dcd2'}"><div>${f.t} s${f.affiche ? ' ✓' : ''}${f.bouton === 'actif' ? ' ▶' : ''}</div></div>`).join('')}</div></body></html>`);
+    await planche.waitForLoadState('load');
+    await planche.screenshot({ path: join(OUT, `bande-${nom}.jpg`), type: 'jpeg', quality: 70, fullPage: true });
+    for (const f of vues) { try { unlinkSync(join(OUT, f.fichier)); } catch { /* déjà effacée */ } }
+  }
+  await planche.context().close();
   await browser.close();
 } finally {
   try { execSync(`taskkill /PID ${server.pid} /T /F`, { stdio: 'ignore' }); } catch { /* déjà arrêté */ }
@@ -216,17 +236,18 @@ table{border-collapse:collapse;width:100%;background:var(--carte);font-size:13px
 .v{font-weight:700}.ok{color:var(--vert)}.ko{color:var(--rouge)}.meta{color:var(--doux);font-size:13px}
 .bande{display:flex;gap:4px;overflow-x:auto;padding-bottom:8px}.bande figure{margin:0;flex:0 0 150px;background:var(--carte);border:1px solid var(--trait)}
 .bande img{width:150px;display:block}.bande figcaption{font-size:11px;color:var(--doux);padding:2px 4px}
+.planche{width:100%;display:block;border:1px solid var(--trait)}
 </style></head><body><main><h1>Film des attentes : têtes et objets</h1>
 <p class="meta">${esc(new Date().toLocaleString('fr-FR'))} · ${esc(branch)} @ ${esc(commit)} · une image toutes les 0,5 s · ✓ = tête / objet 3D affiché · ▶ = bouton de validation actif · photo d'Adem masquée, visage fictif</p>
 <p><strong>${nb}/${V.length}</strong> critères verts</p>
 <table><tr><th>Critère</th><th>Verdict</th><th>Mesure</th></tr>${V.map((v) => `<tr><td>${esc(v.label)}</td><td class="v ${v.ok ? 'ok' : 'ko'}">${v.ok ? 'VERT' : 'ROUGE'}</td><td>${esc(v.detail)}</td></tr>`).join('')}</table>
 <h2>Bandes</h2>
-${R.normal?.tete ? bande(R.normal.tete, 'Réseau normal — tête (visage fictif)') : ''}
-${R.normal?.objet ? bande(R.normal.objet, 'Réseau normal — objet (chaise, photo masquée)') : ''}
-${R.lent?.tete ? bande(R.lent.tete, 'Réseau ralenti de 8 s — tête') : ''}
-${R.lent?.objet ? bande(R.lent.objet, 'Réseau ralenti de 8 s — objet') : ''}
-${R.coupe?.tete ? bande(R.coupe.tete, 'API coupée — tête') : ''}
-${R.coupeObjet?.objet ? bande(R.coupeObjet.objet, 'API coupée — objet') : ''}
+${bande('normal-tete', 'Réseau normal — tête (visage fictif)')}
+${bande('normal-objet', 'Réseau normal — objet (chaise, photo masquée)')}
+${bande('lent-tete', 'Réseau ralenti de 8 s — tête')}
+${bande('lent-objet', 'Réseau ralenti de 8 s — objet')}
+${bande('coupe-tete', 'API coupée — tête')}
+${bande('coupe-objet', 'API coupée — objet')}
 </main></body></html>`);
 for (const v of V) log(`${v.ok ? 'VERT ' : 'ROUGE'} ${v.label} — ${v.detail}`);
 log(`rapport : ${join(OUT, 'index.html')}`);
