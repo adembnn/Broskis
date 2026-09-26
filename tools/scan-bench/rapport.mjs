@@ -9,6 +9,7 @@ const STATS_FR = {
   shield: ['garde', 'taille', 'renvoi'],
 };
 const CATEGORIE_FR = { blaster: 'blaster (tir rapide)', grenade: 'grenade (rebondit, explose)', throwable: 'lancer lourd', shield: 'bouclier' };
+const NOMS_MODELES = { 'gemini-3.1-flash-image': 'Nano Banana 2', 'gemini-3.1-flash-lite-image': 'Nano Banana 2 Lite', 'gemini-3-pro-image': 'Nano Banana Pro' };
 const CRITERES = [
   ['reconnaissable', 'Reconnaissable'],
   ['style', 'Style KayKit'],
@@ -52,8 +53,8 @@ function carteObjet(o) {
     ${img(o.images?.profil, 'Profil (épaisseur)', 'carre')}
   </div>
   <div class="galerie large">
-    ${img(o.images?.perso, `Taille réelle à côté du perso (${o.scan?.physics ? `${fr(Math.max(...o.scan.physics.sizeM), 2)} m` : 'taille inconnue : 0,5 m en main'})`)}
-    ${img(o.images?.vol, 'En vol, vu de l’épaule du lanceur')}
+    ${img(o.images?.perso, o.mesures?.tailleJeu ? `À côté du perso (1,7 m) : ${fr(o.mesures.tailleJeu, 2)} m en jeu${o.mesures.tailleReelle ? `, ${fr(o.mesures.tailleReelle, 2)} m en vrai` : ''}` : 'À côté du perso, taille réelle (0,5 m faute de physique)')}
+    ${img(o.images?.vol, 'En vol, vu de l’épaule du lanceur, à la taille du jeu')}
   </div>
   <div class="colonnes">
     <div>
@@ -66,7 +67,7 @@ function carteObjet(o) {
     <div>
       <h3>Stats dérivées</h3>
       ${s ? `<p class="stats">${noms.map((n, i) => `<span><b>${esc(n)}</b> ${s.stats?.[['a', 'b', 'c'][i]] ?? '—'}</span>`).join('')}</p>` : '<p>—</p>'}
-      ${t ? `<p class="stats petit"><span>dégâts ×${fr(t.damage, 2)}</span><span>recul ×${fr(t.knockback, 2)}</span><span>vitesse ×${fr(t.speed, 2)}</span><span>portée ×${fr(t.range, 2)}</span><span>recharge ${fr(t.cooldownS, 1)} s</span><span>rebond ${fr(t.bounce, 2)}</span>${t.shatterRadiusM ? `<span>éclats ${fr(t.shatterRadiusM, 1)} m</span>` : ''}${t.splash ? '<span>giclée</span>' : ''}<span>vol : ${esc(t.spin)}</span></p>` : '<p class="discret">Réglages de jeu : en attente de src/ia/physics.ts (lot LSCAN).</p>'}
+      ${t ? `<p class="stats petit"><span>dégâts ×${fr(t.degats, 2)}</span><span>recul ×${fr(t.recul, 2)}</span><span>vitesse ×${fr(t.vitesse, 2)}</span><span>portée ×${fr(t.portee, 2)}</span><span>recharge ×${fr(t.recharge, 2)}</span><span>${t.rebonds} rebond${t.rebonds > 1 ? 's' : ''}</span>${t.fragile ? '<span>se brise</span>' : ''}${t.liquide ? '<span>gicle</span>' : ''}${o.mesures?.toursParS ? `<span>${fr(o.mesures.toursParS, 1)} tours/s en vol</span>` : ''}</p>` : '<p class="discret">Pas de physique : réglages moyens de la catégorie.</p>'}
       <h3>Juge (Gemini 3.1 Pro)</h3>
       ${j ? `
       <div class="criteres">${CRITERES.map(([k, l]) => `<div class="${niveau(o.criteres?.[k])}"><small>${l}</small><b>${fr(o.criteres?.[k])}</b></div>`).join('')}</div>
@@ -75,7 +76,7 @@ function carteObjet(o) {
       ${j.defauts?.length ? `<ul>${j.defauts.map((d) => `<li>${esc(d)}</li>`).join('')}</ul>` : ''}
       <p class="piste"><b>Piste :</b> ${esc(j.piste)}</p>` : `<p class="alerte">${o.juge?.erreur ? `Juge en échec : ${esc(o.juge.erreur)}` : 'Pas de juge sur ce passage.'}</p>`}
       <h3>Temps</h3>
-      <p class="stats petit"><span>réduction ${sec(o.temps.redim)}</span><span>stats ${sec(o.temps.scan)}</span><span>sticker ${sec(o.temps.sticker)}</span><span>extrusion ${sec(o.temps.extrusion)}</span><span>rendu du banc ${sec(o.temps.rendu3d)}</span><span>juge ${sec(o.temps.juge)}</span></p>
+      <p class="stats petit"><span>réduction ${sec(o.temps.redim)}</span><span>stats ${sec(o.temps.scan)}</span><span>sticker ${sec(o.temps.sticker)}${o.stickerModele ? ` (${esc(NOMS_MODELES[o.stickerModele] ?? o.stickerModele)}${o.stickerRelais ? ', 2e essai' : ''})` : ''}</span><span>extrusion ${sec(o.temps.extrusion)}</span><span>rendu du banc ${sec(o.temps.rendu3d)}</span><span>juge ${sec(o.temps.juge)}</span></p>
     </div>
   </div>
 </section>`;
@@ -144,6 +145,7 @@ h3 { font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: v
 .galerie.large { grid-template-columns: 4fr 5fr; }
 figure { margin: 0; }
 figure img { width: 100%; height: auto; display: block; border-radius: 8px; background: #2a2a2a; }
+.carre img { aspect-ratio: 1; object-fit: contain; }
 figure.vide div { aspect-ratio: 1; display: grid; place-items: center; border-radius: 8px; background: var(--fond); color: var(--doux); }
 figcaption { font-size: 12px; color: var(--doux); margin-top: 2px; }
 .colonnes { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }

@@ -1,5 +1,5 @@
 // Banc de scan (lot LBENCH, plan/lots/LBENCH-boucle-scan.md) : `npm run scan-bench [-- options]`.
-// Pour chaque photo réelle d'Adem (3 à la fois) : réduction à 768 px (code du jeu), VRAIES API /api/scan-object et
+// Pour chaque photo réelle d'Adem (2 à la fois) : réduction à 768 px (code du jeu), VRAIES API /api/scan-object et
 // /api/sticker (serveur Vite lancé ici, port 5300-5399, .env trouvé en remontant les dossiers), rendu 3D avec le
 // vrai code du jeu (tools/scan-bench/banc.ts), règles (physique vs attendus.json, catégorie, liseré magenta),
 // juge Gemini 3.1 Pro en vision, temps de chaque étape. Écrit reports/scan-bench/<horodatage>/index.html + resume.json.
@@ -24,7 +24,7 @@ import { ecrireRapport } from './rapport.mjs';
 
 const ICI = dirname(fileURLToPath(import.meta.url));
 const RACINE = resolve(ICI, '../..');
-const PARALLELE = 3;
+const PARALLELE = 2; // machine chargée (alerte RAM de 16h40) : 2 appels d'API à la fois
 const JUGE_MODELE = 'gemini-3.1-pro-preview'; // consigne du lot : Gemini 3.1 Pro en vision
 const SEUIL_ROSE = 0.03; // part de pixels roses tolérée sur la bande de contour
 const SEUIL_FOND = 0.05; // en dessous, le fond n'a pas été retiré (pas magenta)
@@ -153,6 +153,8 @@ function regles(attendu, scan, mesures, stickerOk) {
   }
   r.push({ cle: 'categorie', libelle: 'Catégorie', ok: !!scan && attendu.categories.includes(scan.category), trouve: scan?.category ?? '—', attendu: attendu.categories.join(', '), groupe: 'physique' });
   r.push({ cle: 'sticker', libelle: 'Sticker présent et détouré', ok: stickerOk && !mesures?.repli, trouve: stickerOk ? (mesures?.repli ? 'contour introuvable' : 'oui') : 'absent', attendu: 'oui', groupe: 'image' });
+  const pourtour = mesures?.pourtourMagenta;
+  r.push({ cle: 'pourtour', libelle: 'Accepté par le jeu (magenta au pourtour)', ok: stickerOk && typeof pourtour === 'number' && pourtour > 0.6, trouve: typeof pourtour === 'number' ? `${Math.round(100 * pourtour)} %` : '—', attendu: '> 60 %', groupe: 'image' });
   const rose = mesures?.roseBord ?? null;
   const fond = mesures?.fondRetire ?? null;
   r.push({
@@ -188,7 +190,7 @@ function consigneJuge(attendu) {
   return `Tu es directeur artistique et game designer d'un jeu de combat 3D cartoon (Broskis). Les persos sont des KayKit : cartoon "chunky", formes simples et épaisses, aplats de couleurs franches, contours nets.
 Le joueur photographie un objet réel ; le jeu le redessine en sticker cartoon (IA d'image), retire le fond magenta, puis l'extrude en objet 3D qu'il tient et lance sur l'adversaire.
 Objet réellement photographié : « ${attendu.objet} ».
-Images, dans l'ordre : 1) la photo d'origine (référence seulement, jamais montrée au joueur) ; 2) le sticker détouré sur damier sombre (damier = transparent) ; 3-5) l'objet 3D de face, de trois-quarts, de profil ; 6) l'objet à sa taille réelle à côté d'un perso KayKit (≈ 1,75 m) ; 7) l'objet en vol, vu de l'épaule du lanceur, à la taille de vol du jeu.
+Images, dans l'ordre : 1) la photo d'origine (référence seulement, jamais montrée au joueur) ; 2) le sticker détouré sur damier sombre (damier = transparent) ; 3-5) l'objet 3D de face, de trois-quarts, de profil ; 6) l'objet à côté d'un perso KayKit (≈ 1,7 m), à la taille du jeu (taille réelle bornée entre 0,35 et 1,6 m pour rester lisible) ; 7) l'objet en vol, vu de l'épaule du lanceur, à la même taille.
 Note chaque critère sur 10, sévèrement mais justement (7 = correct, 9 = vraiment bon) :
 - reconnaissable : un joueur qui ne voit QUE l'objet 3D reconnaît-il ${attendu.objet} ? Fidèle à la photo (forme, couleurs, matière) ?
 - style : colle-t-il aux persos KayKit (chunky, aplats, contour net) ? Pénalise photoréalisme, dégradés, détails fins illisibles, texte ou logos.
@@ -241,7 +243,8 @@ async function juger(cle, attendu, photoBase64, images) {
 function noter(juge, reglesObj) {
   const phys = reglesObj.filter((r) => r.groupe === 'physique');
   const physique = +(10 * phys.filter((r) => r.ok).length / phys.length).toFixed(1);
-  const sticker = reglesObj.find((r) => r.cle === 'sticker')?.ok;
+  // Un sticker que le client du jeu rejette (pas de magenta au pourtour) équivaut à pas de sticker.
+  const sticker = reglesObj.find((r) => r.cle === 'sticker')?.ok && reglesObj.find((r) => r.cle === 'pourtour')?.ok;
   const magenta = reglesObj.find((r) => r.cle === 'magenta')?.ok;
   if (!juge || juge.erreur) {
     return { note: null, physique, injouable: !sticker, criteres: null };
@@ -338,9 +341,14 @@ async function main() {
       const s = scan.ok ? scan.json : null;
       const dataUrl = sticker.ok ? sticker.json?.dataUrl ?? null : null;
       const t3d = Date.now();
-      const rendu = await exclusif(() => evaluer((e) => window.banc.rendre(e), {
-        sticker: dataUrl, category: s?.category ?? 'throwable', palette: s?.palette ?? ['#c9a36a', '#8a6b3d'], physics: s?.physics ?? null,
-      }));
+      // L'arme telle que le jeu la construit après le scan (src/ia/scan.ts), sticker compris.
+      const arme = {
+        object: s?.object ?? attendu.objet, name: s?.weaponName ?? '?', category: s?.category ?? 'throwable', why: s?.why ?? '',
+        stats: s?.stats ?? { a: 4, b: 3, c: 3 }, trait: s?.trait ?? 'heavy', palette: s?.palette ?? ['#c9a36a', '#8a6b3d'],
+        lines: s?.lines ?? { intro: '', hit: '', miss: '', parried: '' },
+        ...(s?.physics ? { physics: s.physics } : {}), ...(dataUrl ? { stickerUrl: dataUrl } : {}),
+      };
+      const rendu = await exclusif(() => evaluer((e) => window.banc.rendre(e), arme));
       temps.rendu3d = Date.now() - t3d;
       temps.extrusion = rendu.mesures.msSticker ?? null;
       const reglages = s?.physics ? await evaluer((e) => window.banc.reglages(e.p, e.c), { p: s.physics, c: s.category }) : null;
@@ -352,6 +360,7 @@ async function main() {
       return {
         id, attendu, scan: s, erreurScan: scan.ok ? null : `${scan.statut} ${scan.erreur ?? JSON.stringify(scan.json)?.slice(0, 160)}`,
         stickerRaison: sticker.json?.reason ?? (sticker.ok ? null : `HTTP ${sticker.statut}`),
+        stickerModele: sticker.json?.model ?? null, stickerRelais: sticker.json?.relais ?? null,
         images: rendu.images, mesures: rendu.mesures, regles: r, reglages, juge, temps, ...n,
       };
     });

@@ -1,16 +1,20 @@
 // Banc de scan (lot LBENCH) : rend un objet scanné avec le VRAI code du jeu, sans le reste du jeu.
 // - redimensionnement : src/ia/image.ts (même 768 px que le jeu) ;
-// - détourage + extrusion : src/scene/sticker (makeSticker, chromaKey) ;
+// - objet : WeaponModel (src/scene/weapons/visual.ts : sticker détouré et extrudé par src/scene/sticker, épaisseur
+//   selon la physique) et lookOf (taille réelle bornée, comme en main et en vol) ;
 // - perso de référence : chevalier KayKit chargé et « toonifié » par src/scene/fighters/loader.ts ;
-// - taille en vol : WEAPON_FX (src/scene/weapons/tokens.ts).
+// - réglages de jeu : physicsFeel (src/gameplay/physics-feel.ts).
 // Piloté par tools/scan-bench/run.mjs via window.banc ; renvoie des images WebP (data URL) et des mesures.
 import * as THREE from 'three';
-import { chromaKey, makeFallbackSticker, makeSticker } from '../../src/scene/sticker/index.ts';
+import { chromaKey } from '../../src/scene/sticker/index.ts';
+import { WeaponModel } from '../../src/scene/weapons/visual.ts';
+import { lookOf } from '../../src/scene/weapons/physics.ts';
 import { instantiateFighterModel } from '../../src/scene/fighters/loader.ts';
 import { LOCAL_TOKENS } from '../../src/scene/localTokens.ts';
 import { WEAPON_FX } from '../../src/scene/weapons/tokens.ts';
+import { physicsFeel } from '../../src/gameplay/physics-feel.ts';
 import { toResizedJpegBase64 } from '../../src/ia/image.ts';
-import type { Category, WeaponPhysics } from '../../src/core/types.ts';
+import type { Category, Weapon, WeaponPhysics } from '../../src/core/types.ts';
 
 // Couleurs du banc (outil, pas le jeu) : fond neutre pour juger l'objet, ciel et sol pour la vue en vol.
 const FOND_VUES = '#d8dde5';
@@ -36,19 +40,6 @@ function photo(scene: THREE.Scene, camera: THREE.PerspectiveCamera, w: number, h
   camera.updateProjectionMatrix();
   renderer.render(scene, camera);
   return renderer.domElement.toDataURL('image/webp', QUALITE_WEBP);
-}
-
-/** Ramène un objet à une plus grande dimension de 1, centré (même règle que src/scene/weapons/visual.ts). */
-function normaliser(obj: THREE.Object3D): THREE.Group {
-  obj.updateMatrixWorld(true);
-  const box = new THREE.Box3().setFromObject(obj);
-  const size = box.getSize(new THREE.Vector3());
-  const center = box.getCenter(new THREE.Vector3());
-  obj.position.sub(center);
-  const wrap = new THREE.Group();
-  wrap.add(obj);
-  wrap.scale.setScalar(1 / Math.max(size.x, size.y, size.z, 1e-3));
-  return wrap;
 }
 
 /** Place la caméra pour que la boîte tienne dans le cadre (marge en fraction). */
@@ -106,17 +97,40 @@ function mesurerDetourage(keyed: HTMLCanvasElement): { fondRetire: number; roseB
       const r = data[i] / 255, g = data[i + 1] / 255, b = data[i + 2] / 255;
       const max = Math.max(r, g, b), min = Math.min(r, g, b);
       const sat = max > 0 ? (max - min) / max : 0;
-      if (max < 0.3 || sat < 0.35) continue;
+      // Violets foncés compris : un contour noir mélangé au magenta donne un liseré sombre (mocassin).
+      if (max < 0.12 || sat < 0.3) continue;
       let teinte = 0;
       const d = max - min;
       if (max === r) teinte = 60 * (((g - b) / d) % 6);
       else if (max === g) teinte = 60 * ((b - r) / d + 2);
       else teinte = 60 * ((r - g) / d + 4);
       if (teinte < 0) teinte += 360;
-      if (teinte >= 280 && teinte <= 340) roses++;
+      if (teinte >= 270 && teinte <= 345) roses++;
     }
   }
   return { fondRetire: transparents / (w * h), roseBord: bord ? roses / bord : 0, pixelsBord: bord };
+}
+
+/** Même contrôle que le client du jeu (looksLikeSticker, src/ia/scan.ts) : part de magenta sur le pourtour à 64 px.
+ *  Sous 0,6, le jeu rejette le sticker (nouvel essai ou forme de secours). */
+function pourtourMagenta(img: HTMLImageElement): number {
+  const w = 64;
+  const h = Math.max(8, Math.round((w * img.naturalHeight) / Math.max(1, img.naturalWidth)));
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  const g = c.getContext('2d', { willReadFrequently: true })!;
+  g.drawImage(img, 0, 0, w, h);
+  const d = g.getImageData(0, 0, w, h).data;
+  let bord = 0;
+  let magenta = 0;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (x > 1 && x < w - 2 && y > 1 && y < h - 2) continue;
+    const i = (y * w + x) * 4;
+    bord++;
+    if (Math.hypot(d[i] - 255, d[i + 1], d[i + 2] - 255) / 441.7 < 0.4) magenta++;
+  }
+  return +(magenta / bord).toFixed(3);
 }
 
 /** Sticker détouré sur damier sombre (les liserés roses s'y voient), 400 px max. */
@@ -147,44 +161,56 @@ function chargerImage(src: string): Promise<HTMLImageElement> {
 // ---------------------------------------------------------------------------
 // Rendu complet d'un objet
 // ---------------------------------------------------------------------------
-interface Entree {
-  sticker: string | null;
-  category: Category;
-  palette: [string, string];
-  physics?: WeaponPhysics | null;
+/** L'arme telle que le jeu la reçoit après un scan (src/ia/scan.ts). */
+type Entree = Pick<Weapon, 'object' | 'name' | 'category' | 'why' | 'stats' | 'trait' | 'palette' | 'lines'> & {
+  stickerUrl?: string;
+  physics?: WeaponPhysics;
+};
+
+let compteur = 0;
+
+/** Un exemplaire de l'objet par la vraie classe du jeu (taille, épaisseur selon la physique), sticker attendu. */
+async function exemplaire(w: Weapon): Promise<{ modele: WeaponModel; sticker: boolean; ms: number }> {
+  const t0 = performance.now();
+  const modele = new WeaponModel(w);
+  const trouve = () => { let ok = false; modele.root.traverse((o) => { if (o.userData.sticker) ok = true; }); return ok; };
+  while (w.stickerUrl && !trouve() && performance.now() - t0 < 20_000) await new Promise((r) => setTimeout(r, 30));
+  return { modele, sticker: trouve(), ms: Math.round(performance.now() - t0) };
 }
 
 async function rendre(e: Entree) {
   const mesures: Record<string, unknown> = {};
-  let objet: THREE.Object3D;
+  const w: Weapon = { ...e, id: `banc-${++compteur}`, source: 'scan', cooldown: 0 } as Weapon;
   let detoure: string | null = null;
-  if (e.sticker) {
-    const img = await chargerImage(e.sticker);
+  if (e.stickerUrl) {
+    const img = await chargerImage(e.stickerUrl);
     const keyed = chromaKey(img);
     Object.assign(mesures, mesurerDetourage(keyed));
+    mesures.pourtourMagenta = pourtourMagenta(img);
     detoure = imageDetouree(keyed);
-    const t0 = performance.now();
-    objet = await makeSticker(img, { height: 1 });
-    mesures.msSticker = Math.round(performance.now() - t0);
-    const info = objet.userData.sticker as { contourPoints: number } | undefined;
-    mesures.repli = !info;
-    mesures.pointsContour = info?.contourPoints ?? 0;
-  } else {
-    objet = makeFallbackSticker(e.category, e.palette);
-    mesures.repli = true;
   }
-  const modele = normaliser(objet);
-  const taille = new THREE.Box3().setFromObject(modele).getSize(new THREE.Vector3());
-  mesures.epaisseur = +(taille.z / Math.max(taille.x, taille.y)).toFixed(3);
+  const look = lookOf(w);
+  mesures.tailleJeu = +look.size.toFixed(2);
+  mesures.tailleReelle = e.physics ? +Math.max(...e.physics.sizeM).toFixed(3) : null;
+  mesures.epaisseurReelle = +look.depthRatio.toFixed(3);
+  mesures.toursParS = +look.turns.toFixed(2);
 
-  // --- 3 vues de l'objet seul ---
+  // --- 3 vues de l'objet seul (plus grande dimension = 1) ---
   const vues: Record<string, string> = {};
+  const a = await exemplaire(w);
+  mesures.msSticker = a.ms;
+  mesures.repli = !a.sticker;
+  let info: { contourPoints?: number } | undefined;
+  a.modele.root.traverse((o) => { if (o.userData.sticker) info = o.userData.sticker; });
+  mesures.pointsContour = info?.contourPoints ?? 0;
+  const taille = new THREE.Box3().setFromObject(a.modele.root).getSize(new THREE.Vector3());
+  mesures.epaisseur = +(taille.z / Math.max(taille.x, taille.y)).toFixed(3);
   {
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(FOND_VUES);
     lumieres(scene);
     const pivot = new THREE.Group();
-    pivot.add(modele);
+    pivot.add(a.modele.root);
     scene.add(pivot);
     const camera = new THREE.PerspectiveCamera(30, 1, 0.01, 100);
     const angles: [string, number, number][] = [['face', 0, 0], ['troisQuarts', -0.7, 0.18], ['profil', -1.35, 0.1]];
@@ -194,11 +220,10 @@ async function rendre(e: Entree) {
       cadrer(camera, new THREE.Box3().setFromObject(pivot), new THREE.Vector3(0, 0.15, 1), 1, 1.15);
       vues[nom] = photo(scene, camera, 400, 400);
     }
-    pivot.remove(modele);
+    a.modele.dispose();
   }
 
-  // --- À côté du perso, à la taille réelle ---
-  const tailleReelle = e.physics ? Math.max(...e.physics.sizeM) : null;
+  // --- À côté du perso, à la taille du jeu (taille réelle bornée par lookOf) ---
   {
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(FOND_VUES);
@@ -210,9 +235,9 @@ async function rendre(e: Entree) {
     chevalier.position.set(-0.45, 0, 0);
     chevalier.rotation.y = 0.35;
     scene.add(chevalier);
-    const s = tailleReelle ?? WEAPON_FX.main.taille;
-    const obj = modele.clone(true);
-    obj.scale.multiplyScalar(s);
+    const { modele } = await exemplaire(w);
+    const obj = modele.root;
+    obj.scale.setScalar(look.size);
     obj.rotation.y = -0.35;
     obj.updateMatrixWorld(true);
     const b = new THREE.Box3().setFromObject(obj);
@@ -223,9 +248,10 @@ async function rendre(e: Entree) {
     mesures.hauteurPerso = +new THREE.Box3().setFromObject(chevalier).getSize(new THREE.Vector3()).y.toFixed(2);
     cadrer(camera, tout, new THREE.Vector3(0, 0.25, 1), 4 / 3, 1.05);
     vues.perso = photo(scene, camera, 560, 420);
+    modele.dispose();
   }
 
-  // --- En vol, vu de l'épaule du lanceur, à la taille de vol du jeu ---
+  // --- En vol, vu de l'épaule du lanceur, à la taille du jeu ---
   {
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(CIEL);
@@ -234,39 +260,35 @@ async function rendre(e: Entree) {
     sol.rotation.x = -Math.PI / 2;
     scene.add(sol);
     const cible = await perso();
-    cible.position.set(0.6, 0, -9);
+    cible.position.set(-1.6, 0, -9);
     scene.add(cible);
-    const tailleVol = e.category === 'grenade' ? WEAPON_FX.vol.grenade.taille : WEAPON_FX.vol.throwable.taille;
-    const obj = modele.clone(true);
-    obj.scale.multiplyScalar(tailleVol);
-    obj.position.set(0.2, 1.7, -4.5);
+    const { modele } = await exemplaire(w);
+    const obj = modele.root;
+    obj.scale.setScalar(look.size);
+    obj.position.set(0.5, 1.7, -4.5);
     obj.rotation.set(0.35, 0.6, 0.3);
     scene.add(obj);
     const ombre = new THREE.Mesh(
-      new THREE.CircleGeometry(WEAPON_FX.vol.ombre / 2, 24),
+      new THREE.CircleGeometry(WEAPON_FX.vol.ombre * look.size / 2, 24),
       new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3 }),
     );
     ombre.rotation.x = -Math.PI / 2;
-    ombre.position.set(0.2, 0.01, -4.5);
+    ombre.position.set(0.5, 0.01, -4.5);
     scene.add(ombre);
     const camera = new THREE.PerspectiveCamera(55, 16 / 9, 0.05, 200);
     camera.position.set(-0.6, 2.1, 0);
     camera.lookAt(0.3, 1.2, -8);
     vues.vol = photo(scene, camera, 640, 360);
+    modele.dispose();
   }
 
   return { images: { detoure, ...vues }, mesures };
 }
 
-/** Stats dérivées de la physique (src/ia/physics.ts, lot LSCAN), si le module existe déjà. */
-async function reglages(physics: WeaponPhysics, category: Category): Promise<Record<string, unknown> | null> {
-  try {
-    const chemin = '/src/ia/physics.ts';
-    const mod = (await import(/* @vite-ignore */ chemin)) as { deriveStats?: (p: WeaponPhysics, c: Category) => { tuning: Record<string, unknown> } };
-    return mod.deriveStats ? mod.deriveStats(physics, category).tuning : null;
-  } catch {
-    return null;
-  }
+/** Réglages de jeu déduits de la physique (src/gameplay/physics-feel.ts), pour la page de rapport. */
+function reglages(physics: WeaponPhysics, category: Category) {
+  const f = physicsFeel({ category, physics });
+  return { vitesse: f.speedMult, degats: f.damageMult, recul: f.launchMult, recharge: f.cooldownMult, portee: f.rangeMult, rebonds: f.bounces, fragile: f.fragile, liquide: f.liquid };
 }
 
 async function redimensionner(dataUrl: string) {
