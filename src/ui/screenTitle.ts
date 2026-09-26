@@ -1,5 +1,6 @@
 // Écran-titre : BROSKIS, PLAY, et un mode « vs AI » visiblement désactivé (vague 2).
 import { button, el, menuScreen } from './dom';
+import { openScandexScreen } from './scandex/screen';
 
 export function mountTitle(container: HTMLElement): Promise<{ vsAI?: boolean; difficulty?: 'easy' | 'medium' | 'hard' | 'hardcore' } | void> {
   return new Promise((resolve) => {
@@ -13,8 +14,9 @@ export function mountTitle(container: HTMLElement): Promise<{ vsAI?: boolean; di
       mainRow.style.display = 'none';
       diffRow.style.display = 'flex';
     });
-    mainRow.append(play, vsAi);
-    
+    const scandex = button('Scandex', 'b-btn small', () => openScandexScreen(container));
+    mainRow.append(play, vsAi, scandex);
+
     const diffRow = el('div', 'title-actions diff-actions');
     diffRow.style.display = 'none';
     const btnE = button('EASY', 'b-btn small diff-btn', () => resolve({ vsAI: true, difficulty: 'easy' }));
