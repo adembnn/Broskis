@@ -80,6 +80,7 @@ export function installEnvironment(ctx: Ctx): EnvironmentHandles {
   let flickerAmount = 0.08;
 
   function applyMap(mapId: MapId): void {
+    ground.visible = false;
     const m = mapEnv(mapId);
     const r = LOCAL_TOKENS.arena.radius;
 

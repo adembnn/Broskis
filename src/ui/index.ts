@@ -56,6 +56,8 @@ export const install: Install = (ctx) => {
   installSnapTime(ctx, screenLayer);
   installParryHud(ctx, hud.root);
 
+  ctx.bus.on('match:start', () => clear(screenLayer));
+
   async function runPreMatch(): Promise<Picks> {
     ctx.bus.emit('phase:change', { from: ctx.state.phase, to: 'fighter-select' });
     const fighters = await runFighterSelect(screenLayer);
