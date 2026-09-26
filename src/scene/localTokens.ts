@@ -36,6 +36,28 @@ export const LOCAL_TOKENS = {
   // manifest.json (public/assets/characters) : perso KayKit ≈2,4-2,7 de haut ; ≈0,7 le ramène à l'échelle
   // "mètres" du reste du jeu (arène ≈24 m, budget de déplacement 6 m).
   fighterScale: 0.7,
+  // Locomotion des persos (fighters/index.ts) : lissage, orientation façon Smash, saut en 3 temps.
+  locomotion: {
+    followXZ: 0.05,        // s : suivi horizontal de la position physique (avant 0.12 = perso « flottant »)
+    followY: 0.015,        // s : suivi vertical quasi direct (saut sec, pas de retard)
+    velSmooth: 0.06,       // s : lissage de la vitesse mesurée
+    runThreshold: 0.35,    // m/s : au-dessus, le perso court
+    runRefSpeed: 3.4,      // m/s : vitesse à laquelle le cycle de course est joué à 1×
+    runRateMin: 0.75,
+    runRateMax: 1.35,
+    leanMaxDeg: 12,
+    turnRun: 0.045,        // s : demi-tour vif vers la direction de course
+    turnIdle: 0.12,        // s : se retourne vers l'adversaire à l'arrêt
+    turnAction: 0.04,      // s : face à l'adversaire pendant un tir/une parade
+    airVelY: 0.9,          // m/s : |vitesse verticale| au-delà de laquelle on est en l'air
+    groundHold: 0.09,      // s : immobile verticalement pendant ce temps = posé (évite le faux posé au sommet du saut)
+    jumpStartSpeed: 1.7,   // impulsion jouée vite : anticipation courte
+    landSpeed: 1.5,
+    landSquashMin: 0.84,   // écrasement à la réception (1 = aucun), selon la vitesse de chute
+    landSquashMax: 0.7, 
+    landFallRef: 9,
+    landFallFast: 2.5,     // m/s : chute au-delà de laquelle l'arrêt vertical est une réception immédiate        // m/s : chute qui donne l'écrasement max
+  },
   aimFallback: {
     // gravité apparente par catégorie quand `aim:update` n'a pas encore de `path` prédit (lot LG pas branché)
     gravity: { blaster: 1.5, grenade: 13, throwable: 8, shield: 0 },
