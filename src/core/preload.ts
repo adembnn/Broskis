@@ -228,12 +228,17 @@ async function rehearse(ctx: Ctx): Promise<void> {
   for (let i = 0; i < 100 && !settled(); i++) await sleep(100);
   if (ctx.state.phase !== 'title') return; // le joueur est déjà parti : ne rien construire sous ses yeux
   const t0 = performance.now();
-  const resume = pauseRender(ctx);
   const before = new Set(ctx.three.scene.children);
   const added: Object3D[] = [];
+  // LPERF3 : la map se construit DERRIÈRE le menu opaque (voir commentaire ci-dessus) — pas besoin de geler le
+  // rendu pendant sa construction (mapTest + waitSceneStable, jusqu'à 4 s) : on ne gèle qu'autour de compileScene,
+  // la partie qui a vraiment besoin d'une image figée. Un rendu gelé plus longtemps aurait aussi gelé un vrai
+  // match démarré entre-temps (le joueur n'a pas attendu le titre) : `ctx.three.render` est un objet PARTAGÉ.
+  const toujoursTitre = () => ctx.state.phase === 'title';
   try {
     mapTest(MAPS[0]);
     await waitSceneStable(ctx, 4000);
+    if (!toujoursTitre()) return;
     const spawns: [number, number, number][] = ctx.state.players.map((p) => p.pos);
     warmFighters.forEach((f, i) => {
       const [x, y, z] = spawns[i % spawns.length] ?? [0, 0, 0];
@@ -242,16 +247,21 @@ async function rehearse(ctx: Ctx): Promise<void> {
       added.push(f);
     });
 
-    await compileScene(ctx, 4000);
-
+    const resume = pauseRender(ctx);
+    try {
+      await compileScene(ctx, 4000);
+    } finally {
+      resume();
+    }
+    if (!toujoursTitre()) return;
   } catch (e) {
     console.warn('[preload] répétition', e);
-  } finally {
-    resume();
   }
+  if (!toujoursTitre()) return; // un vrai match a démarré pendant les 2 images ci-dessous : on ne touche plus à rien
   // Deux vraies images (derrière le menu) : cartes d'ombre, envoi au GPU de ce qui manquait.
   await nextFrame();
   await nextFrame();
+  if (!toujoursTitre()) return;
   // On retire ensuite tout ce que la répétition a posé : les menus n'ont pas à dessiner une map cachée à chaque image.
   // Les programmes GPU restent en cache ; le vrai match reconstruit sa map (le moteur retire l'ancienne de lui-même).
   for (const c of [...ctx.three.scene.children]) if (!before.has(c)) ctx.three.scene.remove(c);
