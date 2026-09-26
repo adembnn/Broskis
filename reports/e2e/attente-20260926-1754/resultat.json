@@ -1,0 +1,5275 @@
+{
+ "branch": "worktree-agent-a5399d4fc3ca2735d",
+ "commit": "0e3173c",
+ "verdicts": [
+  {
+   "label": "Texte progressif (≥ 3 états intermédiaires) — tête",
+   "ok": true,
+   "detail": "5 textes différents avant la tête"
+  },
+  {
+   "label": "Texte progressif (≥ 3 états intermédiaires) — objet",
+   "ok": true,
+   "detail": "6 textes différents avant l'objet 3D"
+  },
+  {
+   "label": "L'image se révèle — tête",
+   "ok": true,
+   "detail": "images visibles : 2 → 5"
+  },
+  {
+   "label": "L'image se révèle — objet",
+   "ok": true,
+   "detail": "images visibles : 0 → 3"
+  },
+  {
+   "label": "Le 3D se construit — tête",
+   "ok": true,
+   "detail": "canvas dans l'écran : 1"
+  },
+  {
+   "label": "Le 3D se construit — objet",
+   "ok": false,
+   "detail": "canvas dans l'encart : 0"
+  },
+  {
+   "label": "Aucune seconde où rien ne bouge — tête",
+   "ok": true,
+   "detail": "plus longue immobilité : 0.5 s"
+  },
+  {
+   "label": "Aucune seconde où rien ne bouge — objet",
+   "ok": false,
+   "detail": "plus longue immobilité : 7 s"
+  },
+  {
+   "label": "Validation bloquée tant que la tête n'est pas affichée",
+   "ok": true,
+   "detail": "bouton « Ready » bloqué avant la tête ; tête affichée : oui (11.8 s)"
+  },
+  {
+   "label": "Validation bloquée tant que l'objet 3D n'est pas affiché",
+   "ok": false,
+   "detail": "bouton « Confirm » ACTIF avant l'objet 3D ; objet 3D affiché : non"
+  },
+  {
+   "label": "Réseau ralenti de 8 s : on reste sur l'écran, la progression continue",
+   "ok": true,
+   "detail": "tête affichée à 12.3 s, immobilité max 0.5 s, message : aucun · objet non affiché, immobilité max 0.5 s, note : aucune"
+  },
+  {
+   "label": "API coupée : boutons Retry et Default — tête",
+   "ok": false,
+   "detail": "boutons : Retry, Use my voice, Use my voice, Ready to fight! ; message : Your cartoon head didn't come out this time. Try again, or fight as is."
+  },
+  {
+   "label": "API coupée : boutons Retry et Default — objet",
+   "ok": false,
+   "detail": "boutons : blaster, grenade, throwable, shield, Confirm, Retry, Pick 3 more"
+  }
+ ],
+ "films": {
+  "normal": {
+   "reseau": "normal",
+   "tete": [
+    {
+     "texte": "Fighters ready! Big Gustav P2 S Sir Clank N Nova Fizzlewick W Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 2,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 0,
+     "fichier": "normal-tete-000.jpg",
+     "empreinte": "f3dbfb002a"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 S Sir Clank N Nova Fizzlewick W Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 2,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 0.5,
+     "fichier": "normal-tete-001.jpg",
+     "empreinte": "c5f36cefb5"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 S Sir Clank N Nova Fizzlewick W Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 2,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 2,
+     "fichier": "normal-tete-002.jpg",
+     "empreinte": "f3dbfb002a"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank N Nova Fizzlewick W Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 2.5,
+     "fichier": "normal-tete-003.jpg",
+     "empreinte": "1458eab4e2"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank N Nova Fizzlewick W Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 3.6,
+     "fichier": "normal-tete-004.jpg",
+     "empreinte": "1458eab4e2"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank N Nova Fizzlewick W Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 4.1,
+     "fichier": "normal-tete-005.jpg",
+     "empreinte": "5a9cd34917"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank N Nova Fizzlewick W Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 4.6,
+     "fichier": "normal-tete-006.jpg",
+     "empreinte": "0d9de97623"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank N Nova Fizzlewick W Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 5.2,
+     "fichier": "normal-tete-007.jpg",
+     "empreinte": "b232be80a4"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank N Nova Fizzlewick W Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 5.9,
+     "fichier": "normal-tete-008.jpg",
+     "empreinte": "378ffebc48"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank N Nova Fizzlewick W Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 6.4,
+     "fichier": "normal-tete-009.jpg",
+     "empreinte": "1458eab4e2"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank N Nova Fizzlewick W Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 6.9,
+     "fichier": "normal-tete-010.jpg",
+     "empreinte": "187a7732a2"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank N Nova Fizzlewick W Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 7.6,
+     "fichier": "normal-tete-011.jpg",
+     "empreinte": "1458eab4e2"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank N Nova Fizzlewick W Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 8.2,
+     "fichier": "normal-tete-012.jpg",
+     "empreinte": "5a9cd34917"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick W Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 4,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 8.8,
+     "fichier": "normal-tete-013.jpg",
+     "empreinte": "1ab6b480df"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 9.5,
+     "fichier": "normal-tete-014.jpg",
+     "empreinte": "300bf410e9"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 10.4,
+     "fichier": "normal-tete-015.jpg",
+     "empreinte": "300bf410e9"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing Green Hood's big head… \"Green means go for broke!\" New photo Use my voice P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to figh",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "New photo",
+      "Use my voice",
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 10.9,
+     "fichier": "normal-tete-016.jpg",
+     "empreinte": "c10e2d5e34"
+    },
+    {
+     "texte": "Fighters ready! P1 G \"Green means go for broke!\" New photo Use my voice P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 1,
+     "canvas": 1,
+     "bouton": "actif",
+     "boutons": [
+      "New photo",
+      "Use my voice",
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": true,
+     "t": 11.8,
+     "fichier": "normal-tete-017.jpg",
+     "empreinte": "5ef65cb576"
+    }
+   ],
+   "teteFin": {
+    "ecran": "persos",
+    "boutons": [
+     "New photo",
+     "Use my voice",
+     "Use my voice",
+     "Ready to fight!"
+    ],
+    "message": []
+   },
+   "objet": [
+    {
+     "texte": "Point the camera at an object, or drop in a photo. Use webcam Import a photo No camera found. Import a photo or drop one in.",
+     "imgs": 0,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Use webcam",
+      "Import a photo",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 0,
+     "fichier": "normal-objet-000.jpg",
+     "empreinte": "ed70c9d71c"
+    },
+    {
+     "texte": "Player 1: Gemini is reading your object… Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 0.7,
+     "fichier": "normal-objet-001.jpg",
+     "empreinte": "bf218ffb8f"
+    },
+    {
+     "texte": "Player 1: Gemini is reading your object… Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 3.1,
+     "fichier": "normal-objet-002.jpg",
+     "empreinte": "83712d5cb2"
+    },
+    {
+     "texte": "Player 1: Gemini is reading your object… Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 3.7,
+     "fichier": "normal-objet-003.jpg",
+     "empreinte": "8ecb7778c2"
+    },
+    {
+     "texte": "Player 1: Gemini is reading your object… Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 4.2,
+     "fichier": "normal-objet-004.jpg",
+     "empreinte": "25be6651ad"
+    },
+    {
+     "texte": "Player 1: Gemini is reading your object… Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 4.8,
+     "fichier": "normal-objet-005.jpg",
+     "empreinte": "2b353859be"
+    },
+    {
+     "texte": "Player 1: Gemini is reading your object… Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 5.3,
+     "fichier": "normal-objet-006.jpg",
+     "empreinte": "5666ff7836"
+    },
+    {
+     "texte": "Player 1: Gemini is reading your object… Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 5.9,
+     "fichier": "normal-objet-007.jpg",
+     "empreinte": "946290290a"
+    },
+    {
+     "texte": "Player 1: Gemini is reading your object… Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 6.4,
+     "fichier": "normal-objet-008.jpg",
+     "empreinte": "18e6a14c1d"
+    },
+    {
+     "texte": "The Erg Gemini Snapped Stats Sticker",
+     "imgs": 1,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 6.9,
+     "fichier": "normal-objet-009.jpg",
+     "empreinte": "32460f0137"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Ba Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lumbar support while deflecting",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 7.4,
+     "fichier": "normal-objet-010.jpg",
+     "empreinte": "e6c2450ef1"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 7.9,
+     "fichier": "normal-objet-011.jpg",
+     "empreinte": "54116fa484"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 8.4,
+     "fichier": "normal-objet-012.jpg",
+     "empreinte": "05a1f0ceac"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 8.9,
+     "fichier": "normal-objet-013.jpg",
+     "empreinte": "c046f523bd"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 9.7,
+     "fichier": "normal-objet-014.jpg",
+     "empreinte": "4a6d4b06ce"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 10.7,
+     "fichier": "normal-objet-015.jpg",
+     "empreinte": "f66f4f0b10"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 11.2,
+     "fichier": "normal-objet-016.jpg",
+     "empreinte": "46b9774241"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 12.4,
+     "fichier": "normal-objet-017.jpg",
+     "empreinte": "80e9522dd6"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 14.2,
+     "fichier": "normal-objet-018.jpg",
+     "empreinte": "2f3f2d7af7"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 15.1,
+     "fichier": "normal-objet-019.jpg",
+     "empreinte": "e0398d3593"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 16.3,
+     "fichier": "normal-objet-020.jpg",
+     "empreinte": "f47763dace"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 16.8,
+     "fichier": "normal-objet-021.jpg",
+     "empreinte": "34496b0d2f"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 17.3,
+     "fichier": "normal-objet-022.jpg",
+     "empreinte": "08de07dc92"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 19,
+     "fichier": "normal-objet-023.jpg",
+     "empreinte": "5fcdcc4d12"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 19.5,
+     "fichier": "normal-objet-024.jpg",
+     "empreinte": "0a9b1c4d50"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 20.4,
+     "fichier": "normal-objet-025.jpg",
+     "empreinte": "c71fe9b376"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 21.9,
+     "fichier": "normal-objet-026.jpg",
+     "empreinte": "1f98c87950"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 22.7,
+     "fichier": "normal-objet-027.jpg",
+     "empreinte": "c23adcf797"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 23.5,
+     "fichier": "normal-objet-028.jpg",
+     "empreinte": "be868be4f3"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 24.6,
+     "fichier": "normal-objet-029.jpg",
+     "empreinte": "cc6eba38b7"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 27.9,
+     "fichier": "normal-objet-030.jpg",
+     "empreinte": "e5a1ddce4c"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Forged! Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lumbar support while deflecting",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 31,
+     "fichier": "normal-objet-031.jpg",
+     "empreinte": "de8824ee7d"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Forged! Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lumbar support while deflecting",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 32.4,
+     "fichier": "normal-objet-032.jpg",
+     "empreinte": "de8824ee7d"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Forged! Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lumbar support while deflecting",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 32.9,
+     "fichier": "normal-objet-033.jpg",
+     "empreinte": "de8824ee7d"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Forged! Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lumbar support while deflecting",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 33.7,
+     "fichier": "normal-objet-034.jpg",
+     "empreinte": "de8824ee7d"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Forged! Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lumbar support while deflecting",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 34.6,
+     "fichier": "normal-objet-035.jpg",
+     "empreinte": "de8824ee7d"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Forged! Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lumbar support while deflecting",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 35.1,
+     "fichier": "normal-objet-036.jpg",
+     "empreinte": "de8824ee7d"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Forged! Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lumbar support while deflecting",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 35.6,
+     "fichier": "normal-objet-037.jpg",
+     "empreinte": "de8824ee7d"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Forged! Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lumbar support while deflecting",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 36.1,
+     "fichier": "normal-objet-038.jpg",
+     "empreinte": "de8824ee7d"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Forged! Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lumbar support while deflecting",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 36.9,
+     "fichier": "normal-objet-039.jpg",
+     "empreinte": "de8824ee7d"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Forged! Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lumbar support while deflecting",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 37.7,
+     "fichier": "normal-objet-040.jpg",
+     "empreinte": "de8824ee7d"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Forged! Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lumbar support while deflecting",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 38.3,
+     "fichier": "normal-objet-041.jpg",
+     "empreinte": "de8824ee7d"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Forged! Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lumbar support while deflecting",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 38.8,
+     "fichier": "normal-objet-042.jpg",
+     "empreinte": "de8824ee7d"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Forged! Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lumbar support while deflecting",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 39.8,
+     "fichier": "normal-objet-043.jpg",
+     "empreinte": "de8824ee7d"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Forged! Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lumbar support while deflecting",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 40.3,
+     "fichier": "normal-objet-044.jpg",
+     "empreinte": "de8824ee7d"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Forged! Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lumbar support while deflecting",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 44.3,
+     "fichier": "normal-objet-045.jpg",
+     "empreinte": "de8824ee7d"
+    }
+   ],
+   "objetFin": {
+    "ecran": "arsenal",
+    "boutons": [
+     "blaster",
+     "grenade",
+     "throwable",
+     "shield",
+     "Confirm",
+     "Retry"
+    ],
+    "note": null
+   }
+  },
+  "lent": {
+   "reseau": "lent",
+   "tete": [
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 0,
+     "fichier": "lent-tete-000.jpg",
+     "empreinte": "300bf410e9"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 0.5,
+     "fichier": "lent-tete-001.jpg",
+     "empreinte": "7fdabc985b"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 1,
+     "fichier": "lent-tete-002.jpg",
+     "empreinte": "300bf410e9"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 1.5,
+     "fichier": "lent-tete-003.jpg",
+     "empreinte": "300bf410e9"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 2,
+     "fichier": "lent-tete-004.jpg",
+     "empreinte": "d2eaffb29b"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 2.5,
+     "fichier": "lent-tete-005.jpg",
+     "empreinte": "bf117a0601"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 3,
+     "fichier": "lent-tete-006.jpg",
+     "empreinte": "300bf410e9"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 3.6,
+     "fichier": "lent-tete-007.jpg",
+     "empreinte": "300bf410e9"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 4.1,
+     "fichier": "lent-tete-008.jpg",
+     "empreinte": "350c45fd9f"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 4.6,
+     "fichier": "lent-tete-009.jpg",
+     "empreinte": "4814c22578"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 5.1,
+     "fichier": "lent-tete-010.jpg",
+     "empreinte": "300bf410e9"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 5.6,
+     "fichier": "lent-tete-011.jpg",
+     "empreinte": "300bf410e9"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 6.1,
+     "fichier": "lent-tete-012.jpg",
+     "empreinte": "7196a83c14"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 6.6,
+     "fichier": "lent-tete-013.jpg",
+     "empreinte": "300bf410e9"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 7.1,
+     "fichier": "lent-tete-014.jpg",
+     "empreinte": "300bf410e9"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 7.6,
+     "fichier": "lent-tete-015.jpg",
+     "empreinte": "afc96ad279"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 8.2,
+     "fichier": "lent-tete-016.jpg",
+     "empreinte": "f381f0171c"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 8.7,
+     "fichier": "lent-tete-017.jpg",
+     "empreinte": "300bf410e9"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 9.2,
+     "fichier": "lent-tete-018.jpg",
+     "empreinte": "300bf410e9"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing P1's big head… P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 9.7,
+     "fichier": "lent-tete-019.jpg",
+     "empreinte": "df43bb1138"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing Green Hood's big head… \"Behold the power of code!\" New photo Use my voice P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to figh",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "New photo",
+      "Use my voice",
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 10.2,
+     "fichier": "lent-tete-020.jpg",
+     "empreinte": "15089225db"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing Green Hood's big head… \"Behold the power of code!\" New photo Use my voice P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to figh",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "New photo",
+      "Use my voice",
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 10.7,
+     "fichier": "lent-tete-021.jpg",
+     "empreinte": "1da3d9d8c2"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing Green Hood's big head… \"Behold the power of code!\" New photo Use my voice P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to figh",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "New photo",
+      "Use my voice",
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 11.2,
+     "fichier": "lent-tete-022.jpg",
+     "empreinte": "15089225db"
+    },
+    {
+     "texte": "Fighters ready! Big Gustav P2 Sir Clank Nova Fizzlewick Whisper Vex Snap yourself P1 P1 Drawing Green Hood's big head… \"Behold the power of code!\" New photo Use my voice P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to figh",
+     "imgs": 5,
+     "canvas": 0,
+     "bouton": "bloqué",
+     "boutons": [
+      "New photo",
+      "Use my voice",
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 11.8,
+     "fichier": "lent-tete-023.jpg",
+     "empreinte": "15089225db"
+    },
+    {
+     "texte": "Fighters ready! P1 \"Behold the power of code!\" New photo Use my voice P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 2,
+     "canvas": 1,
+     "bouton": "actif",
+     "boutons": [
+      "New photo",
+      "Use my voice",
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": true,
+     "t": 12.3,
+     "fichier": "lent-tete-024.jpg",
+     "empreinte": "701bb5bffe"
+    }
+   ],
+   "teteFin": {
+    "ecran": "persos",
+    "boutons": [
+     "New photo",
+     "Use my voice",
+     "Use my voice",
+     "Ready to fight!"
+    ],
+    "message": []
+   },
+   "objet": [
+    {
+     "texte": "Point the camera at an object, or drop in a photo. Use webcam Import a photo No camera found. Import a photo or drop one in.",
+     "imgs": 0,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "Use webcam",
+      "Import a photo",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 0,
+     "fichier": "lent-objet-000.jpg",
+     "empreinte": "a3ce9dbde5"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawin Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lumbar support wh",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 0.5,
+     "fichier": "lent-objet-001.jpg",
+     "empreinte": "71db863602"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 1,
+     "fichier": "lent-objet-002.jpg",
+     "empreinte": "b261ef38c5"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 1.5,
+     "fichier": "lent-objet-003.jpg",
+     "empreinte": "718cc990a4"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 2.1,
+     "fichier": "lent-objet-004.jpg",
+     "empreinte": "55cc4b06f7"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 2.6,
+     "fichier": "lent-objet-005.jpg",
+     "empreinte": "4a6d4b06ce"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 3.1,
+     "fichier": "lent-objet-006.jpg",
+     "empreinte": "412aea2541"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 3.6,
+     "fichier": "lent-objet-007.jpg",
+     "empreinte": "8a95a1c469"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 4.1,
+     "fichier": "lent-objet-008.jpg",
+     "empreinte": "832d5707eb"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 4.6,
+     "fichier": "lent-objet-009.jpg",
+     "empreinte": "84805a039a"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 5.1,
+     "fichier": "lent-objet-010.jpg",
+     "empreinte": "76e2cc1055"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 5.6,
+     "fichier": "lent-objet-011.jpg",
+     "empreinte": "f1b374edd6"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 6.2,
+     "fichier": "lent-objet-012.jpg",
+     "empreinte": "bb0d737f61"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 6.7,
+     "fichier": "lent-objet-013.jpg",
+     "empreinte": "d8f3081444"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 7.2,
+     "fichier": "lent-objet-014.jpg",
+     "empreinte": "88fbad27eb"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 7.7,
+     "fichier": "lent-objet-015.jpg",
+     "empreinte": "6a616e5fc4"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 8.2,
+     "fichier": "lent-objet-016.jpg",
+     "empreinte": "2f7dc657d1"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 8.7,
+     "fichier": "lent-objet-017.jpg",
+     "empreinte": "cfb2a14155"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 9.2,
+     "fichier": "lent-objet-018.jpg",
+     "empreinte": "38a484e94a"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 9.7,
+     "fichier": "lent-objet-019.jpg",
+     "empreinte": "be1dc92535"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 10.3,
+     "fichier": "lent-objet-020.jpg",
+     "empreinte": "68e7abe850"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 10.8,
+     "fichier": "lent-objet-021.jpg",
+     "empreinte": "214ee98dbd"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 11.3,
+     "fichier": "lent-objet-022.jpg",
+     "empreinte": "3612354a47"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 11.8,
+     "fichier": "lent-objet-023.jpg",
+     "empreinte": "48074618be"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 12.3,
+     "fichier": "lent-objet-024.jpg",
+     "empreinte": "f90145aa0a"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 12.8,
+     "fichier": "lent-objet-025.jpg",
+     "empreinte": "38a484e94a"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 13.4,
+     "fichier": "lent-objet-026.jpg",
+     "empreinte": "aa54b1ec9c"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 13.9,
+     "fichier": "lent-objet-027.jpg",
+     "empreinte": "523d4d14e0"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 14.4,
+     "fichier": "lent-objet-028.jpg",
+     "empreinte": "f3116037b5"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 14.9,
+     "fichier": "lent-objet-029.jpg",
+     "empreinte": "66e3938da0"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 15.4,
+     "fichier": "lent-objet-030.jpg",
+     "empreinte": "2f7dc657d1"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 15.9,
+     "fichier": "lent-objet-031.jpg",
+     "empreinte": "c23adcf797"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 16.4,
+     "fichier": "lent-objet-032.jpg",
+     "empreinte": "cc6eba38b7"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 16.9,
+     "fichier": "lent-objet-033.jpg",
+     "empreinte": "44b8397f02"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 17.5,
+     "fichier": "lent-objet-034.jpg",
+     "empreinte": "5d3601ec12"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 18,
+     "fichier": "lent-objet-035.jpg",
+     "empreinte": "2fee3cf548"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 18.5,
+     "fichier": "lent-objet-036.jpg",
+     "empreinte": "e8c8743f9c"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 19,
+     "fichier": "lent-objet-037.jpg",
+     "empreinte": "b0cf6bbb5b"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 19.5,
+     "fichier": "lent-objet-038.jpg",
+     "empreinte": "b541459b40"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 20,
+     "fichier": "lent-objet-039.jpg",
+     "empreinte": "6406d1475d"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 20.5,
+     "fichier": "lent-objet-040.jpg",
+     "empreinte": "2e6f8d343d"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 21,
+     "fichier": "lent-objet-041.jpg",
+     "empreinte": "9f405a029f"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 21.5,
+     "fichier": "lent-objet-042.jpg",
+     "empreinte": "f2dbec7dcc"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 22.4,
+     "fichier": "lent-objet-043.jpg",
+     "empreinte": "2e52392346"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 22.9,
+     "fichier": "lent-objet-044.jpg",
+     "empreinte": "57c08e47d6"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 23.4,
+     "fichier": "lent-objet-045.jpg",
+     "empreinte": "a27476a589"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 23.9,
+     "fichier": "lent-objet-046.jpg",
+     "empreinte": "72ba651ddc"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 24.4,
+     "fichier": "lent-objet-047.jpg",
+     "empreinte": "8ca8e19c51"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 24.9,
+     "fichier": "lent-objet-048.jpg",
+     "empreinte": "3d4cdd4406"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 25.5,
+     "fichier": "lent-objet-049.jpg",
+     "empreinte": "8ca8e19c51"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 26,
+     "fichier": "lent-objet-050.jpg",
+     "empreinte": "3ddb038027"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 26.5,
+     "fichier": "lent-objet-051.jpg",
+     "empreinte": "5210fe7e99"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 27,
+     "fichier": "lent-objet-052.jpg",
+     "empreinte": "ce18346058"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 27.5,
+     "fichier": "lent-objet-053.jpg",
+     "empreinte": "05e33ce006"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 28,
+     "fichier": "lent-objet-054.jpg",
+     "empreinte": "87386e1109"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 28.5,
+     "fichier": "lent-objet-055.jpg",
+     "empreinte": "245944dd0a"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 29.1,
+     "fichier": "lent-objet-056.jpg",
+     "empreinte": "7e3137f7dd"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 29.7,
+     "fichier": "lent-objet-057.jpg",
+     "empreinte": "56b36f44be"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 30.2,
+     "fichier": "lent-objet-058.jpg",
+     "empreinte": "756e61b00c"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 30.7,
+     "fichier": "lent-objet-059.jpg",
+     "empreinte": "4a6af1e11a"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 31.6,
+     "fichier": "lent-objet-060.jpg",
+     "empreinte": "625ff489d3"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 32.2,
+     "fichier": "lent-objet-061.jpg",
+     "empreinte": "444f6788f5"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 32.7,
+     "fichier": "lent-objet-062.jpg",
+     "empreinte": "d7231630af"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 33.2,
+     "fichier": "lent-objet-063.jpg",
+     "empreinte": "862acbfefd"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 33.7,
+     "fichier": "lent-objet-064.jpg",
+     "empreinte": "f03bb579ac"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 34.2,
+     "fichier": "lent-objet-065.jpg",
+     "empreinte": "7873ff63c5"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 34.7,
+     "fichier": "lent-objet-066.jpg",
+     "empreinte": "3a1e08b15e"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 35.2,
+     "fichier": "lent-objet-067.jpg",
+     "empreinte": "abbb91f7f6"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 35.7,
+     "fichier": "lent-objet-068.jpg",
+     "empreinte": "1cfd16a213"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 36.3,
+     "fichier": "lent-objet-069.jpg",
+     "empreinte": "091f077430"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 36.8,
+     "fichier": "lent-objet-070.jpg",
+     "empreinte": "406c9640e1"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 37.3,
+     "fichier": "lent-objet-071.jpg",
+     "empreinte": "a0ec6f046f"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 37.8,
+     "fichier": "lent-objet-072.jpg",
+     "empreinte": "2a7e508f30"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 38.3,
+     "fichier": "lent-objet-073.jpg",
+     "empreinte": "1b053d489d"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 38.8,
+     "fichier": "lent-objet-074.jpg",
+     "empreinte": "1b0392d1d8"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 39.3,
+     "fichier": "lent-objet-075.jpg",
+     "empreinte": "1b0392d1d8"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 40.2,
+     "fichier": "lent-objet-076.jpg",
+     "empreinte": "25258d94b1"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 40.7,
+     "fichier": "lent-objet-077.jpg",
+     "empreinte": "979213afd7"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 41.2,
+     "fichier": "lent-objet-078.jpg",
+     "empreinte": "0831d282a9"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 41.7,
+     "fichier": "lent-objet-079.jpg",
+     "empreinte": "347ac27b1d"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 42.2,
+     "fichier": "lent-objet-080.jpg",
+     "empreinte": "dae53b1c2e"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 42.8,
+     "fichier": "lent-objet-081.jpg",
+     "empreinte": "13febd5863"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 43.3,
+     "fichier": "lent-objet-082.jpg",
+     "empreinte": "b0cf6bbb5b"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 43.8,
+     "fichier": "lent-objet-083.jpg",
+     "empreinte": "7ed1c9b837"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 44.3,
+     "fichier": "lent-objet-084.jpg",
+     "empreinte": "5be2ee8f76"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 44.8,
+     "fichier": "lent-objet-085.jpg",
+     "empreinte": "3ac0a413b3"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 45.4,
+     "fichier": "lent-objet-086.jpg",
+     "empreinte": "fa4af5fe04"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 45.9,
+     "fichier": "lent-objet-087.jpg",
+     "empreinte": "66538c265e"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 46.5,
+     "fichier": "lent-objet-088.jpg",
+     "empreinte": "801de8a679"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 47,
+     "fichier": "lent-objet-089.jpg",
+     "empreinte": "48074618be"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 47.5,
+     "fichier": "lent-objet-090.jpg",
+     "empreinte": "153e788d49"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 48,
+     "fichier": "lent-objet-091.jpg",
+     "empreinte": "d2854ac264"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 48.5,
+     "fichier": "lent-objet-092.jpg",
+     "empreinte": "da5b182a56"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 49,
+     "fichier": "lent-objet-093.jpg",
+     "empreinte": "0c6152c0ff"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 49.5,
+     "fichier": "lent-objet-094.jpg",
+     "empreinte": "c8fec929bb"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 50,
+     "fichier": "lent-objet-095.jpg",
+     "empreinte": "d0f7cb8a15"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 50.6,
+     "fichier": "lent-objet-096.jpg",
+     "empreinte": "5b8fd061ed"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 51.1,
+     "fichier": "lent-objet-097.jpg",
+     "empreinte": "f74408f7c9"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 51.6,
+     "fichier": "lent-objet-098.jpg",
+     "empreinte": "585db2a89d"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 52.1,
+     "fichier": "lent-objet-099.jpg",
+     "empreinte": "0c9fb8f804"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 52.7,
+     "fichier": "lent-objet-100.jpg",
+     "empreinte": "9372b2da72"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 53.2,
+     "fichier": "lent-objet-101.jpg",
+     "empreinte": "cc6eba38b7"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 53.7,
+     "fichier": "lent-objet-102.jpg",
+     "empreinte": "c139b054ed"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 54.2,
+     "fichier": "lent-objet-103.jpg",
+     "empreinte": "4b79efa18f"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 54.7,
+     "fichier": "lent-objet-104.jpg",
+     "empreinte": "eb1f9af1d7"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 55.2,
+     "fichier": "lent-objet-105.jpg",
+     "empreinte": "7ee3abaa99"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 55.8,
+     "fichier": "lent-objet-106.jpg",
+     "empreinte": "a0d8685a8f"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 56.3,
+     "fichier": "lent-objet-107.jpg",
+     "empreinte": "c6547b12a6"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 56.8,
+     "fichier": "lent-objet-108.jpg",
+     "empreinte": "aa86ed87a3"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 57.3,
+     "fichier": "lent-objet-109.jpg",
+     "empreinte": "eb288014b7"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 57.8,
+     "fichier": "lent-objet-110.jpg",
+     "empreinte": "48074618be"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 58.3,
+     "fichier": "lent-objet-111.jpg",
+     "empreinte": "b68fd3e2b7"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 58.8,
+     "fichier": "lent-objet-112.jpg",
+     "empreinte": "598c14de9d"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 59.4,
+     "fichier": "lent-objet-113.jpg",
+     "empreinte": "3384273276"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 59.9,
+     "fichier": "lent-objet-114.jpg",
+     "empreinte": "4f4984bb37"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 60.4,
+     "fichier": "lent-objet-115.jpg",
+     "empreinte": "6421bd44bb"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 60.9,
+     "fichier": "lent-objet-116.jpg",
+     "empreinte": "08aba535f4"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 61.4,
+     "fichier": "lent-objet-117.jpg",
+     "empreinte": "cc6eba38b7"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 61.9,
+     "fichier": "lent-objet-118.jpg",
+     "empreinte": "7f32756f44"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 62.4,
+     "fichier": "lent-objet-119.jpg",
+     "empreinte": "ad5141fc6e"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 63,
+     "fichier": "lent-objet-120.jpg",
+     "empreinte": "48074618be"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 63.5,
+     "fichier": "lent-objet-121.jpg",
+     "empreinte": "1907e26aa7"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 64,
+     "fichier": "lent-objet-122.jpg",
+     "empreinte": "dbefc834b6"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 64.5,
+     "fichier": "lent-objet-123.jpg",
+     "empreinte": "319b47de31"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 65,
+     "fichier": "lent-objet-124.jpg",
+     "empreinte": "c8fec929bb"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 65.5,
+     "fichier": "lent-objet-125.jpg",
+     "empreinte": "930f66fc4d"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 66,
+     "fichier": "lent-objet-126.jpg",
+     "empreinte": "a44e1dfdc7"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 66.5,
+     "fichier": "lent-objet-127.jpg",
+     "empreinte": "03c9f5ec81"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 67.1,
+     "fichier": "lent-objet-128.jpg",
+     "empreinte": "aa6a622901"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 67.6,
+     "fichier": "lent-objet-129.jpg",
+     "empreinte": "66972859b6"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 68.1,
+     "fichier": "lent-objet-130.jpg",
+     "empreinte": "d9c44cf845"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 68.6,
+     "fichier": "lent-objet-131.jpg",
+     "empreinte": "979213afd7"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 69.1,
+     "fichier": "lent-objet-132.jpg",
+     "empreinte": "0c56925fa4"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "actif",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 69.6,
+     "fichier": "lent-objet-133.jpg",
+     "empreinte": "ac8cda1405"
+    }
+   ],
+   "objetFin": {
+    "ecran": "arsenal",
+    "boutons": [
+     "blaster",
+     "grenade",
+     "throwable",
+     "shield",
+     "Confirm",
+     "Retry"
+    ],
+    "note": null
+   }
+  },
+  "coupe": {
+   "reseau": "coupe",
+   "tete": [
+    {
+     "texte": "Fighters ready! P1 Your cartoon head didn't come out this time. Try again, or fight as is. Retry Use my voice P2 Big Gustav \"Subtlety is for other guys.\" Use my voice Ready to fight!",
+     "imgs": 2,
+     "canvas": 1,
+     "bouton": "actif",
+     "boutons": [
+      "Retry",
+      "Use my voice",
+      "Use my voice",
+      "Ready to fight!"
+     ],
+     "present": true,
+     "affiche": true,
+     "t": 0,
+     "fichier": "coupe-tete-000.jpg",
+     "empreinte": "eabfd5c23d"
+    }
+   ],
+   "teteFin": {
+    "ecran": "persos",
+    "boutons": [
+     "Retry",
+     "Use my voice",
+     "Use my voice",
+     "Ready to fight!"
+    ],
+    "message": [
+     "Your cartoon head didn't come out this time. Try again, or fight as is."
+    ]
+   }
+  },
+  "coupeObjet": {
+   "objet": [
+    {
+     "texte": "T N Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lumbar support while deflecting projectile HR complaints.",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 0,
+     "fichier": "coupe-objet-000.jpg",
+     "empreinte": "9276fe8401"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 1,
+     "fichier": "coupe-objet-001.jpg",
+     "empreinte": "664165685e"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 1.6,
+     "fichier": "coupe-objet-002.jpg",
+     "empreinte": "7e830e860a"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 2.1,
+     "fichier": "coupe-objet-003.jpg",
+     "empreinte": "ea8dd32d81"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 2.7,
+     "fichier": "coupe-objet-004.jpg",
+     "empreinte": "662bac3bda"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 3.2,
+     "fichier": "coupe-objet-005.jpg",
+     "empreinte": "199931fc11"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 3.7,
+     "fichier": "coupe-objet-006.jpg",
+     "empreinte": "656beeeafd"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 4.6,
+     "fichier": "coupe-objet-007.jpg",
+     "empreinte": "0882d541e8"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 5.4,
+     "fichier": "coupe-objet-008.jpg",
+     "empreinte": "0e13949268"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 5.9,
+     "fichier": "coupe-objet-009.jpg",
+     "empreinte": "3be7a6a453"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 6.4,
+     "fichier": "coupe-objet-010.jpg",
+     "empreinte": "91c0c224e9"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 6.9,
+     "fichier": "coupe-objet-011.jpg",
+     "empreinte": "48074618be"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 7.5,
+     "fichier": "coupe-objet-012.jpg",
+     "empreinte": "2bed23a464"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 8,
+     "fichier": "coupe-objet-013.jpg",
+     "empreinte": "570d9fcbda"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 8.5,
+     "fichier": "coupe-objet-014.jpg",
+     "empreinte": "4c747e3280"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 9.1,
+     "fichier": "coupe-objet-015.jpg",
+     "empreinte": "e0398d3593"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 9.6,
+     "fichier": "coupe-objet-016.jpg",
+     "empreinte": "b76add8db0"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 10.1,
+     "fichier": "coupe-objet-017.jpg",
+     "empreinte": "073b0bedba"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 11.3,
+     "fichier": "coupe-objet-018.jpg",
+     "empreinte": "35a7952fab"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 12,
+     "fichier": "coupe-objet-019.jpg",
+     "empreinte": "15ee562827"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 12.5,
+     "fichier": "coupe-objet-020.jpg",
+     "empreinte": "1fb534331e"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 13.1,
+     "fichier": "coupe-objet-021.jpg",
+     "empreinte": "6406d1475d"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 14.1,
+     "fichier": "coupe-objet-022.jpg",
+     "empreinte": "3c02760077"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 14.6,
+     "fichier": "coupe-objet-023.jpg",
+     "empreinte": "1182b81dc6"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 15.6,
+     "fichier": "coupe-objet-024.jpg",
+     "empreinte": "e0ecd49e79"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 16.4,
+     "fichier": "coupe-objet-025.jpg",
+     "empreinte": "b3435316aa"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 16.9,
+     "fichier": "coupe-objet-026.jpg",
+     "empreinte": "6d30984567"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 17.6,
+     "fichier": "coupe-objet-027.jpg",
+     "empreinte": "886fc150a6"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 18.5,
+     "fichier": "coupe-objet-028.jpg",
+     "empreinte": "6406d1475d"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 19,
+     "fichier": "coupe-objet-029.jpg",
+     "empreinte": "51f2a5e254"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 19.6,
+     "fichier": "coupe-objet-030.jpg",
+     "empreinte": "b4008399ba"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 20.1,
+     "fichier": "coupe-objet-031.jpg",
+     "empreinte": "75cf1ce15c"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 21,
+     "fichier": "coupe-objet-032.jpg",
+     "empreinte": "6b971194f3"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 21.5,
+     "fichier": "coupe-objet-033.jpg",
+     "empreinte": "0c9fb8f804"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 22.3,
+     "fichier": "coupe-objet-034.jpg",
+     "empreinte": "d320f7ffdd"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 22.8,
+     "fichier": "coupe-objet-035.jpg",
+     "empreinte": "70d5bbed68"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 23.5,
+     "fichier": "coupe-objet-036.jpg",
+     "empreinte": "f171123e2e"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 24.3,
+     "fichier": "coupe-objet-037.jpg",
+     "empreinte": "04795cbb6b"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 25.2,
+     "fichier": "coupe-objet-038.jpg",
+     "empreinte": "4941b05e2a"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 26.2,
+     "fichier": "coupe-objet-039.jpg",
+     "empreinte": "ea985afced"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 26.8,
+     "fichier": "coupe-objet-040.jpg",
+     "empreinte": "76bab6080f"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 27.5,
+     "fichier": "coupe-objet-041.jpg",
+     "empreinte": "5b5afe5562"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 28.2,
+     "fichier": "coupe-objet-042.jpg",
+     "empreinte": "2e5cfeff9a"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 28.7,
+     "fichier": "coupe-objet-043.jpg",
+     "empreinte": "9e4180a7e0"
+    },
+    {
+     "texte": "The Ergonomic Bulwark Nano Banana is drawing your sticker… Snapped Stats Sticker BROSKIS SHIELD #01 The Ergonomic Bulwark From: office chair 9.5 kg · 85 cm · fabric Guard Size Reflect HEAVY blastergrenadethrowableshield \"It provides full lu",
+     "imgs": 3,
+     "canvas": 0,
+     "bouton": "absent",
+     "boutons": [
+      "blaster",
+      "grenade",
+      "throwable",
+      "shield",
+      "Confirm",
+      "Retry",
+      "Pick 3 more"
+     ],
+     "present": true,
+     "affiche": false,
+     "t": 29.6,
+     "fichier": "coupe-objet-044.jpg",
+     "empreinte": "6f1a86b0fe"
+    }
+   ],
+   "boutons": [
+    "blaster",
+    "grenade",
+    "throwable",
+    "shield",
+    "Confirm",
+    "Retry",
+    "Pick 3 more"
+   ]
+  }
+ }
+}
