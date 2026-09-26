@@ -29,6 +29,8 @@ const REGLES = `Règles communes (non négociables) :
 - Tout le texte affiché dans le jeu est en ANGLAIS. Code et commentaires en français, courts.
 - Ne touche QUE les chemins que ta consigne t'attribue. N'installe AUCUN paquet npm (dis-le dans ton rendu s'il t'en faut un).
 - Ne lis jamais le fichier .env et n'affiche jamais une clé.
+- INTERDIT ABSOLU : n'arrête JAMAIS un processus que tu n'as pas lancé toi-même. Pas de « Get-Process node | Stop-Process », « taskkill /IM node.exe », « killall node », « pkill node » : d'autres agents et le tableau de bord d'Adem tournent sur la même machine. Pour arrêter un serveur de test, garde son PID quand tu le lances et arrête ce PID-là uniquement. Pour tes serveurs de test, utilise un port libre entre 5300 et 5399.
+- Si ta copie contient déjà des fichiers de ton lot (reprise après interruption), relis-les et CONTINUE le travail au lieu de repartir de zéro.
 - Avant de rendre : \`npm run build\` doit passer.
 - Commite tes fichiers en les nommant un par un (jamais git add -A), message en français clair terminé par la ligne « Co-Authored-By: Gemini <noreply@google.com> ». Ne pousse pas.
 - Écris ton rendu dans plan/rendus/${id}.md (fait avec chemins et hash · pas fait et pourquoi · décisions prises seul · frictions) et commite-le aussi.`;
