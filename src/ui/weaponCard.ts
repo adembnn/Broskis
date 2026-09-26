@@ -1,12 +1,13 @@
-// Carte d'arme façon Wacky Packages (règle 5 du DA), 5:7, bord vinyle 12 px : bandeau catégorie + numéro,
-// illustration en trame de points sur la couleur claire du joueur (+ la vraie photo webcam en niveaux de gris,
-// agrafée, pour les armes scannées), bandeau de nom couleur du joueur, 3 rangées de 6 pastilles, trait en tampon.
+// Carte d'arme façon Wacky Packages (règle 5 du DA), 5:7, bord vinyle 12 px : bandeau catégorie (icône + mot) +
+// numéro, le sticker de l'arme sur une trame de points couleur claire du joueur (+ la vraie photo webcam en niveaux
+// de gris, agrafée, pour les armes scannées), bandeau de nom couleur du joueur, 3 rangées de 6 pastilles, tampon.
 // Présentation : arrive dos kraft, se retourne (durees.glisse), les pastilles se remplissent une à une (durees.pastille).
 import { durees } from '../art/tokens.js';
 import { CATEGORIES, STAT_NAMES } from '../core/types';
 import type { Category, PlayerId, Weapon } from '../core/types';
 import { el } from './dom';
 import { categoryIconSvg } from './icons';
+import { weaponSticker } from './sticker2d';
 import { LOCAL_TOKENS } from './theme';
 
 export interface WeaponCardOptions {
@@ -36,14 +37,15 @@ function buildFront(weapon: Weapon, opts: WeaponCardOptions): HTMLDivElement {
   front.style.setProperty('--owner-light', `var(--b-p${player + 1}-clair)`);
 
   const band = el('div', 'wc-band-top');
-  const catLabel = el('span', 'wc-category', weapon.category);
+  const catLabel = el('span', 'wc-category');
+  catLabel.innerHTML = categoryIconSvg(weapon.category);
+  catLabel.append(el('span', '', weapon.category));
   catLabel.style.setProperty('--accent', LOCAL_TOKENS.category[weapon.category]);
   band.append(catLabel, el('span', 'wc-number', `#${String(opts.cardNumber ?? 1).padStart(2, '0')}`));
 
+  // Le vrai visuel de l'arme (sticker détouré, ou forge tant qu'il n'est pas arrivé) — jamais un pictogramme.
   const illustration = el('div', 'wc-illustration');
-  const glyph = el('div', 'wc-glyph');
-  glyph.innerHTML = categoryIconSvg(weapon.category);
-  illustration.append(glyph);
+  illustration.append(weaponSticker(weapon, 'wc-sticker'));
   if (opts.photoUrl) {
     const photoWrap = el('div', 'wc-photo-wrap');
     const img = el('img', 'wc-photo');
