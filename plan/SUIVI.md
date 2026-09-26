@@ -13,10 +13,10 @@ Réserver une ligne **avant** de commencer : nom + heure, commit + push de ce fi
 | LI | Pipeline IA + serveur | moyen | Adem (sous-agent) | L0 | en cours | Adem (sous-agent) 12h10 | |
 | LU | Interface | moyen | Adem (sous-agent) | L0, DA | en cours | Adem (sous-agent) 12h10 | |
 | LP | Perso photo en direct | moyen | Adem (sous-agent) | LI | à prendre | | |
-| LS | Sticker 3D | faible | **Titouan** | — | en cours | Titouan (Claude) 11h26 | toon-kit.js d'Adem pas accessible sur ce PC, je démarre sans en attendant |
-| LV | Audio et voix | faible | **Titouan** | L0 | à prendre | | |
+| LS | Sticker 3D | faible | **Titouan** | — | fait | Titouan (Claude) 11h26 → 12h45 | Voir rendu dans plan/lots/LS-sticker-3d.md. Pas encore poussé (accès GitHub en lecture seule). |
+| LV | Audio et voix | faible | **Titouan** | L0 | en cours | Titouan (Claude, sous-agent) 12h46 | |
 | LP2 | Vedettes 3D préparées (sans Tripo : MCP Blender + Rodin gratuit) | faible | PC d'Adem (Gemini) | MCP Blender | à prendre | | |
-| LD | Démo, vidéo, bande-annonce | faible | **Titouan** (+ Adem) | — | à prendre | | Références visuelles dès maintenant |
+| LD | Démo, vidéo, bande-annonce | faible | **Titouan** (+ Adem) | — | en cours | Titouan (Claude, sous-agent) 12h46 | Références visuelles dès maintenant |
 | LK | Parade avancée (validée par Adem) | moyen | Adem (Gemini) | LG, LA, LU, LV | à prendre | | Spéc complète : plan/lots/LK-parade.md |
 | LX | Adversaire IA (vague 2) | moyen | Adem | LG | à prendre | | |
 | LW | Scandex + voix clonée (vague 2) | faible | partagé | LI, LU | à prendre | | |
