@@ -98,15 +98,22 @@ const IMAGE_TIMEOUT_MS = 23_000;
 /** Nano Banana 2 (modèle cité dans le SDK @google/genai) : ~9 s contre 16 à 21 s pour Pro, rendu aussi drôle
  * et ressemblant sur ce style de portrait (mesuré le 26/09, voir plan/rendus/LFACE.md). */
 const FACE_FAST_MODEL = 'gemini-3.1-flash-image';
+/** Nano Banana 2 Lite (plan/lots/LI-pipeline-ia.md) : mis dans la course s'il répond sur la clé ; sinon il échoue vite
+ * et la course continue sans lui. */
+const FACE_LITE_MODEL = 'gemini-3.1-flash-lite-image';
 
 interface Portrait { url?: string; reason: string | null; model: string; ms: number }
 
-async function genererPortrait(ai: GoogleGenAI, model: string, parts: Part[], t0: number): Promise<Portrait> {
+async function genererPortrait(ai: GoogleGenAI, model: string, parts: Part[], t0: number, stop?: AbortSignal): Promise<Portrait> {
   try {
     const res = await ai.models.generateContent({
       model,
       contents: [{ role: 'user', parts }],
-      config: { responseModalities: [Modality.IMAGE], imageConfig: { aspectRatio: '16:9' }, abortSignal: serverTimeout(IMAGE_TIMEOUT_MS) },
+      config: {
+        responseModalities: [Modality.IMAGE],
+        imageConfig: { aspectRatio: '16:9' },
+        abortSignal: stop ? AbortSignal.any([serverTimeout(IMAGE_TIMEOUT_MS), stop]) : serverTimeout(IMAGE_TIMEOUT_MS),
+      },
     });
     const candidate = res.candidates?.[0];
     if (candidate?.finishReason === FinishReason.IMAGE_SAFETY) return { reason: 'IMAGE_SAFETY', model, ms: Date.now() - t0 };
@@ -116,6 +123,7 @@ async function genererPortrait(ai: GoogleGenAI, model: string, parts: Part[], t0
   } catch (err) {
     // Jamais le contenu de la requête dans les logs : seulement le message.
     const msg = String((err as Error)?.message ?? err);
+    if (stop?.aborted) return { reason: 'ABANDON', model, ms: Date.now() - t0 }; // un autre modèle a gagné la course
     console.error(`[api/scan-fighter] portrait ${model} :`, msg.slice(0, 200));
     return { reason: /abort|timeout/i.test(msg) ? 'TIMEOUT' : 'ERROR', model, ms: Date.now() - t0 };
   }
@@ -191,7 +199,11 @@ const handler: ApiHandler<ScanFighterRequest> = async ({ body, env }) => {
    * Double refus : un portrait inventé d'après les traits (texte seul, sans la photo). */
   const dessiner = async (traitsConnus?: Promise<Traits>): Promise<Portrait> => {
     const avecPhoto: Part[] = [{ text: buildImagePrompt() }, { inlineData: { mimeType: mime, data } }];
-    let portrait = await premierPortrait([FACE_FAST_MODEL, GEMINI_IMAGE_MODEL].map((m) => genererPortrait(ai, m, avecPhoto, t0)));
+    // Course : Nano Banana 2 Lite (~3,5 s mesurées), Nano Banana 2 (~9 s) et Pro ; le 1er portrait valide gagne et les
+    // autres appels sont abandonnés (moins de charge sur la clé quand 2 joueurs scannent en même temps).
+    const stop = new AbortController();
+    let portrait = await premierPortrait([FACE_LITE_MODEL, FACE_FAST_MODEL, GEMINI_IMAGE_MODEL].map((m) => genererPortrait(ai, m, avecPhoto, t0, stop.signal)));
+    if (portrait.url) stop.abort();
     if (!portrait.url && (portrait.reason === 'IMAGE_SAFETY' || portrait.reason === 'NO_IMAGE')) {
       const t = await (traitsConnus ?? lireTraits()).catch(() => null);
       if (t) {
