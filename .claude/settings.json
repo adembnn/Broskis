@@ -1,32 +1,118 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run *)", "Bash(npx vite *)", "Bash(npx playwright *)",
-      "Bash(node tools/*)", "Bash(node captures/*)", "Bash(git status *)", "Bash(git add *)", "Bash(git commit *)",
-      "Bash(git pull *)", "Bash(git log *)", "Bash(git diff *)", "Bash(git tag *)", "Bash(date *)",
-      "PowerShell(npm run *)", "PowerShell(npx vite *)", "PowerShell(npx playwright *)",
-      "PowerShell(node tools/*)", "PowerShell(node captures/*)", "PowerShell(git status *)", "PowerShell(git add *)", "PowerShell(git commit *)",
-      "PowerShell(git pull *)", "PowerShell(git log *)", "PowerShell(git diff *)", "PowerShell(git tag *)", "PowerShell(Get-Date *)"
+      "Bash(npm run *)",
+      "Bash(npx vite *)",
+      "Bash(npx playwright *)",
+      "Bash(node tools/*)",
+      "Bash(node captures/*)",
+      "Bash(git status *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git pull *)",
+      "Bash(git log *)",
+      "Bash(git diff *)",
+      "Bash(git tag *)",
+      "Bash(date *)",
+      "PowerShell(npm run *)",
+      "PowerShell(npx vite *)",
+      "PowerShell(npx playwright *)",
+      "PowerShell(node tools/*)",
+      "PowerShell(node captures/*)",
+      "PowerShell(git status *)",
+      "PowerShell(git add *)",
+      "PowerShell(git commit *)",
+      "PowerShell(git pull *)",
+      "PowerShell(git log *)",
+      "PowerShell(git diff *)",
+      "PowerShell(git tag *)",
+      "PowerShell(Get-Date *)"
     ],
     "ask": [
-      "Bash(git push *)", "Bash(git reset *)", "Bash(npm install *)", "Bash(npm i *)",
-      "PowerShell(git push *)", "PowerShell(git reset *)", "PowerShell(npm install *)", "PowerShell(npm i *)",
-      "Bash(rm -rf *)", "PowerShell(Remove-Item -Recurse *)"
+      "Bash(git push *)",
+      "Bash(git reset *)",
+      "Bash(npm install *)",
+      "Bash(npm i *)",
+      "PowerShell(git push *)",
+      "PowerShell(git reset *)",
+      "PowerShell(npm install *)",
+      "PowerShell(npm i *)",
+      "Bash(rm -rf *)",
+      "PowerShell(Remove-Item -Recurse *)"
     ],
-    "deny": ["Read(./.env)", "Read(./.env.local)", "Bash(git push --force *)", "PowerShell(git push --force *)"]
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.local)",
+      "Bash(git push --force *)",
+      "PowerShell(git push --force *)"
+    ]
   },
   "hooks": {
     "SessionStart": [
-      { "hooks": [ { "type": "command", "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/debut-session.mjs\"", "timeout": 20 } ] }
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/debut-session.mjs\"",
+            "timeout": 20
+          }
+        ]
+      }
     ],
     "UserPromptSubmit": [
-      { "hooks": [ { "type": "command", "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/heure.mjs\"", "timeout": 10 } ] }
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/heure.mjs\"",
+            "timeout": 10
+          }
+        ]
+      }
     ],
     "PreToolUse": [
-      { "matcher": "Bash|PowerShell", "hooks": [ { "type": "command", "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/garde-fou.mjs\"", "timeout": 10 } ] }
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/garde-fou.mjs\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/tools/dashboard/hook-claude.mjs\" start",
+            "timeout": 5
+          }
+        ]
+      }
     ],
     "Stop": [
-      { "hooks": [ { "type": "command", "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/fin-de-tour.mjs\"", "timeout": 180 } ] }
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/fin-de-tour.mjs\"",
+            "timeout": 180
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/tools/dashboard/hook-claude.mjs\" stop",
+            "timeout": 5
+          }
+        ]
+      }
     ]
   }
 }

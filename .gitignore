@@ -27,3 +27,5 @@ captures
 .env.local
 .claude/settings.local.json
 .claude/worktrees
+/dashboard/
+/reports/tmp/
