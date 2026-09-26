@@ -49,6 +49,8 @@ export interface EventMap {
   'ko': { player: PlayerId; cause: 'hp' | 'ringout' };
   'match:end': { winner: PlayerId };
   'commentary:line': { text: string; priority: number; audioUrl?: string; at?: number };
+  /** Lot LLOAD : le rideau de chargement s'ouvre sur une scène prête (map construite, shaders compilés). Bon moment pour « READY? ». */
+  'transition:open': { mapId: MapId };
   'camera:cue': { shot: 'turn-swing' | 'follow-projectile' | 'impact' | 'ko-orbit' | 'overview'; target?: PlayerId };
   /** Demande de ralenti : facteur (0,3 = ×0,3) pendant ms millisecondes de temps réel. */
   'slowmo': { factor: number; ms: number };

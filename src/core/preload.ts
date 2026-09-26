@@ -9,7 +9,8 @@
 //   preloadStatus()         état lisible par l'interface et les agents (aussi sur window.__preload)
 // Les caches réels sont ceux des chargeurs de la scène (src/scene/*/loader.ts, cache par URL) : on ne fait
 // qu'appeler ces chargeurs plus tôt, la scène retrouve ensuite le fichier déjà décodé.
-import { DefaultLoadingManager } from 'three';
+import { DefaultLoadingManager, HalfFloatType, WebGLRenderTarget } from 'three';
+import type { Mesh, Object3D } from 'three';
 import type { Ctx, FighterDef, MapId, ModelId } from './types';
 import { MAPS } from './types';
 import { instantiateFighterModel } from '../scene/fighters/loader';
@@ -22,6 +23,8 @@ interface Job { key: string; priority: number; run: () => Promise<unknown> }
 /** Plus grand = plus urgent. */
 const PRIO = { hover: 30, chosen: 20, likely: 10, idle: 0 } as const;
 const PRESET_MODELS: ModelId[] = ['barbarian', 'knight', 'mage', 'rogue_hooded'];
+/** Deux persos suffisent à la répétition générale : tous partagent les mêmes matériaux toon (mêmes programmes GPU). */
+const REHEARSAL_MODELS = PRESET_MODELS.slice(0, 2);
 /** Groupes de src/scene/maps/assets.ts → map. Un groupe inconnu (ajouté par un autre lot) part pour toutes les maps. */
 const GROUP_TO_MAP: Record<string, MapId> = { HEX: 'archipel', PIRATE: 'galion', RESTAURANT: 'cuisine', FURNITURE: 'cuisine' };
 const LEARNED_KEY = 'broskis:lload:map-urls:v1';
@@ -82,10 +85,19 @@ function enqueue(key: string, priority: number, run: () => Promise<unknown>): vo
   pump();
 }
 
+// Pas d'envoi explicite des textures au GPU (renderer.initTexture) : mesuré, chaque envoi coûte 150 à 450 ms
+// d'image figée dans les menus. Les deux images de la répétition générale envoient celles de la map probable
+// (derrière l'écran-titre, statique) ; les autres maps paient sous le rideau.
+
+/** Une copie de chaque perso préchargé, gardée pour la répétition générale (jamais laissée dans la scène). */
+const warmFighters: Object3D[] = [];
+
 function enqueueModel(def: Pick<FighterDef, 'model' | 'glbUrl'>, priority: number): void {
   const key = `fighter:${def.glbUrl ?? def.model}`;
-  // Instancie une fois pour remplir le cache du chargeur des persos (la copie est jetée, jamais ajoutée à la scène).
-  enqueue(key, priority, () => instantiateFighterModel(def, 0));
+  // Instancie une fois pour remplir le cache du chargeur des persos.
+  enqueue(key, priority, () => instantiateFighterModel(def, 0).then((m) => {
+    if (warmFighters.length < 2) warmFighters.push(m.root);
+  }));
 }
 
 export function preloadFighters(defs: readonly FighterDef[]): void {
@@ -96,10 +108,10 @@ export function preloadMap(mapId: MapId, priority: number = PRIO.hover): void {
   for (const url of mapUrls(mapId)) enqueue(`gltf:${url}`, priority, () => preloadGltf([url]));
 }
 
-export function preloadStatus(): { ready: number; loading: number; queued: number; failed: number; items: Record<string, Status> } {
+export function preloadStatus(): { ready: number; loading: number; queued: number; failed: number; rehearsalMs: number; items: Record<string, Status> } {
   const items = Object.fromEntries(status);
   const count = (s: Status) => [...status.values()].filter((v) => v === s).length;
-  return { ready: count('ready'), loading: count('loading'), queued: count('queued'), failed: count('failed'), items };
+  return { ready: count('ready'), loading: count('loading'), queued: count('queued'), failed: count('failed'), rehearsalMs, items };
 }
 
 /** Vrai quand tous les fichiers d'une map sont décodés (l'interface peut afficher « prête »). */
@@ -107,25 +119,130 @@ export function isMapReady(mapId: MapId): boolean {
   return mapUrls(mapId).every((u) => status.get(`gltf:${u}`) === 'ready');
 }
 
+let offscreen: WebGLRenderTarget | null = null;
+
 /**
  * Compile les shaders de tout ce qui est dans la scène, en parallèle et hors du fil principal quand le pilote le
  * permet (KHR_parallel_shader_compile). À appeler rideau fermé : l'image suivante n'a plus rien à compiler.
+ * Le jeu dessine la scène via un post-traitement (src/scene/render/postfx.ts), donc dans une cible hors écran et pas
+ * dans le canvas : les programmes GPU dépendent de la cible (espace de couleur de sortie). On compile donc vers une
+ * cible hors écran, sinon le premier rendu recompile tout (15 programmes, ~550 ms mesurés).
  */
 export async function compileScene(ctx: Ctx, timeoutMs = 3000): Promise<void> {
-  const { renderer, scene, camera } = ctx.three;
-  const compile = renderer.compileAsync ? renderer.compileAsync(scene, camera) : Promise.resolve(renderer.compile(scene, camera));
-  await Promise.race([compile.catch(() => undefined), new Promise((r) => setTimeout(r, timeoutMs))]);
+  const { renderer: r, scene, camera } = ctx.three;
+  offscreen ??= new WebGLRenderTarget(1, 1, { type: HalfFloatType });
+  const previous = r.getRenderTarget();
+  let compile: Promise<unknown>;
+  r.setRenderTarget(offscreen);
+  try {
+    compile = r.compileAsync ? r.compileAsync(scene, camera) : Promise.resolve(r.compile(scene, camera));
+  } finally {
+    r.setRenderTarget(previous);
+  }
+  await Promise.race([compile.catch(() => undefined), new Promise((res) => setTimeout(res, timeoutMs))]);
 }
 
-/** Apprend les fichiers réellement chargés par une map (pour les précharger dès l'écran-titre la fois suivante). */
-function learnMapUrls(ctx: Ctx): void {
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+export const nextFrame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
+
+function meshCount(ctx: Ctx): number {
+  let n = 0;
+  ctx.three.scene.traverse((o) => { if ((o as Mesh).isMesh) n++; });
+  return n;
+}
+
+/** Attend qu'aucun fichier ne soit en vol et que le nombre de meshes ne bouge plus (2 relevés espacés de 100 ms). */
+export async function waitSceneStable(ctx: Ctx, maxMs: number): Promise<void> {
+  const until = performance.now() + maxMs;
+  let last = -1;
+  let stable = 0;
+  while (performance.now() < until) {
+    await sleep(100);
+    const n = meshCount(ctx);
+    stable = n === last && pending === 0 ? stable + 1 : 0;
+    last = n;
+    if (stable >= 2) return;
+  }
+}
+
+/** Coupe le rendu (rien à compiler en urgence sur le fil principal) ; renvoie la fonction qui le rétablit. */
+export function pauseRender(ctx: Ctx): () => void {
+  const original = ctx.three.render;
+  const paused = () => {};
+  ctx.three.render = paused;
+  return () => { if (ctx.three.render === paused) ctx.three.render = original; };
+}
+
+declare global { interface Window { __mapTest?: (mapId: MapId) => void } }
+
+/**
+ * Répétition générale, une fois, à l'écran-titre : la map la plus probable est construite DERRIÈRE le menu (opaque),
+ * avec deux persos, puis tous ses shaders sont compilés et ses ombres rendues une fois. Les programmes GPU restent
+ * en cache (le moteur de map ne les libère pas en déchargeant) : l'entrée dans le vrai match n'a plus rien à compiler.
+ * Passe par window.__mapTest (hook du moteur de maps) ; s'il n'existe plus, on ne fait rien.
+ */
+async function rehearse(ctx: Ctx): Promise<void> {
+  const mapTest = window.__mapTest;
+  if (!mapTest) return;
+  // Attend les fichiers de la map et les persos de l'écran-titre (sinon on compilerait une scène incomplète).
+  const needed = [...mapUrls(MAPS[0]).map((u) => `gltf:${u}`), ...REHEARSAL_MODELS.map((m) => `fighter:${m}`)];
+  const settled = () => needed.every((k) => status.get(k) === 'ready' || status.get(k) === 'failed');
+  for (let i = 0; i < 100 && !settled(); i++) await sleep(100);
+  if (ctx.state.phase !== 'title') return; // le joueur est déjà parti : ne rien construire sous ses yeux
+  const t0 = performance.now();
+  const resume = pauseRender(ctx);
+  const before = new Set(ctx.three.scene.children);
+  const added: Object3D[] = [];
+  try {
+    mapTest(MAPS[0]);
+    await waitSceneStable(ctx, 4000);
+    const spawns: [number, number, number][] = ctx.state.players.map((p) => p.pos);
+    warmFighters.forEach((f, i) => {
+      const [x, y, z] = spawns[i % spawns.length] ?? [0, 0, 0];
+      f.position.set(x, y, z);
+      ctx.three.scene.add(f);
+      added.push(f);
+    });
+    await compileScene(ctx, 4000);
+  } catch (e) {
+    console.warn('[preload] répétition', e);
+  } finally {
+    resume();
+  }
+  // Deux vraies images (derrière le menu) : cartes d'ombre, envoi au GPU de ce qui manquait.
+  await nextFrame();
+  await nextFrame();
+  // On retire ensuite tout ce que la répétition a posé : les menus n'ont pas à dessiner une map cachée à chaque image.
+  // Les programmes GPU restent en cache ; le vrai match reconstruit sa map (le moteur retire l'ancienne de lui-même).
+  for (const c of [...ctx.three.scene.children]) if (!before.has(c)) ctx.three.scene.remove(c);
+  rehearsalMs = Math.round(performance.now() - t0);
+}
+
+let rehearsalMs = -1;
+
+let pending = 0;
+
+/** Fichiers three.js en cours de téléchargement (tous chargeurs confondus) : 0 = plus rien n'arrive du réseau. */
+export function pendingLoads(): number {
+  return pending;
+}
+
+/**
+ * Observe le gestionnaire de chargement par défaut de three.js (sans rien changer à son comportement) :
+ * compte les fichiers en vol, et apprend ceux qu'une map charge vraiment pour les précharger dès l'écran-titre
+ * la fois suivante (utile si un lot ajoute des décors hors de src/scene/maps/assets.ts).
+ */
+function watchLoads(ctx: Ctx): void {
   let recording: { mapId: MapId; urls: Set<string>; until: number } | null = null;
   ctx.bus.on('match:start', ({ mapId }) => { recording = { mapId, urls: new Set(), until: performance.now() + 6000 }; });
-  // three.js signale chaque fichier au gestionnaire par défaut ; on observe sans rien changer à son comportement.
-  const itemStart = DefaultLoadingManager.itemStart.bind(DefaultLoadingManager);
-  DefaultLoadingManager.itemStart = (url: string) => {
+  const m = DefaultLoadingManager;
+  const itemStart = m.itemStart.bind(m);
+  const itemEnd = m.itemEnd.bind(m);
+  const itemError = m.itemError.bind(m);
+  m.itemStart = (url: string) => {
+    pending++;
     const rec = recording;
-    if (rec && performance.now() < rec.until && isModelUrl(url) && !url.includes('/assets/characters/')) {
+    if (rec && performance.now() < rec.until && isModelUrl(url) && !url.includes('/assets/characters/') && !status.has(`gltf:${url}`)) {
       rec.urls.add(url);
       try {
         const all = readLearned();
@@ -135,15 +252,21 @@ function learnMapUrls(ctx: Ctx): void {
     }
     itemStart(url);
   };
+  m.itemEnd = (url: string) => { pending = Math.max(0, pending - 1); itemEnd(url); };
+  m.itemError = (url: string) => { pending = Math.max(0, pending - 1); itemError(url); };
 }
 
 declare global { interface Window { __preload?: typeof preloadStatus } }
 
 export function installPreload(ctx: Ctx): void {
   window.__preload = preloadStatus;
-  learnMapUrls(ctx);
-  // Dès l'écran-titre, en tâche de fond : les 4 persos prédéfinis, puis la map la plus probable (la première), puis les autres.
-  for (const model of PRESET_MODELS) enqueueModel({ model }, PRIO.likely);
+  watchLoads(ctx);
+  if (new URLSearchParams(location.search).has('nopreload')) return; // comparaison avant/après (tools/lload/mesure.mjs)
+  // Dès l'écran-titre, en tâche de fond : la map la plus probable (la première) et deux persos, la répétition
+  // générale, puis les deux autres persos, puis les autres maps.
   preloadMap(MAPS[0], PRIO.likely);
+  for (const model of REHEARSAL_MODELS) enqueueModel({ model }, PRIO.likely);
+  enqueue('rehearsal', PRIO.likely - 1, () => rehearse(ctx));
+  for (const model of PRESET_MODELS) enqueueModel({ model }, PRIO.likely - 2);
   for (const m of MAPS.slice(1)) preloadMap(m, PRIO.idle);
 }
