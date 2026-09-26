@@ -19,7 +19,7 @@ export const palette = {
 };
 
 export const rendu = {
-  exposition: 1.0,     // sans effet avec 'None'
+  exposition: 1.1,     // slightly higher for brightness
   toneMapping: 'ACES', // AgX mesuré : -35 à -41 % de chroma sur J1/J2, vinyle grisé (L* 93 -> 79)
   environnement: 0.3,  // RoomEnvironment : n'agit que sur Standard/Lambert/Phong, jamais sur le toon
   bloom: { force: 0.4, rayon: 0.3, seuil: 0.85 }, // seuls émissifs et VFX additifs le franchissent
@@ -37,7 +37,7 @@ export const rendu = {
   ruban: { largeur: 0.25, bord: 0.05 },       // anneau de déplacement = ruban adhésif couleur joueur, bord vinyle
   traces: { max: 16, taille: 2.0, alea: 20 }, // onomatopées collées au décor (m, rotation aléatoire en deg)
   rayures: { largeur: 0.3, angle: 45 },       // zones d'alerte : bandes ALERTE / ENCRE (m, deg)
-  ombres: { taille: 1024, biais: -0.0005, biaisNormal: 0.02, tache: 0.35 }, // tache : disque d'encre sous projectiles
+  ombres: { taille: 2048, biais: -0.0005, biaisNormal: 0.01, tache: 0.35 }, // ombre plus nette
 };
 
 export const polices = {
@@ -111,12 +111,12 @@ export const maps = {
       lumiere: '#FF9A4A', // braseros : seule source chaude, a droit au bloom
     },
     ciel: { haut: '#C98B6E', horizon: '#E2AE88', bas: '#B8806A' }, // le vide fonce vers le bas
-    brouillard: { couleur: '#E2AE88', debut: 24, fin: 75 },
-    hemi: { ciel: '#E3E2DC', sol: '#6A5A50', intensite: 0.85 },
-    principale: { type: 'directionnelle', couleur: '#FFF3E2', intensite: 2.3, position: [-14, 7.5, 3] }, // soleil rasant, 28°
+    brouillard: { couleur: '#E2AE88', debut: 60, fin: 150 }, // très repoussé
+    hemi: { ciel: '#8AA5D6', sol: '#281F1A', intensite: 0.5 }, // ombre très froide et sombre
+    principale: { type: 'directionnelle', couleur: '#FFF5E0', intensite: 3.5, position: [-14, 12, 5] }, // soleil puissant
     pratique: { couleur: '#FF9A4A', intensite: 6, portee: 9, decroissance: 1.6, vacillement: 0.08 },
-    decor: { saturation: 0.5, teinte: '#F4E8DA' }, // packs texturés : chroma × 0,5 puis teinte multipliée
-    corbeaux: { nombre: 5, couleur: ENCRE, envol: 1400 }, // quittent l'anneau condamné au map:warn
+    decor: { saturation: 0.6, teinte: '#FFFFFF' }, // plus saturé
+    corbeaux: { nombre: 5, couleur: ENCRE, envol: 1400 },
   },
   galion: { // clé sombre : fond L*30, pont L*56
     palette: {
@@ -127,14 +127,14 @@ export const maps = {
       lumiere: '#FFB45A', // lanternes : seule source chaude, a droit au bloom
     },
     ciel: { haut: '#2B3532', horizon: '#3C4A45', bas: '#2E4642' },
-    brouillard: { couleur: '#3C4A45', debut: 16, fin: 55 },
-    hemi: { ciel: '#9DB0AA', sol: '#5A4535', intensite: 0.9 },
-    principale: { type: 'directionnelle', couleur: '#E6EDF2', intensite: 2.8, position: [-5, 12, 4] }, // lumière d'orage haute, 62°
-    pratique: { couleur: '#FFB45A', intensite: 5, portee: 10, decroissance: 1.6, vacillement: 0.08 }, // lanterne du grand mât
-    decor: { saturation: 0.45, teinte: '#D5DDD9' },
-    mer: { ecume: '#A7B9B1', couronnes: [16, 24, 36], vitesses: [0.05, -0.035, 0.02], houle: 0.35 }, // m, rad/s, m
-    vague: { hauteur: 8 }, // vague d'annonce, profil d'Hokusai, un tour avant la gîte
-    eclair: { fond: '#8FA39B', facteur: 2.5, duree: 80, flashs: 2, intervalle: [9000, 16000] }, // jamais en visée ni en vol
+    brouillard: { couleur: '#2B3532', debut: 50, fin: 120 }, // très repoussé
+    hemi: { ciel: '#50758A', sol: '#1A1510', intensite: 0.6 }, // froid fort
+    principale: { type: 'directionnelle', couleur: '#FFDCA8', intensite: 4.0, position: [-5, 14, 4] }, // très chaud et fort
+    pratique: { couleur: '#FFB45A', intensite: 5, portee: 10, decroissance: 1.6, vacillement: 0.08 },
+    decor: { saturation: 0.6, teinte: '#FFFFFF' },
+    mer: { ecume: '#A7B9B1', couronnes: [16, 24, 36], vitesses: [0.05, -0.035, 0.02], houle: 0.35 },
+    vague: { hauteur: 8 },
+    eclair: { fond: '#8FA39B', facteur: 2.5, duree: 80, flashs: 2, intervalle: [9000, 16000] },
   },
   cuisine: { // demi-teinte : fond L*36, billot au soleil L*61, à l'ombre L*29
     palette: {
@@ -144,13 +144,12 @@ export const maps = {
       accent: '#A39B66',  // éponge et étiquettes (olive)
       lumiere: '#FF8A3D', // résistances du grille-pain armé : seule source chaude, a droit au bloom
     },
-    ciel: { haut: '#4A4440', horizon: '#5A524D', bas: '#3F3A37' }, // plafond, murs, carrelage loin en bas
-    brouillard: { couleur: '#5A524D', debut: 22, fin: 70 },
-    hemi: { ciel: '#D5DDE3', sol: '#7E6A55', intensite: 0.8 },
-    // soleil de fenêtre en spot : la flaque de lumière est le ring (decroissance 0 = pas d'atténuation)
-    principale: { type: 'spot', couleur: '#FFF0DA', intensite: 2.5, position: [-12, 14, -3], angle: 0.6, penombre: 0.25, decroissance: 0 },
-    pratique: { couleur: '#FF8A3D', intensite: 4, portee: 6, decroissance: 1.6, vacillement: 0.08 }, // à 0 tant que le grille-pain n'est pas armé
-    decor: { saturation: 0.55, teinte: '#F2ECE4' },
-    cafe: { couleur: ENCRE, opacite: 0.35, rayon: 5.5, epaisseur: 0.6 }, // auréole de tasse = cercle central du ring
+    ciel: { haut: '#4A4440', horizon: '#5A524D', bas: '#3F3A37' }, 
+    brouillard: { couleur: '#3F3A37', debut: 40, fin: 100 },
+    hemi: { ciel: '#80A0C0', sol: '#201815', intensite: 0.6 },
+    principale: { type: 'spot', couleur: '#FFF5E0', intensite: 4.5, position: [-12, 16, -3], angle: 0.65, penombre: 0.1, decroissance: 0 },
+    pratique: { couleur: '#FF8A3D', intensite: 4, portee: 6, decroissance: 1.6, vacillement: 0.08 },
+    decor: { saturation: 0.6, teinte: '#FFFFFF' },
+    cafe: { couleur: ENCRE, opacite: 0.35, rayon: 5.5, epaisseur: 0.6 },
   },
 };
