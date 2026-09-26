@@ -57,8 +57,10 @@ export function installFx(ctx: Ctx): void {
     const count = crit ? juice.critique.particules : juice.toucher.particules;
     fxAdd.burst(p, { count, color: [...weapon.palette, '#ffffff'], speed: [2, crit ? 8 : 5], life: [0.25, 0.55], size: [0.12, 0.3], gravity: CATEGORY_GRAVITY[weapon.category] ?? 1 });
     impact.hitFlash(target);
-    impact.damageNumber(p.clone().setY(p.y + 1), damage, weapon.palette[0]);
-    onomato.spawn(weapon.category, pos, weapon.palette[0]);
+    // Écran épuré (retour d'Adem) : plus de chiffres de dégâts (le % du HUD fait foi, façon Smash), onomatopée
+    // seulement sur les gros coups.
+    void damage;
+    if (crit) onomato.spawn(weapon.category, pos, weapon.palette[0]);
   });
 
   ctx.bus.on('parry:result', ({ player, grade }) => {

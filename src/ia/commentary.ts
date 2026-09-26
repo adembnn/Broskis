@@ -52,7 +52,12 @@ export function primeWeapon(w: Weapon): Promise<void> {
  * Gemini TTS Fenrir (api/tts.ts), et programme leur lecture dans la file unique de barks.ts, façon pesée de
  * boxe. Appelé une fois au tout début de la présentation des armes (screenReveal.ts).
  */
+/** Pesée en cours : un nouveau numéro annule les répliques encore programmées (Skip, ou début du match). */
+let weighInSession = 0;
+let weighInCancelHooked = false;
+
 export async function prepareCommentary(weapons: Weapon[]): Promise<void> {
+  const session = ++weighInSession;
   weaponIntroBank.clear();
 
   await Promise.all(
@@ -67,12 +72,17 @@ export async function prepareCommentary(weapons: Weapon[]): Promise<void> {
   );
 
   const ctx = getRuntimeCtx();
-  if (!ctx) return;
+  if (!ctx || session !== weighInSession) return;
+  if (!weighInCancelHooked) {
+    weighInCancelHooked = true;
+    // Après « Skip presentation », la pesée ne doit pas continuer en plein match.
+    ctx.bus.on('match:start', () => { weighInSession++; });
+  }
   let delay = WEIGH_IN_FIRST_DELAY_S;
   for (const w of weapons) {
     const line = weaponIntroBank.get(w.id);
     if (!line) continue;
-    ctx.loop.later(delay, () => playAnnouncerCustomLine(line.text, line.audioUrl, 'weigh_in'));
+    ctx.loop.later(delay, () => { if (session === weighInSession) playAnnouncerCustomLine(line.text, line.audioUrl, 'weigh_in'); });
     delay += WEIGH_IN_STEP_S;
   }
 }
