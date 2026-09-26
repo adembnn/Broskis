@@ -10,7 +10,7 @@ import { checkCratePickup } from './crate';
 import { setTeeter, stepFalls } from './launch';
 import { inFight } from './phases';
 import { getRuntime, otherPlayer } from './runtime';
-import { RT, TRAIT_TUNING } from './tuning';
+import { AIR_ACCEL, AIR_DRAG, AIR_JUMP_VELOCITY, COYOTE_S, JUMP_VELOCITY, RT, TRAIT_TUNING } from './tuning';
 
 type ForwardFn = (player: PlayerId) => Vec3 | null | undefined;
 
@@ -51,13 +51,15 @@ export function climbLedge(ctx: Ctx, player: PlayerId): void {
   ctx.bus.emit('ledge:climb', { player });
 }
 
-/** Saut : 2 au plus avant de retoucher le sol (le 2e en l'air). Accroché au bord : remonte. */
+/** Saut : 2 au plus avant de retoucher le sol (le 2e en l'air). « Coyote time » : juste après avoir quitté le
+ * bord, le saut compte encore comme un saut du sol. Accroché au bord : remonte. */
 export function jump(ctx: Ctx, player: PlayerId): void {
   if (!canMove(ctx, player)) return;
   const rt = getRuntime().players[player];
   if (rt.ledge) { climbLedge(ctx, player); return; }
   if (rt.jumpsUsed >= RT.maxJumps) return;
-  startJump(player, rt.jumpsUsed === 0 && rt.grounded ? RT.jumpVelocity : RT.airJumpVelocity);
+  const fromGround = rt.jumpsUsed === 0 && (rt.grounded || ctx.loop.time - rt.lastGroundedAt <= COYOTE_S);
+  startJump(player, fromGround ? JUMP_VELOCITY : AIR_JUMP_VELOCITY);
   rt.jumpsUsed += 1;
   ctx.state.players[player].jumpUsed = true;
   setTeeter(ctx, player, false);
@@ -87,21 +89,33 @@ export function stepPlayerControl(ctx: Ctx, player: PlayerId, input: PlayerInput
   // Orientation verrouillée vers l'adversaire (visée automatique).
   const them = ctx.state.players[otherPlayer(player)].pos;
   ps.yaw = Math.atan2(them[0] - ps.pos[0], them[2] - ps.pos[2]);
-  if (rt.grounded && rt.vy <= 0 && !rt.launch) rt.jumpsUsed = 0;
-  if (!canMove(ctx, player)) { rt.edgePushS = 0; return; }
+  if (rt.grounded && rt.vy <= 0 && !rt.launch) { rt.jumpsUsed = 0; rt.lastGroundedAt = ctx.loop.time; }
+  if (!canMove(ctx, player)) { rt.edgePushS = 0; rt.hvel = [0, 0]; return; }
   if (input.pressed.has('jump')) jump(ctx, player);
   const [mx, my] = input.move;
-  if (Math.hypot(mx, my) < 1e-3) { rt.edgePushS = 0; return; }
   const [fx, fz] = viewForward(ctx, player);
   const rx = -fz, rz = fx; // droite de la vue (y vers le haut)
   let wx = fx * my + rx * mx;
   let wz = fz * my + rz * mx;
   const wl = Math.hypot(wx, wz);
   if (wl > 1) { wx /= wl; wz /= wl; }
-  let speed = RT.moveSpeed * (rt.grounded ? 1 : RT.airControl);
+  let speed = RT.moveSpeed;
   if (ps.blocking) speed *= RT.blockMoveMult;
   else if (rt.charging) speed *= RT.chargeMoveMult;
-  moveBy(ctx, player, wx * speed * dt, wz * speed * dt, dt);
+  if (rt.grounded) {
+    rt.hvel = [wx * speed, wz * speed]; // au sol : réponse immédiate
+  } else {
+    // En l'air : l'élan se garde ; la direction voulue le rejoint progressivement (contrôle aérien).
+    const k = Math.min(1, AIR_ACCEL * dt);
+    if (wl > 1e-3) {
+      rt.hvel = [rt.hvel[0] + (wx * speed * RT.airControl - rt.hvel[0]) * k, rt.hvel[1] + (wz * speed * RT.airControl - rt.hvel[1]) * k];
+    } else {
+      const d = Math.max(0, 1 - AIR_DRAG * dt);
+      rt.hvel = [rt.hvel[0] * d, rt.hvel[1] * d];
+    }
+  }
+  if (Math.hypot(rt.hvel[0], rt.hvel[1]) < 1e-3) { rt.edgePushS = 0; return; }
+  moveBy(ctx, player, rt.hvel[0] * dt, rt.hvel[1] * dt, dt);
 }
 
 /** Système physique des persos (gravité, chutes, vitesse estimée) : avant la physique Rapier. */

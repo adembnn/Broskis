@@ -1,6 +1,6 @@
 {
  "lot": "LKIT",
- "genere": "2026-09-26T13:02",
+ "genere": "2026-09-26T13:32",
  "unites": "mètres, Y vers le haut ; ancre = centre du dessus marchable à y = 0 (sauf mention « ancre » dans la pièce)",
  "chargement": "GLTFLoader.setMeshoptDecoder(MeshoptDecoder) (EXT_meshopt_compression + KHR_mesh_quantization, déjà géré par src/scene/maps/loader.ts)",
  "matiere": {
@@ -49,7 +49,7 @@
    },
    "trianglesSource": 1144,
    "triangles": 1144,
-   "ko": 18.9
+   "ko": 20.7
   },
   {
    "role": "socle",
@@ -87,7 +87,7 @@
    },
    "trianglesSource": 1290,
    "triangles": 1290,
-   "ko": 20.7
+   "ko": 22.8
   },
   {
    "role": "socle",
@@ -125,7 +125,83 @@
    },
    "trianglesSource": 1394,
    "triangles": 1394,
-   "ko": 21.8
+   "ko": 23.9
+  },
+  {
+   "role": "socle",
+   "variante": "roche sous tuiles hex",
+   "map": "archipel",
+   "surface": {
+    "forme": "hexagone (sommets sur ±X)",
+    "apotheme": 8.963,
+    "y": 0
+   },
+   "ancre": "centre du dessus du socle : le poser SOUS les tuiles (y = dessus des tuiles - 1, soit le bas des tuiles KayKit)",
+   "collider": {
+    "type": "aucun",
+    "conseil": "les tuiles gardent leurs colliders ; quand un anneau tombe, passer au socle k-1 (ou échelle (k-1)/k en X/Z)"
+   },
+   "usage": "Transforme le disque de tuiles hex en île céleste : dessous en strates rocheuses, invisible depuis le dessus.",
+   "nom": "socle_hex_5",
+   "fichier": "socle_hex_5.glb",
+   "boite": {
+    "min": [
+     -10.211,
+     -7.7,
+     -8.963
+    ],
+    "max": [
+     10.211,
+     0,
+     8.963
+    ],
+    "taille": [
+     20.422,
+     7.7,
+     17.927
+    ]
+   },
+   "trianglesSource": 1498,
+   "triangles": 1498,
+   "ko": 24.8
+  },
+  {
+   "role": "socle",
+   "variante": "roche sous tuiles hex",
+   "map": "archipel",
+   "surface": {
+    "forme": "hexagone (sommets sur ±X)",
+    "apotheme": 10.695,
+    "y": 0
+   },
+   "ancre": "centre du dessus du socle : le poser SOUS les tuiles (y = dessus des tuiles - 1, soit le bas des tuiles KayKit)",
+   "collider": {
+    "type": "aucun",
+    "conseil": "les tuiles gardent leurs colliders ; quand un anneau tombe, passer au socle k-1 (ou échelle (k-1)/k en X/Z)"
+   },
+   "usage": "Transforme le disque de tuiles hex en île céleste : dessous en strates rocheuses, invisible depuis le dessus.",
+   "nom": "socle_hex_6",
+   "fichier": "socle_hex_6.glb",
+   "boite": {
+    "min": [
+     -12.211,
+     -8.8,
+     -10.695
+    ],
+    "max": [
+     12.211,
+     0,
+     10.695
+    ],
+    "taille": [
+     24.422,
+     8.8,
+     21.391
+    ]
+   },
+   "trianglesSource": 1602,
+   "triangles": 1602,
+   "ko": 26.5
   },
   {
    "role": "plateau",
@@ -133,139 +209,139 @@
    "map": "cuisine",
    "surface": {
     "forme": "rectangle arrondi",
-    "demiX": 9.5,
-    "demiZ": 7,
+    "demiX": 13,
+    "demiZ": 10.5,
     "rayonCoins": 1.4,
     "y": 0,
     "liseré": 0.45,
     "contour": [
      [
-      9.5,
+      13,
       0
      ],
      [
-      9.5,
-      -1.987
+      13,
+      -2.862
      ],
      [
-      9.5,
-      -3.975
+      13,
+      -5.725
      ],
      [
-      9.453,
-      -5.958
+      13,
+      -8.587
      ],
      [
-      7.949,
-      -7
+      11.449,
+      -10.5
      ],
      [
-      5.962,
-      -7
+      8.587,
+      -10.5
      ],
      [
-      3.975,
-      -7
+      5.725,
+      -10.5
      ],
      [
-      1.987,
-      -7
+      2.862,
+      -10.5
      ],
      [
       0,
-      -7
+      -10.5
      ],
      [
-      -1.987,
-      -7
+      -2.862,
+      -10.5
      ],
      [
-      -3.975,
-      -7
+      -5.725,
+      -10.5
      ],
      [
-      -5.962,
-      -7
+      -8.587,
+      -10.5
      ],
      [
-      -7.949,
-      -7
+      -11.449,
+      -10.5
      ],
      [
-      -9.453,
-      -5.958
+      -13,
+      -8.587
      ],
      [
-      -9.5,
-      -3.975
+      -13,
+      -5.725
      ],
      [
-      -9.5,
-      -1.987
+      -13,
+      -2.862
      ],
      [
-      -9.5,
+      -13,
       0
      ],
      [
-      -9.5,
-      1.987
+      -13,
+      2.862
      ],
      [
-      -9.5,
-      3.975
+      -13,
+      5.725
      ],
      [
-      -9.453,
-      5.958
+      -13,
+      8.587
      ],
      [
-      -7.949,
-      7
+      -11.449,
+      10.5
      ],
      [
-      -5.962,
-      7
+      -8.587,
+      10.5
      ],
      [
-      -3.975,
-      7
+      -5.725,
+      10.5
      ],
      [
-      -1.987,
-      7
+      -2.862,
+      10.5
      ],
      [
       0,
-      7
+      10.5
      ],
      [
-      1.987,
-      7
+      2.862,
+      10.5
      ],
      [
-      3.975,
-      7
+      5.725,
+      10.5
      ],
      [
-      5.962,
-      7
+      8.587,
+      10.5
      ],
      [
-      7.949,
-      7
+      11.449,
+      10.5
      ],
      [
-      9.453,
-      5.958
+      13,
+      8.587
      ],
      [
-      9.5,
-      3.975
+      13,
+      5.725
      ],
      [
-      9.5,
-      1.987
+      13,
+      2.862
      ]
     ]
    },
@@ -278,24 +354,24 @@
    "fichier": "plateau_cuisine.glb",
    "boite": {
     "min": [
-     -9.52,
+     -13.02,
      -4.9,
-     -7.02
+     -10.52
     ],
     "max": [
-     9.52,
+     13.02,
      0.039,
-     7.02
+     10.52
     ],
     "taille": [
-     19.04,
+     26.04,
      4.939,
-     14.04
+     21.04
     ]
    },
-   "trianglesSource": 2694,
-   "triangles": 2694,
-   "ko": 37.7
+   "trianglesSource": 2709,
+   "triangles": 2709,
+   "ko": 35.3
   },
   {
    "role": "plateau",
@@ -303,139 +379,139 @@
    "map": "archipel",
    "surface": {
     "forme": "superellipse",
-    "demiX": 9.5,
-    "demiZ": 7.5,
+    "demiX": 13,
+    "demiZ": 10.5,
     "exposant": 2.6,
     "y": 0,
     "liseré": 0.75,
     "contour": [
      [
-      9.5,
+      13,
       0
      ],
      [
-      9.416,
-      -1.752
+      12.889,
+      -2.421
      ],
      [
-      8.993,
-      -3.45
+      12.328,
+      -4.774
      ],
      [
-      8.098,
-      -4.951
+      11.131,
+      -6.871
      ],
      [
-      6.779,
-      -6.099
+      9.342,
+      -8.495
      ],
      [
-      5.2,
-      -6.854
+      7.177,
+      -9.574
      ],
      [
-      3.499,
-      -7.28
+      4.833,
+      -10.184
      ],
      [
-      1.754,
-      -7.464
+      2.424,
+      -10.449
      ],
      [
       0,
-      -7.5
+      -10.5
      ],
      [
-      -1.754,
-      -7.464
+      -2.424,
+      -10.449
      ],
      [
-      -3.499,
-      -7.28
+      -4.833,
+      -10.184
      ],
      [
-      -5.2,
-      -6.854
+      -7.177,
+      -9.574
      ],
      [
-      -6.779,
-      -6.099
+      -9.342,
+      -8.495
      ],
      [
-      -8.098,
-      -4.951
+      -11.131,
+      -6.871
      ],
      [
-      -8.993,
-      -3.45
+      -12.328,
+      -4.774
      ],
      [
-      -9.416,
-      -1.752
+      -12.889,
+      -2.421
      ],
      [
-      -9.5,
+      -13,
       0
      ],
      [
-      -9.416,
-      1.752
+      -12.889,
+      2.421
      ],
      [
-      -8.993,
-      3.45
+      -12.328,
+      4.774
      ],
      [
-      -8.098,
-      4.951
+      -11.131,
+      6.871
      ],
      [
-      -6.779,
-      6.099
+      -9.342,
+      8.495
      ],
      [
-      -5.2,
-      6.854
+      -7.177,
+      9.574
      ],
      [
-      -3.499,
-      7.28
+      -4.833,
+      10.184
      ],
      [
-      -1.754,
-      7.464
+      -2.424,
+      10.449
      ],
      [
       0,
-      7.5
+      10.5
      ],
      [
-      1.754,
-      7.464
+      2.424,
+      10.449
      ],
      [
-      3.499,
-      7.28
+      4.833,
+      10.184
      ],
      [
-      5.2,
-      6.854
+      7.177,
+      9.574
      ],
      [
-      6.779,
-      6.099
+      9.342,
+      8.495
      ],
      [
-      8.098,
-      4.951
+      11.131,
+      6.871
      ],
      [
-      8.993,
-      3.45
+      12.328,
+      4.774
      ],
      [
-      9.416,
-      1.752
+      12.889,
+      2.421
      ]
     ]
    },
@@ -448,24 +524,24 @@
    "fichier": "plateau_pierre.glb",
    "boite": {
     "min": [
-     -9.55,
-     -6.6,
-     -7.548
+     -13.05,
+     -8,
+     -10.55
     ],
     "max": [
-     9.55,
+     13.05,
      0.067,
-     7.55
+     10.55
     ],
     "taille": [
-     19.1,
-     6.667,
-     15.098
+     26.1,
+     8.067,
+     21.1
     ]
    },
-   "trianglesSource": 2689,
-   "triangles": 2689,
-   "ko": 41.1
+   "trianglesSource": 2819,
+   "triangles": 2819,
+   "ko": 45.2
   },
   {
    "role": "plateau",
@@ -473,139 +549,139 @@
    "map": "galion",
    "surface": {
     "forme": "superellipse",
-    "demiX": 9.5,
-    "demiZ": 6.6,
+    "demiX": 13.5,
+    "demiZ": 10,
     "exposant": 2.2,
     "y": 0,
     "liseré": 0.5,
     "contour": [
      [
-      9.5,
+      13.5,
       0
      ],
      [
-      9.305,
-      -1.604
+      13.246,
+      -2.341
      ],
      [
-      8.648,
-      -3.079
+      12.371,
+      -4.525
      ],
      [
-      7.59,
-      -4.301
+      10.925,
+      -6.382
      ],
      [
-      6.266,
-      -5.231
+      9.065,
+      -7.829
      ],
      [
-      4.787,
-      -5.89
+      6.95,
+      -8.869
      ],
      [
-      3.224,
-      -6.314
+      4.69,
+      -9.544
      ],
      [
-      1.619,
-      -6.538
+      2.358,
+      -9.902
      ],
      [
       0,
-      -6.6
+      -10
      ],
      [
-      -1.619,
-      -6.538
+      -2.358,
+      -9.902
      ],
      [
-      -3.224,
-      -6.314
+      -4.69,
+      -9.544
      ],
      [
-      -4.787,
-      -5.89
+      -6.95,
+      -8.869
      ],
      [
-      -6.266,
-      -5.231
+      -9.065,
+      -7.829
      ],
      [
-      -7.59,
-      -4.301
+      -10.925,
+      -6.382
      ],
      [
-      -8.648,
-      -3.079
+      -12.371,
+      -4.525
      ],
      [
-      -9.305,
-      -1.604
+      -13.246,
+      -2.341
      ],
      [
-      -9.5,
+      -13.5,
       0
      ],
      [
-      -9.305,
-      1.604
+      -13.246,
+      2.341
      ],
      [
-      -8.648,
-      3.079
+      -12.371,
+      4.525
      ],
      [
-      -7.59,
-      4.301
+      -10.925,
+      6.382
      ],
      [
-      -6.266,
-      5.231
+      -9.065,
+      7.829
      ],
      [
-      -4.787,
-      5.89
+      -6.95,
+      8.869
      ],
      [
-      -3.224,
-      6.314
+      -4.69,
+      9.544
      ],
      [
-      -1.619,
-      6.538
+      -2.358,
+      9.902
      ],
      [
       0,
-      6.6
+      10
      ],
      [
-      1.619,
-      6.538
+      2.358,
+      9.902
      ],
      [
-      3.224,
-      6.314
+      4.69,
+      9.544
      ],
      [
-      4.787,
-      5.89
+      6.95,
+      8.869
      ],
      [
-      6.266,
-      5.231
+      9.065,
+      7.829
      ],
      [
-      7.59,
-      4.301
+      10.925,
+      6.382
      ],
      [
-      8.648,
-      3.079
+      12.371,
+      4.525
      ],
      [
-      9.305,
-      1.604
+      13.246,
+      2.341
      ]
     ]
    },
@@ -618,24 +694,24 @@
    "fichier": "plateau_pont.glb",
    "boite": {
     "min": [
-     -9.511,
-     -4.3,
-     -6.648
+     -13.55,
+     -5.2,
+     -10.037
     ],
     "max": [
-     9.55,
+     13.55,
      0.074,
-     6.646
+     10.04
     ],
     "taille": [
-     19.061,
-     4.374,
-     13.294
+     27.1,
+     5.274,
+     20.078
     ]
    },
-   "trianglesSource": 2272,
-   "triangles": 2272,
-   "ko": 34.1
+   "trianglesSource": 2754,
+   "triangles": 2754,
+   "ko": 39.7
   },
   {
    "role": "plateforme",
@@ -1113,9 +1189,9 @@
      2.88
     ]
    },
-   "trianglesSource": 1224,
-   "triangles": 1224,
-   "ko": 20.9
+   "trianglesSource": 1008,
+   "triangles": 1008,
+   "ko": 17.4
   },
   {
    "role": "plateforme",
@@ -1233,9 +1309,9 @@
      2.48
     ]
    },
-   "trianglesSource": 1152,
-   "triangles": 1152,
-   "ko": 19.9
+   "trianglesSource": 918,
+   "triangles": 918,
+   "ko": 16
   },
   {
    "role": "plateforme",
@@ -1338,24 +1414,24 @@
    "fichier": "plateforme_pierre_S.glb",
    "boite": {
     "min": [
-     -1.639,
+     -1.64,
      -0.95,
      -1.04
     ],
     "max": [
      1.64,
-     0.056,
+     0.052,
      1.04
     ],
     "taille": [
-     3.279,
-     1.006,
+     3.28,
+     1.002,
      2.08
     ]
    },
-   "trianglesSource": 1008,
-   "triangles": 1008,
-   "ko": 18.3
+   "trianglesSource": 774,
+   "triangles": 774,
+   "ko": 14.1
   },
   {
    "role": "plateforme",
@@ -1473,9 +1549,9 @@
      2.86
     ]
    },
-   "trianglesSource": 1007,
-   "triangles": 1007,
-   "ko": 16.8
+   "trianglesSource": 809,
+   "triangles": 809,
+   "ko": 13.4
   },
   {
    "role": "plateforme",
@@ -1593,9 +1669,9 @@
      2.46
     ]
    },
-   "trianglesSource": 997,
-   "triangles": 997,
-   "ko": 17.3
+   "trianglesSource": 709,
+   "triangles": 709,
+   "ko": 12.2
   },
   {
    "role": "plateforme",
@@ -1713,9 +1789,9 @@
      2.06
     ]
    },
-   "trianglesSource": 887,
-   "triangles": 887,
-   "ko": 16.1
+   "trianglesSource": 671,
+   "triangles": 671,
+   "ko": 12.2
   },
   {
    "role": "bord",
@@ -1829,6 +1905,72 @@
   },
   {
    "role": "couvert",
+   "variante": "pile de caisses (torse)",
+   "map": "galion",
+   "ancre": "centre de la base, au sol (y=0)",
+   "collider": {
+    "type": "box",
+    "conseil": "box hx 1.2 hy 0.55 hz 0.75 centrée y=0.55 (x décalé 0, z +0.2)"
+   },
+   "usage": "Couvert du pont : 2 caisses + 1 tonneau, un seul appel de dessin.",
+   "nom": "caisses_pile",
+   "fichier": "caisses_pile.glb",
+   "boite": {
+    "min": [
+     -1.212,
+     0,
+     -0.732
+    ],
+    "max": [
+     1.162,
+     1.105,
+     1.428
+    ],
+    "taille": [
+     2.374,
+     1.105,
+     2.16
+    ]
+   },
+   "trianglesSource": 678,
+   "triangles": 678,
+   "ko": 13.1
+  },
+  {
+   "role": "couvert",
+   "variante": "muret bas (torse)",
+   "map": "archipel",
+   "ancre": "centre de la base, au sol (y=0)",
+   "collider": {
+    "type": "box",
+    "conseil": "box hx 1.56 hy 0.65 hz 0.41 centrée y=0.65"
+   },
+   "usage": "Couvert à hauteur de torse (1,3 m) pour jouer la ligne de tir : on se cache accroupi derrière, on tire par-dessus en sautant.",
+   "nom": "muret_bas",
+   "fichier": "muret_bas.glb",
+   "boite": {
+    "min": [
+     -1.545,
+     -0.05,
+     -0.41
+    ],
+    "max": [
+     1.482,
+     1.306,
+     0.41
+    ],
+    "taille": [
+     3.027,
+     1.356,
+     0.82
+    ]
+   },
+   "trianglesSource": 198,
+   "triangles": 198,
+   "ko": 5.7
+  },
+  {
+   "role": "couvert",
    "variante": "muret de ruine",
    "map": "archipel",
    "ancre": "centre de la base, au sol (y=0)",
@@ -1859,6 +2001,105 @@
    "trianglesSource": 216,
    "triangles": 216,
    "ko": 6.2
+  },
+  {
+   "role": "couvert",
+   "variante": "rocher (torse)",
+   "map": "archipel",
+   "ancre": "centre de la base, au sol (y=0)",
+   "collider": {
+    "type": "box",
+    "conseil": "box hx 1.05 hy 0.68 hz 0.72 centrée y=0.68 (ou cylindre r 0.9)"
+   },
+   "usage": "Couvert naturel à hauteur de torse (1,4 m), même roche que le dessous du plateau.",
+   "nom": "rocher_couvert",
+   "fichier": "rocher_couvert.glb",
+   "boite": {
+    "min": [
+     -1.121,
+     -0.06,
+     -0.831
+    ],
+    "max": [
+     1.143,
+     1.478,
+     0.842
+    ],
+    "taille": [
+     2.264,
+     1.538,
+     1.673
+    ]
+   },
+   "trianglesSource": 80,
+   "triangles": 80,
+   "ko": 4.6
+  },
+  {
+   "role": "couvert",
+   "variante": "sucre géant (torse)",
+   "map": "cuisine",
+   "ancre": "centre de la base, au sol (y=0)",
+   "collider": {
+    "type": "box",
+    "conseil": "box hx 0.6 hy 0.6 hz 0.6 centrée y=0.6"
+   },
+   "usage": "Couvert cubique de la cuisine (1,2 m), lisible de loin, peut être « knockable ».",
+   "nom": "sucre",
+   "fichier": "sucre.glb",
+   "boite": {
+    "min": [
+     -0.6,
+     0,
+     -0.6
+    ],
+    "max": [
+     0.6,
+     1.2,
+     0.6
+    ],
+    "taille": [
+     1.2,
+     1.2,
+     1.2
+    ]
+   },
+   "trianglesSource": 18,
+   "triangles": 18,
+   "ko": 2.5
+  },
+  {
+   "role": "couvert",
+   "variante": "tasse géante (torse)",
+   "map": "cuisine",
+   "ancre": "centre de la base, au sol (y=0)",
+   "collider": {
+    "type": "cylindre",
+    "conseil": "cylinder radius 0.8 halfHeight 0.65 centré y=0.65"
+   },
+   "usage": "Couvert de la cuisine géante (1,3 m) ; l'auréole de café des tokens (maps.cuisine.cafe) peut marquer sa place.",
+   "nom": "tasse",
+   "fichier": "tasse.glb",
+   "boite": {
+    "min": [
+     -0.8,
+     0,
+     -0.792
+    ],
+    "max": [
+     1.218,
+     1.3,
+     0.792
+    ],
+    "taille": [
+     2.018,
+     1.3,
+     1.584
+    ]
+   },
+   "trianglesSource": 460,
+   "triangles": 460,
+   "ko": 6.9
   },
   {
    "role": "couvert",
@@ -1922,7 +2163,7 @@
    },
    "trianglesSource": 562,
    "triangles": 562,
-   "ko": 11.2
+   "ko": 11.7
   },
   {
    "role": "fond",
@@ -1953,7 +2194,7 @@
    },
    "trianglesSource": 504,
    "triangles": 504,
-   "ko": 10.3
+   "ko": 10.7
   },
   {
    "role": "fond",
@@ -1974,18 +2215,18 @@
     ],
     "max": [
      3,
-     1.719,
+     1.501,
      1.3
     ],
     "taille": [
      5.9,
-     1.719,
+     1.501,
      2.66
     ]
    },
    "trianglesSource": 400,
    "triangles": 400,
-   "ko": 11.3
+   "ko": 11.4
   },
   {
    "role": "fond",
@@ -2006,12 +2247,12 @@
     ],
     "max": [
      2.3,
-     1.506,
+     1.319,
      0.9
     ],
     "taille": [
      4.55,
-     1.506,
+     1.319,
      2.04
     ]
    },
@@ -2048,7 +2289,7 @@
    },
    "trianglesSource": 288,
    "triangles": 288,
-   "ko": 6.4
+   "ko": 6.8
   },
   {
    "role": "fond",
@@ -2079,7 +2320,7 @@
    },
    "trianglesSource": 288,
    "triangles": 288,
-   "ko": 6.5
+   "ko": 6.8
   },
   {
    "role": "fond",
@@ -2110,7 +2351,7 @@
    },
    "trianglesSource": 216,
    "triangles": 216,
-   "ko": 5.4
+   "ko": 5.7
   }
  ]
 }
