@@ -76,23 +76,18 @@ export async function createCtx(root: HTMLElement): Promise<Ctx> {
   if (demo) installDemoKeys(bus);
 
   loop.addSystem('physics', (dt) => physics.step(dt), 100);
-  // Qualité « basse » (GPU faible, voir quality.ts) : rendu direct dans le canvas, sans la chaîne de
-  // post-traitement, à ratio de pixels 1 (la même définition que la cible du post-traitement).
+  // Qualité « basse » (GPU faible, voir quality.ts) : rendu direct dans le canvas (MSAA natif), sans la chaîne
+  // de post-traitement. Le canvas garde sa définition : le réduire forcerait Chrome à le mettre à l'échelle,
+  // mesuré plus saccadé (images de 56-63 ms) même sur la carte NVIDIA.
   const { renderer, scene, camera } = three;
   const qualite = createQualite(bus, async (n) => {
     if (n !== 'basse') return;
     renderer.setRenderTarget(null); // shaders du rendu direct (sortie sRGB), compilés sans bloquer l'image
     await renderer.compileAsync(scene, camera);
   });
-  let niveauApplique = qualite.niveau;
   loop.addSystem('render', (_dt, real) => {
     qualite.frame(real);
-    if (qualite.niveau !== niveauApplique) {
-      niveauApplique = qualite.niveau;
-      renderer.setPixelRatio(niveauApplique === 'basse' ? 1 : Math.min(window.devicePixelRatio, rendu.pixelRatioMax));
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    }
-    if (niveauApplique === 'basse') renderer.render(scene, camera);
+    if (qualite.niveau === 'basse') renderer.render(scene, camera);
     else ctx.three.render();
   }, 1000);
 
