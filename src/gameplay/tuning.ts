@@ -29,11 +29,18 @@ export const RT = {
   /** Rayon des projectiles pour le contact avec la capsule d'un perso (m). */
   radius: { blaster: 0.22, throwable: 0.38, grenade: 0.3, shield: 0 } as Record<Category, number>,
   grenadeGravity: 14,
+  /** Portée de base d'une grenade (m) ; × physique (objet lourd = plus court) × charge. */
+  grenadeBaseRange: 22,
+  /** Relèvement max d'un lancer tendu d'objet lourd (degrés) : au-delà de sa portée, il retombe court. */
+  throwMaxElevationDeg: 25,
+  /** Objet fragile : éclats (rayon m, fraction des dégâts) ; objet liquide : sol glissant (rayon m, durée ms). */
+  shards: { radius: 1.3, damage: 0.35, grenadeRadiusMult: 0.75 },
+  puddle: { radius: 1.8, ms: 3000, accel: 1.6 },
   /** Durée de vol de la grenade : min + distance × perM, plafonnée. */
   grenadeFlight: { min: 0.55, perM: 0.035, max: 1.1 },
   projectileMaxLifeS: 3.5,
   /** Blocage maintenu : dégâts ÷ 3, recul ÷ 2 ; parade parfaite si le blocage a commencé < perfectMs avant l'impact. */
-  block: { damageMult: 1 / 3, launchMult: 0.5, perfectMs: 150 },
+  block: { damageMult: 1 / 3, launchMult: 0.5, perfectMs: 150, remashMs: 300 },
   parrySlowmo: { factor: 0.3, ms: 300 },
   reflectSpeedMult: 1.15,
   /** `projectile:incoming` émis ce temps avant l'impact prévu (anneau de repère). */
@@ -79,6 +86,8 @@ export const COYOTE_S = 0.1;
 /** Élan aérien : en l'air, la vitesse horizontale rejoint la direction voulue à ce rythme (1/s), et se garde sans entrée. */
 export const AIR_ACCEL = 5;
 export const AIR_DRAG = 0.4;
+/** Élan maximal (m/s) gardé quand on sort du plateau en marchant : le rattrapage au bord reste à portée. */
+export const WALKOFF_MAX_SPEED = 3;
 export const GRAVITY = 20; // m/s², un peu plus nerveux que la gravité par défaut du monde Rapier
 /** Plateforme traversable : au sommet du saut ou en descente, pieds jusqu'à ce nombre de m sous son dessus
  * (corps dans son emprise) -> posé dessus. Évite de rater une plateforme de quelques centimètres. */
