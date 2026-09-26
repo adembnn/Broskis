@@ -28,15 +28,23 @@ export function categoryBadge(category: Category, accent: string): HTMLSpanEleme
   return span;
 }
 
-/** Mot + pictogramme de catégorie (BLASTER, GRENADE…) : le joueur doit lire ce que fait l'arme sans légende. */
-export function categoryTag(weapon: Pick<Weapon, 'category'>): HTMLSpanElement {
+/** Ce que fait l'arme, en 3 mots : un débutant ne sait pas ce qu'est un « throwable ». */
+export const CATEGORY_DOES: Record<Category, string> = {
+  blaster: 'Straight shot',
+  grenade: 'Lob + blast',
+  throwable: 'Heavy throw',
+  shield: 'Place a wall',
+};
+
+/** Pictogramme de catégorie + mot : `does` = ce que fait l'arme (HUD), sinon le nom de catégorie (BLASTER…). */
+export function categoryTag(weapon: Pick<Weapon, 'category'>, does = false): HTMLSpanElement {
   const accent = LOCAL_TOKENS.category[weapon.category];
   const tag = document.createElement('span');
-  tag.className = 'cat-tag';
+  tag.className = `cat-tag${does ? ' does' : ''}`;
   tag.style.setProperty('--accent', accent);
   const word = document.createElement('span');
   word.className = 'cat-word';
-  word.textContent = weapon.category;
+  word.textContent = does ? CATEGORY_DOES[weapon.category] : weapon.category;
   tag.append(categoryBadge(weapon.category, accent), word);
   return tag;
 }

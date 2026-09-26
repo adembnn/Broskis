@@ -56,9 +56,8 @@ function createPlate(player: PlayerId) {
   const broFill = el('i');
   const broLabel = el('span', 'bro-label', 'BRO');
   bro.append(broFill, broLabel);
-  const turnTag = el('div', 'plate-turn', 'YOUR TURN');
   body.append(name, pct, stocks);
-  root.append(turnTag, portrait, body, bro);
+  root.append(portrait, body, bro);
 
   let lastPct = -1;
   let lastStocks = -1;
@@ -126,7 +125,7 @@ function createWeaponCard(index: number) {
         lastSticker = w.stickerUrl ?? '';
         art.replaceChildren(weaponSticker(w, 'wcard-sticker'));
         name.textContent = w.name;
-        tagSlot.replaceChildren(categoryTag(w));
+        tagSlot.replaceChildren(categoryTag(w, true));
       }
       root.classList.toggle('selected', selected);
       root.classList.toggle('cooling', w.cooldown > 0);
@@ -158,7 +157,10 @@ export function mountHud(ctx: Ctx): Hud {
   const commentary = createCommentary();
   const floaters = createFloaters(ctx);
   const help = mountHelp(ctx);
-  root.append(help.world, plates[0].root, plates[1].root, wbar, help.root, turnBanner, centerBanner, bigBanner, commentary.root, floaters.root, help.defend);
+  // Colonne du bas, au centre : sous-titre de l'animateur (2 s), aide à touches, barre d'armes. Rien d'autre.
+  const bottom = el('div', 'hud-bottom');
+  bottom.append(commentary.root, help.root, wbar);
+  root.append(help.world, plates[0].root, plates[1].root, bottom, turnBanner, centerBanner, bigBanner, floaters.root, help.defend);
 
   const bro = [
     { value: 0, ready: false },
@@ -174,14 +176,14 @@ export function mountHud(ctx: Ctx): Hud {
     wbar.classList.toggle('p2', ctx.state.active === 1);
     // La barre n'est utile qu'au joueur qui agit : estompée pendant le vol et la parade.
     const phase = ctx.state.phase;
-    wbar.classList.toggle('idle', phase !== 'move' && phase !== 'aim');
+    wbar.classList.toggle('idle', (phase !== 'move' && phase !== 'aim') || !help.defend.hidden);
   };
 
   let turnBannerTimer = 0;
   function showTurnBanner(active: PlayerId) {
     const ai = ctx.state.vsAI && active === 1;
     turnBanner.className = `turn-banner p${active + 1}`;
-    turnBanner.textContent = ai ? 'P2 (AI) — ITS TURN' : `P${active + 1} — YOUR TURN!`;
+    turnBanner.textContent = ai ? "AI'S TURN" : `P${active + 1}'S TURN`;
     turnBanner.hidden = false;
     replay(turnBanner, 'enter');
     window.clearTimeout(turnBannerTimer);
@@ -264,10 +266,8 @@ export function mountHud(ctx: Ctx): Hud {
       showTurnBanner(active);
       sync();
     }),
-    ctx.bus.on('hit', ({ damage, crit, pos }) => {
-      sync();
-      floaters.spawnWorld(pos, `+${Math.round(damage)}%`, crit ? 'crit' : '');
-    }),
+    // Pas de chiffre flottant (désencombrement) : c'est le % de l'encart qui saute, tremble et change de couleur.
+    ctx.bus.on('hit', () => sync()),
     ctx.bus.on('stock:lost', ({ player, stocksLeft }) => {
       sync();
       const label = stocksLeft <= 0 ? `P${player + 1} — OUT!` : stocksLeft === 1 ? `P${player + 1} — LAST LIFE!` : `P${player + 1} — ${stocksLeft} LIVES LEFT`;
@@ -279,12 +279,10 @@ export function mountHud(ctx: Ctx): Hud {
     ctx.bus.on('weapon:pick', () => sync()),
     ctx.bus.on('fire', () => sync()),
     ctx.bus.on('scan:result', () => sync()),
+    ctx.bus.on('parry:window', () => sync()),
     ctx.bus.on('parry:result', ({ grade, deltaMs }) => {
       const label = grade === 'perfect' ? 'PERFECT!' : grade === 'good' ? 'GOOD!' : deltaMs < 0 ? 'TOO EARLY' : 'TOO LATE';
       showCenterBanner(label, `grade-${grade}`, durees.dramatique);
-    }),
-    ctx.bus.on('parry:streak', ({ multiplier }) => {
-      if (multiplier > 1) floaters.spawnScreen(0.5, 0.34, `×${multiplier}`, 'streak');
     }),
     ctx.bus.on('bro:gauge', ({ player, value }) => {
       bro[player].value = value;

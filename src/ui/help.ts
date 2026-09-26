@@ -8,8 +8,8 @@ import { el, worldToScreen } from './dom';
 import { jumpKey, kbd, keyLine, parryKey } from './keys';
 
 /** Hauteur (m) au-dessus des pieds où poser la flèche : perso KayKit ≈ 2,5 m (tokens.js, rendu.contour). */
-const HEAD_H = 3.1;
-const EDGE_H = 3.6;
+const HEAD_H = 2.2;
+const EDGE_H = 2.9;
 
 export interface Help {
   root: HTMLDivElement;
@@ -53,20 +53,22 @@ export function mountHelp(ctx: Ctx): Help {
       return;
     }
     const edge = teeter[active] && inTurn() && !isAI(active);
+    const turnChip = el('span', 'help-turn', isAI(active) ? "AI'S TURN" : `P${active + 1}'S TURN`);
     if (edge) root.append(el('span', 'help-edge', 'EDGE!'));
     if (isAI(active) && (inTurn() || phase === 'turn-intro')) {
-      root.append(el('span', 'keytext', 'P2 (AI) is thinking…'));
+      root.append(turnChip, el('span', 'keytext', 'The AI is thinking…'));
     } else if (phase === 'turn-intro' && ps.onLedge) {
-      root.append(el('span', 'keytext strong', 'Your turn: climb back up!'));
+      root.append(turnChip, el('span', 'keytext strong', 'Climb back up!'));
     } else if (phase === 'move') {
       root.append(
-        keyLine([['W', 'A', 'S', 'D'], 'Move', '·', [jumpKey()], 'Jump ×2', '·', ['1', '2', '3'], 'Weapon']),
-        el('span', 'help-chip', `${Math.max(0, moveLeft).toFixed(1)} m left`),
+        turnChip,
+        keyLine([['W', 'A', 'S', 'D'], 'Move', '·', [jumpKey()], 'Jump', '·', ['1', '2', '3'], 'Pick weapon']),
+        el('span', 'help-chip', `${Math.max(0, moveLeft).toFixed(1)} m`),
       );
     } else if (phase === 'aim' && charging) {
-      root.append(el('span', 'keytext fire', 'Release to FIRE!'));
+      root.append(turnChip, el('span', 'keytext fire', 'Release to FIRE!'));
     } else if (phase === 'aim') {
-      root.append(keyLine([['1', '2', '3'], 'Weapon', '·', 'Hold', ['CLICK'], 'or', ['F'], 'to charge', '·', 'Release to FIRE']));
+      root.append(turnChip, keyLine([['1', '2', '3'], 'Weapon', '·', 'Hold', ['CLICK'], 'or', ['F'], '→ release to FIRE']));
     }
     root.hidden = root.childElementCount === 0;
   }
@@ -175,8 +177,9 @@ export function mountHelp(ctx: Ctx): Help {
       if (show && p.fighter) {
         const s = worldToScreen(ctx.three.camera, [p.pos[0], p.pos[1] + HEAD_H, p.pos[2]], tmp);
         arrow.hidden = s.behind;
-        arrow.className = `parrow p${active + 1}`;
-        arrowTag.textContent = isAI(active) ? 'AI' : `P${active + 1}`;
+        // Au bord : la flèche du joueur actif devient elle-même « EDGE! » (pas deux étiquettes empilées).
+        arrow.className = `parrow p${active + 1}${teeter[active] ? ' edge' : ''}`;
+        arrowTag.textContent = teeter[active] ? 'EDGE!' : isAI(active) ? 'AI' : `P${active + 1}`;
         arrow.style.transform = `translate(${Math.round(s.x)}px, ${Math.round(s.y)}px)`;
       } else {
         arrow.hidden = true;
@@ -184,7 +187,7 @@ export function mountHelp(ctx: Ctx): Help {
       ([0, 1] as PlayerId[]).forEach((i) => {
         const edge = edges[i];
         const q = ctx.state.players[i];
-        if (!teeter[i] || !q.fighter || phase === 'end') {
+        if (!teeter[i] || !q.fighter || phase === 'end' || (show && i === active)) {
           edge.hidden = true;
           return;
         }
