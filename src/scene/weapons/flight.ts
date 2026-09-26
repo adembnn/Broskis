@@ -546,6 +546,7 @@ export function installFlights(ctx: Ctx, deps: FlightDeps) {
       _qt.setFromAxisAngle(X, 0.25 * Math.sin(f.t * 5)); // léger roulis : montre l'épaisseur du carton
       m.root.quaternion.setFromUnitVectors(Z, f.axis).multiply(_qt).multiply(f.rot);
     }
+    (m.root.userData.le2eFace ??= new THREE.Quaternion()).copy(m.root.quaternion);
     // Grossit en arrivant sur le défenseur (lisible au moment de parer), sans dépasser une taille lisible ;
     // bouncy : s'écrase comme du caoutchouc.
     let k = f.size;
@@ -594,6 +595,20 @@ export function installFlights(ctx: Ctx, deps: FlightDeps) {
       (f.shadow.material as THREE.MeshBasicMaterial).opacity = Math.min(0.85, rendu.ombres.tache * (0.6 + 1.1 * f.look.weight)) * Math.max(0.25, 1 - h / 10);
     }
   }
+
+  // Lot LE2E : un sticker qui culbute est souvent vu par la tranche ou de dos (carton) : depuis la caméra du LANCEUR, la
+  // chaise lancée était méconnaissable (retour d'Adem). Avant chaque vue, l'objet en vol fait face à la caméra de cette
+  // vue et tourne dans le plan de l'image, d'autant plus lentement qu'il est lourd (même vitesse que sa rotation propre).
+  const _cam = new THREE.Vector3();
+  ctx.three.onBeforeView((view) => {
+    view.camera.getWorldPosition(_cam);
+    for (const f of flights) {
+      const m = f.model;
+      if (!m || !m.root.visible || !m.root.userData.le2eFace) continue;
+      m.root.lookAt(_cam);
+      m.root.rotateZ(f.spinDir * f.omega * f.t * 0.5);
+    }
+  });
 
   return { update };
 }
