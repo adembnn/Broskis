@@ -14,7 +14,7 @@
 import type { Ctx, Phase, Weapon } from '../core/types';
 import { playAnnouncerCustomLine } from '../audio/barks';
 import { getRuntimeCtx } from './runtime';
-import { synthesizeLine } from './tts-client';
+import { synthesizeLine, TTS_PRIORITY } from './tts-client';
 
 interface PreparedLine {
   text: string;
@@ -35,6 +35,17 @@ const MID_MATCH_PHASES = new Set<Phase>(['turn-intro', 'move', 'aim', 'resolve',
  *  à un fichier hors périmètre. */
 const WEIGH_IN_FIRST_DELAY_S = 1.8;
 const WEIGH_IN_STEP_S = 3.0;
+
+/**
+ * Lot LLOAD, appel spéculatif : vocalise la réplique de pesée d'une arme DÈS qu'elle est connue (scan arrivé ou
+ * arme choisie dans l'arsenal), au lieu d'attendre la présentation. prepareCommentary retrouve ensuite la voix
+ * déjà prête (même texte = même cache dans tts-client, un seul appel même s'il est encore en cours).
+ */
+export function primeWeapon(w: Weapon): Promise<void> {
+  const text = w.lines?.intro;
+  if (!text) return Promise.resolve();
+  return synthesizeLine(text, undefined, TTS_PRIORITY.soon).then(() => undefined);
+}
 
 /**
  * Vocalise la ligne `intro` de chaque arme (déjà écrite par le scan/preset, voir Weapon.lines.intro) via

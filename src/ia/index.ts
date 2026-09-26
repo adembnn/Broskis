@@ -7,13 +7,13 @@
 // retirés (déjà couverts par les barks) ; seule reste la révélation d'une arme scannée en plein match
 // (Caisse Snap), le seul moment propre à une arme qui n'est pas un bark générique.
 import type { Ctx, Install, PlayerId } from '../core/types';
-import { sayScanReveal } from './commentary';
+import { primeWeapon, sayScanReveal } from './commentary';
 import { scanObject } from './scan';
 import { setRuntimeCtx } from './runtime';
 
-export type { ScanOptions } from './scan';
+export type { ScanOptions, ScanStep } from './scan';
 export { scanObject } from './scan';
-export { prepareCommentary } from './commentary';
+export { prepareCommentary, primeWeapon } from './commentary';
 
 /**
  * Le sticker Nano Banana arrive en retard (jusqu'à 25 s, voir TIMEOUTS.sticker) : souvent APRÈS que le
@@ -46,6 +46,9 @@ export const install: Install = (ctx) => {
   ctx.bus.on('scan:result', ({ weapon }) => {
     void sayScanReveal(ctx, weapon);
     if (weapon.stickerUrl) patchLateSticker(ctx, weapon.id, weapon.stickerUrl);
+    // Lot LLOAD : pendant l'arsenal, la réplique de pesée d'une arme scannée se vocalise dès son arrivée
+    // (la présentation la trouve prête au lieu d'attendre jusqu'à 6 s).
+    if (ctx.state.phase === 'arsenal') void primeWeapon(weapon);
   });
 
   // window.gameHooks.scan(objectKey) : personne d'autre ne le branche (LG énumère les siens sans lui,
