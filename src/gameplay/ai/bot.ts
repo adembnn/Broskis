@@ -73,6 +73,8 @@ export class RealtimeBot {
   private edgeMe = 6;
   private edgeFoe = 6;
   private edgeCheckAt = 0;
+  /** Depuis quand la ligne de tir est bouchée (couvert) : on contourne. */
+  private noLosSince = -1;
 
   constructor(ctx: Ctx, me: PlayerId = 1) {
     this.ctx = ctx;
@@ -173,6 +175,8 @@ export class RealtimeBot {
     const M = STANCE_MODS[this.stance];
     const r = this.rng;
     this.stats.threatsSeen += 1;
+    // Tir vu : on change de sens de pas chassé (l'avance de visée de l'adversaire suppose qu'on continue).
+    if (r() < L.defendRate) { this.strafe = -this.strafe; this.strafeFlipAt = now + 0.8 + r() * 0.8; }
     const eta = t.impactAt - now;
     if (eta <= 0.02 || r() >= Math.min(0.97, L.defendRate * M.defendMult)) { t.plan = 'ignore'; return; }
     const me = this.ctx.state.players[this.me];
@@ -283,6 +287,9 @@ export class RealtimeBot {
     const d = flatDist(me.pos, foe.pos);
     const foeHittable = !rtFoe.dead && !isInvulnerable(ctx, this.foe);
     const los = lineOfFire(ctx, me.pos, foe.pos);
+    if (los) this.noLosSince = -1;
+    else if (this.noLosSince < 0) this.noLosSince = now;
+    const blind = this.noLosSince >= 0 && now - this.noLosSince > 0.6; // couvert entre nous : on le contourne
 
     // 3) Arme : adaptée à la distance (et au conseil de Gemini), jamais changée en pleine charge.
     const pick = this.chooseWeapon(d, los, rtFoe.charging);
@@ -297,19 +304,20 @@ export class RealtimeBot {
       const punish = !!rtFoe.launch || foe.onLedge;
       let go = cat === 'shield'
         ? this.shieldWish(rtFoe.charging) > 0.5
-        : d >= 1.5 && d <= hi + 5 && (los || (cat === 'grenade' && d >= 4));
+        : d >= 1.5 && d <= hi + 5 && (los || (cat === 'grenade' && d >= 4 && lineOfFire(ctx, [me.pos[0], me.pos[1] + 2.5, me.pos[2]], [foe.pos[0], foe.pos[1] + 2, foe.pos[2]])));
       // Précision : on attend une cible lisible (pas en garde, pas en plein pas chassé) si on sait attendre.
       if (go && !punish && cat !== 'shield') {
         // Loin, une cible en pas chassé esquive (l'avance de visée est partielle) : on tire quand elle est lisible.
         const v = rtFoe.vel;
         const ax = norm2(foe.pos[0] - me.pos[0], foe.pos[2] - me.pos[2]);
         const lateral = Math.abs(-v[0] * ax[1] + v[2] * ax[0]);
-        const messy = foe.blocking || (lateral > 4.5 && d > lo + 1) || d > hi + 2 || d < lo - 3;
+        const messy = foe.blocking || (lateral > 4.5 && d > lo + 1) || d > hi + 3;
         if (messy && r() < L.precision) { go = false; this.nextFireAt = now + 0.12 + r() * 0.2; }
       }
       if (go) {
         let charge = cat === 'shield' ? 0 : Math.max(0, Math.min(1, (d - 5) / 10)) * (0.5 + 0.5 * L.aggression);
         if (cat === 'blaster') charge *= 0.6;
+        if (foe.pct >= 70 && cat !== 'shield') charge = Math.max(charge, 0.45 + 0.4 * L.aggression); // coup qui peut l'éjecter
         if (punish) charge = Math.min(charge, 0.2);
         charge = Math.max(0, Math.min(1, charge + (r() - 0.5) * 0.2));
         const holdS = charge < 0.05 ? 0.06 : RT.chargeMinS + charge * (RT.chargeFullS - RT.chargeMinS);
@@ -326,6 +334,7 @@ export class RealtimeBot {
       if (r() < 0.75) this.strafe = -this.strafe;
       this.strafeFlipAt = now + 1 + r() * 1.5;
     }
+    if (blind && now - this.noLosSince > 2.2) { this.strafe = -this.strafe; this.noLosSince = now - 0.6; } // l'autre côté du couvert
     const cat = weapon?.category ?? 'blaster';
     const [lo, hi] = this.rangeFor(cat === 'shield' ? 'blaster' : cat);
     const R = (lo + hi) / 2;
@@ -344,11 +353,19 @@ export class RealtimeBot {
       const u = norm2(fromFoe[0] * (1 - w) + foeToCenter[0] * w, fromFoe[1] * (1 - w) + foeToCenter[1] * w);
       target = [foe.pos[0] + u[0] * R, me.pos[1], foe.pos[2] + u[1] * R];
     }
+    // Contrôle du centre : le point visé reste loin du bord (plus loin encore quand notre % monte), quitte à
+    // se rapprocher de l'adversaire : ses coups nous poussent alors vers l'intérieur, pas dans le vide.
+    const arena = getArena(ctx);
+    const safeR = Math.max(3, arena.radius - (L.edgeMargin + 2 + me.pct / 60));
+    const cdx = target[0] - center[0], cdz = target[2] - center[2];
+    const cd = Math.hypot(cdx, cdz);
+    if (cd > safeR) target = [center[0] + (cdx / cd) * safeR, target[1], center[2] + (cdz / cd) * safeR];
     const tx = target[0] - me.pos[0], tz = target[2] - me.pos[2];
     const tl = Math.hypot(tx, tz);
     const perp: [number, number] = [-fromFoe[1] * this.strafe, fromFoe[0] * this.strafe];
     let mx: number, mz: number;
-    if (tl > 1.2) { mx = tx / tl + perp[0] * 0.35; mz = tz / tl + perp[1] * 0.35; }
+    if (blind) { mx = perp[0] + (tl > 1.2 ? tx / tl : 0) * 0.4; mz = perp[1] + (tl > 1.2 ? tz / tl : 0) * 0.4; }
+    else if (tl > 1.2) { mx = tx / tl + perp[0] * 0.35; mz = tz / tl + perp[1] * 0.35; }
     else { mx = perp[0] * 0.9 + tx * 0.4; mz = perp[1] * 0.9 + tz * 0.4; }
     // Survie : plus son % monte, plus il revient vers le centre.
     const pull = Math.max(0, Math.min(0.6, (me.pct - 50) / 120)) + M.centerPull * 0.4 + (this.edgeMe < 2 ? 0.5 : 0);
@@ -359,7 +376,13 @@ export class RealtimeBot {
     // 6) Coincé contre un obstacle (plateforme, caisse) : on saute par-dessus.
     if (rtMe.grounded && Math.hypot(this.moveDir[0], this.moveDir[1]) > 0.5) {
       if (now - this.stuckT > 0.5) {
-        if (flatDist(this.stuckFrom, me.pos) < 0.25 && !this.charging) { this.taps.add('jump'); this.strafe = -this.strafe; }
+        if (flatDist(this.stuckFrom, me.pos) < 0.25 && !this.charging) {
+          // Jamais par-dessus un bastingage : on ne saute que s'il y a du sol derrière l'obstacle.
+          const [dx, dz] = this.moveDir;
+          const behind = (k: number): Vec3 => [me.pos[0] + dx * k, me.pos[1], me.pos[2] + dz * k];
+          if (!overVoid(ctx, behind(1.5)) && !overVoid(ctx, behind(2.5))) this.taps.add('jump');
+          this.strafe = -this.strafe;
+        }
         this.stuckT = now;
         this.stuckFrom = [...me.pos] as Vec3;
       }
