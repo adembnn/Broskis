@@ -36,3 +36,6 @@ captures
 
 # Photos de test d'Adem pour le scan (objets et personnes) : jamais dans le dépôt public
 /tools/scan-bench/photos/
+
+# Déploiement Vercel (paquet généré, lien du projet)
+/.vercel/
