@@ -10,7 +10,8 @@ export const RTVIEW = {
   hauteur: 3.2,           // m au-dessus de ses pieds
   lateral: 0.9,           // m à droite : vue par-dessus l'épaule, l'adversaire n'est pas caché
   visee: 0.62,            // point visé entre les 2 : 0 = son joueur, 1 = l'adversaire
-  viseeHauteur: 0.4,      // m au-dessus du sol pour le point visé : bas, pour que les pieds restent au-dessus du HUD
+  viseeHauteur: -0.4,     // m (sol = 0) : point visé bas, le perso reste entre 46 et 67 % de la hauteur, au-dessus du HUD
+  suiviHauteur: 0.35,     // part de la hauteur de l'adversaire suivie : quand il saute, son joueur ne file pas sous le HUD
   chute: { debut: -0.5, plein: -3, focus: 0.7 }, // m, m, 0..1 : sous le plateau, la caméra regarde SON joueur tomber
   axeMin: 0.8,            // m : plus près, on garde l'angle précédent (pas de toupie quand ils se superposent)
   lissage: 0.12,          // s : suivi de la position et de l'angle

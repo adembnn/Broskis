@@ -134,7 +134,8 @@ export class CameraRig {
     _opp.set(o[0], Math.max(o[1], RTVIEW.sol.viseeMin), o[2]);
     _chest.set(s[0], selfY, s[2]);
     _look.copy(_chest).lerp(_opp, RTVIEW.visee);
-    _look.y += RTVIEW.viseeHauteur;
+    // Hauteur : suit peu les sauts de l'adversaire (mesuré : sinon son propre perso passait sous le HUD).
+    _look.y = selfY + THREE.MathUtils.clamp(_opp.y - selfY, -3, 6) * RTVIEW.visee * RTVIEW.suiviHauteur + RTVIEW.viseeHauteur;
     const fall = THREE.MathUtils.smoothstep(-s[1], -RTVIEW.chute.debut, -RTVIEW.chute.plein); // 0 sur le plateau, 1 en chute
     const focus = Math.max(this.koFocus, RTVIEW.ejection.focus * this.launchW, RTVIEW.chute.focus * fall);
     _look.lerp(_chest.setY(selfY + RTVIEW.cibleHauteur), focus);
