@@ -579,7 +579,7 @@ export function installFighters(ctx: Ctx): FighterSystem {
       pr.lookWeight = tumbling || hanging || b.outcome || b.teeter ? 0 : rig.locked ? 0.9 : rig.moving ? 0 : 0.55;
       pr.charge = b.upper === 'charge' ? (b.cat === 'blaster' ? charge * 0.4 : charge) : 0;
       pr.hang = hanging;
-      pr.grounded = !rig.airborne && !hanging && !tumbling && b.climbT < 0 && lab.flying[p] !== true;
+      pr.grounded = !rig.airborne && !hanging && !tumbling && b.climbT < 0 && lab.flying[p] !== true && b.outcome !== 'win'; // victoire : il bondit
       pr.victory = b.outcome === 'win' ? 1 : 0;
       // bonds de joie : le pivot monte et retombe (écrasement à chaque réception)
       const baseY = rig.pivot.userData.baseY as number;
