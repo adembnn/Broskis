@@ -41,7 +41,6 @@ export const LOCAL_TOKENS = {
     gravity: { blaster: 1.5, grenade: 13, throwable: 8, shield: 0 },
     segments: 16,
   },
-  onomato: { maxAlive: 16 }, // = rendu.traces.max ; le reste (taille, alea) vient de tokens.js
   damageNumbers: { life: 0.85, maxAlive: 8 },
   particles: { maxAdditive: 900, maxNormal: 260 },
   shockwave: { pool: 6 },

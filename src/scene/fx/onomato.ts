@@ -4,9 +4,8 @@
 // cohérent avec le langage "sticker" du reste du jeu, et pas de police à embarquer. Remplace l'idée initiale
 // de lettres 3D qui rebondissent (`onomato.js` de bagarre-de-taverne) : ce n'est plus ce que veut la DA.
 import * as THREE from 'three';
-import { polices, rendu } from '../../art/tokens.js';
+import { durees, polices, rendu } from '../../art/tokens.js';
 import type { Category, Ctx } from '../../core/types';
-import { LOCAL_TOKENS } from '../localTokens';
 import { excludeFromOcclusion } from '../registry';
 
 const WORDS: Record<Category, string[]> = {
@@ -106,16 +105,15 @@ export function installOnomato(ctx: Ctx): OnomatoSystem {
 
     // Petite claque : pop-in élastique (durees.snap), pas un simple fondu (design system §5).
     const start = performance.now();
-    const dur = 220;
     const anim = () => {
-      const t = Math.min(1, (performance.now() - start) / dur);
+      const t = Math.min(1, (performance.now() - start) / durees.snap);
       const k = t < 1 ? 1 + 0.3 * Math.sin(t * Math.PI) * (1 - t) : 1;
       wrap.scale.setScalar(k);
       if (t < 1) requestAnimationFrame(anim);
     };
     requestAnimationFrame(anim);
 
-    while (alive.length > LOCAL_TOKENS.onomato.maxAlive) {
+    while (alive.length > rendu.traces.max) {
       const oldest = alive.shift();
       oldest?.removeFromParent();
     }
