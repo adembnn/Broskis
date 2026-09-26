@@ -1,6 +1,11 @@
 // Rendu du trailer image par image, sans enregistrement en temps réel (le conteneur ne rend que ~3 i/s).
 // Usage : node tools/trailer/render.mjs [--cut 60|15] [--fps 30|60] [--workers 3] [--shots 0-5]
 //                                        [--out captures/trailer] [--no-audio] [--keep-frames]
+//                                        [--sample] [--mux-only] [--dev]
+//   --sample   : planche seulement (image du milieu de chaque plan), en 2-3 min
+//   --mux-only : garde les images déjà rendues (--keep-frames) et refait seulement la bande-son + la vidéo
+//   --dev      : rend depuis le serveur Vite de dev (par défaut : build + `vite preview`, insensible aux
+//                modifications du code pendant le rendu)
 // 1. lance Vite si besoin ; 2. répartit les plans entre plusieurs onglets Chromium ; chaque onglet ouvre
 //    `?demo=1&trailer=<cut>` et avance l'horloge virtuelle (virtual-time.js) d'une image à la fois ;
 // 3. le jeu dit quelles images garder (window.trailer.capture) ; 4. ffmpeg assemble les JPEG + la bande-son.
@@ -27,14 +32,16 @@ const WIDTH = 1280;
 const HEIGHT = 720;
 const SCALE = 1.5;
 const SAMPLE = args.includes('--sample'); // planche seulement : l'image du milieu de chaque plan
-const PORT = 5173;
+const DEV = args.includes('--dev');
+const MUX_ONLY = args.includes('--mux-only');
+const PORT = DEV ? 5173 : 4174;
 const BASE = `http://localhost:${PORT}/`;
 
 const plan = planFrames(CUT, FPS);
 const [firstShot, lastShot] = (opt('--shots', `0-${plan.length - 1}`)).split('-').map(Number);
 const frameDir = join(OUT, `frames-${CUT}`);
 mkdirSync(frameDir, { recursive: true });
-if (!args.includes('--resume')) for (const f of readdirSync(frameDir)) rmSync(join(frameDir, f));
+if (!args.includes('--resume') && !MUX_ONLY) for (const f of readdirSync(frameDir)) rmSync(join(frameDir, f));
 
 function findFfmpeg() {
   const candidates = [process.env.FFMPEG_PATH, '/tmp/claude-0/trailer-scratch/node_modules/ffmpeg-static/ffmpeg'];
@@ -53,13 +60,21 @@ function findChromium() {
 async function up(u) { try { return (await fetch(u)).ok; } catch { return false; } }
 
 let server;
-if (!(await up(BASE))) {
-  console.log('Lancement de Vite…');
-  server = spawn(process.execPath, [join(ROOT, 'node_modules/vite/bin/vite.js'), '--port', String(PORT), '--strictPort'], { cwd: ROOT, stdio: 'ignore' });
-  for (let i = 0; i < 60 && !(await up(BASE)); i++) await new Promise((r) => setTimeout(r, 500));
+if (!MUX_ONLY) {
+  if (!DEV) {
+    console.log('Build du jeu (vite build)…');
+    const b = spawnSync(process.execPath, [join(ROOT, 'node_modules/vite/bin/vite.js'), 'build', '--outDir', 'dist-trailer', '--emptyOutDir'], { cwd: ROOT, stdio: ['ignore', 'ignore', 'pipe'], encoding: 'utf8' });
+    if (b.status !== 0) { console.error(b.stderr.slice(-1500)); process.exit(1); }
+  }
+  if (!(await up(BASE))) {
+    console.log(DEV ? 'Lancement de Vite (dev)…' : 'Lancement de vite preview…');
+    const cmd = DEV ? ['--port', String(PORT), '--strictPort'] : ['preview', '--outDir', 'dist-trailer', '--port', String(PORT), '--strictPort'];
+    server = spawn(process.execPath, [join(ROOT, 'node_modules/vite/bin/vite.js'), ...cmd], { cwd: ROOT, stdio: 'ignore' });
+    for (let i = 0; i < 60 && !(await up(BASE)); i++) await new Promise((r) => setTimeout(r, 500));
+  }
 }
 
-const browser = await chromium.launch({
+const browser = MUX_ONLY ? null : await chromium.launch({
   executablePath: findChromium(),
   args: ['--ignore-gpu-blocklist', '--enable-webgl', '--use-angle=default', '--autoplay-policy=no-user-gesture-required'],
 });
@@ -67,6 +82,12 @@ const initScript = readFileSync(join(HERE, 'virtual-time.js'), 'utf8');
 // ignoreHTTPSErrors : derrière un proxy d'entreprise/cloud, la police Google passe par un certificat maison.
 const CONTEXT = { viewport: { width: WIDTH, height: HEIGHT }, deviceScaleFactor: SCALE, ignoreHTTPSErrors: true };
 
+const wanted = plan.filter((s) => s.index >= firstShot && s.index <= lastShot);
+const totalFrames = wanted.reduce((n, s) => n + (s.end - s.start), 0);
+const events = [];
+const t0 = Date.now();
+
+if (!MUX_ONLY) { // ------------------------------------------------------------------ rendu des images
 // Échauffement : au premier chargement, Vite pré-compile ses dépendances et invalide les onglets déjà ouverts
 // (erreur 504 « Outdated Optimize Dep »). Un seul onglet d'abord, jusqu'à ce que le jeu soit prêt.
 {
@@ -78,8 +99,6 @@ const CONTEXT = { viewport: { width: WIDTH, height: HEIGHT }, deviceScaleFactor:
 }
 
 // Répartition : des paquets de plans contigus, équilibrés par nombre d'images.
-const wanted = plan.filter((s) => s.index >= firstShot && s.index <= lastShot);
-const totalFrames = wanted.reduce((n, s) => n + (s.end - s.start), 0);
 const batches = [];
 let current = [];
 let acc = 0;
@@ -90,8 +109,6 @@ for (const s of wanted) {
 }
 if (current.length) batches.push(current);
 
-const events = [];
-const t0 = Date.now();
 let done = 0;
 
 async function runBatch(shots, n) {
@@ -133,6 +150,7 @@ try {
   await browser.close();
   server?.kill();
 }
+} // fin du rendu des images
 
 if (SAMPLE) {
   const ffmpegS = findFfmpeg();
@@ -146,8 +164,9 @@ if (SAMPLE) {
   console.log(`Planche : ${sheetPath} (${files.length} plans)`);
   process.exit(0);
 }
+if (MUX_ONLY) events.push(...JSON.parse(readFileSync(join(OUT, `events-${CUT}.json`), 'utf8')).events);
 events.sort((a, b) => a.frame - b.frame);
-writeFileSync(join(OUT, `events-${CUT}.json`), JSON.stringify({ fps: FPS, events }, null, 1));
+if (!MUX_ONLY) writeFileSync(join(OUT, `events-${CUT}.json`), JSON.stringify({ fps: FPS, events }, null, 1));
 const got = readdirSync(frameDir).filter((f) => f.endsWith('.jpg')).length;
 console.log(`Images : ${got} (attendu ${totalFrames}) en ${Math.round((Date.now() - t0) / 1000)} s`);
 
