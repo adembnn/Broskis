@@ -1,5 +1,5 @@
-// Lot LV · Audio : bruitages synthétisés, musique de fond, voix de l'animateur, touche M pour couper le son.
-// Voir plan/lots/LV-audio.md. Rien ici ne dépend d'un fichier son : tout est synthétisé en WebAudio
+// Lot LV · Audio : bruitages synthétisés, musique de fond (fichiers, lot LMUSIQUE), voix, touche M pour couper le son.
+// Voir plan/lots/LV-audio.md. Les bruitages sont synthétisés en WebAudio
 // (repris de reference/bagarre-de-taverne/src/audio.js) pour que le build reste léger et sans asset.
 import type { Install } from '../core/types';
 import { installBarks } from './barks';

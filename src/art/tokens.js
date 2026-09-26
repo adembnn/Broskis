@@ -76,6 +76,22 @@ export const juice = { // table du skill game-feel (hitstop en ms, trauma 0 à 1
   son: { variation: 0.05 },                                         // hauteur ±5 % à chaque lecture
 };
 
+// Lot LMUSIQUE : musique de fond (fichiers dans public/assets/music/, crédits dans CREDITS.md).
+// Toujours SOUS les voix : on doit entendre l'animateur et les combattants par-dessus.
+export const musique = {
+  volume: 0.2,   // gain du bus musique (le maître est à 0,8) : une ambiance, pas un concert
+  ducking: 0.3,  // part du volume gardée pendant chaque réplique (animateur ou combattant)
+  fondu: 0.8,    // s, fondu enchaîné entre deux pistes
+  baisse: 0.06,  // s, constante de temps de la baisse quand une voix démarre (rapide)
+  remontee: 0.35, // s, constante de temps de la remontée après la voix (douce)
+  // niveau : correction par piste pour égaliser le volume perçu (mesuré : menu -18,5 dB, combat -12,9, tendu -9,2)
+  pistes: {
+    menu: { url: '/assets/music/menu.ogg', niveau: 1 },       // « Fluffing a Duck », 122 BPM, festif
+    combat: { url: '/assets/music/fight.ogg', niveau: 0.55 }, // « Pixel Peeker Polka - faster », 144 BPM, 8-bit
+    tendu: { url: '/assets/music/tense.ogg', niveau: 0.4 },   // « Volatile Reaction », 155 BPM, mort subite
+  },
+};
+
 export const joueurs = {
   // principal : tenue (≥ 30 % de la silhouette), ruban, bandeau, PV · fonce : texte sur papier ou vinyle
   // clair : fond des cartes, fond de victoire
