@@ -1,0 +1,40 @@
+// Noms et données des événements du bus — figés (plan/README.md). Un nouvel événement = une ligne ici + une note dans plan/SUIVI.md.
+import type { MapId, ParryGrade, Phase, PlayerId, Vec3, Weapon } from './types';
+
+export interface EventMap {
+  'phase:change': { from: Phase; to: Phase };
+  'match:start': { mapId: MapId; seed: number };
+  'turn:start': { turn: number; active: PlayerId };
+  'turn:end': { turn: number; active: PlayerId };
+  'move:update': { player: PlayerId; pos: Vec3; moveLeft: number };
+  'move:jump': { player: PlayerId };
+  'weapon:pick': { player: PlayerId; index: number };
+  /** Aides de visée : trajectoire prévue, point d'impact, recul prévu, éjection probable. */
+  'aim:update': { player: PlayerId; dir: Vec3; power: number; path?: Vec3[]; impact?: Vec3; knockback?: Vec3; ejects?: boolean };
+  'fire': { player: PlayerId; weapon: Weapon; dir: Vec3; power: number };
+  'projectile:spawn': { id: string; weapon: Weapon; from: Vec3; vel: Vec3 };
+  /** Part ~1,2 s avant l'impact : déclenche les repères de parade. */
+  'projectile:incoming': { id: string; target: PlayerId; etaMs: number };
+  'parry:result': { player: PlayerId; grade: ParryGrade; deltaMs: number };
+  'hit': { target: PlayerId; attacker: PlayerId; weapon: Weapon; damage: number; knockback: Vec3; crit: boolean; pos: Vec3 };
+  'shield:placed': { player: PlayerId; weapon: Weapon; pos: Vec3 };
+  'map:warn': { mapId: MapId; kind: string; turnsLeft: number; area?: Vec3[] };
+  'map:event': { mapId: MapId; kind: string };
+  'prop:triggered': { propId: string; kind: string };
+  'crate:warn': { pos: Vec3 };
+  'crate:land': { pos: Vec3 };
+  'crate:grab': { player: PlayerId };
+  'scan:start': { player: PlayerId; source: 'webcam' | 'upload' | 'crate' | 'cache' };
+  'scan:result': { player: PlayerId; weapon: Weapon };
+  'ringout': { player: PlayerId };
+  'ko': { player: PlayerId; cause: 'hp' | 'ringout' };
+  'match:end': { winner: PlayerId };
+  'commentary:line': { text: string; priority: number; audioUrl?: string; at?: number };
+  'camera:cue': { shot: 'turn-swing' | 'follow-projectile' | 'impact' | 'ko-orbit' | 'overview'; target?: PlayerId };
+  /** Demande de ralenti : facteur (0,3 = ×0,3) pendant ms millisecondes de temps réel. */
+  'slowmo': { factor: number; ms: number };
+  /** Régie de démo (?demo=1) : F1 à F5, F9 = panique. */
+  'demo:cue': { key: 'F1' | 'F2' | 'F3' | 'F4' | 'F5' | 'F9' };
+}
+
+export type EventName = keyof EventMap;

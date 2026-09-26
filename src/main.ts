@@ -1,60 +1,40 @@
-import './style.css'
-import heroImg from './assets/hero.png'
-import typescriptLogo from './assets/typescript.svg'
-import viteLogo from './assets/vite.svg'
-import { setupCounter } from './counter.ts'
+// Point d'entrée : il ne fait qu'assembler. Chaque dossier est un lot (plan/lots/) qui exporte install(ctx).
+import './style.css';
+import { install as installAudio } from './audio';
+import { createCtx } from './core/ctx';
+import { install as installGameplay } from './gameplay';
+import { install as installMapEvents } from './gameplay/map-events';
+import { install as installIa } from './ia';
+import { install as installScene } from './scene';
+import { install as installMaps } from './scene/maps';
+import { install as installUi } from './ui';
+import type { Install } from './core/types';
 
-document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-<section id="center">
-  <div class="hero">
-    <img src="${heroImg}" class="base" width="170" height="179">
-    <img src="${typescriptLogo}" class="framework" alt="TypeScript logo"/>
-    <img src="${viteLogo}" class="vite" alt="Vite logo" />
-  </div>
-  <div>
-    <h1>Get started</h1>
-    <p>Edit <code>src/main.ts</code> and save to test <code>HMR</code></p>
-  </div>
-  <button id="counter" type="button" class="counter"></button>
-</section>
+const MODULES: [string, Install][] = [
+  ['scene', installScene],
+  ['maps', installMaps],
+  ['map-events', installMapEvents],
+  ['gameplay', installGameplay],
+  ['ia', installIa],
+  ['audio', installAudio],
+  ['ui', installUi],
+];
 
-<div class="ticks"></div>
+function showBootError(err: unknown) {
+  const el = document.querySelector<HTMLElement>('#bootError');
+  if (!el) return;
+  el.hidden = false;
+  el.textContent = `Game error: ${String((err as Error)?.stack ?? err).slice(0, 500)}`;
+}
+window.addEventListener('error', (e) => showBootError(e.error ?? e.message));
+window.addEventListener('unhandledrejection', (e) => showBootError(e.reason));
 
-<section id="next-steps">
-  <div id="docs">
-    <svg class="icon" role="presentation" aria-hidden="true"><use href="/icons.svg#documentation-icon"></use></svg>
-    <h2>Documentation</h2>
-    <p>Your questions, answered</p>
-    <ul>
-      <li>
-        <a href="https://vite.dev/" target="_blank">
-          <img class="logo" src="${viteLogo}" alt="" />
-          Explore Vite
-        </a>
-      </li>
-      <li>
-        <a href="https://www.typescriptlang.org" target="_blank">
-          <img class="button-icon" src="${typescriptLogo}" alt="">
-          Learn more
-        </a>
-      </li>
-    </ul>
-  </div>
-  <div id="social">
-    <svg class="icon" role="presentation" aria-hidden="true"><use href="/icons.svg#social-icon"></use></svg>
-    <h2>Connect with us</h2>
-    <p>Join the Vite community</p>
-    <ul>
-      <li><a href="https://github.com/vitejs/vite" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#github-icon"></use></svg>GitHub</a></li>
-      <li><a href="https://chat.vite.dev/" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#discord-icon"></use></svg>Discord</a></li>
-      <li><a href="https://x.com/vite_js" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#x-icon"></use></svg>X.com</a></li>
-      <li><a href="https://bsky.app/profile/vite.dev" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#bluesky-icon"></use></svg>Bluesky</a></li>
-    </ul>
-  </div>
-</section>
+async function boot() {
+  const ctx = await createCtx(document.querySelector<HTMLElement>('#app')!);
+  for (const [name, install] of MODULES) {
+    try { await install(ctx); } catch (e) { console.error(`[install ${name}]`, e); showBootError(e); }
+  }
+  ctx.loop.start();
+}
 
-<div class="ticks"></div>
-<section id="spacer"></section>
-`
-
-setupCounter(document.querySelector<HTMLButtonElement>('#counter')!)
+boot().catch(showBootError);
