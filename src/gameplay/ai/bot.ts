@@ -362,6 +362,8 @@ export class RealtimeBot {
     const cdx = target[0] - center[0], cdz = target[2] - center[2];
     const cd = Math.hypot(cdx, cdz);
     if (cd > safeR) target = [center[0] + (cdx / cd) * safeR, target[1], center[2] + (cdz / cd) * safeR];
+    // Arène non ronde (Cuisine : 18 × 11 m) : on vérifie le sol autour du point visé, sinon on le ramène vers le centre.
+    target = this.safeTarget(target, center, arena.top, L.edgeMargin + 1 + me.pct / 80);
     const tx = target[0] - me.pos[0], tz = target[2] - me.pos[2];
     const tl = Math.hypot(tx, tz);
     const perp: [number, number] = [-fromFoe[1] * this.strafe, fromFoe[0] * this.strafe];
@@ -390,6 +392,15 @@ export class RealtimeBot {
         this.stuckFrom = [...me.pos] as Vec3;
       }
     } else { this.stuckT = now; this.stuckFrom = [...me.pos] as Vec3; }
+  }
+
+  /** Point visé ramené vers le centre tant qu'il y a du vide à moins de `need` m autour de lui. */
+  private safeTarget(target: Vec3, center: Vec3, top: number, need: number): Vec3 {
+    for (const k of [1, 0.75, 0.5, 0.25]) {
+      const c: Vec3 = [center[0] + (target[0] - center[0]) * k, top, center[2] + (target[2] - center[2]) * k];
+      if (edgeDistance(this.ctx, c, need) >= need) return c;
+    }
+    return [center[0], top, center[2]];
   }
 
   /** Pauses « humaines » (Facile surtout) : s'arrête un instant, sans raison. */
