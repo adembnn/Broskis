@@ -112,6 +112,7 @@ h3.b-title { font-size:20px; margin-bottom:6px; }
 .wc-staple.b { left:auto; right:22%; transform:rotate(8deg); }
 .wc-band-name { font-family:var(--b-display); font-size:18px; padding:5px 10px; background:var(--owner); color:var(--b-vinyle); border-top:var(--b-trait) solid var(--b-encre); border-bottom:var(--b-trait) solid var(--b-encre); }
 .wc-front .weapon-object { margin:6px 10px 0; }
+.wc-physics { margin:2px 10px 0; font-size:11px; font-weight:800; color:var(--b-muted); }
 .wc-pips { display:grid; gap:3px; padding:4px 10px; }
 .wc-pip-row { display:flex; align-items:center; gap:6px; }
 .wc-pip-label { width:56px; font-size:10px; font-weight:800; text-transform:capitalize; color:var(--b-muted); }
