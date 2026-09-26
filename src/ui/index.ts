@@ -20,6 +20,8 @@ import { installSnapTime } from './snapTime';
 import { installStickers, preloadPresetStickers } from './sticker2d';
 import { injectGoogleFonts, injectStyles } from './theme';
 import { installSettingsKey, openSettings } from './settings';
+import { preloadFighters } from '../core/preload';
+import { coverMatchStart } from './loading';
 
 type Difficulty = NonNullable<StartMatchOptions['difficulty']>;
 
@@ -85,7 +87,8 @@ export const install: Install = (ctx) => {
     const weapons = opts.weapons && ([freshWeapons(opts.weapons[0]), freshWeapons(opts.weapons[1])] as [Weapon[], Weapon[]]);
     // Temps réel (plan/PIVOT-TEMPS-REEL.md) : deux humains = écran scindé ; contre l'IA, plein écran.
     const full: StartMatchOptions & { split?: boolean } = { ...opts, weapons, split: !opts.vsAI };
-    ctx.hooks.startMatch(full);
+    // LLOAD : rideau P1/P2 pendant que la map se construit et que les shaders compilent (src/ui/loading/match.ts).
+    void coverMatchStart(ctx, () => ctx.hooks.startMatch(full), opts.map);
   }
 
   async function toTitle(): Promise<void> {
@@ -95,6 +98,7 @@ export const install: Install = (ctx) => {
 
     ctx.bus.emit('phase:change', { from: ctx.state.phase, to: 'fighter-select' });
     const fighters = await runFighterSelect(screenLayer, settings.vsAI);
+    preloadFighters(fighters); // LLOAD : leurs modèles 3D se chargent pendant l'arsenal
 
     ctx.bus.emit('phase:change', { from: 'fighter-select', to: 'arsenal' });
     const arsenal = await runArsenal(screenLayer, settings.vsAI);
@@ -104,7 +108,7 @@ export const install: Install = (ctx) => {
 
     ctx.bus.emit('phase:change', { from: 'reveal', to: 'map-select' });
     const map = await runMapSelect(screenLayer);
-    clear(screenLayer);
+    // LLOAD : l'écran de map reste affiché jusqu'à ce que le rideau le couvre ; match:start le vide ensuite.
     startMatch({ fighters, weapons: arsenal.weapons, map, vsAI: settings.vsAI, difficulty: settings.difficulty });
   }
 

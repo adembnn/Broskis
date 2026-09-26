@@ -1,7 +1,8 @@
 // Qualité automatique (lot LPERF). Mesuré sur le PC d'Adem : sur la puce Intel intégrée (celle que Chrome prend
 // par défaut sur un portable à 2 GPU), le post-traitement (MSAA ×4 sur cible HalfFloat + bloom) coûte ~20 ms
-// par image : 28 i/s au lieu de 64. Au 1er tour jouable, on mesure 2 s d'images ; si la médiane dépasse
-// 20 ms (< 50 i/s), on passe en « basse » : rendu direct dans le canvas (anticrénelage natif, sans bloom).
+// par image : 28 i/s au lieu de 64. Au 1er moment jouable, on attend 1,5 s (préchauffe des shaders, voir
+// shaders.ts) puis on mesure 2,5 s d'images ; si la médiane dépasse 20 ms (< 50 i/s), on passe en « basse » :
+// rendu direct dans le canvas (anticrénelage natif, sans bloom).
 // Les shaders du rendu direct sont d'abord compilés en tâche de fond (`preparer`) : sinon la bascule gèle
 // l'écran ~1 s. Sur un bon GPU rien ne change. Forçable dans l'URL : ?q=haute ou ?q=basse.
 import type { Bus } from './bus';
@@ -17,8 +18,10 @@ export interface QualiteCtl {
   frame(real: number): void;
 }
 
+export const PHASES_DE_JEU = new Set<string>(['move', 'countdown', 'fight']);
 const SEUIL_MS = 20;
-const MESURE_S = 2;
+const ATTENTE_S = 1.5;
+const MESURE_S = 2.5;
 
 declare global { interface Window { __qualite?: QualiteCtl } }
 
@@ -27,6 +30,7 @@ export function createQualite(bus: Bus, preparer: (n: Qualite) => Promise<unknow
   const force: Qualite | null = url === 'haute' || url === 'basse' ? url : null;
   const echantillons: number[] = [];
   let mesure = false;
+  let attente = 0;
   let cumul = 0;
 
   const q: QualiteCtl = {
@@ -41,6 +45,7 @@ export function createQualite(bus: Bus, preparer: (n: Qualite) => Promise<unknow
     },
     frame(real) {
       if (!mesure) return;
+      if (attente > 0) { attente -= real; return; }
       echantillons.push(real * 1000);
       cumul += real;
       if (cumul < MESURE_S) return;
@@ -52,12 +57,14 @@ export function createQualite(bus: Bus, preparer: (n: Qualite) => Promise<unknow
   };
   if (force === 'basse') q.set('basse');
 
-  // Au 1er tour jouable (map chargée, bandeau passé) : c'est la charge réelle du match.
+  // Au 1er moment jouable (map chargée) : tour par tour `move`, temps réel `countdown` puis `fight`
+  // (plan/PIVOT-TEMPS-REEL.md). Chaînes simples : ces phases n'existent pas encore toutes dans le type Phase.
   if (!force) {
     bus.on('phase:change', ({ to }) => {
-      if (to !== 'move' || mesure || q.medianeMs != null) return;
+      if (!PHASES_DE_JEU.has(to) || mesure || q.medianeMs != null) return;
       echantillons.length = 0;
       cumul = 0;
+      attente = ATTENTE_S;
       mesure = true;
     });
   }

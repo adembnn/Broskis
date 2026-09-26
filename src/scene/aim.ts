@@ -33,7 +33,13 @@ export function installAimHelpers(ctx: Ctx): void {
   ctx.three.scene.add(group);
   excludeFromOcclusion(group);
 
+  // perf + bug : three r186 réutilise l'attribut de position dans setFromPoints et le TRONQUE à sa 1re taille
+  // (1re visée au blaster = 2 points, puis toutes les cloches de grenade dessinées en ligne droite). On alloue
+  // la taille max une fois + drawRange. Bonus : le shader est bon dès le départ, la 1re visée ne gèle plus.
+  const LINE_MAX_PTS = 256;
   const lineGeo = new THREE.BufferGeometry();
+  lineGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(LINE_MAX_PTS * 3), 3));
+  lineGeo.setDrawRange(0, 0);
   const lineMat = new THREE.LineDashedMaterial({ color: ui.encre, dashSize: 0.18, gapSize: 0.12 });
   const line = new THREE.Line(lineGeo, lineMat);
   line.frustumCulled = false;
@@ -73,7 +79,8 @@ export function installAimHelpers(ctx: Ctx): void {
     const points = path && path.length > 1
       ? path.map((p) => new THREE.Vector3(p[0], p[1], p[2]))
       : fallbackPath(origin, dirV, power, category);
-    lineGeo.setFromPoints(points);
+    lineGeo.setFromPoints(points.length > LINE_MAX_PTS ? points.slice(0, LINE_MAX_PTS) : points);
+    lineGeo.setDrawRange(0, Math.min(points.length, LINE_MAX_PTS));
     line.computeLineDistances();
 
     const impactPt = impact ? new THREE.Vector3(impact[0], impact[1], impact[2]) : points[points.length - 1];
