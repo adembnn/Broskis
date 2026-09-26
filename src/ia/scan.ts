@@ -144,7 +144,13 @@ export async function scanObject(image: Blob | string, opts: ScanOptions = {}): 
     TIMEOUTS.scan,
   );
 
-  const weapon = raw ? fromApiResult(raw, opts.category) : pickPreset(Math.random, opts.category);
+  // Repli réseau coupé sur une VRAIE photo (pas une clé) : en ?demo=1 on tire quand même une arme
+  // cohérente, mais avec un tirage stable par image (comme resolveByKey) plutôt que Math.random — une
+  // répétition et le live avec la même photo/prop donnent la même arme de secours (règle CLAUDE.md
+  // « ?demo=1 : graine aléatoire fixe »). Hors démo, Math.random reste très bien.
+  const ctxForFallback = getRuntimeCtx();
+  const fallbackRng = ctxForFallback?.demo ? createRng(seedFromString(imgKey)) : Math.random;
+  const weapon = raw ? fromApiResult(raw, opts.category) : pickPreset(fallbackRng, opts.category);
   setCached(imgKey, weapon);
   setCached(weapon.object, weapon);
   emitScanProgress(opts.player, 'stats', weapon.id);
