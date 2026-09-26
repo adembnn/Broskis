@@ -151,6 +151,75 @@
         "montre": 6.63
       },
       "reprise": true
+    },
+    {
+      "n": 8,
+      "horodatage": "2026-09-26_17h10",
+      "changement": "DA n° 1 : épaisseur indépendante de la physique (facteur 1 pour tous) ; mêmes réponses API que le n° 3",
+      "moyenne": 6.46,
+      "fidelite": 6.3,
+      "esthetique": 5.83,
+      "grille": 2,
+      "injouables": 6,
+      "notes": {
+        "tasse-verre": 6.38,
+        "chaise-bureau": 6.38,
+        "feutre-velleda": 6.63,
+        "telephone": 6.5,
+        "mocassin": 6,
+        "tabouret-rotin": 6.63,
+        "pendule-newton": 5.7,
+        "lampe-champignon": 7.13,
+        "roi-echecs": 6.75,
+        "montre": 6.5
+      },
+      "reprise": true
+    },
+    {
+      "n": 9,
+      "horodatage": "2026-09-26_17h15",
+      "changement": "DA n° 2 et 3 : vinyle gonflé (tranche 5 %, bombé 5/8/10 % selon la forme, plafond local), faces opaques MeshStandard à rugosité selon la matière, tranche vinyle, marge vinyle par le code, encre 0,03 ; mêmes réponses API que le n° 3",
+      "moyenne": 6.32,
+      "fidelite": 5.7,
+      "esthetique": 5.67,
+      "grille": 2,
+      "injouables": 1,
+      "notes": {
+        "tasse-verre": 6.5,
+        "chaise-bureau": 6.13,
+        "feutre-velleda": 6.25,
+        "telephone": 6.88,
+        "mocassin": 6.75,
+        "tabouret-rotin": 6.38,
+        "pendule-newton": 5.83,
+        "lampe-champignon": 6.25,
+        "roi-echecs": 6.13,
+        "montre": 6.13
+      },
+      "reprise": true
+    },
+    {
+      "n": 10,
+      "horodatage": "2026-09-26_17h18",
+      "changement": "marge vinyle et trait d'encre plats (seul l'art se bombe), dôme parabolique au lieu du quart de cercle ; mêmes réponses API que le n° 3",
+      "moyenne": 6.32,
+      "fidelite": 6.1,
+      "esthetique": 5.53,
+      "grille": 2,
+      "injouables": 4,
+      "notes": {
+        "tasse-verre": 6.75,
+        "chaise-bureau": 6.63,
+        "feutre-velleda": 6.38,
+        "telephone": 6.13,
+        "mocassin": 6.5,
+        "tabouret-rotin": 5.75,
+        "pendule-newton": 4.83,
+        "lampe-champignon": 6.88,
+        "roi-echecs": 6.63,
+        "montre": 6.75
+      },
+      "reprise": true
     }
   ]
 }
