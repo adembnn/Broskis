@@ -28,7 +28,7 @@ Mode d'affichage : décidé au `match:start` (`state.split ?? !state.vsAI`) ; é
 ## Comment c'est fait
 - `src/core/ctx.ts` : 2 `PerspectiveCamera` (une par joueur), rectangles des vues, `drawViews(cible)` : pour chaque vue, on règle **la cible elle-même** (`rt.viewport`, `rt.scissor`, `rt.scissorTest`, en pixels de la cible), puis on la remet en plein écran (sinon le bloom ne couvre qu'une moitié) ; `shadowMap.autoUpdate = false` et `needsUpdate = true` avant la 1re vue. Ratio de pixels 1 en scindé. La **qualité basse** (auto de LPERF) dessine aussi les 2 vues, directement dans le canvas. Trait d'encre = `rendu.contour.encre`, dessiné sur le canvas après tout le reste.
 - `src/scene/render/postfx.ts` : `ViewsPass` remplace `RenderPass` ; bloom et étalonnage tournent une fois ; vignette par vue (`fract(vUv.x * nbVues)`) ; `composer.setPixelRatio(1)` (recommandation LPERF).
-- `src/scene/camera/rig.ts` : une caméra par joueur. L'angle suit l'axe joueur → adversaire (tenu quand ils se superposent : pas de toupie) ; point visé entre les 2, plus près de l'adversaire, 0,4 m au-dessus du sol (les pieds restent au-dessus du HUD) ; suivi en temps **réel** (un ralenti ou un gel d'impact ne fige pas la caméra).
+- `src/scene/camera/rig.ts` : une caméra par joueur. L'angle suit l'axe joueur → adversaire (tenu quand ils se superposent : pas de toupie) ; point visé entre les 2, plus près de l'adversaire (62 %), bas (-0,4 m) et qui ne suit que 35 % de la hauteur de l'adversaire : son propre perso reste entre 46 et 67 % de la hauteur de la vue, au-dessus du HUD, même quand l'adversaire saute ; suivi en temps **réel** (un ralenti ou un gel d'impact ne fige pas la caméra).
 - `src/scene/camera/occlusion.ts` : occlusion par vue. Le fondu porte sur un **clone** du matériau (un accessoire qui partage son matériau n'entraîne pas les autres), opacité posée juste avant chaque vue. Rayons sur des **boîtes**, sur une liste d'objets de taille « accessoire » relue toutes les 2 s (au lieu de rayons triangle par triangle sur toute la map). Le shader transparent de chaque matériau est **compilé en tâche de fond** avant son 1er fondu (sinon gel au rendu). Collision caméra : elle ne rentre que si la caméra finirait **dans** un objet ; sinon l'occlusion suffit.
 - `src/scene/camera/tokens.ts` : tous les réglages (distances, lissages, FOV, effets, budgets).
 
@@ -54,11 +54,18 @@ Appels de dessin par vue pendant un match (la 1re vue inclut la passe d'ombres, 
 
 Images par seconde, match scripté complet en écran scindé (la machine faisait tourner d'autres agents en même temps : chiffres bruités, le 144 Hz de l'écran plafonne la médiane à 7 ms) :
 
-| | moyenne | médiane | 99e centile |
+| Match scindé complet | moyenne | médiane | 99e centile |
 |---|---|---|---|
-| Galion, avant l'occlusion par boîtes | 46 i/s | 20,8 ms | 55,6 ms |
-| Galion, après | **124 i/s** | **7,0 ms** | **14 ms** |
-| Archipel, après | voir ajout plus bas | | |
+| Galion 1600×900, avant l'occlusion par boîtes | 46 i/s | 20,8 ms | 55,6 ms |
+| Galion 1600×900, après | **124 i/s** | **7,0 ms** | **14 ms** |
+| Archipel 1600×900, après | 72 i/s | 13,9 ms | 34,9 ms |
+| Cuisine 1600×900, après | 97 i/s | 7,0 ms | 41,6 ms |
+| Galion 1536×864 à 125 % (réglage du portable), après | 97 i/s | 7,0 ms | 34,7 ms |
+| Archipel 1920×1080 | 96 i/s | 7,0 ms | 41,8 ms |
+| Cuisine 1920×1080 (machine très chargée pendant la mesure) | 24 i/s | 13,9 ms | 118 ms |
+| Galion 1920×1080 | 90 i/s | 7,0 ms | 48,6 ms |
+
+Au repos en écran scindé (Archipel, 6 s) : 127 i/s, médiane 7 ms, 95e centile 13,9 ms, pire image du rendu 11 ms, **aucun shader compilé pendant la mesure** (43 programmes avant et après). Les pics isolés (100 à 500 ms) viennent de la fenêtre du navigateur mise en veille par la machine partagée (jusqu'à 1 image par seconde, rendu à 3,5 ms par image), pas du jeu.
 
 Coût de la caméra (système `la-camera`, moyenne par image, Galion) : 3,16 ms → **0,05 ms** en scindé ; 1,37 ms → 0,05 ms en solo.
 
@@ -69,6 +76,8 @@ Coût de la caméra (système `la-camera`, moyenne par image, Galion) : 3,16 ms 
 4. **`forwardOf` introuvable par RTCORE** : `gameplay/movement.ts` le cherche dans `src/scene/camera` ; il y est maintenant exporté (avant, le déplacement retombait sur l'axe brut joueur → adversaire).
 5. **Plateforme qui cache son propre perso** (Cuisine, planche à découper entre la caméra et P1) : les plateformes à sauter (`oneway-*`, exclues par `maps/engine.ts`) sont maintenant estompables ; le plateau principal ne s'efface jamais. Captures `occlusion-cuisine-avant.png` / `-apres.png`.
 6. Les clones de fondu perdaient les retouches de shader des maps (`onBeforeCompile` n'est pas copié par `Material.clone`) : recopiées.
+7. **Son propre perso sous le HUD quand l'adversaire saute** (le point visé montait avec lui, la caméra se relevait) : le point visé ne suit plus que 35 % de sa hauteur. Vérifié en 1536×864 à 125 % (réglage probable du portable d'Adem, où le HUD prend le quart bas de l'écran). Captures `cadrage-saut-avant.png` / `-apres.png`.
+8. Changement de ratio de pixels solo ↔ scindé (125 % → 1) vérifié à 125 % : canvas 1536×864 en scindé, aucune erreur.
 
 ## Pour les autres lots
 - **Effets Smash (`src/scene/fx/smash/index.ts`, hors de mes chemins)** : le voile du zoom KO (vignette rouge, lignes radiales) et les flashs sont un quad plein écran dessiné **dans les 2 vues**. Pour le réserver à la victime : `onlyInView(overlayMesh, ev.target)` au moment du `flash`, puis `overlayMesh.layers.set(0)` quand il s'éteint (GAME! reste sur les 2). De même, `registry.shake?.add(0.6)` au `stock:lost` secoue les 2 vues : `cameraShake(0.6, player)`.
@@ -78,5 +87,5 @@ Coût de la caméra (système `la-camera`, moyenne par image, Galion) : 3,16 ms 
 - **LPERF** : `src/core/shaders.ts` compile avec la caméra de P1 ; les shaders ne dépendent pas de la caméra, donc les 2 vues sont couvertes.
 
 ## Captures (`captures/rtview/` de ma copie, dossier ignoré par git)
-`split-archipel.png`, `split-galion.png`, `split-cuisine.png` (début de match, 2 vues) · `combat-archipel-rapproche.png`, `combat-archipel-bord.png` (match réel piloté par `gameHooks.input`) · `ejection-galion.png` (la caméra de P2 suit son éjection au-dessus de la mer) · `zoom-ko-p1.png` (zoom KO dans la vue de P1 seulement) · `solo-vs-ia.png` · `soleil-avant/apres.png` · `occlusion-cuisine-avant/apres.png`.
+`split-archipel.png`, `split-galion.png`, `split-cuisine.png` (début de match, 2 vues) · `combat-archipel-rapproche.png`, `combat-archipel-bord.png` (match réel piloté par `gameHooks.input`) · `ejection-galion.png` (la caméra de P2 suit son éjection au-dessus de la mer) · `zoom-ko-p1.png` (zoom KO dans la vue de P1 seulement) · `solo-vs-ia.png` · `soleil-avant/apres.png` · `occlusion-cuisine-avant/apres.png` · `cadrage-saut-avant/apres.png` (1536×864 à 125 % ; après : le canon qui masque le chevalier est estompé dans la vue de P1 seulement).
 Scripts de test (Playwright, port 5312) : `rtview-shots.mjs`, `rtview-match.mjs` (match complet scripté), `rtview-scenario.mjs` (tour autour, superposition, éjection, zoom KO, solo), `rtview-occ.mjs`, `rtview-perf.mjs`, dans le dossier scratchpad de la session.
