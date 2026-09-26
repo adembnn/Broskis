@@ -17,18 +17,19 @@ export const ACTIONS: { id: Action; label: string }[] = [
   { id: 'weapon1', label: 'Weapon 1' },
   { id: 'weapon2', label: 'Weapon 2' },
   { id: 'weapon3', label: 'Weapon 3' },
-  { id: 'fire', label: 'Charge & fire (hold, release) — mouse click works too' },
-  { id: 'parry', label: 'Parry (when the ring closes)' },
+  { id: 'fire', label: 'Fire (hold to charge, release to fire)' },
+  { id: 'parry', label: 'Block (hold) · PERFECT parry: tap as the ring closes' },
 ];
 
 export const DEFAULT_BINDINGS: [Bindings, Bindings] = [
+  // Temps réel (plan/PIVOT-TEMPS-REEL.md) : P1 à gauche du clavier, P2 à droite, sans souris (visée verrouillée).
   { up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'], jump: ['Space'],
-    weapon1: ['Digit1'], weapon2: ['Digit2'], weapon3: ['Digit3'], fire: ['KeyF'], parry: ['Space'] },
+    weapon1: ['Digit1'], weapon2: ['Digit2'], weapon3: ['Digit3'], fire: ['KeyF'], parry: ['KeyG'] },
   { up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], jump: ['ShiftRight'],
-    weapon1: ['Digit8', 'Numpad1'], weapon2: ['Digit9', 'Numpad2'], weapon3: ['Digit0', 'Numpad3'], fire: ['KeyL', 'Numpad0'], parry: ['Enter', 'NumpadEnter'] },
+    weapon1: ['Digit8', 'Numpad1'], weapon2: ['Digit9', 'Numpad2'], weapon3: ['Digit0', 'Numpad3'], fire: ['KeyL', 'Numpad0'], parry: ['KeyK', 'NumpadDecimal'] },
 ];
 
-const STORAGE_KEY = 'broskis.controls.v1';
+const STORAGE_KEY = 'broskis.controls.v2'; // v2 : touches du temps réel (les réglages du tour par tour sont ignorés)
 const clone = (b: Bindings): Bindings => JSON.parse(JSON.stringify(b));
 
 let current: [Bindings, Bindings] = [clone(DEFAULT_BINDINGS[0]), clone(DEFAULT_BINDINGS[1])];
