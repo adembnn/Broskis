@@ -3,7 +3,7 @@
 import type { Ctx, PlayerId } from '../core/types';
 import { scanObject } from '../ia';
 import { button, clear, el, overlay, strokeNum } from './dom';
-import { mountForge } from './forge';
+import { mountForgeView } from './loading';
 import { renderWeaponCard } from './weaponCard';
 
 const COUNTDOWN_S = 10;
@@ -67,9 +67,10 @@ async function runSnap(ctx: Ctx, screenLayer: HTMLElement, player: PlayerId): Pr
 
   clear(card);
   card.append(el('h2', 'b-title', 'SNAP TIME!'));
-  const forge = mountForge('Scanning your snap…');
+  // LLOAD : forge sur les étapes réelles du scan (photo, nom qui s'écrit, sticker).
+  const forge = mountForgeView({ photoUrl: blob ? URL.createObjectURL(blob) : undefined, label: `Player ${player + 1}` });
   card.append(forge.root);
-  const weapon = await scanObject(blob ?? 'mystery object', { player });
+  const weapon = await scanObject(blob ?? 'mystery object', { player, onProgress: forge.update });
 
   const slot = ctx.state.players[player].selected;
   ctx.state.players[player].weapons[slot] = weapon;

@@ -1,8 +1,9 @@
 // Présentation des armes : cartes façon Wacky Packages, révélées une par une (joueur 1 puis joueur 2),
 // sous-titrées par l'animateur (commentary:line). prepareCommentary prépare les répliques ; le passage est possible.
 import type { Ctx, PlayerId, Weapon } from '../core/types';
-import { prepareCommentary } from '../ia';
+import { prepareCommentary, weaponIntro } from '../ia';
 import { button, clear, el, menuScreen } from './dom';
+import { typewriter } from './loading';
 import type { ArsenalResult } from './screenArsenal';
 import { renderWeaponCard } from './weaponCard';
 
@@ -42,10 +43,8 @@ export async function runReveal(ctx: Ctx, screenLayer: HTMLElement, arsenal: Ars
   const stage = el('div', 'reveal-stage');
   const subtitle = el('p', 'reveal-subtitle');
   subtitle.hidden = true;
-  const nextBtn = button('Announcer is warming up…', 'b-btn');
+  const nextBtn = button('Next', 'b-btn');
   const skipBtn = button('Skip presentation', 'b-btn small alt');
-  nextBtn.disabled = true;
-  skipBtn.disabled = true;
   const footer = el('div', 'reveal-footer');
   footer.append(nextBtn, skipBtn);
   card.append(stage, subtitle, footer);
@@ -56,29 +55,32 @@ export async function runReveal(ctx: Ctx, screenLayer: HTMLElement, arsenal: Ars
     ...arsenal.weapons[1].map((weapon) => ({ player: 1 as PlayerId, weapon })),
   ];
 
-  await prepareCommentary(order.map((o) => o.weapon));
-  nextBtn.disabled = false;
-  skipBtn.disabled = false;
-  nextBtn.textContent = 'Next';
-
+  // LLOAD : plus d'attente ici (25 s mesurées avant). La banque de l'animateur se prépare en fond pendant qu'on
+  // présente ; chaque carte est dite avec sa voix dès qu'elle est prête (déjà vocalisée depuis l'arsenal le plus souvent).
+  void prepareCommentary(order.map((o) => o.weapon));
+  const line = typewriter(subtitle);
   const offCommentary = ctx.bus.on('commentary:line', ({ text }) => {
     subtitle.hidden = false;
-    subtitle.textContent = text;
+    line.set(text);
   });
 
   let cardNumber = 0;
   for (const { player, weapon } of order) {
     cardNumber += 1;
+    const shown = cardNumber;
     clear(stage);
     stage.append(
       el('p', 'reveal-kicker', `Player ${player + 1}`),
       renderWeaponCard(weapon, { player, cardNumber, photoUrl: arsenal.photos.get(weapon.id), reveal: true }),
     );
-    // Réplique par défaut le temps que l'animateur (commentary:line) prenne le relais.
     subtitle.hidden = false;
-    subtitle.textContent = weapon.lines.intro;
+    line.set(weapon.lines.intro);
+    void weaponIntro(weapon).then(({ text, audioUrl }) => {
+      if (shown === cardNumber && audioUrl) ctx.bus.emit('commentary:line', { text, priority: 3, audioUrl, at: ctx.loop.time });
+    });
     nextBtn.textContent = cardNumber === order.length ? 'To the map' : 'Next';
     if ((await waitAdvance(nextBtn, skipBtn)) === 'skip') break;
   }
+  line.dispose();
   offCommentary();
 }

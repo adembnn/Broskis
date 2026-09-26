@@ -17,6 +17,8 @@ import { installScandexCollector } from './scandex/store';
 import { installSnapTime } from './snapTime';
 import { injectGoogleFonts, injectStyles } from './theme';
 import { installParryHud } from './parry-hud';
+import { preloadFighters } from '../core/preload';
+import { coverMatchStart } from './loading';
 
 interface Picks {
   fighters: [FighterDef, FighterDef];
@@ -63,6 +65,7 @@ export const install: Install = (ctx) => {
   async function runPreMatch(): Promise<Picks> {
     ctx.bus.emit('phase:change', { from: ctx.state.phase, to: 'fighter-select' });
     const fighters = await runFighterSelect(screenLayer);
+    preloadFighters(fighters); // LLOAD : leurs modèles 3D se chargent pendant l'arsenal
 
     ctx.bus.emit('phase:change', { from: 'fighter-select', to: 'arsenal' });
     const arsenal = await runArsenal(screenLayer);
@@ -72,7 +75,7 @@ export const install: Install = (ctx) => {
 
     ctx.bus.emit('phase:change', { from: 'reveal', to: 'map-select' });
     const map = await runMapSelect(screenLayer);
-    clear(screenLayer);
+    // LLOAD : on ne vide plus l'écran ici ; le rideau le couvre, puis match:start le vide (plus d'image vide entre les deux).
     return { fighters, weapons: arsenal.weapons, map };
   }
 
@@ -81,7 +84,8 @@ export const install: Install = (ctx) => {
 
   async function playMatch(picks: Picks): Promise<void> {
     applyPicksToState(ctx, picks);
-    ctx.hooks.startMatch({ fighters: picks.fighters, weapons: picks.weapons, map: picks.map, vsAI: globalVsAI, difficulty: globalDifficulty });
+    // LLOAD : rideau P1/P2 pendant que la map se construit et que les shaders compilent (src/ui/loading/match.ts).
+    await coverMatchStart(ctx, () => ctx.hooks.startMatch({ fighters: picks.fighters, weapons: picks.weapons, map: picks.map, vsAI: globalVsAI, difficulty: globalDifficulty }), picks.map);
     const action = await runEndScreen(ctx, screenLayer, matchLog);
     if (action === 'rematch') return playMatch(picks);
     return preMatchLoop();

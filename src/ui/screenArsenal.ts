@@ -3,10 +3,10 @@
 // La photo réellement capturée est gardée à part (photos, par id d'arme) : le contrat Weapon ne la porte pas,
 // mais la présentation (règle 5 du DA) veut la vraie preuve webcam sur la carte.
 import type { Category, PlayerId, Weapon } from '../core/types';
-import { scanObject } from '../ia';
+import { primeWeapon, scanObject } from '../ia';
 import { mountCapture } from './capture';
 import { button, clear, el, menuScreen } from './dom';
-import { mountForge } from './forge';
+import { mountForgeView } from './loading';
 import { categoryBadge } from './icons';
 import { WEAPON_PRESETS } from './presets';
 import { LOCAL_TOKENS } from './theme';
@@ -58,12 +58,14 @@ async function forgeAndCard(
   slotNumber: number,
 ): Promise<Weapon> {
   clear(area);
-  const forge = mountForge(`Forging ${label}'s weapon…`);
+  // LLOAD : forge branchée sur les étapes réelles du scan ; elle reste au-dessus de la carte jusqu'au sticker.
+  const forge = mountForgeView({ photoUrl, label });
   area.append(forge.root);
-  const weapon = await scanObject(blob, category ? { category } : {});
+  const weapon = await scanObject(blob, { ...(category ? { category } : {}), onProgress: forge.update });
   return new Promise((resolve) => {
     clear(area);
     const wrap = el('div', 'weapon-confirm');
+    wrap.append(forge.root);
     wrap.append(
       renderWeaponCard(weapon, {
         player,
@@ -133,7 +135,12 @@ function pickArsenal(screenLayer: HTMLElement, player: PlayerId, photos: Map<str
   }
   function assign(weapon: Weapon, photoUrl?: string) {
     const slotIndex = current;
-    const cloned: Weapon = { ...weapon, id: `${weapon.id}-p${player}-${slotIndex}` };
+    // LLOAD : une arme scannée garde son objet (seul l'id change), pour que le sticker qui arrive ~15 s plus tard
+    // (scan.ts le pose sur cet objet) atteigne bien le slot ; les presets du râtelier, partagés, restent copiés.
+    const id = `${weapon.id}-p${player}-${slotIndex}`;
+    const cloned: Weapon = weapon.source === 'scan' ? Object.assign(weapon, { id }) : { ...weapon, id };
+    void primeWeapon(cloned); // LLOAD : sa voix de présentation part dès maintenant
+
     slots[slotIndex] = cloned;
     if (photoUrl) photos.set(cloned.id, photoUrl);
     const next = slots.findIndex((w) => !w);
