@@ -3,7 +3,7 @@
 // La photo réellement capturée est gardée à part (photos, par id d'arme) : le contrat Weapon ne la porte pas,
 // mais la présentation (règle 5 du DA) veut la vraie preuve webcam sur la carte.
 import type { Category, PlayerId, Weapon } from '../core/types';
-import { scanObject } from '../ia';
+import { scanObject, scanNote } from '../ia';
 import { mountCapture } from './capture';
 import { button, clear, el, menuScreen } from './dom';
 import { mountForge } from './forge';
@@ -61,6 +61,13 @@ function snapTile(onClick: () => void): HTMLDivElement {
   return tile;
 }
 
+/** Au-delà, la forge dit qu'on attend encore (le JSON arrive en 2 à 3 s, repli à 9 s : TIMEOUTS.scan). */
+const SLOW_SCAN_MS = 4000;
+const NOTE_TEXT = {
+  offline: "Gemini didn't answer in time. Backup weapon issued: hit Retry to snap again.",
+  substituted: "Nice try. Real weapons and people don't count. Have this instead.",
+} as const;
+
 async function forgeAndCard(
   area: HTMLElement,
   blob: Blob,
@@ -71,12 +78,22 @@ async function forgeAndCard(
   slotNumber: number,
 ): Promise<Weapon> {
   clear(area);
-  const forge = mountForge(`Forging ${label}'s weapon…`);
-  area.append(forge.root);
+  // La photo prise reste à l'écran pendant la lecture (lot LSCAN) : le joueur voit tout de suite ce qu'il a snappé.
+  const shot = el('div', 'capture-zone');
+  const img = el('img', 'capture-video');
+  img.src = photoUrl;
+  img.alt = '';
+  const forge = mountForge(category ? `Rethinking it as a ${category}…` : `Gemini is reading ${label}'s object…`);
+  shot.append(img, forge.root);
+  area.append(shot);
+  const slow = window.setTimeout(() => forge.setLabel('Still thinking… hang on.'), SLOW_SCAN_MS);
   const weapon = await scanObject(blob, category ? { category } : {});
+  window.clearTimeout(slow);
   return new Promise((resolve) => {
     clear(area);
     const wrap = el('div', 'weapon-confirm');
+    const note = scanNote(weapon.id);
+    if (note) wrap.append(el('p', 'capture-error', NOTE_TEXT[note]));
     wrap.append(
       renderWeaponCard(weapon, {
         player,
