@@ -96,7 +96,7 @@ const handler: ApiHandler<CommentaryRequest> = async ({ body, env }) => {
         thinkingConfig: { thinkingBudget: 0 },
         responseMimeType: 'application/json',
         responseSchema: buildSchema(kinds, variantsPerKind),
-        abortSignal: serverTimeout(10_000),
+        abortSignal: serverTimeout(38_000),
       },
     });
 

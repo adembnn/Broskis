@@ -2,7 +2,7 @@
 // (pas de JSON) : le client en fait un Blob + URL d'objet (src/ia/tts-client.ts).
 import type { ApiHandler } from './_types';
 import { bytes, fail } from './_types';
-import { GRADIUM_TTS_URL, GRADIUM_VOICE_FALLBACK, GRADIUM_VOICE_PRIMARY } from './_models';
+import { GRADIUM_TTS_CONFIG, GRADIUM_TTS_MODEL, GRADIUM_TTS_URL, GRADIUM_VOICE_FALLBACK, GRADIUM_VOICE_PRIMARY } from './_models';
 import { capChars, serverTimeout } from './_util';
 
 interface TtsRequest {
@@ -14,7 +14,7 @@ async function callGradium(apiKey: string, text: string, voiceId: string): Promi
   return fetch(GRADIUM_TTS_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
-    body: JSON.stringify({ text, voice_id: voiceId, output_format: 'wav', only_audio: true }),
+    body: JSON.stringify({ text, voice_id: voiceId, output_format: 'wav', only_audio: true, model_name: GRADIUM_TTS_MODEL, json_config: GRADIUM_TTS_CONFIG }),
     signal: serverTimeout(9_000),
   });
 }

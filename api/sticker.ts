@@ -59,7 +59,7 @@ const handler: ApiHandler<StickerRequest> = async ({ body, env }) => {
       config: {
         thinkingConfig: { thinkingBudget: 0 },
         responseModalities: [Modality.IMAGE],
-        abortSignal: serverTimeout(12_000),
+        abortSignal: serverTimeout(25_000),
       },
     });
 

@@ -4,11 +4,11 @@
 /** Abandon réseau : au-delà, on bascule sur la banque de secours (skill ia-en-jeu + plan/lots/LI). */
 export const TIMEOUTS = {
   /** Scan JSON (api/scan-object). */
-  scan: 2500,
+  scan: 4000, // mesuré : 2,3 s avec gemini-3.8-flash
   /** Sticker Nano Banana (plus lent : dessin d'image). */
-  sticker: 5000,
+  sticker: 25000, // mesuré : 15 s avec Nano Banana Pro (affiché après la carte de stats)
   /** Répliques de l'animateur, préparées à l'avance : un peu de marge est tolérable. */
-  commentary: 6000,
+  commentary: 40000, // pré-génération avec gemini-3.1-pro-preview (12 à 33 s mesurés)
   /** Une ligne vocalisée (Gradium TTS). */
   tts: 4000,
   /** Jeton WebSocket Gradium. */

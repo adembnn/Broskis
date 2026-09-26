@@ -33,8 +33,8 @@ function loadDotEnv(path) {
 loadDotEnv(resolve(process.cwd(), '.env'));
 
 // --- Identifiants de modèles (doivent rester identiques à api/_models.ts) --------------------------------
-const GEMINI_TEXT_MODEL = 'gemini-3.5-flash';
-const GEMINI_IMAGE_MODEL = 'gemini-3.1-flash-lite-image';
+const GEMINI_TEXT_MODEL = 'gemini-3.8-flash';
+const GEMINI_IMAGE_MODEL = 'gemini-3-pro-image';
 const GRADIUM_TTS_URL = 'https://api.gradium.ai/api/post/speech/tts';
 const GRADIUM_VOICE_PRIMARY = 'r2sIQdqqoqgRJuXw'; // Marcus
 const GRADIUM_VOICE_FALLBACK = '_6Aslh2DxfmnRLmP'; // Russell
@@ -183,13 +183,13 @@ async function main() {
       const res = await fetch(GRADIUM_TTS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': gradiumKey },
-        body: JSON.stringify({ text: lineToSpeak, voice_id: GRADIUM_VOICE_PRIMARY, output_format: 'wav', only_audio: true }),
+        body: JSON.stringify({ text: lineToSpeak, voice_id: GRADIUM_VOICE_PRIMARY, output_format: 'wav', only_audio: true, model_name: 'gradium-tts-beta', json_config: { temp: 1.3, padding_bonus: -2.0 } }),
       });
       if (!res.ok) {
         const retry = await fetch(GRADIUM_TTS_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-api-key': gradiumKey },
-          body: JSON.stringify({ text: lineToSpeak, voice_id: GRADIUM_VOICE_FALLBACK, output_format: 'wav', only_audio: true }),
+          body: JSON.stringify({ text: lineToSpeak, voice_id: GRADIUM_VOICE_FALLBACK, output_format: 'wav', only_audio: true, model_name: 'gradium-tts-beta', json_config: { temp: 1.3, padding_bonus: -2.0 } }),
         });
         if (!retry.ok) throw new Error(`HTTP ${res.status} (Marcus) puis ${retry.status} (Russell)`);
         return new Uint8Array(await retry.arrayBuffer());
