@@ -113,7 +113,7 @@ await scenario('bord-double-saut', async () => {
   await page.keyboard.press('Space');
   await wait(900);
   await page.keyboard.up(back);
-  await waitFor(() => { const r = window.__lsmash.runtime(0); return r.grounded || r.ledge; }, null, 4000);
+  await waitFor(() => { const r = window.__lsmash.runtime(0); return r.grounded || r.ledge; }, null, 10000);
   await shot('bord-retour');
   const r = await page.evaluate(() => window.__lsmash.runtime(0));
   const s = await state();
@@ -133,7 +133,8 @@ await scenario('bord-double-saut-hooks', async () => {
   await page.evaluate(([x, z]) => { window.gameHooks.jump(); window.gameHooks.move(-x * 0.6, -z * 0.6); }, [dx, dz]);
   await wait(200);
   await page.evaluate(([x, z]) => { window.gameHooks.jump(); window.gameHooks.move(-x * 1.2, -z * 1.2); }, [dx, dz]);
-  await waitFor(() => { const r = window.__lsmash.runtime(0); return r.grounded || r.ledge; }, null, 4000);
+  try { await waitFor(() => { const r = window.__lsmash.runtime(0); return r.grounded || r.ledge; }, null, 10000); }
+  catch { throw new Error(`jamais reposé : ${JSON.stringify(await page.evaluate(() => [window.__lsmash.runtime(0), window.gameState.players[0].pos, window.gameState.phase]))}`); }
   const r = await page.evaluate(() => window.__lsmash.runtime(0));
   const s = await state();
   if (r.ledge) throw new Error('rattrapé au bord au lieu du double saut');

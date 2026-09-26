@@ -57,13 +57,13 @@ export function respawn(ctx: Ctx, player: PlayerId): void {
   if (!rt.dead || ctx.state.winner != null) return;
   const arena = getArena(ctx);
   const other = ctx.state.players[otherPlayer(player)].pos;
-  let x = arena.center[0], z = arena.center[2];
+  let x = arena.respawn[0], z = arena.respawn[2];
   if (Math.hypot(other[0] - x, other[2] - z) < 1.6) {
     const dx = x - other[0], dz = z - other[2];
     const len = Math.hypot(dx, dz) || 1;
     x = other[0] + (dx / len) * 2; z = other[2] + (dz / len) * 2;
   }
-  const pos: Vec3 = [x, arena.top + RESPAWN_HEIGHT, z];
+  const pos: Vec3 = [x, arena.respawn[1] + RESPAWN_HEIGHT, z];
   rt.dead = false;
   rt.launch = null;
   rt.ledge = null;

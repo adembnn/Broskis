@@ -3,7 +3,7 @@
 // Un « sol » = tout collider solide qui n'est ni un joueur ni un capteur (sensor).
 import type * as RAPIER from '@dimforge/rapier3d-compat';
 import type { Ctx, Vec3 } from '../core/types';
-import { getSpawnPoints } from '../scene/maps/api';
+import { getArenaBounds, getSpawnPoints } from '../scene/maps/api';
 import { BLAST_SIDE_MARGIN, BLAST_TOP } from './tuning';
 
 export interface ArenaInfo {
@@ -12,14 +12,16 @@ export interface ArenaInfo {
   top: number;
   /** Distance horizontale max du centre à du sol (toutes directions). */
   radius: number;
+  /** Point de réapparition au sol (la map le donne ; sinon le centre). */
+  respawn: Vec3;
 }
 
 let cached: ArenaInfo | null = null;
 let cachedAtTurn = -1;
 
-/** Filtre des rayons « sol » : ni joueur, ni capteur, ni plateforme traversable vue par le dessous. */
+/** Filtre des rayons « sol » : ni joueur, ni capteur, ni collider désactivé (plateforme traversable vide). */
 export function isGroundCollider(c: RAPIER.Collider): boolean {
-  if (c.isSensor()) return false;
+  if (c.isSensor() || !c.isEnabled()) return false;
   const data = c.parent()?.userData as { kind?: string } | undefined;
   return data?.kind !== 'player';
 }
@@ -39,8 +41,17 @@ function spawnCenter(): { center: Vec3; y: number } | null {
   return { center: [(a[0] + b[0]) / 2, 0, (a[2] + b[2]) / 2], y: (a[1] + b[1]) / 2 };
 }
 
-/** Recalcule le centre, la hauteur du plateau et le rayon (16 directions, pas de 0,5 m, jusqu'à 30 m). */
+/** Centre, hauteur du plateau, rayon et réapparition : donnés par la map (lot LMAP2, `getArenaBounds`) ;
+ * à défaut, mesurés par rayons (16 directions, pas de 0,5 m, jusqu'à 30 m). */
 export function measureArena(ctx: Ctx): ArenaInfo {
+  const b = getArenaBounds();
+  if (b) {
+    const ground = groundYBelow(ctx, [b.respawn[0], b.respawn[1] + 3, b.respawn[2]], 6);
+    const top = ground ?? b.respawn[1];
+    cached = { center: [b.center[0], top, b.center[2]], top, radius: b.radius, respawn: [b.respawn[0], top, b.respawn[2]] };
+    cachedAtTurn = ctx.state.turn;
+    return cached;
+  }
   const sc = spawnCenter();
   const center: Vec3 = sc ? [sc.center[0], 0, sc.center[2]] : [0, 0, 0];
   const probeTop = 30;
@@ -57,7 +68,7 @@ export function measureArena(ctx: Ctx): ArenaInfo {
     }
   }
   if (radius < 4) radius = 9; // map pas encore chargée : valeur d'une arène moyenne
-  cached = { center, top, radius };
+  cached = { center, top, radius, respawn: [center[0], top, center[2]] };
   cachedAtTurn = ctx.state.turn;
   return cached;
 }

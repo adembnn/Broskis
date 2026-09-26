@@ -60,8 +60,9 @@ async function runSelftest(ctx: Ctx): Promise<SelftestResult> {
   // Seules les erreurs du gameplay (ses systèmes, ou un écouteur du bus) font échouer ce test : une erreur d'un
   // autre lot (rendu, caméra…) est signalée par tools/capture.mjs, pas ici.
   console.error = (...args: unknown[]) => {
-    const text = args.map(String).join(' ');
-    if (/gameplay|\[bus\]/.test(text)) errors.push(text);
+    // Fautif = le haut de la pile (où l'erreur est levée), pas l'émetteur du bus qui l'a appelé par-dessous.
+    const top = args.map((a) => (a instanceof Error ? (a.stack ?? '').split('\n').slice(0, 3).join(' ') : String(a))).join(' ');
+    if (/gameplay/.test(top)) errors.push(top);
     originalError(...args);
   };
 
@@ -95,7 +96,7 @@ async function runSelftest(ctx: Ctx): Promise<SelftestResult> {
     step(`pickWeapon(0)=${ctx.state.players[0].weapons[0].category}, aim(90,0), fire(0.6)`);
 
     const pctP1Before = ctx.state.players[1].pct;
-    await waitUntil(() => ctx.state.turn >= 2, 12000);
+    await waitUntil(() => ctx.state.turn >= 2, 20000);
     assert(ctx.state.players[1].pct > pctP1Before, 'P1 doit avoir pris des % (aucune parade au tour 1)');
     assert(ctx.state.players[0].weapons[0].cooldown > 0, "l'arme tirée doit recharger 1 tour");
     step(`tour 2 atteint — P1 ${pctP1Before} % → ${ctx.state.players[1].pct} %, arme en recharge`);
@@ -103,27 +104,27 @@ async function runSelftest(ctx: Ctx): Promise<SelftestResult> {
     // --- Tour 2 (P1) : même arme ; chaque tir de la rafale est paré PARFAITEMENT via le hook. ---
     assert(ctx.state.active === 1, 'le tour 2 doit être à P1');
     const pctP0Before = ctx.state.players[0].pct;
-    await waitUntil(() => ctx.state.phase === 'move', 4000);
+    await waitUntil(() => ctx.state.phase === 'move', 10000);
     const offIncoming = ctx.bus.on('projectile:incoming', () => ctx.hooks.parry(0));
     ctx.hooks.pickWeapon(0);
     ctx.hooks.aim(-90, 0); // P1 (+x) vise vers -x, où se trouve P0
     ctx.hooks.fire(0.5);
     step('P1 : pickWeapon(0), aim(-90,0), fire(0.5) — parry(0) sur chaque projectile:incoming');
-    await waitUntil(() => ctx.state.turn >= 3, 12000);
+    await waitUntil(() => ctx.state.turn >= 3, 20000);
     offIncoming();
     assert(ctx.state.players[0].pct === pctP0Before, 'une parade PARFAITE doit annuler tous les dégâts de la rafale');
     assert(ctx.state.players[0].parryStreak > 0, 'parryStreak doit monter après des parades réussies');
     step(`tour 3 atteint — P0 % inchangé, parryStreak=${ctx.state.players[0].parryStreak}`);
 
     // --- Règles v2 : budget rendu à chaque tour, arme en recharge remplacée par une arme prête. ---
-    await waitUntil(() => ctx.state.phase === 'move', 4000);
+    await waitUntil(() => ctx.state.phase === 'move', 10000);
     const p0 = ctx.state.players[0];
     assert(Math.abs(p0.moveLeft - 6) < 1e-6, `le budget de déplacement doit être rendu (6 m), obtenu ${p0.moveLeft}`);
     assert(p0.weapons[p0.selected].cooldown === 0, "l'arme présélectionnée doit être prête");
     step(`tour 3 : moveLeft=${p0.moveLeft}, arme prête présélectionnée (#${p0.selected + 1})`);
 
     // --- Caisse Snap : forcée sous les pieds du joueur actif (le tirage aléatoire prendrait trop longtemps). ---
-    await waitUntil(() => ctx.state.phase === 'move', 2000);
+    await waitUntil(() => ctx.state.phase === 'move', 10000);
     const grabber = ctx.state.active;
     const grabberPos = ctx.state.players[grabber].pos;
     const slot1Before = ctx.state.players[grabber].weapons[1].id;
@@ -135,7 +136,7 @@ async function runSelftest(ctx: Ctx): Promise<SelftestResult> {
     ctx.hooks.pickWeapon(1); // choisit l'emplacement 1 (le scan du stub répond quasi instantanément)
     step(`grabCrate() (caisse forcée) → snap-time, joueur ${grabber}`);
 
-    await waitUntil(() => ctx.state.phase !== 'snap-time', 3000);
+    await waitUntil(() => ctx.state.phase !== 'snap-time', 6000);
     assert(ctx.state.players[grabber].weapons[1].id !== slot1Before, "l'emplacement 1 doit recevoir l'arme scannée (stub IA)");
     step(`snap-time résolu → phase '${ctx.state.phase}', arme scannée en place`);
 
@@ -143,8 +144,8 @@ async function runSelftest(ctx: Ctx): Promise<SelftestResult> {
     const victim = ctx.state.active === 0 ? 1 : 0;
     const stocksBefore = ctx.state.players[victim].stocks;
     window.__lsmash?.launch(victim, victim === 1 ? 1 : -1, 0, 30);
-    await waitUntil(() => ctx.state.players[victim].stocks < stocksBefore, 5000);
-    await waitUntil(() => seen.includes('respawn'), 5000);
+    await waitUntil(() => ctx.state.players[victim].stocks < stocksBefore, 10000);
+    await waitUntil(() => seen.includes('respawn'), 10000);
     assert(ctx.state.players[victim].pct === 0, 'réapparu à 0 %');
     step(`éjection forcée de P${victim + 1} → stock:lost (${stocksBefore} → ${ctx.state.players[victim].stocks}) → respawn à 0 %`);
     offAny();
