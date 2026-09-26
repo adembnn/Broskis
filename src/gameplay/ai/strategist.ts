@@ -30,6 +30,8 @@ export interface StrategistStats {
   lastStance: Stance | null;
   lastTaunt: string | null;
   lastSource: string | null;
+  /** Causes des replis (serveur : timeout, json, api-503… ; client : timeout, network, offline). */
+  reasons: Record<string, number>;
 }
 
 interface FightLog {
@@ -55,7 +57,7 @@ export function installStrategist(ctx: Ctx, bot: RealtimeBot): Strategist {
   const foe: PlayerId = bot.foe;
   const stats: StrategistStats = {
     requests: 0, ok: 0, failed: 0, timeouts: 0, latenciesMs: [], stanceChanges: 0, keptOnFailure: 0, localFallbacks: 0,
-    lastStance: null, lastTaunt: null, lastSource: null,
+    lastStance: null, lastTaunt: null, lastSource: null, reasons: {},
   };
   const api: Strategist = { stats, offline: false };
   let log = freshLog();
@@ -65,7 +67,11 @@ export function installStrategist(ctx: Ctx, bot: RealtimeBot): Strategist {
   let lastTauntAt = -Infinity;
   let seq = 0;
 
-  ctx.bus.on('match:start', () => { log = freshLog(); nextAt = FIRST_S; pending = false; fails = 0; lastTauntAt = -Infinity; seq += 1; });
+  ctx.bus.on('match:start', () => {
+    log = freshLog(); nextAt = FIRST_S; pending = false; fails = 0; lastTauntAt = -Infinity; seq += 1;
+    // Mesures par match (lues par tools/test-rtbot.mjs à la fin de chaque match).
+    Object.assign(stats, { requests: 0, ok: 0, failed: 0, timeouts: 0, latenciesMs: [], stanceChanges: 0, keptOnFailure: 0, localFallbacks: 0, lastStance: null, lastTaunt: null, lastSource: null, reasons: {} });
+  });
   ctx.bus.on('fire', ({ player, weapon }) => {
     if (player !== foe || !ctx.state.vsAI) return;
     log.humanShots += 1;
@@ -144,9 +150,10 @@ export function installStrategist(ctx: Ctx, bot: RealtimeBot): Strategist {
     if (taunt) { stats.lastTaunt = taunt; say(taunt, changed ? stance : null); }
   }
 
-  function failed(kind: 'timeout' | 'error', s: ReturnType<typeof summary>): void {
+  function failed(kind: 'timeout' | 'error', s: ReturnType<typeof summary>, reason: string = kind): void {
     stats.failed += 1;
     if (kind === 'timeout') stats.timeouts += 1;
+    stats.reasons[reason] = (stats.reasons[reason] ?? 0) + 1;
     fails += 1;
     if (fails >= LOCAL_AFTER_FAILS) {
       stats.localFallbacks += 1;
@@ -160,7 +167,7 @@ export function installStrategist(ctx: Ctx, bot: RealtimeBot): Strategist {
   async function ask(): Promise<void> {
     const s = summary();
     log.window = { botHits: 0, humanHits: 0, humanParries: 0 }; // fenêtre suivante
-    if (api.offline) { failed('error', s); return; }
+    if (api.offline) { failed('error', s, 'offline'); return; }
     pending = true;
     stats.requests += 1;
     const mySeq = seq;
@@ -171,10 +178,14 @@ export function installStrategist(ctx: Ctx, bot: RealtimeBot): Strategist {
       const res = await fetch('/api/ai-move', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ summary: s }), signal: abort.signal,
       });
-      const data = res.ok ? await res.json() as { stance?: unknown; preferredWeapon?: unknown; taunt?: unknown; source?: unknown } : null;
+      const data = res.ok ? await res.json() as { stance?: unknown; preferredWeapon?: unknown; taunt?: unknown; source?: unknown; reason?: unknown } : null;
       if (mySeq !== seq || !inFight(ctx)) return;
       const stance = STANCES.includes(data?.stance as Stance) ? data!.stance as Stance : null;
-      if (!data || data.source !== 'gemini' || !stance) { failed('error', s); return; }
+      if (!data || data.source !== 'gemini' || !stance) {
+        const why = !data ? `http-${res.status}` : typeof data.reason === 'string' ? `serveur-${data.reason}` : 'invalide';
+        failed(why === 'serveur-timeout' ? 'timeout' : 'error', s, why);
+        return;
+      }
       stats.ok += 1;
       stats.latenciesMs.push(Math.round(performance.now() - t0));
       fails = 0;
@@ -183,7 +194,8 @@ export function installStrategist(ctx: Ctx, bot: RealtimeBot): Strategist {
       const taunt = typeof data.taunt === 'string' && data.taunt.trim() ? data.taunt.trim() : null;
       apply(stance, pw, taunt, 'gemini');
     } catch (err) {
-      if (mySeq === seq) failed((err as Error)?.name === 'AbortError' ? 'timeout' : 'error', s);
+      const abort2s = (err as Error)?.name === 'AbortError';
+      if (mySeq === seq) failed(abort2s ? 'timeout' : 'error', s, abort2s ? 'client-2s' : 'reseau');
     } finally {
       clearTimeout(timer);
       if (mySeq === seq) pending = false;
