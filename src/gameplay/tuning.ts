@@ -124,10 +124,22 @@ export const PARRY_OFFSET_MS = 50;
 export const PARRY_REWARD_SLOWMO = { factor: 0.25, ms: 300 };
 export const PARRY_KEY_CODE: Record<0 | 1, string> = { 0: 'Space', 1: 'Enter' };
 
-export interface ParryWindow { fromTurn: number; perfectMs: number; goodMs: number }
+export interface ParryWindow {
+  fromTurn: number;
+  perfectMs: number;
+  goodMs: number;
+  visibleMs: number;
+  blasterMaxShots: number;
+  blasterMinIntervalMs: number;
+  feints: number;
+}
 /** Trié par `fromTurn` croissant. On prend la dernière entrée dont `fromTurn <= turn`. */
 export const PARRY_WINDOWS: readonly ParryWindow[] = [
-  { fromTurn: 1, perfectMs: 90, goodMs: 200 },
+  { fromTurn: 1, perfectMs: 90, goodMs: 200, visibleMs: 1200, blasterMaxShots: 3, blasterMinIntervalMs: 500, feints: 0 },
+  { fromTurn: 2, perfectMs: 80, goodMs: 180, visibleMs: 1000, blasterMaxShots: 3, blasterMinIntervalMs: 450, feints: 0 },
+  { fromTurn: 3, perfectMs: 70, goodMs: 160, visibleMs: 850, blasterMaxShots: 4, blasterMinIntervalMs: 400, feints: 1 },
+  { fromTurn: 4, perfectMs: 60, goodMs: 140, visibleMs: 700, blasterMaxShots: 4, blasterMinIntervalMs: 350, feints: 1 },
+  { fromTurn: 5, perfectMs: 50, goodMs: 120, visibleMs: 600, blasterMaxShots: 5, blasterMinIntervalMs: 300, feints: 2 },
 ];
 export function getParryWindow(turn: number): ParryWindow {
   let win = PARRY_WINDOWS[0];
