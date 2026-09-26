@@ -433,7 +433,9 @@ function buildPhysics(ctx: Ctx, map: LoadedMap) {
   }
 
   for (const sc of def.extraColliders) {
-    const body = makeBody(ctx, sc.pos, 0, sc.id === 'deck');
+    // LMAP4 : pont FIXE (un corps cinématique bloquait le contrôleur de perso : on ne pouvait plus avancer ni
+    // reculer sur le galion) ; la gîte le fait pivoter par setRotation seulement quand l'angle change (tick).
+    const body = makeBody(ctx, sc.pos, 0);
     if (sc.id === 'deck') map.deckBody = body;
     const collider = world.createCollider(colliderDesc(R, sc.collider, 1).setFriction(0.8), body);
     map.groundColliders.add(collider.handle);
@@ -1150,9 +1152,10 @@ function tick(ctx: Ctx, dt: number) {
   if (map.def.id === 'galion') {
     // Gîte : roulis autour de l'axe long (X), le pont descend côté caméra (+Z).
     map.deckGroup.rotation.x = map.tilt;
-    if (map.deckBody) {
+    if (map.deckBody && deckTiltApplied.get(map) !== map.tilt) {
+      deckTiltApplied.set(map, map.tilt);
       const q = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), map.tilt);
-      map.deckBody.setNextKinematicRotation({ x: q.x, y: q.y, z: q.z, w: q.w });
+      map.deckBody.setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }, true);
     }
     seaTime.value = ctx.loop.time;
   }
@@ -1192,6 +1195,9 @@ export function isOverVoid(pos: Vec3): boolean {
     (c) => map.groundColliders.has(c.handle) && c.isEnabled());
   return !hit;
 }
+
+/** Dernière gîte appliquée au collider du pont (LMAP4 : on ne le fait pivoter que si l'angle change). */
+const deckTiltApplied = new WeakMap<LoadedMap, number>();
 
 export function __getMapRuntime(): any { return current; }
 
