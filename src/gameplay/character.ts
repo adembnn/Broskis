@@ -4,12 +4,12 @@
 // Le recul (règles v2) est un vol cinématique intégré par launch.ts, qui passe aussi par `moveKinematic`.
 import type * as RAPIER from '@dimforge/rapier3d-compat';
 import type { Ctx, PlayerId, Vec3 } from '../core/types';
-import { groundYBelow, isFallingDebris } from './arena';
+import { groundYBelow, isFallingDebris, isGroundCollider } from './arena';
 import { isGroundReady } from './fallback-ground';
 import { getRuntime } from './runtime';
 import {
-  CHARACTER_HALF_HEIGHT, CHARACTER_RADIUS, DROP_THROUGH_S, EDGE_RAYCAST_AHEAD, EDGE_RAYCAST_DEPTH, GRAVITY, MOVE_SUBSTEP_M,
-  ONEWAY_SNAP_BELOW, ONEWAY_SNAP_MAX_VY,
+  CHARACTER_HALF_HEIGHT, CHARACTER_RADIUS, DROP_THROUGH_S, EDGE_RAYCAST_AHEAD, EDGE_RAYCAST_DEPTH, GRAVITY, GROUND_EDGE_DOWN,
+  GROUND_EDGE_R, GROUND_PROBE_UP, GROUND_SNAP_DOWN, MOVE_SUBSTEP_M, ONEWAY_SNAP_BELOW, ONEWAY_SNAP_MAX_VY,
 } from './tuning';
 
 const CONTROLLER_OFFSET = 0.04;
@@ -186,11 +186,14 @@ export function stepVerticalMotion(ctx: Ctx, player: PlayerId, dt: number): void
   if (!isGroundReady() || ctx.loop.time < rt.hoverUntil) { rt.vy = 0; return; }
   const dropping = ctx.loop.time < rt.dropUntil;
   if (rt.grounded && rt.vy <= 0) {
-    // Le sol a pu disparaître (dalle qui tombe, gîte) : on vérifie avant de rester posé (sauf descente à travers).
-    if (!dropping && !isVoidAt(ctx, ctx.state.players[player].pos)) { rt.vy = 0; return; }
+    // RTFIX : on reste posé seulement si un sol est SOUS les pieds (il monte : pont qui gîte, on est soulevé ; il
+    // descend un peu : on suit). Avant : « du sol à moins de 1,35 m » suffisait, on marchait dans le vide en
+    // descendant d'une caisse et on s'enfonçait dans le pont du galion.
+    if (!dropping && followGround(ctx, player)) { rt.vy = 0; return; }
     rt.grounded = false;
   }
   // Intégration exacte à gravité constante (moyenne des vitesses) : l'apex vaut v²/2g quelle que soit la cadence.
+  const prevY = ctx.state.players[player].pos[1];
   const v0 = rt.vy;
   rt.vy -= GRAVITY * dt;
   const dy = ((v0 + rt.vy) / 2) * dt;
@@ -198,7 +201,65 @@ export function stepVerticalMotion(ctx: Ctx, player: PlayerId, dt: number): void
   rt.grounded = r.grounded;
   if (rt.grounded && rt.vy < 0) rt.vy = 0;
   if (rt.vy > 0 && r.moved[1] < dy * 0.5) rt.vy = 0; // tête contre un plafond
-  if (!rt.grounded && !dropping && snapOntoOneWay(ctx, player)) rt.vy = 0;
+  // RTFIX, rayon balayé : le contrôleur part de la position du dernier pas physique ; à basse cadence, il peut
+  // laisser passer le sol sous la NOUVELLE position. Sol franchi pendant ce pas de chute = posé dessus.
+  if (!rt.grounded && rt.vy <= 0 && !dropping && landSwept(ctx, player, prevY)) { rt.grounded = true; rt.vy = 0; }
+  if (!rt.grounded && !dropping && snapOntoOneWay(ctx, player, prevY)) rt.vy = 0;
+}
+
+// ---------- Lot RTFIX : sol sous les pieds (suivi, rayon balayé) ----------
+
+/** Sol solide (hors plateformes traversables, lues par leur boîte) sous (x, z), du point `fromY` sur `len` m.
+ * null si rien, ou si le rayon part DANS un solide (perso collé à un mur : on ne l'escalade pas). */
+function solidGroundY(ctx: Ctx, x: number, fromY: number, z: number, len: number): number | null {
+  const { RAPIER: R, world } = ctx.physics;
+  const ray = new R.Ray({ x, y: fromY, z }, { x: 0, y: -1, z: 0 });
+  const hit = world.castRay(ray, len, true, undefined, undefined, undefined, undefined,
+    (c) => isGroundCollider(c) && !(c.parent()?.userData as { oneWay?: boolean } | undefined)?.oneWay);
+  if (!hit || hit.timeOfImpact < 1e-4) return null;
+  return fromY - hit.timeOfImpact;
+}
+
+/** Dessus d'une plateforme traversable sous (x, z), entre `lo` et `hi` (pieds au plus 15 cm sous le dessus :
+ * jamais soulevé sur une plateforme par-dessous), avec `margin` autour de l'empreinte. */
+function oneWayTopY(ctx: Ctx, x: number, z: number, lo: number, hi: number, margin: number): number | null {
+  let best: number | null = null;
+  for (const b of oneWayBoxes(ctx)) {
+    if (b.topY < lo || b.topY > hi) continue;
+    if (Math.abs(x - b.cx) > b.hx + margin || Math.abs(z - b.cz) > b.hz + margin) continue;
+    if (best == null || b.topY > best) best = b.topY;
+  }
+  return best;
+}
+
+/** Perso posé : cherche le sol au centre, de GROUND_PROBE_UP au-dessus des pieds à GROUND_SNAP_DOWN dessous, et y
+ * pose les pieds ; sinon, appui sur un rebord (4 rayons dans l'emprise de la capsule) sans bouger. Faux = plus
+ * d'appui : le perso tombe. */
+function followGround(ctx: Ctx, player: PlayerId): boolean {
+  const [x, y, z] = ctx.state.players[player].pos;
+  let g = solidGroundY(ctx, x, y + GROUND_PROBE_UP, z, GROUND_PROBE_UP + GROUND_SNAP_DOWN);
+  const ow = oneWayTopY(ctx, x, z, y - GROUND_SNAP_DOWN, y + 0.15, 0);
+  if (ow != null && (g == null || ow > g)) g = ow;
+  if (g != null) {
+    if (Math.abs(g - y) > 0.002) placeKinematic(ctx, player, [x, g, z]);
+    return true;
+  }
+  const r = GROUND_EDGE_R;
+  for (const [ox, oz] of [[r, 0], [-r, 0], [0, r], [0, -r]] as const) {
+    if (solidGroundY(ctx, x + ox, y + 0.1, z + oz, 0.1 + GROUND_EDGE_DOWN) != null) return true;
+  }
+  return oneWayTopY(ctx, x, z, y - GROUND_EDGE_DOWN, y + 0.15, r) != null;
+}
+
+/** Chute : sol solide franchi entre les pieds de l'image précédente (`prevY`) et les pieds actuels. */
+function landSwept(ctx: Ctx, player: PlayerId, prevY: number): boolean {
+  const [x, y, z] = ctx.state.players[player].pos;
+  if (prevY <= y) return false;
+  const from = prevY + 0.05;
+  const g = solidGroundY(ctx, x, from, z, from - y + 0.02);
+  if (g == null || g < y - 0.02) return false;
+  placeKinematic(ctx, player, [x, g, z]);
+  return true;
 }
 
 /** Debout sur une plateforme traversable ? (pour « bas + saut » = descendre à travers, façon Smash). */
@@ -220,8 +281,14 @@ export function dropThrough(ctx: Ctx, player: PlayerId): void {
 interface OneWayBox { topY: number; cx: number; cz: number; hx: number; hz: number }
 
 /** Plateformes traversables (userData.oneWay posé par les maps). Un collider désactivé (personne dessus) est
- * invisible aux rayons : on lit donc sa boîte directement. */
+ * invisible aux rayons : on lit donc sa boîte directement. Relue une fois par image (RTFIX : appelée plusieurs
+ * fois par perso et par image, sur des maps à 130 colliders). */
+let boxesAt = -1;
+let boxesCount = -1;
+let boxes: OneWayBox[] = [];
 export function oneWayBoxes(ctx: Ctx): OneWayBox[] {
+  const n = ctx.physics.world.colliders.len();
+  if (boxesAt === ctx.loop.realTime && boxesCount === n) return boxes;
   const out: OneWayBox[] = [];
   ctx.physics.world.forEachCollider((c) => {
     if (!(c.parent()?.userData as { oneWay?: boolean } | undefined)?.oneWay) return;
@@ -230,17 +297,21 @@ export function oneWayBoxes(ctx: Ctx): OneWayBox[] {
     const t = c.translation();
     out.push({ topY: colliderTopY(c), cx: t.x, cz: t.z, hx: he.x, hz: he.z });
   });
+  boxesAt = ctx.loop.realTime;
+  boxesCount = n;
+  boxes = out;
   return out;
 }
 
 /** Au sommet du saut ou en descente, pieds jusqu'à ONEWAY_SNAP_BELOW sous le dessus d'une plateforme traversable
- * et corps dans son emprise : posé dessus (façon Smash, on ne « rate » pas une plateforme de quelques cm). */
-function snapOntoOneWay(ctx: Ctx, player: PlayerId): boolean {
+ * et corps dans son emprise : posé dessus (façon Smash, on ne « rate » pas une plateforme de quelques cm).
+ * RTFIX : aussi si le dessus a été franchi pendant ce pas (`prevY` au-dessus) : chute rapide à basse cadence. */
+function snapOntoOneWay(ctx: Ctx, player: PlayerId, prevY = -Infinity): boolean {
   const rt = getRuntime().players[player];
   if (rt.vy > ONEWAY_SNAP_MAX_VY) return false;
   const [x, y, z] = ctx.state.players[player].pos;
   for (const b of oneWayBoxes(ctx)) {
-    if (y >= b.topY || y < b.topY - ONEWAY_SNAP_BELOW) continue;
+    if (y >= b.topY || (y < b.topY - ONEWAY_SNAP_BELOW && prevY < b.topY - 0.02)) continue;
     if (Math.abs(x - b.cx) > b.hx || Math.abs(z - b.cz) > b.hz) continue;
     teleport(ctx, player, [x, b.topY + 0.04, z]);
     rt.grounded = true;
