@@ -11,7 +11,8 @@ const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] :
 const port = Number(opt('--port', '5391'));
 const niveaux = opt('--niveaux', 'easy,medium').split(',');
 const matchs = Number(opt('--matchs', '10'));
-const paralleles = Number(opt('--paralleles', '4'));
+// Une seule page par défaut (consigne machine de 16h40 : un navigateur, matchs en séquence).
+const paralleles = Number(opt('--paralleles', '1'));
 const stocks = Number(opt('--vies', '2'));
 const horsLigne = args.includes('--hors-ligne');
 // Gemini « lent » : chaque réponse de /api/ai-move retardée de 2,5 s (le jeu abandonne à 2 s) → mesure du maintien de la posture.
@@ -52,8 +53,8 @@ async function newPage() {
   const page = await context.newPage();
   if (geminiLent) await page.route('**/api/ai-move', async (route) => { await new Promise((r) => setTimeout(r, 2500)); await route.continue().catch(() => {}); });
   page.on('pageerror', (e) => console.log('  [erreur page]', String(e).slice(0, 200)));
-  await page.goto(url, { waitUntil: 'load', timeout: 60000 });
-  await page.waitForFunction(() => window.gameHooks && window.__bot && window.ctx, null, { timeout: 60000 });
+  await page.goto(url, { waitUntil: 'load', timeout: 150000 });
+  await page.waitForFunction(() => window.gameHooks && window.__bot && window.ctx, null, { timeout: 150000 });
   // Sans rendu : ni dessin 3D ni interface (mise en page du HUD) ; le gameplay tourne à l'identique.
   if (!avecRendu) await page.evaluate(() => { window.ctx.three.renderer.render = () => {}; window.ctx.three.uiRoot.style.display = 'none'; });
   await page.evaluate(() => {
@@ -88,6 +89,10 @@ async function playMatch(page, difficulty, seed, map, tag) {
   for (;;) {
     await page.waitForTimeout(1000);
     const s = await page.evaluate(() => ({ w: window.ctx.state.winner, phase: window.ctx.state.phase, rt: window.ctx.loop.realTime }));
+    if (captures && s.phase === 'fight') {
+      const i = await page.evaluate(() => { const b = window.__bot.info(); const st = window.ctx.state; return { b, p: st.players.map((x) => x.pos.map((v) => +v.toFixed(1))) }; });
+      console.log(`  suivi : bot ${JSON.stringify(i.p[1])} humain ${JSON.stringify(i.p[0])} bord bot ${i.b.edgeMe} m, dépl. ${JSON.stringify(i.b.move)}, cible ${JSON.stringify(i.b.target)}, posture ${i.b.stance}`);
+    }
     if (captures && !shot && s.phase === 'fight' && Date.now() - t0 > 12000) {
       shot = true;
       await page.evaluate(() => window.__bot.taunt());
