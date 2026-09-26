@@ -13,6 +13,7 @@ import { runFighterSelect } from './screenFighters';
 import { runMapSelect } from './screenMap';
 import { runReveal } from './screenReveal';
 import { mountTitle } from './screenTitle';
+import { installScandexCollector } from './scandex/store';
 import { installSnapTime } from './snapTime';
 import { injectGoogleFonts, injectStyles } from './theme';
 import { installParryHud } from './parry-hud';
@@ -55,6 +56,7 @@ export const install: Install = (ctx) => {
   ctx.three.uiRoot.append(root);
   installSnapTime(ctx, screenLayer);
   installParryHud(ctx, hud.root);
+  installScandexCollector(ctx); // Lot LW (Scandex) : enregistre chaque scan:result dans localStorage.
 
   ctx.bus.on('match:start', () => clear(screenLayer));
 

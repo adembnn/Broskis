@@ -3,6 +3,8 @@
 import type { Ctx, PlayerId } from '../core/types';
 import { button, clear, el, menuScreen } from './dom';
 import type { MatchLog } from './matchLog';
+import { openScandexScreen } from './scandex/screen';
+import { getNewSinceMatchStart } from './scandex/store';
 
 function billLine(label: string, amount: number): HTMLLIElement {
   const li = el('li', 'bill-line');
@@ -36,6 +38,16 @@ function renderReport(ctx: Ctx, card: HTMLDivElement, log: MatchLog, winner: Pla
 
   layout.append(bill, side);
   card.append(layout);
+
+  // Lot LW (Scandex) : met en avant les armes fraîchement scannées pendant ce match.
+  const newWeapons = getNewSinceMatchStart();
+  if (newWeapons.length) {
+    const scandexSection = el('section', 'report-scandex');
+    scandexSection.append(el('h3', 'b-title', 'New in Scandex'));
+    const names = newWeapons.map((w) => w.name).join(', ');
+    scandexSection.append(el('p', '', names));
+    card.append(scandexSection);
+  }
 }
 
 export type EndAction = 'rematch' | 'new-fighters';
@@ -53,7 +65,9 @@ export function runEndScreen(ctx: Ctx, screenLayer: HTMLElement, log: MatchLog):
       const actions = el('div', 'report-actions');
       const rematchBtn = button('Rematch (R)', 'b-btn');
       const newFightersBtn = button('New fighters', 'b-btn small alt');
-      actions.append(rematchBtn, newFightersBtn);
+      const newWeaponKeys = new Set(getNewSinceMatchStart().map((w) => w.object.trim().toLowerCase()));
+      const scandexBtn = button('Scandex', 'b-btn small', () => openScandexScreen(screenLayer, { highlightObjects: newWeaponKeys }));
+      actions.append(rematchBtn, newFightersBtn, scandexBtn);
       card.append(actions);
       clear(screenLayer);
       screenLayer.append(root);
