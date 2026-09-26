@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { juice } from '../../art/tokens.js';
 import type { Ctx, Phase, PlayerId, Vec3 } from '../../core/types';
 import { registry } from '../registry';
-import { applyOcclusion, clearOcclusion, raycastOcclusion, refreshOccluders, resetOcclusion, stepOcclusion } from './occlusion';
+import { applyOcclusion, clearOcclusion, raycastOcclusion, refreshOccluders, resetOcclusion, setOcclusionWarmer, stepOcclusion } from './occlusion';
 import { CameraRig } from './rig';
 import { RTVIEW } from './tokens';
 
@@ -111,6 +111,20 @@ export function installCamera(ctx: Ctx): [CameraRig, CameraRig] {
 
   // Juste avant chaque vue : ses opacités d'occlusion.
   three.onBeforeView((v) => applyOcclusion(v.player));
+  // Shaders des fondus compilés en tâche de fond (même méthode que core/shaders.ts, lot LPERF) : une cible
+  // linéaire factice donne les shaders de la cible du post-traitement ; en qualité basse, ceux du canvas.
+  const lineaire = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
+  setOcclusionWarmer((mesh, clone) => {
+    const proxy = new THREE.Mesh(mesh.geometry, clone);
+    proxy.castShadow = mesh.castShadow;
+    proxy.receiveShadow = mesh.receiveShadow;
+    const r = three.renderer;
+    const avant = r.getRenderTarget();
+    r.setRenderTarget(window.__qualite?.niveau === 'basse' ? null : lineaire);
+    const done = r.compileAsync(proxy, three.camera, three.scene); // la partie synchrone lit la cible ci-dessus
+    r.setRenderTarget(avant);
+    return done;
+  });
   window.__rtviewRigs = rigs; // débogage et bancs : rigs[p].lastHit, rigs[p].yaw
   return rigs;
 }
