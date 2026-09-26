@@ -39,7 +39,7 @@ function paint(kind: DetailKind): Uint8ClampedArray {
         // Veines longues le long de U : bruit très étiré + sinus des cernes, quelques nœuds sombres.
         const warp = n1(x * 0.25, y * 4) * 6 + n2(x * 0.5, y * 2) * 1.5;
         const ring = Math.sin((y / SIZE) * Math.PI * 2 * 11 + warp);
-        v = 0.5 + ring * 0.09 + (n3(x * 0.2, y * 3) - 0.5) * 0.12 + (n1(x, y) - 0.5) * 0.18;
+        v = 0.5 + ring * 0.07 + (n3(x * 0.2, y * 3) - 0.5) * 0.07 + (n1(x, y) - 0.5) * 0.18;
       } else if (kind === 'herbe') {
         // Taches claires/sombres + brins (grain fin très contrasté).
         v = 0.5 + (n1(x, y) - 0.5) * 0.28 + (n2(x, y) - 0.5) * 0.16 + (n3(x, y) - 0.5) * 0.34;

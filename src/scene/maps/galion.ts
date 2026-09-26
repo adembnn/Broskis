@@ -31,7 +31,7 @@ function plateau(): { pieces: GroundPiece[]; collider: StaticCollider } {
       build: { kind: 'model', url: PIRATE.shipLarge, hide: ['sail-a', 'sail-b'], surface: { detail: 'bois', clampY: g.deckLocalY - 0.05 } },
     },
     // Mât au fond du pont (la voile basse masquerait le jeu : retirée).
-    { id: 'mat', build: { kind: 'model', url: PIRATE.mast, hide: ['sail-a'], graded: false, surface: { detail: 'bois' } }, pos: [0, 0, -DECK_HALF_Z + 1.1], scale: 2, collider: { type: 'cylinder', radius: 0.22, halfHeight: 2.4, offset: [0, 2.4, 0] } },
+    { id: 'mat', build: { kind: 'model', url: PIRATE.mast, hide: ['sail-a'], graded: false }, pos: [0, 0, -DECK_HALF_Z + 1.1], scale: 2, collider: { type: 'cylinder', radius: 0.22, halfHeight: 2.4, offset: [0, 2.4, 0] } },
   ];
   // Collider = exactement le contour du pont dessiné (prisme convexe) : aucun rebord invisible à la proue.
   const collider: StaticCollider = { id: 'deck', pos: [DECK_SHIFT, 0, 0], collider: { type: 'convex', outline: shipOutline(DECK_LEN, DECK_HALF_Z * 2), depth: 0.6 } };

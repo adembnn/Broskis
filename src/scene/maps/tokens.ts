@@ -68,10 +68,10 @@ export type DetailKind = 'bois' | 'herbe' | 'pierre' | 'faience';
 /** Texture de détail triplanaire : echelle = répétitions par mètre, force = 0 (rien) à 1 (plein contraste),
  *  relief = intensité du relief (la texture sert aussi de carte de hauteur). */
 export const SURFACES: Record<DetailKind, { echelle: number; force: number; relief: number }> = {
-  bois: { echelle: 0.45, force: 0.9, relief: 1.2 },
-  herbe: { echelle: 0.6, force: 0.85, relief: 1.6 },
-  pierre: { echelle: 0.5, force: 0.8, relief: 2.0 },
-  faience: { echelle: 0.4, force: 0.6, relief: 0.4 },
+  bois: { echelle: 0.3, force: 0.7, relief: 0.3 },
+  herbe: { echelle: 0.5, force: 0.8, relief: 0.5 },
+  pierre: { echelle: 0.4, force: 0.75, relief: 0.6 },
+  faience: { echelle: 0.4, force: 0.5, relief: 0.1 },
 };
 
 export const PLATEAU = {
