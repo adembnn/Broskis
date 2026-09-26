@@ -40,7 +40,12 @@ function persist() {
     let i = 0;
     // on ne garde que les plus récentes (Map conserve l'ordre d'insertion)
     const entries = [...mem.entries()].slice(-MAX_ENTRIES);
-    for (const [k, v] of entries) { obj[k] = v; i++; }
+    // Un sticker en data URL pèse 1 à 2 Mo : il ferait déborder localStorage (5 Mo) et tout le cache avec.
+    // Il reste en mémoire pour la session ; seul un chemin de fichier (/demo-cache/...) est sauvegardé.
+    for (const [k, v] of entries) {
+      obj[k] = v.stickerUrl?.startsWith('data:') ? { ...v, stickerUrl: undefined } : v;
+      i++;
+    }
     if (i) localStorage.setItem(LS_KEY, JSON.stringify(obj));
   } catch {
     // quota dépassé ou stockage désactivé : tant pis, le cache mémoire suffit pour cette session.

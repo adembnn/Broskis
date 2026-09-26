@@ -1,5 +1,5 @@
 // Noms et données des événements du bus — figés (plan/README.md). Un nouvel événement = une ligne ici + une note dans plan/SUIVI.md.
-import type { MapId, Material, ParryGrade, Phase, PlayerId, Vec3, Weapon } from './types';
+import type { Category, MapId, Material, ParryGrade, Phase, PlayerId, Vec3, Weapon } from './types';
 
 export interface EventMap {
   'phase:change': { from: Phase; to: Phase };
@@ -17,6 +17,9 @@ export interface EventMap {
   'projectile:spawn': { id: string; weapon: Weapon; from: Vec3; vel: Vec3; gravity?: number; owner?: PlayerId; mass?: number; material?: Material | null; size?: Vec3 };
   /** Temps réel : fin d'un projectile (touché, mur, sol, paré-renvoyé, trop loin), pour retirer son visuel. */
   'projectile:end': { id: string; pos: Vec3; reason: 'hit' | 'world' | 'parried' | 'expired' };
+  /** Lot LATK1 : un objet-arme touche un joueur ou le décor, avec sa matière et sa masse RÉELLES (pour le son :
+   *  clang du métal, crash du verre, splash du liquide…). Émis par src/scene/weapons au moment de l'impact visible. */
+  'weapon:impact': { pos: Vec3; weaponId: string; category: Category; material: Material; massKg: number; fragile: boolean; liquid: boolean; on: 'player' | 'world' };
   /** Temps réel : rebond d'un objet lancé sur le décor (selon sa `bounciness`), pour le « tok » et la poussière. */
   'projectile:bounce': { id: string; pos: Vec3; vel: Vec3 };
   /** Temps réel : un objet LIQUIDE a giclé, le sol est glissant `ms` millisecondes dans ce rayon (visuel de flaque). */

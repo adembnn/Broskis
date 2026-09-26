@@ -4,9 +4,16 @@
   "name": "Quackenade",
   "category": "grenade",
   "why": "Squeaks once, then ruins your whole day.",
-  "stats": { "a": 4, "b": 3, "c": 3 },
+  "stats": {
+    "a": 2,
+    "b": 2,
+    "c": 6
+  },
   "trait": "bouncy",
-  "palette": ["#f5c518", "#e8702a"],
+  "palette": [
+    "#f5c518",
+    "#e8702a"
+  ],
   "lines": {
     "intro": "Cute. Deceptively cute.",
     "hit": "QUACK! Direct hit!",
@@ -14,5 +21,18 @@
     "parried": "Sent back to the bathtub."
   },
   "source": "preset",
-  "cooldown": 0
+  "cooldown": 0,
+  "physics": {
+    "massKg": 0.05,
+    "sizeM": [
+      0.08,
+      0.07,
+      0.09
+    ],
+    "material": "rubber",
+    "shape": "irregular",
+    "bounciness": 0.5,
+    "fragile": false,
+    "liquid": false
+  }
 }
