@@ -14,12 +14,14 @@ export type PropKind =
 
 export type PropBuild =
   | { kind: 'model'; url: string; node?: string; hide?: string[] }
-  | { kind: 'procedural'; shape: 'toaster' | 'rollingPin' | 'rock' | 'slab' | 'deck' | 'hull' | 'giantFallback'; color?: string; size?: Vec3 };
+  | { kind: 'procedural'; shape: 'toaster' | 'rollingPin' | 'rock' | 'slab' | 'deck' | 'shipDeck' | 'hull' | 'giantFallback'; color?: string; size?: Vec3 };
 
 /** Dimensions en unités LOCALES de l'asset, multipliées par `scale` du PropSpec. StaticCollider : unités monde. */
 export type ColliderSpec =
   | { type: 'box'; hx: number; hy: number; hz: number; offset?: Vec3 }
-  | { type: 'cylinder'; radius: number; halfHeight: number; offset?: Vec3; rollAxisZ?: boolean };
+  | { type: 'cylinder'; radius: number; halfHeight: number; offset?: Vec3; rollAxisZ?: boolean }
+  /** Prisme convexe : contour XZ (le même que le visuel), dessus à y = 0, épaisseur `depth` vers le bas. */
+  | { type: 'convex'; outline: [number, number][]; depth: number; offset?: Vec3 };
 
 export interface PropSpec {
   id: string;

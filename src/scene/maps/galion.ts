@@ -5,9 +5,11 @@
 // tire dessus. Tomber à la mer = sortie. Données pures : engine.ts interprète.
 import type { Vec3 } from '../../core/types';
 import { PIRATE } from './assets';
+import { shipOutline } from './outline';
 import type { BackdropSpec, GroundPiece, MapDef, OneWaySpec, PropSpec, StaticCollider } from './types';
 
-const DECK_HALF_X = 9;     // 18 m de pont jouable
+const DECK_LEN = 20.4;     // de la poupe (x = -9,6) à la pointe de la proue (x = +10,8)
+const DECK_SHIFT = 0.6;    // décalage du pont vers la proue (la partie pleine largeur reste centrée)
 const DECK_HALF_Z = 3.6;   // 7,2 m de large
 const PLATFORM_Y = 2.4;
 const SPAWN_X = 5;
@@ -18,12 +20,13 @@ const SEA_Y = -3.2;        // la mer lèche la coque ; RINGOUT (-5) est sous la 
 // ---------------------------------------------------------------------------
 function plateau(): { pieces: GroundPiece[]; collider: StaticCollider } {
   const pieces: GroundPiece[] = [
-    { id: 'plateau_pont', build: { kind: 'procedural', shape: 'deck', size: [DECK_HALF_X * 2 + 0.4, 0.45, DECK_HALF_Z * 2] }, pos: [0, 0, 0], collider: null },
-    { id: 'plateau_coque', build: { kind: 'procedural', shape: 'hull', size: [DECK_HALF_X * 2 + 2.6, 4.6, DECK_HALF_Z * 2 + 0.3] }, pos: [0.9, -0.44, 0], collider: null },
+    { id: 'plateau_pont', build: { kind: 'procedural', shape: 'shipDeck', size: [DECK_LEN, 0.45, DECK_HALF_Z * 2] }, pos: [DECK_SHIFT, 0, 0], collider: null },
+    { id: 'plateau_coque', build: { kind: 'procedural', shape: 'hull', size: [DECK_LEN + 0.5, 4.6, DECK_HALF_Z * 2 + 0.35] }, pos: [DECK_SHIFT, -0.44, 0], collider: null },
     // Mât central, au fond du pont (la voile basse masquerait le jeu : retirée).
     { id: 'mat', build: { kind: 'model', url: PIRATE.mast, hide: ['sail-a'] }, pos: [0, 0, -DECK_HALF_Z + 0.9], scale: 1.6, collider: { type: 'cylinder', radius: 0.22, halfHeight: 2.4, offset: [0, 2.4, 0] } },
   ];
-  const collider: StaticCollider = { id: 'deck', pos: [0, -0.3, 0], collider: { type: 'box', hx: DECK_HALF_X, hy: 0.3, hz: DECK_HALF_Z } };
+  // Collider = exactement le contour du pont dessiné (prisme convexe) : aucun rebord invisible à la proue.
+  const collider: StaticCollider = { id: 'deck', pos: [DECK_SHIFT, 0, 0], collider: { type: 'convex', outline: shipOutline(DECK_LEN, DECK_HALF_Z * 2), depth: 0.6 } };
   return { pieces, collider };
 }
 
@@ -96,6 +99,7 @@ export function buildGalionDef(): MapDef {
     backdrop: fond(),
     periodicEvent: { kind: 'wave', everyTurns: 3, firstTurn: 4, leadTurns: 2 },
     seaY: SEA_Y,
-    waveBand: { center: [0, 0, DECK_HALF_Z - 0.8], size: [DECK_HALF_X * 2, 1.6] },
+    // Bande avant sur la partie pleine largeur du pont (de la poupe, x = -9, au début de la proue, x = 6,1).
+    waveBand: { center: [-1.45, 0, DECK_HALF_Z - 0.8], size: [15.1, 1.6] },
   };
 }

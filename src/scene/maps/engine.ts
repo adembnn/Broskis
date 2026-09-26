@@ -14,6 +14,7 @@ import { buildArchipelDef } from './archipel';
 import { buildCuisineDef } from './cuisine';
 import { buildGalionDef } from './galion';
 import { HEX_R } from './hex';
+import { shipOutline } from './outline';
 import { instantiate } from './loader';
 import { flatMat, hazardMaterial, hazardRect, worldStripeUVs, type Grade } from './materials';
 import { archipelTokens, cuisineTokens, galionTokens, LOCAL_TOKENS, palette, rendu, type MapPalette } from './tokens';
@@ -169,28 +170,14 @@ function plankTexture(color: string): THREE.CanvasTexture {
   return tex;
 }
 
-/** Coque de navire (loft entre le contour du pont et une quille plus étroite), dessus à y = 0, proue vers +X. */
+/** Coque de navire : loft entre le contour du pont (shipOutline) et une quille plus étroite, dessus à y = 0. */
 function hullGeometry(len: number, depth: number, width: number): THREE.BufferGeometry {
-  const N = 20;
-  const halfW = width / 2;
-  const ring = (bottom: boolean): THREE.Vector3[] => {
-    const side = (sign: number) => {
-      const pts: THREE.Vector3[] = [];
-      for (let i = 0; i <= N; i++) {
-        const t = sign > 0 ? i / N : 1 - i / N;
-        const bow = t > 0.74 ? Math.sqrt(Math.max(0, 1 - ((t - 0.74) / 0.26) ** 2)) : 1;
-        const stern = t < 0.05 ? 0.86 + 0.14 * (t / 0.05) : 1;
-        const x = (-len / 2 + t * len) * (bottom ? 0.84 : 1);
-        const w = halfW * bow * stern * (bottom ? 0.3 : 1) * sign;
-        const y = bottom ? -depth + depth * 0.35 * (2 * t - 1) ** 2 : 0;
-        pts.push(new THREE.Vector3(x, y, w));
-      }
-      return pts;
-    };
-    return [...side(1), ...side(-1).slice(1, -1)];
-  };
-  const top = ring(false);
-  const bot = ring(true);
+  const topPts = shipOutline(len, width);
+  const top = topPts.map(([x, z]) => new THREE.Vector3(x, 0, z));
+  const bot = topPts.map(([x, z]) => {
+    const t = (x + len / 2) / len;
+    return new THREE.Vector3(x * 0.84, -depth + depth * 0.35 * (2 * t - 1) ** 2, z * 0.3);
+  });
   const pos: number[] = [];
   const tri = (a: THREE.Vector3, b: THREE.Vector3, c: THREE.Vector3) => pos.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
   const M = top.length;
@@ -205,6 +192,19 @@ function hullGeometry(len: number, depth: number, width: number): THREE.BufferGe
   geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   geo.computeVertexNormals();
   return geo;
+}
+
+/** Plateau extrudé depuis un contour XZ (dessus à y = 0, chanfrein), texture de planches en mètres. */
+function outlineSlab(outline: [number, number][], thickness: number, color: string, grade: Grade): THREE.Mesh {
+  const shape = new THREE.Shape(outline.map(([x, z]) => new THREE.Vector2(x, z)));
+  const bevel = Math.min(0.1, thickness * 0.3);
+  const geo = new THREE.ExtrudeGeometry(shape, { depth: thickness - bevel * 2, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel * 0.6, bevelSegments: 1 });
+  geo.rotateX(Math.PI / 2).translate(0, -bevel, 0);
+  const mat = flatMat(color, grade, 0.7).clone();
+  mat.color.set('#ffffff');
+  mat.map = plankTexture(color);
+  mat.flatShading = false;
+  return new THREE.Mesh(geo, mat);
 }
 
 function buildProcedural(build: Extract<PropBuild, { kind: 'procedural' }>, mp: MapPalette, grade: Grade): THREE.Object3D {
@@ -245,6 +245,10 @@ function buildProcedural(build: Extract<PropBuild, { kind: 'procedural' }>, mp: 
       mat.flatShading = false;
       mesh.material = mat;
       g.add(slab);
+      break;
+    }
+    case 'shipDeck': {
+      g.add(outlineSlab(shipOutline(size[0], size[2]), size[1], build.color ?? mp.sol, grade));
       break;
     }
     case 'hull': {
@@ -320,6 +324,13 @@ async function addPart(map: LoadedMap, parent: THREE.Object3D, part: VisualPart,
 // ---------------------------------------------------------------------------
 function colliderDesc(R: typeof RAPIER, spec: ColliderSpec, scale: number): RAPIER.ColliderDesc {
   const off = spec.offset;
+  if (spec.type === 'convex') {
+    const pts: number[] = [];
+    for (const [x, z] of spec.outline) pts.push(x * scale, 0, z * scale, x * scale, -spec.depth * scale, z * scale);
+    const d = R.ColliderDesc.convexHull(new Float32Array(pts)) ?? R.ColliderDesc.cuboid(1, spec.depth / 2, 1);
+    if (off) d.setTranslation(off[0] * scale, off[1] * scale, off[2] * scale);
+    return d;
+  }
   const desc = spec.type === 'box'
     ? R.ColliderDesc.cuboid(spec.hx * scale, spec.hy * scale, spec.hz * scale)
     : R.ColliderDesc.cylinder(spec.halfHeight * scale, spec.radius * scale);
