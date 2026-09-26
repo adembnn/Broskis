@@ -1,6 +1,7 @@
 // Même image en qualité haute puis basse (jeu figé entre les deux) : vérifie que la bascule automatique
 // (src/core/quality.ts) ne change que le bloom, pas les couleurs. Sorties : tools/perf/out/qualite-<map>-*.png
-// Usage : node tools/perf/compare-qualite.mjs [--map galion] [--port 5379]
+// Usage : node tools/perf/compare-qualite.mjs [--map galion] [--port 5379] [--lumiere]
+//   --lumiere : compare plutôt 2 piles de lumières (LA + map, actuel) et 1 seule (map, intensités ×2).
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
@@ -26,11 +27,23 @@ try {
   await page.evaluate(() => { window.ctx.loop.hitstop = 1e9; }); // gameplay figé, le rendu continue
   await page.waitForTimeout(300);
   await page.screenshot({ path: `tools/perf/out/qualite-${MAP}-haute.png` });
-  await page.evaluate(() => window.__qualite.set('basse'));
-  await page.waitForFunction(() => window.__qualite.niveau === 'basse', null, { timeout: 20000 });
-  await page.waitForTimeout(300);
-  await page.screenshot({ path: `tools/perf/out/qualite-${MAP}-basse.png` });
-  console.log(`tools/perf/out/qualite-${MAP}-haute.png / -basse.png`);
+  if (args.includes('--lumiere')) {
+    await page.evaluate(() => {
+      const scene = window.ctx.three.scene;
+      const map = scene.children.find((o) => o.name?.startsWith('map-'));
+      for (const o of scene.children) if (o.isLight) o.visible = false;
+      map.traverse((o) => { if (o.isLight) o.intensity *= 2; });
+    });
+    await page.waitForTimeout(1500);
+    await page.screenshot({ path: `tools/perf/out/qualite-${MAP}-unelumiere.png` });
+    console.log(`tools/perf/out/qualite-${MAP}-haute.png / -unelumiere.png`);
+  } else {
+    await page.evaluate(() => window.__qualite.set('basse'));
+    await page.waitForFunction(() => window.__qualite.niveau === 'basse', null, { timeout: 20000 });
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: `tools/perf/out/qualite-${MAP}-basse.png` });
+    console.log(`tools/perf/out/qualite-${MAP}-haute.png / -basse.png`);
+  }
 } finally {
   await browser.close();
   server.kill();

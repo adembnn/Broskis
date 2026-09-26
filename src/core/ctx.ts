@@ -10,6 +10,7 @@ import { createHooks } from './hooks';
 import { createLoop } from './loop';
 import { createPhysics } from './physics';
 import { createQualite } from './quality';
+import { installShaderWarmup } from './shaders';
 import { createRng } from './rng';
 import { createState, exposeState } from './state';
 import type { Ctx, PlayerId, Three, View, ViewMode } from './types';
@@ -226,6 +227,7 @@ export async function createCtx(root: HTMLElement): Promise<Ctx> {
     if (qualite.niveau === 'basse') { drawer.draw(null); drawer.separator(); }
     else ctx.three.render();
   }, 1000);
+  installShaderWarmup(bus, three, () => qualite.niveau === 'basse');
 
   window.ctx = ctx; // débogage : ctx.bus.emit('hit', …) depuis la console
   return ctx;
