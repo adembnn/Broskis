@@ -46,7 +46,7 @@ export const CRATE_PICKUP_RADIUS = 1.4;
 export const STOCKS_DEFAULT = 2;
 export const STOCKS_DEMO = 1;
 /** Dégâts en % par point de puissance (stat a). */
-export const PCT_PER_POWER = 7.5;
+export const PCT_PER_POWER = 14;
 /** Bonus du perso : × (1 + (power − 5) × ce facteur). */
 export const FIGHTER_POWER_PCT_FACTOR = 0.04;
 /** Charge : dégâts × (CHARGE_DAMAGE_MIN + CHARGE_DAMAGE_SPAN × charge). */
@@ -59,7 +59,7 @@ export const CRIT_CHANCE_V2 = 0.1;
 export const CRIT_MULT_V2 = 1.35;
 export const NICE_DAMAGE_MULT = 1.25;
 /** Plafond d'un seul coup (hors BRO SMASH et mort subite). */
-export const MAX_PCT_PER_HIT = 45;
+export const MAX_PCT_PER_HIT = 50;
 /** Recul (formule Smash simplifiée) : vitesse = (base_arme + charge × k1) × (1 + %après/100 × k2). */
 export const LAUNCH_K1 = 0.4;
 export const LAUNCH_K2 = 6;
@@ -89,7 +89,7 @@ export const BLAST_TOP = 16;
 /** BRO SMASH (« Final Smash ») : prochain tir après `super:ready`. */
 export const BRO_SMASH = { launchMult: 1.8, damageMult: 1.5 };
 /** Jauge BRO (0 à 100) : gains par parade, NICE, % reçus et % infligés. */
-export const BRO_GAIN = { perfect: 25, good: 10, nice: 10, perPctTaken: 0.35, perPctDealt: 0.2 };
+export const BRO_GAIN = { perfect: 12, good: 6, nice: 10, perPctTaken: 0.45, perPctDealt: 0.25 };
 /** Réapparition : au-dessus du centre, flotte un instant puis tombe. */
 export const RESPAWN_DELAY_S = 1.1;
 export const RESPAWN_HEIGHT = 3;
@@ -97,6 +97,8 @@ export const RESPAWN_HOVER_S = 1.2;
 /** Rattrapage au bord : distance horizontale max au bord, et bande verticale sous le plateau. */
 export const LEDGE_GRAB_DIST = 1.5;
 export const LEDGE_MIN_BELOW = 0.5;
+/** Pendant son propre tour, avec un saut en réserve : accroche plus bas (≈ 0,35 s pour tenter le double saut). */
+export const LEDGE_OWN_TURN_MIN_BELOW = 1.2;
 export const LEDGE_MAX_BELOW = 3.2;
 /** Perso accroché : pieds à cette profondeur sous le plateau. */
 export const LEDGE_HANG_DROP = 1.3;

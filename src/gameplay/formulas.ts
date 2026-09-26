@@ -16,7 +16,7 @@ export interface ShotMods {
   charge: number;
   /** Nombre de tirs de la rafale (blaster), 1 sinon : les dégâts de la rafale se répartissent. */
   burst: number;
-  /** 1 ; 0,5 pour une parade GOOD ; atténuation d'une explosion (0,6..1). */
+  /** 1 ; 0,5 pour une parade GOOD ; atténuation d'une explosion (0,6..1). Dégâts seulement. */
   mult: number;
   crit: boolean;
   nice: boolean;
@@ -60,7 +60,8 @@ export function launchBase(w: WeaponLike, charge: number): number {
 /** Vitesse d'éjection (m/s) : (base + charge × k1) × (1 + %après/100 × k2), × poids, × multiplicateurs. */
 export function launchSpeed(w: WeaponLike, pctAfter: number, m: ShotMods, targetHpMax = 100): number {
   const weight = Math.pow(100 / Math.max(50, targetHpMax), WEIGHT_EXP);
-  return launchBase(w, m.charge) * (1 + (Math.max(0, pctAfter) / 100) * LAUNCH_K2) * weight * m.superLaunch * m.mult * m.fragment;
+  // `m.mult` (parade GOOD, atténuation d'explosion) ne touche que les dégâts : le % après coup, plus bas, suffit.
+  return launchBase(w, m.charge) * (1 + (Math.max(0, pctAfter) / 100) * LAUNCH_K2) * weight * m.superLaunch * m.fragment;
 }
 
 /** Vecteur d'éjection : direction horizontale du tir + LAUNCH_ANGLE_DEG vers le haut. */

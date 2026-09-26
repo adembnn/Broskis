@@ -7,9 +7,7 @@ import { teleport } from './character';
 import { setBlastHandler, setTeeter } from './launch';
 import { cancelGestureTimer, finishMatch, setPhase } from './phases';
 import { getRuntime, otherPlayer } from './runtime';
-import {
-  GAME_SLOWMO, RESPAWN_DELAY_S, RESPAWN_HEIGHT, RESPAWN_HOVER_S, SUDDEN_DEATH_PCT,
-} from './tuning';
+import { GAME_SLOWMO, RESPAWN_DELAY_S, RESPAWN_HEIGHT, RESPAWN_HOVER_S, SUDDEN_DEATH_PCT } from './tuning';
 
 /** Vie perdue (zone d'explosion atteinte en vol, ou chute sous RINGOUT_Y). */
 export function loseStock(ctx: Ctx, player: PlayerId, side: BlastSide, exitPos: Vec3): void {
@@ -47,7 +45,7 @@ function endGame(ctx: Ctx, loser: PlayerId): void {
   setTimeout(() => { if (getRuntime().matchSeq === seq) finishMatch(ctx, otherPlayer(loser)); }, GAME_SLOWMO.ms);
 }
 
-/** Réapparition : au-dessus du centre (décalée si l'adversaire y est), % à 0 (150 en mort subite). */
+/** Réapparition : au-dessus du centre (décalée si l'adversaire y est), % remis à 0 (150 en mort subite). */
 export function respawn(ctx: Ctx, player: PlayerId): void {
   const rt = getRuntime().players[player];
   const ps = ctx.state.players[player];
@@ -70,6 +68,7 @@ export function respawn(ctx: Ctx, player: PlayerId): void {
   // « Invulnérable jusqu'à la fin de son prochain tour » : le prochain tour de ce joueur, pas le tour en cours.
   const turn = ctx.state.turn;
   rt.invulnUntilTurn = ctx.state.active === player ? turn + 2 : turn + 1;
+  // Mort subite : on réapparaît à 150 % (sinon la mort subite ne tranche pas un match à 2 vies).
   ps.pct = ctx.state.suddenDeath ? SUDDEN_DEATH_PCT : 0;
   ps.onLedge = false;
   teleport(ctx, player, pos);

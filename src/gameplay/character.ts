@@ -76,6 +76,13 @@ export function teleport(ctx: Ctx, player: PlayerId, pos: Vec3): void {
   rt.vy = 0;
 }
 
+/** Pose le perso à `pos` (pieds) pour la prochaine étape physique, sans collisions (vol d'éjection, launch.ts). */
+export function placeKinematic(ctx: Ctx, player: PlayerId, pos: Vec3): void {
+  const rt = getRuntime().players[player];
+  ctx.state.players[player].pos = [pos[0], pos[1], pos[2]];
+  rt.body?.setNextKinematicTranslation(centerFromFeet(pos));
+}
+
 /** Le moteur de map pousse parfois `state.pos` lui-même (apparition, éponge, gîte, catapulte) : le corps suit. */
 export function syncBodyToState(ctx: Ctx, player: PlayerId): void {
   const rt = getRuntime().players[player];

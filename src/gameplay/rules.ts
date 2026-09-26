@@ -154,15 +154,20 @@ function moveActive(s: SimState, p: SimPlayer, o: SimPlayer, how: SimAction['mov
   if (r > s.radius - 0.6) { const k = (s.radius - 0.6) / r; p.x *= k; p.z *= k; }
 }
 
-/** Joue un tour complet : déplacement, tir (rafale comprise), parade du défenseur, recharges. */
-export function playTurn(s: SimState, act: SimAction, rng: Rng): void {
+/** Début du tour (comme phases.ts) : recharges du joueur actif, mort subite. À appeler AVANT de décider. */
+export function startTurn(s: SimState): void {
   const att = s.players[s.active];
-  const def = s.players[s.active === 0 ? 1 : 0];
   if (s.turn >= T.SUDDEN_DEATH_TURN && !s.suddenDeath) {
     s.suddenDeath = true;
     for (const p of s.players) p.pct = Math.max(p.pct, T.SUDDEN_DEATH_PCT);
   }
   for (let i = 0; i < att.cooldowns.length; i++) if (att.cooldowns[i] > 0) att.cooldowns[i] -= 1;
+}
+
+/** Joue le reste du tour : déplacement, tir (rafale comprise), parade du défenseur. */
+export function playTurn(s: SimState, act: SimAction, rng: Rng): void {
+  const att = s.players[s.active];
+  const def = s.players[s.active === 0 ? 1 : 0];
   moveActive(s, att, def, act.move, rng);
   let wi = act.weaponIdx;
   if (att.cooldowns[wi] > 0) wi = att.cooldowns.findIndex((c) => c <= 0);

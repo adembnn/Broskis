@@ -58,8 +58,11 @@ export function requestMove(ctx: Ctx, player: PlayerId, dx: number, dz: number, 
   if (result.blockedByEdge) {
     setTeeter(ctx, player, true);
     rt.edgePushS += dt;
-  } else if (result.movedDistance > 0.01 && rt.teetering) {
+  } else if (result.movedDistance > 0.01 && !insist) {
+    rt.edgePushS = 0; // du sol devant : on s'éloigne du bord
     setTeeter(ctx, player, false);
+  } else if (insist && !rt.grounded) {
+    setTeeter(ctx, player, false); // passé dans le vide
   }
   if (result.movedDistance <= 0) return;
   state.moveLeft = Math.max(0, state.moveLeft - result.movedDistance);

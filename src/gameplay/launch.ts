@@ -2,12 +2,13 @@
 // rattrapage au bord, zones d'explosion. La même intégration sert à PRÉDIRE l'issue d'un coup (`willKo`,
 // `aim:update.ejects`) : la prédiction interroge le sol par rayons, le vol réel passe par le contrôleur Rapier.
 import type { Ctx, PlayerId, Vec3 } from '../core/types';
-import { blastZoneHit, findLedge, getArena, groundYBelow, type BlastSide } from './arena';
-import { isVoidAt, moveKinematic, teleport } from './character';
-import { horizontalSpeed, stepFlightVelocity } from './formulas';
+import { blastZoneHit, findLedge, getArena, groundYBelow, isGroundCollider, type BlastSide } from './arena';
+import { isVoidAt, placeKinematic, teleport } from './character';
+import { horizontalSpeed, stepFlightVelocity, type FlightBody } from './formulas';
 import { getRuntime } from './runtime';
 import {
-  LAUNCH_END_SPEED, LEDGE_GRAB_DIST, LEDGE_HANG_DROP, LEDGE_MAX_BELOW, LEDGE_MIN_BELOW, RINGOUT_Y, CHARACTER_RADIUS,
+  CHARACTER_RADIUS, LAUNCH_END_SPEED, LEDGE_GRAB_DIST, LEDGE_HANG_DROP, LEDGE_MAX_BELOW, LEDGE_MIN_BELOW,
+  LEDGE_OWN_TURN_MIN_BELOW, MAX_JUMPS_PER_TURN, RINGOUT_Y,
 } from './tuning';
 
 /** Appelé quand une vie est perdue (stocks.ts s'y branche : évite une dépendance circulaire). */
@@ -34,7 +35,6 @@ export function setTeeter(ctx: Ctx, player: PlayerId, on: boolean): void {
   const rt = getRuntime().players[player];
   if (rt.teetering === on) return;
   rt.teetering = on;
-  if (!on) rt.edgePushS = 0;
   ctx.bus.emit('teeter', { player, on });
 }
 
@@ -55,15 +55,16 @@ export function grabLedge(ctx: Ctx, player: PlayerId, ledge: { edge: Vec3; inwar
   ctx.bus.emit('ledge:grab', { player, pos: [ledge.edge[0], ledge.edge[1], ledge.edge[2]] });
 }
 
-/** Rattrapage possible depuis `pos` (en chute, sous le plateau, près d'un bord) ? */
-export function ledgeCandidate(ctx: Ctx, pos: Vec3, falling: boolean): { edge: Vec3; inward: Vec3 } | null {
+/** Rattrapage possible depuis `pos` (en chute, sous le plateau, près d'un bord) ? `minBelow` : profondeur
+ * sous le plateau à partir de laquelle on s'accroche (plus bas pendant son propre tour : le temps de sauter). */
+export function ledgeCandidate(ctx: Ctx, pos: Vec3, falling: boolean, minBelow = LEDGE_MIN_BELOW): { edge: Vec3; inward: Vec3 } | null {
   if (!falling || pos[1] <= RINGOUT_Y) return null;
   const arena = getArena(ctx);
-  if (pos[1] > arena.top - LEDGE_MIN_BELOW || pos[1] < arena.top - LEDGE_MAX_BELOW) return null;
+  if (pos[1] > arena.top - minBelow || pos[1] < arena.top - LEDGE_MAX_BELOW) return null;
   if (groundYBelow(ctx, [pos[0], pos[1] + 0.2, pos[2]], pos[1] - RINGOUT_Y + 1) != null) return null; // du sol dessous : pas dans le vide
   const found = findLedge(ctx, pos, LEDGE_GRAB_DIST + CHARACTER_RADIUS);
   if (!found) return null;
-  if (found.edge[1] - pos[1] < LEDGE_MIN_BELOW) return null;
+  if (found.edge[1] - pos[1] < minBelow) return null;
   return { edge: found.edge, inward: found.inward };
 }
 
@@ -84,30 +85,44 @@ export function stepLaunches(ctx: Ctx, dt: number): void {
   }
 }
 
+/** Un pas de vol, PARTAGÉ par le vol réel et la prédiction (ce qu'on prévoit est ce qui arrive) : gravité et
+ * ralentissement, mur devant (rayon à mi-corps : « bonk »), sol dessous (rayon au centre : atterrissage,
+ * glissade, chute quand le sol s'arrête). Les joueurs et les capteurs sont ignorés. */
+function advance(ctx: Ctx, b: FlightBody, h: number): void {
+  stepFlightVelocity(b, h);
+  let dx = b.vel[0] * h, dz = b.vel[2] * h;
+  const dh = Math.hypot(dx, dz);
+  if (dh > 1e-5) {
+    const { RAPIER: R, world } = ctx.physics;
+    const ray = new R.Ray({ x: b.pos[0], y: b.pos[1] + 0.9, z: b.pos[2] }, { x: dx / dh, y: 0, z: dz / dh });
+    if (world.castRay(ray, dh + CHARACTER_RADIUS, true, undefined, undefined, undefined, undefined, isGroundCollider)) {
+      b.vel = [b.vel[0] * -0.15, b.vel[1], b.vel[2] * -0.15];
+      dx = 0; dz = 0;
+    }
+  }
+  const next: Vec3 = [b.pos[0] + dx, b.pos[1] + b.vel[1] * h, b.pos[2] + dz];
+  if (b.vel[1] <= 0) {
+    const g = groundYBelow(ctx, [next[0], b.pos[1] + 0.3, next[2]], b.pos[1] + 0.3 - next[1] + 0.05);
+    if (g != null) { next[1] = g; b.grounded = true; b.vel = [b.vel[0], 0, b.vel[2]]; }
+    else b.grounded = false;
+  }
+  b.pos = next;
+}
+
 function stepOne(ctx: Ctx, p: PlayerId, h: number): void {
   const rt = getRuntime().players[p];
   const l = rt.launch!;
   l.t += h;
-  const body = { pos: ctx.state.players[p].pos, vel: l.vel, grounded: l.grounded };
-  stepFlightVelocity(body, h);
+  const body: FlightBody = { pos: ctx.state.players[p].pos, vel: l.vel, grounded: l.grounded };
+  advance(ctx, body, h);
   l.vel = body.vel;
-  const want: Vec3 = [l.vel[0] * h, l.vel[1] * h, l.vel[2] * h];
-  const r = moveKinematic(ctx, p, want, l.vel[1] > 0);
-  // Mur ou obstacle : on perd la vitesse horizontale bloquée (« bonk »).
-  const wantH = Math.hypot(want[0], want[2]);
-  if (wantH > 1e-4 && Math.hypot(r.moved[0], r.moved[2]) < wantH * 0.4) { l.vel = [l.vel[0] * 0.3, l.vel[1], l.vel[2] * 0.3]; }
-  if (l.vel[1] > 0 && r.moved[1] < want[1] * 0.3) l.vel = [l.vel[0], 0, l.vel[2]];
-  const pos = ctx.state.players[p].pos;
+  l.grounded = body.grounded;
+  placeKinematic(ctx, p, body.pos);
+  const pos = body.pos;
 
   const side = blastZoneHit(getArena(ctx), pos, RINGOUT_Y);
   if (side) { rt.launch = null; onBlast?.(ctx, p, side, [pos[0], Math.max(pos[1], RINGOUT_Y + 0.1), pos[2]]); return; }
 
-  if (r.grounded && l.vel[1] <= 0) {
-    l.grounded = true;
-    l.vel = [l.vel[0], 0, l.vel[2]];
-  } else if (l.grounded && isVoidAt(ctx, pos)) {
-    l.grounded = false; // glisse hors du plateau
-  }
   if (l.grounded && horizontalSpeed(l.vel) < LAUNCH_END_SPEED) {
     const dir = Math.hypot(l.vel[0], l.vel[2]) > 1e-3 ? l.vel : [pos[0] - getArena(ctx).center[0], 0, pos[2] - getArena(ctx).center[2]];
     const len = Math.hypot(dir[0], dir[2]) || 1;
@@ -132,7 +147,10 @@ export function stepFalls(ctx: Ctx): void {
     const pos = ctx.state.players[p].pos;
     if (pos[1] < RINGOUT_Y) { onBlast?.(ctx, p, 'bottom', [pos[0], RINGOUT_Y + 0.1, pos[2]]); continue; }
     if (!rt.grounded && rt.vy < 0) {
-      const ledge = ledgeCandidate(ctx, pos, true);
+      // Chute pendant son propre tour avec des sauts en réserve : on laisse le temps du double saut.
+      const ownTurn = ctx.state.active === p && (ctx.state.phase === 'move' || ctx.state.phase === 'aim');
+      const minBelow = ownTurn && rt.jumpsUsed < MAX_JUMPS_PER_TURN ? LEDGE_OWN_TURN_MIN_BELOW : LEDGE_MIN_BELOW;
+      const ledge = ledgeCandidate(ctx, pos, true, minBelow);
       if (ledge) grabLedge(ctx, p, ledge);
     }
   }
@@ -140,19 +158,12 @@ export function stepFalls(ctx: Ctx): void {
 
 export type LaunchOutcome = { kind: 'land'; pos: Vec3 } | { kind: 'ledge'; pos: Vec3 } | { kind: 'ko'; side: BlastSide; pos: Vec3 };
 
-/** Prédit l'issue d'une éjection depuis `from` (même intégration, sol interrogé par rayons, sans obstacles). */
+/** Prédit l'issue d'une éjection depuis `from` : exactement la même intégration que le vol réel (`advance`). */
 export function predictLaunch(ctx: Ctx, from: Vec3, vel: Vec3, maxS = 4): LaunchOutcome {
   const arena = getArena(ctx);
-  const b = { pos: [from[0], from[1], from[2]] as Vec3, vel: [vel[0], vel[1], vel[2]] as Vec3, grounded: false };
+  const b: FlightBody = { pos: [from[0], from[1], from[2]], vel: [vel[0], vel[1], vel[2]], grounded: false };
   for (let t = 0; t < maxS; t += STEP) {
-    stepFlightVelocity(b, STEP);
-    const next: Vec3 = [b.pos[0] + b.vel[0] * STEP, b.pos[1] + b.vel[1] * STEP, b.pos[2] + b.vel[2] * STEP];
-    if (b.vel[1] <= 0) {
-      const g = groundYBelow(ctx, [next[0], b.pos[1] + 0.3, next[2]], b.pos[1] + 0.3 - next[1] + 0.05);
-      if (g != null) { next[1] = g; b.grounded = true; b.vel = [b.vel[0], 0, b.vel[2]]; }
-      else if (b.grounded) b.grounded = false;
-    }
-    b.pos = next;
+    advance(ctx, b, STEP);
     const side = blastZoneHit(arena, b.pos, RINGOUT_Y);
     if (side) return { kind: 'ko', side, pos: b.pos };
     if (b.grounded && horizontalSpeed(b.vel) < LAUNCH_END_SPEED) return { kind: 'land', pos: b.pos };
