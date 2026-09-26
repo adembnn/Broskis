@@ -4,7 +4,7 @@
 // couverts. Danger : la catapulte, sur son île au fond, pilonne l'anneau extérieur (annoncé un tour
 // complet avant par l'anneau qui clignote) -> l'arène rétrécit. Données pures : engine.ts interprète.
 import type { Vec3 } from '../../core/types';
-import { HEX, KIT } from './assets';
+import { HEX, KIT, PIRATE } from './assets';
 import { axialToWorld, HEX_R, hexDisk } from './hex';
 import { PLATEAU } from './tokens';
 import { MAX_LEDGE_HEIGHT, type BackdropSpec, type GroundPiece, type MapDef, type OneWaySpec, type PropSpec, type TileSpec } from './types';
@@ -38,22 +38,34 @@ function plateau(): { tiles: TileSpec[]; underside: GroundPiece[] } {
 }
 
 // ---------------------------------------------------------------------------
-// 2 ruines flottantes, au fond de la vue 3/4 (jamais entre la caméra et les combattants).
+// LMAP4 — Route aérienne en 3 marches au fond de la vue (façon Battlefield) : ruine ouest (1,7 m), balcon
+// central (2,0 m, surplombe le centre sans couvrir l'axe des apparitions), ruine est (1,8 m). Écarts de 0,5 m :
+// on traverse l'arène par le haut d'un saut à l'autre. Les blocs de pierre sont écrasés en hauteur (x0,4) :
+// rien ne pend à hauteur de tête sous une plateforme.
 // ---------------------------------------------------------------------------
-function ruine(id: string, x: number, z: number): OneWaySpec {
-  // plateforme_pierre_L (kit) : dalle d'herbe sur bloc de pierre taillée, dessus à y = 0, 6,2 x 2,8 m.
+const PIERRE = { L: { url: KIT.plateformePierreL, hx: 3.05, hz: 1.35 }, M: { url: KIT.plateformePierreM, hx: 2.25, hz: 1.15 }, S: { url: KIT.plateformePierreS, hx: 1.55, hz: 0.95 } };
+const PIERRE_ECRASEE: Vec3 = [1, 0.4, 1];
+
+function ruine(id: string, taille: keyof typeof PIERRE, x: number, y: number, z: number): OneWaySpec {
+  const p = PIERRE[taille];
   return {
-    id, top: [x, PLATFORM_Y, z], halfX: 3.05, halfZ: 1.35, thickness: 0.3,
-    parts: [{ build: { kind: 'model', url: KIT.plateformePierreL, graded: false, surface: { detail: 'pierre' } }, offset: [0, 0, 0] }],
+    id, top: [x, y, z], halfX: p.hx, halfZ: p.hz, thickness: 0.3,
+    parts: [{ build: { kind: 'model', url: p.url, graded: false, surface: { detail: 'pierre' } }, offset: [0, 0, 0], scale: PIERRE_ECRASEE }],
   };
 }
 
 function plateformes(): OneWaySpec[] {
-  return [ruine('ruin_left', -6.8, -4.6), ruine('ruin_right', 6.8, -4.6)];
+  return [
+    ruine('ruin_west', 'S', -4.4, 1.7, -4.3),
+    ruine('ruin_balcony', 'M', 0, PLATFORM_Y, -2.5),
+    ruine('ruin_east', 'S', 4.5, 1.8, -4.6),
+  ];
 }
 
 // ---------------------------------------------------------------------------
-// Couverts : 2 tonneaux de poudre, symétriques par rapport au centre, hors de la ligne de tir directe.
+// LMAP4 — Couverts (1,2-1,5 m) en symétrie de rotation autour du centre, tous sur les anneaux qui ne tombent
+// jamais (<= 3), aucun sur l'axe des apparitions (z = 0) : 2 tonneaux de poudre (réactifs), muret en ruine
+// devant, rocher à droite, muret bas à gauche.
 // ---------------------------------------------------------------------------
 function tonneau(id: string, x: number, z: number): PropSpec {
   return {
@@ -66,12 +78,21 @@ function tonneau(id: string, x: number, z: number): PropSpec {
 
 function couverts(): PropSpec[] {
   return [
-    tonneau('powder_barrel_a', -2.8, 2.4), tonneau('powder_barrel_b', 2.8, -2.4),
-    // Muret en ruine au fond (1,1 m : la tête dépasse), à l'écart de la ligne de tir.
+    tonneau('powder_barrel_a', -2.7, 2.5), tonneau('powder_barrel_b', 3.2, -1.4),
     {
-      id: 'ruin_wall', kind: 'decor', pos: [0.5, 0, -6.2], yaw: 0.25,
+      id: 'ruin_wall', kind: 'decor', pos: [-0.5, 0, 4.0], yaw: 0.12, scale: 1.25,
       build: { kind: 'model', url: KIT.muret, graded: false, surface: { detail: 'pierre' } },
       collider: { type: 'box', hx: 1.6, hy: 0.55, hz: 0.31, offset: [0, 0.55, 0] },
+    },
+    {
+      id: 'cover_rock', kind: 'decor', pos: [4.1, 0, 2.1], yaw: -0.6,
+      build: { kind: 'model', url: KIT.rocherCouvert, graded: false, surface: { detail: 'pierre' } },
+      collider: { type: 'box', hx: 1.05, hy: 0.68, hz: 0.72, offset: [0, 0.68, 0] },
+    },
+    {
+      id: 'low_wall', kind: 'decor', pos: [-3.8, 0, -1.9], yaw: 0.25,
+      build: { kind: 'model', url: KIT.muretBas, graded: false, surface: { detail: 'pierre' } },
+      collider: { type: 'box', hx: 1.56, hy: 0.65, hz: 0.41, offset: [0, 0.65, 0] },
     },
   ];
 }
@@ -92,6 +113,17 @@ function fond(): BackdropSpec[] {
 // Cailloux épars (KayKit, 10-30 cm, sans collider) sur les anneaux qui ne tombent jamais : le plateau a une
 // matière, pas un carrelage. Jamais sur les apparitions ni au centre.
 // ---------------------------------------------------------------------------
+// LMAP4 : touffes d'herbe et gravats au pied des ruines et des couverts (sans collider, anneaux <= 3) : le
+// plateau raconte une place forte en ruine, pas un carrelage vert.
+function habillage(): BackdropSpec[] {
+  const herbes: [number, number, number][] = [[-1.6, 4.5, 0.7], [0.8, 3.7, 0.55], [4.9, 1.2, 0.6], [3.3, 2.9, 0.5], [-4.8, -1.5, 0.6], [-2.9, -2.4, 0.5], [-3.3, 2.0, 0.45], [2.5, -1.9, 0.5], [1.1, -4.6, 0.6]];
+  const gravats: [number, number, number][] = [[0.9, 4.4, 1.6], [-1.9, 3.7, 1.3], [4.9, 2.9, 1.4], [-4.9, -2.3, 1.2]];
+  return [
+    { build: { kind: 'model', url: PIRATE.grassPlant }, items: herbes.map(([x, z, k], i) => ({ pos: [x, 0, z] as Vec3, yaw: i * 1.7, scale: k })) },
+    { build: { kind: 'model', url: HEX.rubble }, items: gravats.map(([x, z, k], i) => ({ pos: [x, 0, z] as Vec3, yaw: i * 2.1, scale: k })) },
+  ];
+}
+
 function cailloux(): BackdropSpec[] {
   const out: BackdropSpec['items'][] = [[], [], []];
   let s = 23;
@@ -101,6 +133,7 @@ function cailloux(): BackdropSpec[] {
     const r = 1.5 + rnd() * (SOCLE_PAR_ANNEAU * MIN_RING);
     const x = Math.cos(a) * r, z = Math.sin(a) * r;
     if (Math.hypot(Math.abs(x) - SPAWN_X, z) < 1.8) continue;
+    if (Math.hypot(x - 3.2, z + 1.4) < 0.8 || Math.hypot(x + 2.7, z - 2.5) < 0.8) continue; // pas dans les tonneaux
     out[i % 3]!.push({ pos: [x, 0, z] as Vec3, yaw: rnd() * 6.28, scale: 0.8 + rnd() * 0.9 });
   }
   return [HEX.pebbleA, HEX.pebbleC, HEX.pebbleE].map((url, i) => ({ build: { kind: 'model', url }, items: out[i]! }));
@@ -117,7 +150,9 @@ export function buildArchipelDef(): MapDef {
       { pos: [-SPAWN_X, 0.05, 0], yawDeg: -90 },
       { pos: [SPAWN_X, 0.05, 0], yawDeg: 90 },
     ],
-    crateSpots: [[0, 0.4, 0], [-4.5, 0.4, 4], [4.5, 0.4, -4]],
+    // LMAP4 : centre disputé + 2 caisses au bord de l'îlot final (anneau 3), l'une à côté du tonneau de poudre
+    // ouest (on risque l'explosion pour la prendre), l'autre sous la route aérienne est.
+    crateSpots: [[0, 0.4, 0.6], [-3.6, 0.4, 4.4], [2.2, 0.4, -4.9]],
     tiles,
     tileModel: { kind: 'model', url: HEX.grass },
     tileHalfExtents: [1, 0.5, HEX_R],
@@ -129,7 +164,7 @@ export function buildArchipelDef(): MapDef {
     extraColliders: [],
     platforms: plateformes(),
     props: couverts(),
-    backdrop: [...fond(), ...cailloux()],
+    backdrop: [...fond(), ...cailloux(), ...habillage()],
     periodicEvent: { kind: 'ring', everyTurns: 2, firstTurn: 4, leadTurns: 2, maxEvents: RINGS - MIN_RING },
     catapult: { build: { kind: 'model', url: HEX.catapultTower }, pos: [-15, -1.5, -21], scale: 4.5 },
     catapultAmmo: { kind: 'model', url: HEX.catapultProjectile },

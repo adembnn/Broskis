@@ -68,10 +68,10 @@ export type DetailKind = 'bois' | 'herbe' | 'pierre' | 'faience';
 /** Texture de détail triplanaire : echelle = répétitions par mètre, force = 0 (rien) à 1 (plein contraste),
  *  relief = intensité du relief (la texture sert aussi de carte de hauteur). */
 export const SURFACES: Record<DetailKind, { echelle: number; force: number; relief: number; /** image tuilable (lot LTEX), ex. '/assets/textures/pont-bois.png' ; absente = texture procédurale */ image?: string }> = {
-  bois: { echelle: 0.3, force: 0.7, relief: 0.3 },
-  herbe: { echelle: 0.5, force: 0.8, relief: 0.5 },
-  pierre: { echelle: 0.4, force: 0.75, relief: 0.6 },
-  faience: { echelle: 0.4, force: 0.5, relief: 0.1 },
+  bois: { echelle: 0.3, force: 0.7, relief: 0 }, // LMAP4 (juge-maps) : relief à 0, le sol bruité gênait la lecture
+  herbe: { echelle: 0.5, force: 0.35, relief: 0 },
+  pierre: { echelle: 0.4, force: 0.75, relief: 0 },
+  faience: { echelle: 0.4, force: 0.5, relief: 0 },
 };
 
 export const PLATEAU = {
@@ -80,7 +80,7 @@ export const PLATEAU = {
   /** Variation de teinte par dalle / planche : ± luminosité, ± teinte (tours de roue chromatique). */
   variation: { luminosite: 0.16, teinte: 0.02 },
   /** Galion : largeur (m) du liseré de plat-bord sombre peint au bord du pont. */
-  liserePont: 0.45,
+  liserePont: 0.3, // LMAP4 (juge-maps) : 0,45 -> 0,3
   /** Galion : rayon (m) de la mer 3D autour du navire, bord fondu vers la mer peinte du panorama. */
   merRayon: 34,
   /** Grille-pain de la cuisine : chrome, bakélite, pain de mie, croûte, levier. */

@@ -135,7 +135,7 @@ export const maps = {
     hemi: { ciel: '#E3E2DC', sol: '#6A5A50', intensite: 0.85 },
     principale: { type: 'directionnelle', couleur: '#FFF3E2', intensite: 2.3, position: [-14, 7.5, 3] }, // soleil rasant, 28°
     pratique: { couleur: '#FF9A4A', intensite: 6, portee: 9, decroissance: 1.6, vacillement: 0.08 },
-    decor: { saturation: 0.5, teinte: '#F4E8DA' }, // packs texturés : chroma × 0,5 puis teinte multipliée
+    decor: { saturation: 0.8, teinte: '#F4E8DA' }, // packs texturés : chroma × 0,8 puis teinte multipliée (LMAP4 : 0,5 -> 0,8)
     corbeaux: { nombre: 5, couleur: ENCRE, envol: 1400 }, // quittent l'anneau condamné au map:warn
   },
   galion: { // clé sombre : fond L*30, pont L*56
@@ -166,11 +166,11 @@ export const maps = {
       lumiere: '#FF8A3D', // résistances du grille-pain armé : seule source chaude, a droit au bloom
     },
     ciel: { haut: '#4A4440', horizon: '#5A524D', bas: '#3F3A37' }, // plafond, murs, carrelage loin en bas
-    panorama: { image: '/assets/sky/cuisine.webp', rotation: 0, intensite: 0.95, chroma: 0.9, brume: 0.12, repetitions: 2, horizon: 0.55, haut: '#AA7553', bas: '#AC5134' },
+    panorama: { image: '/assets/sky/cuisine.webp', rotation: 0, intensite: 0.95, chroma: 0.9, brume: 0.12, repetitions: 2, horizon: 0.35, haut: '#AA7553', bas: '#AC5134' },
     brouillard: { couleur: '#B3764E', debut: 45, fin: 190 }, // léger, carrelage et plan de travail peints
     hemi: { ciel: '#D5DDE3', sol: '#7E6A55', intensite: 0.8 },
     // soleil de fenêtre en spot : la flaque de lumière est le ring (decroissance 0 = pas d'atténuation)
-    principale: { type: 'spot', couleur: '#FFF0DA', intensite: 2.5, position: [-12, 14, -3], angle: 0.6, penombre: 0.25, decroissance: 0 },
+    principale: { type: 'spot', couleur: '#FFF0DA', intensite: 1.6, position: [-12, 14, -3], angle: 0.6, penombre: 0.25, decroissance: 0 },
     pratique: { couleur: '#FF8A3D', intensite: 4, portee: 6, decroissance: 1.6, vacillement: 0.08 }, // à 0 tant que le grille-pain n'est pas armé
     decor: { saturation: 0.55, teinte: '#F2ECE4' },
     cafe: { couleur: ENCRE, opacite: 0.35, rayon: 5.5, epaisseur: 0.6 }, // auréole de tasse = cercle central du ring

@@ -72,6 +72,8 @@ export interface GroundPiece {
   tint?: 'fond' | 'sol' | 'matiere' | 'accent';
   /** Archipel : socle rocheux qui rétrécit avec les anneaux (échelle X/Z = apothème(anneau) / apothème du modèle). */
   shrinkWithRing?: { base: number; perRing: number; modelApothem: number };
+  /** false : ne projette pas d'ombre (coque du galion : ses mâts écrêtés sous le pont projetaient encore). */
+  castShadow?: boolean;
 }
 
 /** Collider fixe sans visuel propre (le vrai bord jouable, indépendant des modèles). */
