@@ -497,8 +497,12 @@ async function measureMatch(page, match, idx) {
         //    éclats, giclée au sol (l'objet traverse la cible et finit sa course dans le décor).
         if (!r.shield) {
           // Objet rebondissant : cible à 7 m, pour qu'il retombe SUR l'arène (au-delà, il tombe dans le vide sans rebondir).
-          const far = (r.weapon?.physics?.bounciness ?? 0) > 0.3 ? 3.5 : L / 2 + 1.5;
-          await page.evaluate(({ a, b, s, t }) => { const T = window.__e2eTools; T.place(s, a); T.place(t, b); T.reset(s); T.untouchable(t, 6); }, { a: at(-far * sign), b: at(far * sign), s: shooter, t: target });
+          // Objet rebondissant : le lanceur se place à son bord et vise 7 m devant lui, pour que l'objet retombe SUR l'arène
+          // (un objet léger lancé fort file loin : lancé du centre, il tombait dans le vide sans jamais rebondir).
+          const rebond = (r.weapon?.physics?.bounciness ?? 0) > 0.3;
+          const far = L / 2 + 1.5;
+          const [pa, pb] = rebond ? [-(L / 2) * sign, (-(L / 2) + 7) * sign] : [-far * sign, far * sign];
+          await page.evaluate(({ a, b, s, t }) => { const T = window.__e2eTools; T.place(s, a); T.place(t, b); T.reset(s); T.untouchable(t, 6); }, { a: at(pa), b: at(pb), s: shooter, t: target });
           await sleep(250);
           const n1 = await evCount(page);
           await page.keyboard.down(FIRE[shooter]);

@@ -42,6 +42,9 @@ Relevé mais pas un bug du jeu : 3D blanche sur les captures des passages 2 et 3
 
 Les 4 objets comparés, du plus léger au plus lourd : feutre 20 g < canette 0,35 kg < tabouret 2,8 kg < chaise 10 kg → dégâts 5 < 12 < 25 < 32 %, vitesse 24,3 > 19,7 > 11,7 = 11,7 m/s (plancher), recharge 2,4 < 3,6 < 6,7 < 7,2 s.
 
+## Film des attentes : passage de référence (avant LWAIT)
+`reports/e2e/attente-20260926-1754` : 8/13 VERT. Vert : texte progressif (tête 5 états, objet 6), image qui se révèle, 3D de la tête (vitrine), tête jamais immobile plus de 0,5 s, « Ready » bloqué jusqu'à la tête (11,8 s), réseau ralenti de 8 s sans sortie de l'écran des persos. Rouge : pas de 3D de l'objet dans l'encart, 7 s immobiles pendant le dessin du sticker, « Confirm » actif dès les stats, API coupée sans bouton « Default » (tête : « Retry » seul ; objet : arme de secours avec « Confirm / Retry »).
+
 ## Rapports
 | Heure | Rapport | Verdict |
 |---|---|---|
@@ -50,4 +53,6 @@ Les 4 objets comparés, du plus léger au plus lourd : feutre 20 g < canette 0,3
 | 17h01 | `reports/e2e/20260926-1701` | 9/11 (3D blanche : contexte WebGL perdu) |
 | 17h08 | `reports/e2e/20260926-1708` (carte NVIDIA) | 9/11 |
 | 17h15 | `reports/e2e/20260926-1715` | **11/11** |
-| 17h41 | `reports/e2e/20260926-1741` (nouvelle caméra, objet face caméra, échelle vinyle gonflé) | 10/11 (rebond : feutre tiré hors de l'arène par le test, corrigé) |
+| 17h41 | `reports/e2e/20260926-1741` (nouvelle caméra, objet face caméra, échelle vinyle gonflé) | 10/11 (rebond : feutre tiré hors de l'arène par le test) |
+| 18h05 | `reports/e2e/20260926-1805` (main à jour : RTFIX, LPERF) | 10/11, aucune régression ; seul rouge = protocole du rebond du feutre (léger et rapide, il retombait hors de l'arène), corrigé dans le test après ce passage ; pendule de Newton 1 rebond, canard 4 |
+| 18h01 | `reports/e2e/attente-20260926-1801` (film des attentes, contextes neufs) | 5/13 ; au réseau ralenti de 8 s, l'objet tombe sur une arme de secours ; planches vides dans ce passage (corrigé : images intégrées) |
