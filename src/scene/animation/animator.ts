@@ -575,11 +575,11 @@ export class FighterAnimator {
     this.whipS.step(dt, 260, 14);
     if (Math.abs(this.whipF.x) + Math.abs(this.whipS.x) > 1e-4) {
       // pencher vers +Z = rotation autour de +X ; vers +X = rotation autour de -Z
-      this.rot(spine, MX, this.whipF.x * 0.4);
-      this.rot(chest, MX, this.whipF.x * 0.6);
-      this.rot(head, MX, this.whipF.x * 0.5);
-      this.rot(spine, MZ, -this.whipS.x * 0.4);
-      this.rot(chest, MZ, -this.whipS.x * 0.6);
+      this.rot(spine, MX, this.whipF.x * 0.35);
+      this.rot(chest, MX, this.whipF.x * 0.45);
+      this.rot(head, MX, this.whipF.x * 0.2);
+      this.rot(spine, MZ, -this.whipS.x * 0.45);
+      this.rot(chest, MZ, -this.whipS.x * 0.55);
     }
 
     // Au bord du vide : moulinet des deux bras et buste qui bascule vers le vide puis se rattrape.
