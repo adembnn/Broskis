@@ -3,10 +3,14 @@
 // où tout le monde passe à 150 %) → `ko` (GAME!, voir stocks.ts) → `end`.
 // `setPhase` est le SEUL endroit qui doit changer `ctx.state.phase` (les autres modules l'appellent).
 import type { Ctx, Phase, PlayerId } from '../core/types';
+import { isLoadingCurtainUp } from '../core/preload';
 import { measureArena } from './arena';
 import { isGroundReady } from './fallback-ground';
 import { getRuntime } from './runtime';
 import { GO_MAX_WAIT_MS, RT, SUDDEN_DEATH_PCT } from './tuning';
+
+/** Rideau de chargement jamais ouvert (erreur ailleurs) : le compte à rebours part quand même. */
+const CURTAIN_MAX_WAIT_MS = 15000;
 
 export function setPhase(ctx: Ctx, to: Phase): void {
   const from = ctx.state.phase;
@@ -24,10 +28,22 @@ export function inFight(ctx: Ctx): boolean {
   return ctx.state.phase === 'fight' && ctx.state.winner == null;
 }
 
-/** READY? → 3, 2, 1 → GO! (contrôles bloqués jusque-là). Le compte ne démarre qu'avec le sol de la map. */
+/** READY? → 3, 2, 1 → GO! (contrôles bloqués jusque-là). Si le rideau de chargement (lot LLOAD) est levé, on
+ * attend son ouverture (`transition:open`) ; le compte ne démarre qu'avec le sol de la map. */
 export function startCountdown(ctx: Ctx): void {
   const seq = getRuntime().matchSeq;
   setPhase(ctx, 'countdown');
+  if (isLoadingCurtainUp()) {
+    let done = false;
+    const go = () => { if (done) return; done = true; off(); if (getRuntime().matchSeq === seq) runCountdown(ctx, seq); };
+    const off = ctx.bus.once('transition:open', go);
+    setTimeout(go, CURTAIN_MAX_WAIT_MS); // rideau jamais ouvert : on joue quand même
+    return;
+  }
+  runCountdown(ctx, seq);
+}
+
+function runCountdown(ctx: Ctx, seq: number): void {
   ctx.bus.emit('match:banner', { kind: 'ready' });
   const t0 = performance.now();
   const waitGround = () => {
