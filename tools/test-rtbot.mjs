@@ -113,7 +113,11 @@ const jobs = [];
 for (const d of niveaux) for (let i = 0; i < matchs; i++) jobs.push({ d, seed: 1000 + i * 17, map: maps[i % maps.length], tag: `${d}-${i}` });
 const results = [];
 async function worker(w) {
-  const page = await newPage();
+  let page;
+  try { page = await newPage(); } catch (e) {
+    console.log(`[p${w}] page impossible à ouvrir (${String(e).slice(0, 120)})`);
+    return;
+  }
   for (;;) {
     const job = jobs.shift();
     if (!job) break;
@@ -135,8 +139,11 @@ async function worker(w) {
   }
   await page.context().close();
 }
-await Promise.all(Array.from({ length: paralleles }, (_, i) => worker(i)));
-await browser.close();
+try {
+  await Promise.all(Array.from({ length: paralleles }, (_, i) => worker(i)));
+} finally {
+  await browser.close().catch(() => {});
+}
 if (server) { server.kill(); console.log(`Vite arrêté (PID ${server.pid})`); }
 
 const table = {};
