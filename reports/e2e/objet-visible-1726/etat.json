@@ -1,0 +1,144 @@
+{
+ "armes": [
+  {
+   "name": "The Ergonomic Disciplinary Seat",
+   "object": "office chair",
+   "sticker": true,
+   "physics": {
+    "massKg": 10.5,
+    "sizeM": [
+     0.85,
+     0.6,
+     0.6
+    ],
+    "material": "fabric",
+    "shape": "irregular",
+    "bounciness": 0.1,
+    "fragile": false,
+    "liquid": false
+   }
+  },
+  {
+   "name": "The Carbonated Clunker",
+   "object": "soda can",
+   "sticker": true,
+   "physics": {
+    "massKg": 0.35,
+    "sizeM": [
+     0.12,
+     0.066,
+     0.066
+    ],
+    "material": "metal",
+    "shape": "round",
+    "bounciness": 0.3,
+    "fragile": false,
+    "liquid": true
+   }
+  }
+ ],
+ "enMain": [
+  {
+   "p": 0,
+   "arme": "The Ergonomic Disciplinary Seat",
+   "trouve": true,
+   "racineVisible": true,
+   "echelle": 0.85,
+   "meshes": 2,
+   "visibles": 2,
+   "materiaux": [
+    {
+     "type": "MeshToonMaterial",
+     "opacite": 1,
+     "transparent": true,
+     "alphaTest": 0,
+     "map": true,
+     "visible": true,
+     "couches": 1
+    },
+    {
+     "type": "MeshToonMaterial",
+     "opacite": 1,
+     "transparent": false,
+     "alphaTest": 0,
+     "map": false,
+     "visible": true,
+     "couches": 1
+    },
+    {
+     "type": "MeshBasicMaterial",
+     "opacite": 1,
+     "transparent": false,
+     "alphaTest": 0,
+     "map": false,
+     "visible": true,
+     "couches": 1
+    }
+   ],
+   "camCouches": 3,
+   "ecartMain": 0.26,
+   "ecran": {
+    "x": 0.01,
+    "y": -0.28,
+    "devant": true
+   }
+  },
+  {
+   "p": 1,
+   "arme": "The Carbonated Clunker",
+   "trouve": true,
+   "racineVisible": true,
+   "echelle": 0.5,
+   "meshes": 2,
+   "visibles": 2,
+   "materiaux": [
+    {
+     "type": "MeshToonMaterial",
+     "opacite": 1,
+     "transparent": true,
+     "alphaTest": 0,
+     "map": true,
+     "visible": true,
+     "couches": 1
+    },
+    {
+     "type": "MeshToonMaterial",
+     "opacite": 1,
+     "transparent": false,
+     "alphaTest": 0,
+     "map": false,
+     "visible": true,
+     "couches": 1
+    },
+    {
+     "type": "MeshBasicMaterial",
+     "opacite": 1,
+     "transparent": false,
+     "alphaTest": 0,
+     "map": false,
+     "visible": true,
+     "couches": 1
+    }
+   ],
+   "camCouches": 5,
+   "ecartMain": 0.18,
+   "ecran": {
+    "x": 0,
+    "y": -0.28,
+    "devant": true
+   }
+  }
+ ],
+ "enVol": [
+  {
+   "nom": "arme-chaise-p0-0",
+   "visible": true,
+   "echelle": 0.85,
+   "ecranP1": [
+    -0.09,
+    0.15,
+    true
+   ]
+  }
+ ]
+}
