@@ -25,8 +25,10 @@ function template(url: string): Promise<THREE.Group> {
   return p;
 }
 
-/** Couleur réelle de l'objet : moyenne des pixels opaques de son image, sans le liseré blanc ni le trait d'encre
- *  que Nano Banana dessine autour ; jamais noire (un objet sombre garde une tranche anthracite, distincte de l'encre). */
+/** Couleur réelle de l'objet : sa couleur DOMINANTE (la plus fréquente parmi ses pixels opaques, pas une moyenne
+ *  qui donnerait un brun boueux pour un objet multicolore), sans le liseré blanc ni le trait d'encre que Nano Banana
+ *  dessine autour. Un objet vraiment sombre (chaise noire, téléphone) garde sa couleur, relevée en anthracite :
+ *  la tranche ne se confond jamais avec l'encre. */
 function edgeColorOf(url: string, tpl: THREE.Object3D, fallback: string): THREE.Color {
   let c = edgeColors.get(url);
   if (c) return c;
@@ -43,18 +45,28 @@ function edgeColorOf(url: string, tpl: THREE.Object3D, fallback: string): THREE.
     const g = cv.getContext('2d', { willReadFrequently: true })!;
     g.drawImage(img, 0, 0, 48, 48);
     const d = g.getImageData(0, 0, 48, 48).data;
-    const sum = [0, 0, 0, 0];
-    const all = [0, 0, 0, 0];
+    let opaque = 0, dark = 0;
     for (let i = 0; i < d.length; i += 4) {
       if (d[i + 3] < 230) continue;
-      const r = d[i] / 255, gr = d[i + 1] / 255, b = d[i + 2] / 255;
-      all[0] += r; all[1] += gr; all[2] += b; all[3]++;
-      const l = 0.2126 * r + 0.7152 * gr + 0.0722 * b;
-      if (l > 0.9 || l < 0.1) continue;
-      sum[0] += r; sum[1] += gr; sum[2] += b; sum[3]++;
+      opaque++;
+      if (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2] < 26) dark++;
     }
-    const src = sum[3] > 20 ? sum : all;
-    if (src[3] > 0) c.setRGB(src[0] / src[3], src[1] / src[3], src[2] / src[3], THREE.SRGBColorSpace);
+    // Sombre = trait d'encre, sauf si l'objet est lui-même sombre (plus d'un tiers de ses pixels).
+    const keepDark = opaque > 0 && dark / opaque > 0.35;
+    const buckets = new Map<number, [number, number, number, number]>();
+    let best: [number, number, number, number] | null = null;
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] < 230) continue;
+      const r = d[i], gr = d[i + 1], b = d[i + 2];
+      const l = 0.2126 * r + 0.7152 * gr + 0.0722 * b;
+      if (l > 235 || (!keepDark && l < 26)) continue;
+      const key = ((r >> 5) << 6) | ((gr >> 5) << 3) | (b >> 5);
+      let e = buckets.get(key);
+      if (!e) { e = [0, 0, 0, 0]; buckets.set(key, e); }
+      e[0] += r; e[1] += gr; e[2] += b; e[3]++;
+      if (!best || e[3] > best[3]) best = e;
+    }
+    if (best) c.setRGB(best[0] / best[3] / 255, best[1] / best[3] / 255, best[2] / best[3] / 255, THREE.SRGBColorSpace);
   }
   c.getHSL(_hsl, THREE.SRGBColorSpace);
   if (_hsl.l < WEAPON_FX.epaisseur.clarteMin) c.setHSL(_hsl.h, _hsl.s, WEAPON_FX.epaisseur.clarteMin, THREE.SRGBColorSpace);
