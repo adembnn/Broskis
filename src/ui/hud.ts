@@ -299,7 +299,13 @@ export function mountHud(ctx: Ctx): Hud {
       bro[player].value = 0;
       plates[player].setBro(0, false);
     }),
-    ctx.bus.on('commentary:line', ({ text }) => commentary.show(text, commentaryNames())),
+    // Lot LVOX (une seule voix) : le sous-titre de la carte animateur = ce qui est RÉELLEMENT entendu
+    // (`voice:line`, émis par src/audio/barks.ts au démarrage d'une réplique), jamais `commentary:line`.
+    // Seulement l'animateur : un bark de perso ou la provocation de l'IA n'ont rien à faire sur sa carte.
+    ctx.bus.on('voice:line', ({ text, speaker }) => {
+      if (speaker !== 'announcer') return;
+      commentary.show(text, commentaryNames());
+    }),
   ];
 
   return {

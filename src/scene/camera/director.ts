@@ -15,6 +15,7 @@ import * as THREE from 'three';
 import { durees, juice } from '../../art/tokens.js';
 import type { Category, Ctx, PlayerId, Vec3 } from '../../core/types';
 import { LOCAL_TOKENS } from '../localTokens';
+import { registry } from '../registry';
 import { angleDelta, bump, easeInOutCubic, easeOutCubic, expFollow } from '../mathUtils';
 
 type Mode = 'follow' | 'arc' | 'impact' | 'ko-orbit' | 'overview';
@@ -82,8 +83,7 @@ export class CameraDirector {
     this.look = start.look;
   }
 
-  /** Vue épaule "propre" pour `player` (avant secousse/occlusion), en lisant l'état central.
-   * `role: 'defending'` recule/élève un peu plus : laisse de la place à l'anneau de parade (lot LK). */
+  /** Vue cadrée pour `player` (avant secousse/occlusion), en lisant l'état central. */
   shoulderPose(player: PlayerId, role: RestingRole = 'default'): Pose {
     const s = this.ctx.state.players[player].pos;
     const o = this.ctx.state.players[other(player)].pos;
@@ -91,20 +91,70 @@ export class CameraDirector {
     const opp = new THREE.Vector3(o[0], o[1], o[2]);
     let dir = opp.clone().sub(self);
     dir.y = 0;
-    if (dir.lengthSq() < 1e-6) dir.set(player === 0 ? 1 : -1, 0, 0); else dir.normalize();
+    const dist = dir.length();
+    if (dist < 1e-6) dir.set(player === 0 ? 1 : -1, 0, 0); else dir.normalize();
+    
     if (this.aimHint && this.aimHint.player === player) {
       const hinted = this.aimHint.dir.clone(); hinted.y = 0;
       if (hinted.lengthSq() > 1e-6) dir = hinted.normalize();
     }
     const side = audienceSide(dir);
-    const extra = role === 'defending' ? LOCAL_TOKENS.camera.defenderPullBack : { distance: 0, height: 0 };
-    const pos = self.clone()
-      .addScaledVector(dir, -(LOCAL_TOKENS.camera.shoulderDistance + extra.distance))
-      .addScaledVector(side, LOCAL_TOKENS.camera.shoulderSide);
-    pos.y += LOCAL_TOKENS.camera.shoulderHeight + extra.height;
-    const look = self.clone().addScaledVector(dir, LOCAL_TOKENS.camera.lookAhead);
-    look.y += 1.1;
+
+    const pos = new THREE.Vector3();
+    const look = new THREE.Vector3();
+
+    if (role === 'defending') {
+      // Bascule vers défenseur : derrière son épaule à 5m, voit le projectile et l'attaquant
+      pos.copy(self).addScaledVector(dir, -5).addScaledVector(side, 2);
+      pos.y = self.y + 2.5;
+      look.copy(self).addScaledVector(dir, 10);
+      look.y = self.y + 1.5;
+    } else {
+      // Déplacement/visée : caméra 3/4 large, ~30° plongée, cadre englobant + 25%.
+      const camDist = THREE.MathUtils.clamp(dist * 1.25 + 8, 9, 22);
+      const hDist = camDist * 0.86;
+      const height = camDist * 0.5;
+
+      pos.copy(self)
+        .addScaledVector(dir, -hDist * 0.6)
+        .addScaledVector(side, hDist * 0.8);
+      pos.y = self.y + height;
+
+      // Point regardé entre les deux pour que l'attaquant soit au 1er tiers
+      look.copy(self).lerp(opp, 0.4);
+      look.y = self.y + 1.0;
+    }
+
+    // Collision caméra ↔ décor : on rapproche si un objet bloque la vue
+    const raycaster = new THREE.Raycaster();
+    const toCam = pos.clone().sub(look);
+    const toCamDist = toCam.length();
+    if (toCamDist > 0.1) {
+      toCam.normalize();
+      raycaster.set(look, toCam);
+      raycaster.near = 0.1;
+      raycaster.far = toCamDist;
+      const hits = raycaster.intersectObjects(this.ctx.three.scene.children, true);
+      for (const hit of hits) {
+        const mesh = hit.object as THREE.Mesh;
+        // On ignore les joueurs, FX, etc. (même logique que l'occlusion)
+        if (!mesh.isMesh || Array.isArray(mesh.material) || this.isExcluded(mesh)) continue;
+        // Rapprochement (marge de 0.5m)
+        pos.copy(look).addScaledVector(toCam, Math.max(0.5, hit.distance - 0.5));
+        break; // Premier obstacle rencontré depuis `look` vers `pos`
+      }
+    }
+
     return { pos, look };
+  }
+
+  private isExcluded(obj: THREE.Object3D): boolean {
+    let o: THREE.Object3D | null = obj;
+    while (o) {
+      if (registry.occlusionExcluded.has(o)) return true;
+      o = o.parent;
+    }
+    return false;
   }
 
   setAimHint(player: PlayerId, dir: Vec3): void {
@@ -250,7 +300,11 @@ export class CameraDirector {
       this.pos.lerpVectors(startPos, pushedPos, b);
       this.look.lerpVectors(startLook, target, b * 0.7);
       this.fovPunch = punch * b;
-    }, () => { this.mode = 'follow'; this.fovPunch = 0; });
+    }, () => { 
+      this.mode = 'follow'; 
+      this.fovPunch = 0; 
+      this.restingRole = 'default'; // Zoom out to frame both characters after hit
+    });
   }
 
   /** ko — orbite lente autour du joueur mis KO (contrat : "orbite au ralenti sur le KO"). */

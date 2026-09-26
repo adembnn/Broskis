@@ -30,28 +30,30 @@ function isExcluded(obj: THREE.Object3D): boolean {
   return false;
 }
 
-function raycastHits(scene: THREE.Scene, camera: THREE.Camera, focus: THREE.Vector3): Set<THREE.Mesh> {
+function raycastHits(scene: THREE.Scene, camera: THREE.Camera, targets: THREE.Vector3[]): Set<THREE.Mesh> {
   const hits = new Set<THREE.Mesh>();
-  dir.copy(focus).sub(camera.position);
-  const dist = dir.length();
-  if (dist <= 0.3) return hits;
-  dir.normalize();
-  raycaster.set(camera.position, dir);
-  raycaster.near = 0.05;
-  raycaster.far = dist - 0.3; // marge : ne masque jamais la cible elle-même
-  for (const hit of raycaster.intersectObjects(scene.children, true)) {
-    const mesh = hit.object as THREE.Mesh;
-    if (!mesh.isMesh || Array.isArray(mesh.material) || isExcluded(mesh)) continue;
-    hits.add(mesh);
+  for (const target of targets) {
+    dir.copy(target).sub(camera.position);
+    const dist = dir.length();
+    if (dist <= 0.3) continue;
+    dir.normalize();
+    raycaster.set(camera.position, dir);
+    raycaster.near = 0.05;
+    raycaster.far = dist - 0.3; // marge : ne masque jamais la cible elle-même
+    for (const hit of raycaster.intersectObjects(scene.children, true)) {
+      const mesh = hit.object as THREE.Mesh;
+      if (!mesh.isMesh || Array.isArray(mesh.material) || isExcluded(mesh)) continue;
+      hits.add(mesh);
+    }
   }
   return hits;
 }
 
-export function updateOcclusion(scene: THREE.Scene, camera: THREE.Camera, focus: THREE.Vector3, dt: number): void {
+export function updateOcclusion(scene: THREE.Scene, camera: THREE.Camera, targets: THREE.Vector3[], dt: number): void {
   throttleAcc += dt;
   if (throttleAcc >= 1 / 15) {
     throttleAcc = 0;
-    currentHits = raycastHits(scene, camera, focus);
+    currentHits = raycastHits(scene, camera, targets);
     for (const mesh of currentHits) {
       if (faded.has(mesh)) continue;
       const material = mesh.material as FadedEntry['material'];
