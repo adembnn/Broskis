@@ -6,8 +6,23 @@
     "captureMs": 3000,
     "intervalMs": 66,
     "steps": [
-      { "hook": "startMatch", "args": [{ "seed": 1234 }], "waitMs": 150 },
-      { "hook": "animPlay", "args": [0, "idle"], "waitMs": 0 }
+      {
+        "hook": "startMatch",
+        "args": [
+          {
+            "seed": 1234
+          }
+        ],
+        "waitMs": 150
+      },
+      {
+        "hook": "animPlay",
+        "args": [
+          0,
+          "idle"
+        ],
+        "waitMs": 0
+      }
     ]
   },
   {
@@ -17,9 +32,31 @@
     "captureMs": 1600,
     "intervalMs": 66,
     "steps": [
-      { "hook": "startMatch", "args": [{ "seed": 1234 }], "waitMs": 150 },
-      { "hook": "move", "args": [0.4, 0], "waitMs": 0 },
-      { "hook": "animPlay", "args": [0, "walk"], "waitMs": 0 }
+      {
+        "hook": "startMatch",
+        "args": [
+          {
+            "seed": 1234
+          }
+        ],
+        "waitMs": 150
+      },
+      {
+        "hook": "move",
+        "args": [
+          0.4,
+          0
+        ],
+        "waitMs": 0
+      },
+      {
+        "hook": "animPlay",
+        "args": [
+          0,
+          "walk"
+        ],
+        "waitMs": 0
+      }
     ]
   },
   {
@@ -29,9 +66,31 @@
     "captureMs": 1600,
     "intervalMs": 66,
     "steps": [
-      { "hook": "startMatch", "args": [{ "seed": 1234 }], "waitMs": 150 },
-      { "hook": "move", "args": [1, 0], "waitMs": 0 },
-      { "hook": "animPlay", "args": [0, "run"], "waitMs": 0 }
+      {
+        "hook": "startMatch",
+        "args": [
+          {
+            "seed": 1234
+          }
+        ],
+        "waitMs": 150
+      },
+      {
+        "hook": "move",
+        "args": [
+          1,
+          0
+        ],
+        "waitMs": 0
+      },
+      {
+        "hook": "animPlay",
+        "args": [
+          0,
+          "run"
+        ],
+        "waitMs": 0
+      }
     ]
   },
   {
@@ -41,9 +100,28 @@
     "captureMs": 1800,
     "intervalMs": 66,
     "steps": [
-      { "hook": "startMatch", "args": [{ "seed": 1234 }], "waitMs": 150 },
-      { "hook": "animPlay", "args": [0, "jump"], "waitMs": 0 },
-      { "hook": "jump", "args": [], "waitMs": 0 }
+      {
+        "hook": "startMatch",
+        "args": [
+          {
+            "seed": 1234
+          }
+        ],
+        "waitMs": 150
+      },
+      {
+        "hook": "animPlay",
+        "args": [
+          0,
+          "jump"
+        ],
+        "waitMs": 0
+      },
+      {
+        "hook": "jump",
+        "args": [],
+        "waitMs": 0
+      }
     ]
   },
   {
@@ -53,12 +131,47 @@
     "captureMs": 1600,
     "intervalMs": 66,
     "steps": [
-      { "hook": "startMatch", "args": [{ "seed": 1234 }], "waitMs": 150 },
-      { "hook": "pickWeapon", "args": [0], "waitMs": 80 },
-      { "hook": "aim", "args": [10, -5], "waitMs": 80 },
-      { "hook": "animPlay", "args": [0, "throw"], "waitMs": 0 },
-      { "hook": "fire", "args": [1], "waitMs": 0 }
-    ]
+      {
+        "hook": "startMatch",
+        "args": [
+          {
+            "seed": 1234
+          }
+        ],
+        "waitMs": 150
+      },
+      {
+        "hook": "pickWeapon",
+        "args": [
+          0
+        ],
+        "waitMs": 80
+      },
+      {
+        "hook": "aim",
+        "args": [
+          10,
+          -5
+        ],
+        "waitMs": 80
+      },
+      {
+        "hook": "animPlay",
+        "args": [
+          0,
+          "throw"
+        ],
+        "waitMs": 0
+      },
+      {
+        "hook": "fire",
+        "args": [
+          1
+        ],
+        "waitMs": 0
+      }
+    ],
+    "note": "Lancer d'une grenade : pose de charge (bras armé, torse enroulé), puis le bras part, l'objet quitte la main au lâcher, fente vers l'avant et accompagnement."
   },
   {
     "name": "throwable",
@@ -67,12 +180,47 @@
     "captureMs": 1600,
     "intervalMs": 66,
     "steps": [
-      { "hook": "startMatch", "args": [{ "seed": 1234 }], "waitMs": 150 },
-      { "hook": "pickWeapon", "args": [1], "waitMs": 80 },
-      { "hook": "aim", "args": [-10, -5], "waitMs": 80 },
-      { "hook": "animPlay", "args": [0, "throw"], "waitMs": 0 },
-      { "hook": "fire", "args": [1], "waitMs": 0 }
-    ]
+      {
+        "hook": "startMatch",
+        "args": [
+          {
+            "seed": 1234
+          }
+        ],
+        "waitMs": 150
+      },
+      {
+        "hook": "pickWeapon",
+        "args": [
+          1
+        ],
+        "waitMs": 80
+      },
+      {
+        "hook": "aim",
+        "args": [
+          -10,
+          -5
+        ],
+        "waitMs": 80
+      },
+      {
+        "hook": "animPlay",
+        "args": [
+          0,
+          "throw"
+        ],
+        "waitMs": 0
+      },
+      {
+        "hook": "fire",
+        "args": [
+          1
+        ],
+        "waitMs": 0
+      }
+    ],
+    "note": "Lancer tendu d'un objet : même geste, plus sec."
   },
   {
     "name": "blaster",
@@ -81,14 +229,61 @@
     "captureMs": 1600,
     "intervalMs": 66,
     "steps": [
-      { "hook": "startMatch", "args": [{ "seed": 1234 }], "waitMs": 150 },
-      { "hook": "pickWeapon", "args": [2], "waitMs": 80 },
-      { "hook": "aim", "args": [0, 0], "waitMs": 80 },
-      { "hook": "animPlay", "args": [0, "blaster"], "waitMs": 0 },
-      { "hook": "fire", "args": [1], "waitMs": 150 },
-      { "hook": "fire", "args": [1], "waitMs": 150 },
-      { "hook": "fire", "args": [1], "waitMs": 0 }
-    ]
+      {
+        "hook": "startMatch",
+        "args": [
+          {
+            "seed": 1234
+          }
+        ],
+        "waitMs": 150
+      },
+      {
+        "hook": "pickWeapon",
+        "args": [
+          2
+        ],
+        "waitMs": 80
+      },
+      {
+        "hook": "aim",
+        "args": [
+          0,
+          0
+        ],
+        "waitMs": 80
+      },
+      {
+        "hook": "animPlay",
+        "args": [
+          0,
+          "blaster"
+        ],
+        "waitMs": 0
+      },
+      {
+        "hook": "fire",
+        "args": [
+          1
+        ],
+        "waitMs": 150
+      },
+      {
+        "hook": "fire",
+        "args": [
+          1
+        ],
+        "waitMs": 150
+      },
+      {
+        "hook": "fire",
+        "args": [
+          1
+        ],
+        "waitMs": 0
+      }
+    ],
+    "note": "Tir au blaster : bras tendu braqué sur la cible, recul du buste et du bras à chaque tir de la rafale."
   },
   {
     "name": "shield",
@@ -97,10 +292,32 @@
     "captureMs": 1400,
     "intervalMs": 66,
     "steps": [
-      { "hook": "startMatch", "args": [{ "seed": 1234 }], "waitMs": 150 },
-      { "hook": "pickWeapon", "args": [3], "waitMs": 80 },
-      { "hook": "animPlay", "args": [0, "shield"], "waitMs": 0 }
-    ]
+      {
+        "hook": "startMatch",
+        "args": [
+          {
+            "seed": 1234
+          }
+        ],
+        "waitMs": 150
+      },
+      {
+        "hook": "pickWeapon",
+        "args": [
+          3
+        ],
+        "waitMs": 80
+      },
+      {
+        "hook": "animPlay",
+        "args": [
+          0,
+          "shield"
+        ],
+        "waitMs": 0
+      }
+    ],
+    "note": "Pose du bouclier : l'objet levé à deux mains puis planté au sol d'un coup sec (plongée du buste, écrasement)."
   },
   {
     "name": "hit-front",
@@ -109,9 +326,25 @@
     "captureMs": 1200,
     "intervalMs": 66,
     "steps": [
-      { "hook": "startMatch", "args": [{ "seed": 1234 }], "waitMs": 150 },
-      { "hook": "animPlay", "args": [1, "hitFront"], "waitMs": 0 }
-    ]
+      {
+        "hook": "startMatch",
+        "args": [
+          {
+            "seed": 1234
+          }
+        ],
+        "waitMs": 150
+      },
+      {
+        "hook": "animPlay",
+        "args": [
+          1,
+          "hitFront"
+        ],
+        "waitMs": 0
+      }
+    ],
+    "note": "Coup reçu de face : tête et buste rejetés en arrière, puis retour."
   },
   {
     "name": "hit-back",
@@ -120,9 +353,25 @@
     "captureMs": 1200,
     "intervalMs": 66,
     "steps": [
-      { "hook": "startMatch", "args": [{ "seed": 1234 }], "waitMs": 150 },
-      { "hook": "animPlay", "args": [1, "hitBack"], "waitMs": 0 }
-    ]
+      {
+        "hook": "startMatch",
+        "args": [
+          {
+            "seed": 1234
+          }
+        ],
+        "waitMs": 150
+      },
+      {
+        "hook": "animPlay",
+        "args": [
+          1,
+          "hitBack"
+        ],
+        "waitMs": 0
+      }
+    ],
+    "note": "Coup reçu de dos : buste projeté vers l'avant, puis retour."
   },
   {
     "name": "ko",
@@ -131,9 +380,25 @@
     "captureMs": 2200,
     "intervalMs": 66,
     "steps": [
-      { "hook": "startMatch", "args": [{ "seed": 1234 }], "waitMs": 150 },
-      { "hook": "animPlay", "args": [1, "ko"], "waitMs": 0 }
-    ]
+      {
+        "hook": "startMatch",
+        "args": [
+          {
+            "seed": 1234
+          }
+        ],
+        "waitMs": 150
+      },
+      {
+        "hook": "animPlay",
+        "args": [
+          1,
+          "ko"
+        ],
+        "waitMs": 0
+      }
+    ],
+    "note": "Coup fort : éjection en vrille."
   },
   {
     "name": "teeter",
@@ -141,10 +406,25 @@
     "camera": "side",
     "captureMs": 1600,
     "intervalMs": 66,
-    "note": "Au bord du vide : bras en moulinet, déséquilibre façon Smash (voir plan/lots/LAN-animation.md).",
+    "note": "Au bord du vide : moulinet des bras et buste qui bascule vers le vide puis se rattrape.",
     "steps": [
-      { "hook": "startMatch", "args": [{ "seed": 1234 }], "waitMs": 150 },
-      { "hook": "animPlay", "args": [0, "teeter"], "waitMs": 0 }
+      {
+        "hook": "startMatch",
+        "args": [
+          {
+            "seed": 1234
+          }
+        ],
+        "waitMs": 150
+      },
+      {
+        "hook": "animPlay",
+        "args": [
+          0,
+          "teeter"
+        ],
+        "waitMs": 0
+      }
     ]
   },
   {
@@ -154,10 +434,30 @@
     "captureMs": 1200,
     "intervalMs": 66,
     "steps": [
-      { "hook": "startMatch", "args": [{ "seed": 1234 }], "waitMs": 150 },
-      { "hook": "animPlay", "args": [1, "parry"], "waitMs": 0 },
-      { "hook": "parry", "args": [], "waitMs": 0 }
-    ]
+      {
+        "hook": "startMatch",
+        "args": [
+          {
+            "seed": 1234
+          }
+        ],
+        "waitMs": 150
+      },
+      {
+        "hook": "animPlay",
+        "args": [
+          1,
+          "parry"
+        ],
+        "waitMs": 0
+      },
+      {
+        "hook": "parry",
+        "args": [],
+        "waitMs": 0
+      }
+    ],
+    "note": "Garde levée (bras devant, buste voûté) tenue."
   },
   {
     "name": "defense-swing",
@@ -167,10 +467,153 @@
     "intervalMs": 70,
     "note": "Spéc mise à jour (commit 96570b5, validée par Adem) : au lâcher, la vraie caméra du jeu bascule en arc (~0,7 s) vers la vue épaule du défenseur via camera:cue {shot:'turn-swing', target: défenseur}, avec un ralenti ×0,25 pendant la seule bascule (bus 'slowmo'), puis le coup arrive vers la caméra du défenseur. On ne force ni animCamera ni animPlay ici : c'est le comportement réel (caméra + corps) qu'on capture et qu'on juge, du lâcher (fire) jusqu'à l'impact.",
     "steps": [
-      { "hook": "startMatch", "args": [{ "seed": 1234 }], "waitMs": 200 },
-      { "hook": "pickWeapon", "args": [0], "waitMs": 80 },
-      { "hook": "aim", "args": [0, 0], "waitMs": 80 },
-      { "hook": "fire", "args": [1], "waitMs": 0 }
+      {
+        "hook": "startMatch",
+        "args": [
+          {
+            "seed": 1234
+          }
+        ],
+        "waitMs": 200
+      },
+      {
+        "hook": "pickWeapon",
+        "args": [
+          0
+        ],
+        "waitMs": 80
+      },
+      {
+        "hook": "aim",
+        "args": [
+          0,
+          0
+        ],
+        "waitMs": 80
+      },
+      {
+        "hook": "fire",
+        "args": [
+          1
+        ],
+        "waitMs": 0
+      }
+    ]
+  },
+  {
+    "name": "ejection-vrille",
+    "player": 1,
+    "camera": "threeQuarter",
+    "captureMs": 2000,
+    "intervalMs": 66,
+    "note": "Coup fort : le perso est éjecté à reculons en vrille (salto arrière façon Smash), vole ~1 s puis se remet droit.",
+    "steps": [
+      {
+        "hook": "startMatch",
+        "args": [
+          {
+            "seed": 1234
+          }
+        ],
+        "waitMs": 150
+      },
+      {
+        "hook": "animPlay",
+        "args": [
+          1,
+          "eject"
+        ],
+        "waitMs": 0
+      }
+    ]
+  },
+  {
+    "name": "parade-parfaite",
+    "player": 1,
+    "camera": "front",
+    "captureMs": 1600,
+    "intervalMs": 66,
+    "note": "Garde levée tout de suite (bras devant, buste voûté), puis parade parfaite à 300 ms : contre (coup d'épaule vers l'attaquant) et retour en garde.",
+    "steps": [
+      {
+        "hook": "startMatch",
+        "args": [
+          {
+            "seed": 1234
+          }
+        ],
+        "waitMs": 150
+      },
+      {
+        "hook": "animPlay",
+        "args": [
+          1,
+          "parryPerfect"
+        ],
+        "waitMs": 0
+      }
+    ]
+  },
+  {
+    "name": "bord-accroche",
+    "player": 0,
+    "camera": "side",
+    "captureMs": 2200,
+    "intervalMs": 66,
+    "note": "Rattrapé au bord : accroché sous le plateau, bras levés, corps qui se balance ; puis remontée en arc et réception.",
+    "steps": [
+      {
+        "hook": "startMatch",
+        "args": [
+          {
+            "seed": 1234
+          }
+        ],
+        "waitMs": 150
+      },
+      {
+        "hook": "animPlay",
+        "args": [
+          0,
+          "ledge"
+        ],
+        "waitMs": 1100
+      },
+      {
+        "hook": "animPlay",
+        "args": [
+          0,
+          "climb"
+        ],
+        "waitMs": 0
+      }
+    ]
+  },
+  {
+    "name": "victoire",
+    "player": 0,
+    "camera": "front",
+    "captureMs": 2000,
+    "intervalMs": 66,
+    "note": "Fin de match : le gagnant exulte (bras en l'air, sautille).",
+    "steps": [
+      {
+        "hook": "startMatch",
+        "args": [
+          {
+            "seed": 1234
+          }
+        ],
+        "waitMs": 150
+      },
+      {
+        "hook": "animPlay",
+        "args": [
+          0,
+          "victory"
+        ],
+        "waitMs": 0
+      }
     ]
   }
 ]

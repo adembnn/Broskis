@@ -34,7 +34,7 @@ export interface PlayOptions {
 }
 
 /** Clips que la locomotion ne doit pas couper (coup reçu, KO…) : voir `isBusy()`. */
-const LOCOMOTION = new Set(['idle', 'run', 'walk', 'jumpAir', 'jumpStart', 'jumpLand', 'jump', 'strafeL', 'strafeR', 'backpedal']);
+const LOCOMOTION = new Set(['idle', 'run', 'walk', 'jumpAir', 'jumpStart', 'jumpLand', 'jump', 'strafeL', 'strafeR', 'backpedal', 'dodgeF']);
 
 /** Os de la couche haut du corps (noms assainis par GLTFLoader : handslot.r → handslotr). */
 const UPPER_BONES = new Set(['spine', 'chest', 'head', 'upperarml', 'upperarmr', 'lowerarml', 'lowerarmr',
@@ -45,10 +45,15 @@ class Spring {
   x = 0;
   v = 0;
   kick(v: number): void { this.v += v; }
+  /** Sous-pas de 1/240 s : un ressort raide intégré à 20 i/s (machine chargée) divergerait et ferait vriller le buste. */
   step(dt: number, k: number = ANIM.ressort.raideur, c: number = ANIM.ressort.amortissement): void {
-    const a = -k * this.x - c * this.v;
-    this.v += a * dt;
-    this.x += this.v * dt;
+    const n = Math.min(24, Math.ceil(dt * 240));
+    const h = n > 0 ? dt / n : 0;
+    for (let i = 0; i < n; i++) {
+      this.v += (-k * this.x - c * this.v) * h;
+      this.x += this.v * h;
+    }
+    this.x = THREE.MathUtils.clamp(this.x, -1.2, 1.2);
   }
 }
 
@@ -81,6 +86,18 @@ export interface ProcState {
   teeter: THREE.Vector3 | null;
   /** Accroché au bord. */
   hang: boolean;
+  /** Garde tenue (0/1, lissé) : buste voûté derrière les bras, menton rentré. */
+  guard: number;
+  /** Bras droit braqué sur la cible (0/1, lissé) : visée du blaster, quelle que soit la pose du clip. */
+  aimArm: number;
+  /** Bras droit armé haut derrière la tête (0/1, lissé) : lancer par-dessus l'épaule. */
+  cock: number;
+  /** Deux bras levés au-dessus de la tête (0/1, lissé) : l'objet brandi avant d'être planté. */
+  raise: number;
+  /** Pieds au sol (ni en l'air, ni en vol, ni accroché) : mesure pied-sol et glissement. */
+  grounded: boolean;
+  /** Victoire (0/1, lissé) : bras en V qui pompent, tête levée. */
+  victory: number;
 }
 
 const MX = new THREE.Vector3(1, 0, 0);
@@ -88,11 +105,21 @@ const MY = new THREE.Vector3(0, 1, 0);
 const MZ = new THREE.Vector3(0, 0, 1);
 
 const STIFFNESS = 140; // ressort un peu lent : écrasements lisibles (≥ 60 ms sous 0,95)
+
+/** Échantillons de mesure (window.animMetrics) : seulement pour le banc (?animtest=1), pas en jeu (coût par image). */
+const MEASURE = typeof location !== 'undefined' && new URLSearchParams(location.search).has('animtest');
 const DAMPING = 12;
 
 export class FighterAnimator {
   readonly mixer: THREE.AnimationMixer;
-  readonly proc: ProcState = { lookAt: null, lookWeight: 0.5, charge: 0, teeter: null, hang: false };
+  readonly proc: ProcState = { lookAt: null, lookWeight: 0.5, charge: 0, teeter: null, hang: false, guard: 0, aimArm: 0, cock: 0, raise: 0, grounded: true, victory: 0 };
+  private victoryW = 0;
+  private feetInit = false;
+  private sway = 0;
+  private cockW = 0;
+  private raiseW = 0;
+  private guardW = 0;
+  private aimW = 0;
   private readonly actions = new Map<string, THREE.AnimationAction>();
   private readonly clipsByName = new Map<string, THREE.AnimationClip>();
   private readonly root: THREE.Object3D;
@@ -111,9 +138,12 @@ export class FighterAnimator {
   private readonly whipF = new Spring();
   private readonly whipS = new Spring();
   private readonly bank = new Spring();
+  private readonly twist = new Spring();
   // os
-  private readonly bones: Record<'hips' | 'spine' | 'chest' | 'head' | 'armL' | 'armR' | 'foreR' | 'hand' | 'footL' | 'footR', THREE.Object3D | null>;
+  private readonly bones: Record<'hips' | 'spine' | 'chest' | 'head' | 'armL' | 'armR' | 'foreL' | 'foreR' | 'hand' | 'footL' | 'footR', THREE.Object3D | null>;
   private readonly boneByName = new Map<string, THREE.Object3D>();
+  /** Pose de repos des os retouchés par la couche procédurale (et la couche haut du corps). */
+  private readonly rest: { bone: THREE.Object3D; q: THREE.Quaternion }[] = [];
   private readonly chestFwd = new THREE.Vector3(0, 0, 1);
   private readonly headFwd = new THREE.Vector3(0, 0, 1);
   private readonly hipsRest = new THREE.Vector3();
@@ -127,11 +157,14 @@ export class FighterAnimator {
   private readonly va = new THREE.Vector3();
   private readonly vb = new THREE.Vector3();
   private readonly vc = new THREE.Vector3();
+  private readonly vd = new THREE.Vector3();
   private readonly lastPos = new THREE.Vector3();
   private readonly lastFeet: [THREE.Vector3, THREE.Vector3] = [new THREE.Vector3(), new THREE.Vector3()];
   private groundSpeed = 0;
   private externalSpeed: number | null = null;
   private animRate = 1;
+  private runRef = 1;
+  private implied: number | null = null;
   private lastYaw: number | null = null;
   private spineVar = 0;
   private readonly lastSpineQ = new THREE.Quaternion();
@@ -149,7 +182,8 @@ export class FighterAnimator {
     };
     this.bones = {
       hips: get('hips'), spine: get('spine'), chest: get('chest'), head: get('head'),
-      armL: get('upperarml', 'upperarm.l'), armR: get('upperarmr', 'upperarm.r'), foreR: get('lowerarmr', 'lowerarm.r'),
+      armL: get('upperarml', 'upperarm.l'), armR: get('upperarmr', 'upperarm.r'),
+      foreL: get('lowerarml', 'lowerarm.l'), foreR: get('lowerarmr', 'lowerarm.r'),
       hand: get('handslotr', 'handslot.r'), footL: get('footl', 'foot.l'), footR: get('footr', 'foot.r'),
     };
     // Pose de repos : direction « devant » de la poitrine et de la tête dans leur propre repère.
@@ -163,6 +197,12 @@ export class FighterAnimator {
     fwdLocal(this.bones.chest, this.chestFwd);
     fwdLocal(this.bones.head, this.headFwd);
     if (this.bones.hips) this.hipsRest.copy(this.bones.hips.position);
+    // Les clips des persos n'ont pas de piste pour les os restés au repos : le mixeur ne les réécrit pas, et une
+    // rotation procédurale posée dessus s'additionnerait d'image en image (buste qui finit couché). On les remet
+    // au repos avant chaque image ; le mixeur réécrit ensuite ceux que le clip anime.
+    for (const b of this.boneByName.values()) {
+      if (UPPER_BONES.has(b.name)) this.rest.push({ bone: b, q: b.quaternion.clone() });
+    }
     if (this.bones.footL) this.ankleRest = root.worldToLocal(this.bones.footL.getWorldPosition(this.va)).y;
     this.addPackClips();
   }
@@ -203,6 +243,11 @@ export class FighterAnimator {
 
   get current(): string | null {
     return this.currentName;
+  }
+
+  /** Temps écoulé depuis la création (s) : cadence des couches procédurales. */
+  get clock(): number {
+    return this.time;
   }
 
   /** Vrai tant qu'un clip ponctuel du corps entier (coup, KO…) joue : la locomotion ne le coupe pas. */
@@ -248,6 +293,7 @@ export class FighterAnimator {
     }
     this.currentAction = action;
     this.currentName = name;
+    this.implied = null;
     this.mark = opts.mark ?? null;
     this.markAction = opts.mark ? action : null;
 
@@ -261,9 +307,10 @@ export class FighterAnimator {
     }
   }
 
-  /** Vitesse de lecture du clip de base courant (course directionnelle). */
-  setBaseRate(rate: number): void {
+  /** Vitesse de lecture du clip de base courant (course directionnelle) et vitesse au sol qu'elle implique. */
+  setBaseRate(rate: number, impliedSpeed: number): void {
     if (this.currentAction && LOCOMOTION.has(this.currentName ?? '')) this.currentAction.timeScale = rate;
+    this.implied = impliedSpeed;
   }
 
   // ---------------------------------------------------------------- couche haut du corps
@@ -376,18 +423,25 @@ export class FighterAnimator {
 
   /** Recul d'un coup de feu (additif, ~60 ms aller). */
   kickRecoil(strength = 1): void {
-    this.recoil.kick(-ANIM.tir.recul * 30 * strength);
+    // ressort (ω = 30, ζ ≈ 0,63) : un élan de 66 × l'angle donne un pic ≈ l'angle
+    this.recoil.kick(-ANIM.tir.recul * 66 * strength);
   }
 
   /** Fouet du torse dans le sens du recul reçu (direction monde, angle en rad). */
+  /** Torsion du buste autour de la verticale (coup reçu sur une épaule) : lisible même de face. */
+  kickTwist(angle: number): void {
+    this.twist.kick(angle * 28);
+  }
+
   kickWhip(dirWorld: THREE.Vector3, angle: number): void {
     const inv = this.root.getWorldQuaternion(this.qa).invert();
     const d = this.va.copy(dirWorld).setY(0).applyQuaternion(inv);
     d.y = 0;
     if (d.lengthSq() < 1e-6) return;
     d.normalize();
-    this.whipF.kick(d.z * angle * 16);
-    this.whipS.kick(d.x * angle * 16);
+    // ressort (ω ≈ 16, ζ ≈ 0,43) : un élan de 28 × l'angle donne un pic ≈ l'angle
+    this.whipF.kick(d.z * angle * 28);
+    this.whipS.kick(d.x * angle * 28);
   }
 
   /** Position monde de la main droite (os handslotr). */
@@ -408,6 +462,22 @@ export class FighterAnimator {
     b.quaternion.premultiply(this.qb);
   }
 
+  /**
+   * Oriente l'os `b` pour que le segment os → `child` pointe dans `dirModel` (repère du perso), en partie
+   * (`w`). Indépendant de la pose du clip : un bras qui part en arrière ou devant arrive au même endroit.
+   */
+  private point(b: THREE.Object3D | null, child: THREE.Object3D | null, dirModel: THREE.Vector3, w: number): void {
+    if (!b?.parent || !child || w <= 0.001) return;
+    const o = b.getWorldPosition(this.va);
+    const cur = child.getWorldPosition(this.vb).sub(o).normalize();
+    const want = this.vc.copy(dirModel).normalize().applyQuaternion(this.qa.copy(this.rootInvQ).invert());
+    this.qb.setFromUnitVectors(cur, want);
+    this.qc.identity().slerp(this.qb, Math.min(1, w));
+    b.getWorldQuaternion(this.qa).premultiply(this.qc);
+    b.parent.getWorldQuaternion(this.qb).invert();
+    b.quaternion.copy(this.qb.multiply(this.qa));
+  }
+
   /** Direction « devant » actuelle d'un os, dans le repère du perso. */
   private fwdOf(b: THREE.Object3D, local: THREE.Vector3, out: THREE.Vector3): THREE.Vector3 {
     b.getWorldQuaternion(this.qa).premultiply(this.rootInvQ);
@@ -415,7 +485,8 @@ export class FighterAnimator {
   }
 
   private applyProcedural(dt: number, container: THREE.Object3D): void {
-    const { spine, chest, head, armL, armR, foreR } = this.bones;
+    const { spine, chest, head, armL, armR, foreL, foreR } = this.bones;
+    const handL = this.boneByName.get('handslotl') ?? this.boneByName.get('handl') ?? null;
     const p = this.proc;
     this.root.getWorldQuaternion(this.rootInvQ).invert();
     const t = this.time;
@@ -423,6 +494,14 @@ export class FighterAnimator {
     // Respiration : la poitrine se soulève doucement (jamais figé).
     const breath = Math.sin(t * Math.PI * 2 * ANIM.respiration.hz) * ANIM.respiration.amplitude;
     this.rot(chest, MX, -breath);
+    // À l'arrêt : transfert de poids d'une jambe à l'autre (buste qui se déhanche lentement, ~3 s par cycle).
+    const still = this.groundSpeed < 0.3 && LOCOMOTION.has(this.currentName ?? '') && this.upper.length === 0;
+    const swayTarget = still ? Math.sin(t * Math.PI * 2 * ANIM.respiration.hanche.hz) * ANIM.respiration.hanche.amplitude : 0;
+    this.sway += (swayTarget - this.sway) * Math.min(1, dt * 4);
+    if (Math.abs(this.sway) > 1e-4) {
+      this.rot(spine, MZ, this.sway);
+      this.rot(head, MZ, -this.sway * 0.6);
+    }
 
     // Course : penché vers l'avant selon la vitesse, et dans le virage (ressort sur la vitesse de rotation).
     const yaw = container.rotation.y;
@@ -441,11 +520,12 @@ export class FighterAnimator {
       this.rot(chest, MZ, -this.bank.x * 0.4);
     }
 
-    // Charge : le torse s'enroule (épaule droite en arrière) et tremble de plus en plus.
+    // Charge : le torse s'enroule (épaule droite en arrière), se cambre, et tremble de plus en plus.
     if (p.charge > 0) {
       const coil = ANIM.lancer.torsion * Math.min(1, p.charge * 1.2);
       this.rot(spine, MY, coil * 0.45);
       this.rot(chest, MY, coil * 0.55);
+      this.rot(spine, MX, -ANIM.lancer.cambre * Math.min(1, p.charge * 1.2));
       const tr = ANIM.lancer.tremblement * p.charge;
       this.rot(chest, MX, Math.sin(t * 71) * tr);
       this.rot(chest, MZ, Math.sin(t * 53 + 1) * tr * 0.7);
@@ -478,6 +558,45 @@ export class FighterAnimator {
       }
     }
 
+    // Garde : buste voûté derrière les bras, menton rentré (lissé : levée en ~40 ms).
+    this.guardW += (p.guard - this.guardW) * Math.min(1, dt * 30);
+    if (this.guardW > 0.01) {
+      const g = ANIM.parade.voute * this.guardW;
+      this.rot(spine, MX, g * 0.5);
+      this.rot(chest, MX, g * 0.5);
+      this.rot(head, MX, g * 0.3);
+    }
+
+    // Bras armé (lancer) / levés (bouclier) : montent en ~100 ms, retombent en ~70 ms quand le geste part, si
+    // bien que le clip ramène la main de derrière la tête jusque devant : un vrai arc de lancer.
+    this.cockW += (p.cock - this.cockW) * Math.min(1, dt * (p.cock > this.cockW ? 10 : 14));
+    this.raiseW += (p.raise - this.raiseW) * Math.min(1, dt * (p.raise > this.raiseW ? 10 : 14));
+    if (this.cockW > 0.01) {
+      // lanceur de base-ball : coude levé sur le côté (un peu haut, un peu en arrière), avant-bras dressé,
+      // main derrière la tête. La droite du perso est -X.
+      this.point(armR, foreR, this.vd.set(-1, 0.45, -0.45), this.cockW);
+      this.point(foreR, this.bones.hand, this.vd.set(-0.15, 1, -0.35), this.cockW);
+    }
+    if (this.raiseW > 0.01) {
+      this.rot(armL, MX, -ANIM.bouclier.leve * this.raiseW);
+      this.rot(armR, MX, -ANIM.bouclier.leve * this.raiseW);
+      this.rot(spine, MX, -ANIM.lancer.cambre * this.raiseW);
+    }
+
+    // Bras braqué : l'épaule tourne pour que la main pointe exactement la cible (contrainte de visée sur un os).
+    this.aimW += (p.aimArm - this.aimW) * Math.min(1, dt * 20);
+    const hand = this.bones.hand;
+    if (this.aimW > 0.01 && p.lookAt && armR?.parent && hand) {
+      const sh = armR.getWorldPosition(this.va);
+      const cur = hand.getWorldPosition(this.vb).sub(sh).normalize();
+      const want = this.vc.copy(p.lookAt).sub(sh).normalize();
+      this.qb.setFromUnitVectors(cur, want);
+      this.qc.identity().slerp(this.qb, this.aimW); // rotation monde partielle
+      armR.getWorldQuaternion(this.qa).premultiply(this.qc); // nouvelle orientation monde
+      armR.parent.getWorldQuaternion(this.qb).invert();
+      armR.quaternion.copy(this.qb.multiply(this.qa));
+    }
+
     // Recul du tir : poitrine rejetée en arrière, bras qui remonte.
     this.recoil.step(dt, 900, 38);
     if (Math.abs(this.recoil.x) > 1e-4) {
@@ -489,13 +608,19 @@ export class FighterAnimator {
     // Fouet du coup reçu : le haut du corps part dans le sens du recul, puis revient.
     this.whipF.step(dt, 260, 14);
     this.whipS.step(dt, 260, 14);
+    this.twist.step(dt, 260, 14);
+    if (Math.abs(this.twist.x) > 1e-4) {
+      this.rot(spine, MY, this.twist.x * 0.4);
+      this.rot(chest, MY, this.twist.x * 0.4);
+      this.rot(head, MY, this.twist.x * 0.3);
+    }
     if (Math.abs(this.whipF.x) + Math.abs(this.whipS.x) > 1e-4) {
       // pencher vers +Z = rotation autour de +X ; vers +X = rotation autour de -Z
-      this.rot(spine, MX, this.whipF.x * 0.4);
-      this.rot(chest, MX, this.whipF.x * 0.6);
-      this.rot(head, MX, this.whipF.x * 0.5);
-      this.rot(spine, MZ, -this.whipS.x * 0.4);
-      this.rot(chest, MZ, -this.whipS.x * 0.6);
+      this.rot(spine, MX, this.whipF.x * 0.35);
+      this.rot(chest, MX, this.whipF.x * 0.45);
+      this.rot(head, MX, this.whipF.x * 0.2);
+      this.rot(spine, MZ, -this.whipS.x * 0.45);
+      this.rot(chest, MZ, -this.whipS.x * 0.55);
     }
 
     // Au bord du vide : moulinet des deux bras et buste qui bascule vers le vide puis se rattrape.
@@ -515,12 +640,28 @@ export class FighterAnimator {
       this.rot(armR, MZ, -0.6);
     }
 
+    // Victoire : bras en V au-dessus de la tête qui pompent, tête levée vers le ciel.
+    this.victoryW += (p.victory - this.victoryW) * Math.min(1, dt * 8);
+    if (this.victoryW > 0.01) {
+      const pump = Math.sin(t * Math.PI * 2 * ANIM.victoire.hz) * ANIM.victoire.pompe;
+      // bras grands ouverts (un V trop fermé disparaît derrière la grosse tête des persos chibi), poings qui pompent
+      const up = 0.2 + Math.sin(pump) * 0.8, out = 1; // bras courts : au-dessus de 30° ils se cachent derrière la tête
+      this.point(armL, foreL, this.vd.set(out, up, 0.2), this.victoryW);
+      this.point(foreL, handL, this.vd.set(out, up + 0.3, 0.2), this.victoryW); // bras tendus : dépassent de la silhouette
+      this.point(armR, foreR, this.vd.set(-out, up, 0.2), this.victoryW);
+      this.point(foreR, this.bones.hand, this.vd.set(-out, up + 0.3, 0.2), this.victoryW);
+      this.rot(head, MX, -ANIM.victoire.tete * this.victoryW);
+      this.rot(spine, MX, -ANIM.lancer.cambre * this.victoryW);
+    }
+
     // Accroché au bord : bras tendus au-dessus de la tête, corps qui se balance.
     if (p.hang) {
       const swing = Math.sin(t * 2.4) * ANIM.accroche.balancement;
       this.rot(spine, MX, swing);
-      this.rot(armL, MX, -ANIM.accroche.bras);
-      this.rot(armR, MX, -ANIM.accroche.bras);
+      this.point(armL, foreL, this.vd.set(0.25, 1, 0.25), 1);
+      this.point(foreL, handL, this.vd.set(0.15, 1, 0.3), 1);
+      this.point(armR, foreR, this.vd.set(-0.25, 1, 0.25), 1);
+      this.point(foreR, this.bones.hand, this.vd.set(-0.15, 1, 0.3), 1);
       this.rot(head, MX, -0.35);
     }
   }
@@ -535,21 +676,25 @@ export class FighterAnimator {
     if (this.externalSpeed !== null) this.groundSpeed = this.externalSpeed;
     else if (dt > 0) this.groundSpeed = Math.hypot(pos.x - this.lastPos.x, pos.z - this.lastPos.z) / dt;
     this.lastPos.copy(pos);
+    // Cadence de course : vitesse réelle / vitesse naturelle MESURÉE du cycle (pack.ts), plafonnée à ×2 (au-delà,
+    // les jambes deviennent un flou). À 6,5 m/s les pieds glissent encore un peu : KayKit court à ~1 m/s.
+    this.runRef = packData()?.runSpeed ? packData()!.runSpeed * this.baseScale : LOCAL_TOKENS.locomotion.runRefSpeed;
     if (this.groundSpeed > 0.1) {
-      const ref = packData()?.runSpeed ? packData()!.runSpeed * this.baseScale : LOCAL_TOKENS.locomotion.runRefSpeed;
-      this.animRate = THREE.MathUtils.clamp(this.groundSpeed / ref, LOCAL_TOKENS.locomotion.runRateMin, 2.2);
+      this.animRate = THREE.MathUtils.clamp(this.groundSpeed / this.runRef, LOCAL_TOKENS.locomotion.runRateMin, ANIM.course.cadenceMax);
       if (this.currentName === 'run' && this.currentAction) this.currentAction.timeScale = this.animRate;
     }
 
+    for (const r of this.rest) r.bone.quaternion.copy(r.q);
     this.mixer.update(dt);
     this.stepUpper(dt, container);
     this.applyProcedural(dt, container);
 
     // Écrasement-étirement à volume constant (ressort).
-    if (dt > 0) {
-      const a = -STIFFNESS * (this.squash.k - 1) - DAMPING * this.squash.v;
-      this.squash.v += a * dt;
-      this.squash.k += this.squash.v * dt;
+    const n = Math.min(24, Math.ceil(dt * 240));
+    for (let i = 0; i < n; i++) {
+      const h = dt / n;
+      this.squash.v += (-STIFFNESS * (this.squash.k - 1) - DAMPING * this.squash.v) * h;
+      this.squash.k += this.squash.v * h;
     }
     const k = this.squash.k;
     const side = this.baseScale / Math.sqrt(Math.max(0.25, k));
@@ -565,7 +710,7 @@ export class FighterAnimator {
       m.fn([h.x, h.y, h.z]);
     }
 
-    this.sample(container);
+    if (MEASURE) this.sample(container);
   }
 
   // ---------------------------------------------------------------- mesures (window.animMetrics)
@@ -596,13 +741,15 @@ export class FighterAnimator {
       const low = fl.y <= fr.y ? 0 : 1;
       const lowPos = low === 0 ? fl : fr;
       const g = (lowPos.y - container.position.y - this.ankleRest * this.baseScale) * 100;
-      const grounded = !this.proc.hang && this.currentName !== 'jumpAir' && Math.abs(g) < 25;
-      if (grounded) {
+      // en l'air, en vol, accroché, ou clip qui sautille (victoire) : pas de contact à mesurer
+      const grounded = this.proc.grounded && !this.proc.hang && this.currentName !== 'jumpAir' && this.currentName !== 'cheering' && Math.abs(g) < 25;
+      const last = this.lastFeet[low];
+      const jump = Math.hypot(lowPos.x - last.x, lowPos.z - last.z);
+      if (grounded && this.feetInit && jump < 0.3) { // première image ou téléportation : rien à comparer
         gap[0] = g; gap[1] = g;
-        const last = this.lastFeet[low];
-        const d = Math.hypot(lowPos.x - last.x, lowPos.z - last.z) * 100;
-        slide[low] = this.groundSpeed < 0.05 ? d : 0;
+        slide[low] = this.groundSpeed < 0.05 ? jump * 100 : 0;
       }
+      this.feetInit = true;
       this.lastFeet[0].copy(fl);
       this.lastFeet[1].copy(fr);
     }
@@ -611,16 +758,18 @@ export class FighterAnimator {
       t: Date.now(),
       player: this.player,
       clip: this.upperName ?? this.currentName ?? '',
-      weight: this.currentAction?.getEffectiveWeight() ?? 0,
+      // poids total des clips de base en cours (pendant un fondu, le nouveau part de 0 et l'ancien s'efface)
+      weight: Math.min(1, [...this.actions.values()].reduce((w, a) => w + (a.isRunning() ? a.getEffectiveWeight() : 0), 0)),
       groundSpeed: this.groundSpeed,
-      animRate: this.animRate,
+      // vitesse au sol IMPLIQUÉE par les pieds (m/s) : rapport à groundSpeed ≈ 1 = pas de glissement
+      animRate: this.currentName === 'run' ? this.animRate * this.runRef : (this.implied ?? this.groundSpeed),
       footSlideCm: slide,
       footGapCm: gap,
       facingErrDeg: facingErr,
       lookErrDeg: lookErr,
       handPos: [hp.x, hp.y, hp.z],
       spineRotVar: this.spineVar,
-      layers: { footIK: false, lookAt: !!this.proc.lookAt && this.proc.lookWeight > 0, lean: Math.abs(this.whipF.x) + Math.abs(this.recoil.x) + Math.abs(this.bank.x), squash: this.squash.k },
+      layers: { footIK: false, lookAt: !!this.proc.lookAt && this.proc.lookWeight > 0, lean: Math.abs(this.whipF.x) + Math.abs(this.recoil.x) + Math.abs(this.bank.x) + Math.abs(this.sway), squash: this.squash.k },
     });
   }
 }
