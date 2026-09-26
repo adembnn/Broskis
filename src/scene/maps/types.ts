@@ -109,7 +109,7 @@ export interface MapDef {
   props: PropSpec[];
   backdrop: BackdropSpec[];
   /** Danger périodique : un préavis (map:warn), puis l'événement `leadTurns` tours plus tard. */
-  periodicEvent: { kind: PeriodicEventKind; everyTurns: number; firstTurn: number; leadTurns: number };
+  periodicEvent: { kind: PeriodicEventKind; everyTurns: number; firstTurn: number; leadTurns: number; maxEvents?: number };
   /** Archipel : catapulte de fond (hors plateau) qui tire sur l'anneau condamné, et son boulet. */
   catapult?: { build: PropBuild; pos: Vec3; yaw?: number; scale?: number | Vec3 };
   catapultAmmo?: PropBuild;

@@ -38,8 +38,10 @@ export interface EventMap {
   'crate:grab': { player: PlayerId };
   'scan:start': { player: PlayerId; source: 'webcam' | 'upload' | 'crate' | 'cache' };
   'scan:result': { player: PlayerId; weapon: Weapon };
-  /** Étapes réelles d'un scan photo (lot LUX, génération « en direct ») : lecture Gemini, stats reçues, sticker prêt ou raté. */
-  'scan:progress': { player: PlayerId; step: 'reading' | 'stats' | 'sticker' | 'sticker-failed'; weaponId?: string };
+  /** Étapes réelles d'un scan photo (lot LUX, génération « en direct ») : lecture Gemini, stats reçues, sticker prêt ou raté.
+   *  Lot LLOAD : 'partial' = champs de la réponse Gemini arrivés au fil de l'eau (flux), dans `preview` (objet reconnu,
+   *  nom, phrase, déjà nettoyés) ; `preview` porte aussi l'arme complète à 'stats' et 'sticker'. */
+  'scan:progress': { player: PlayerId; step: 'reading' | 'partial' | 'stats' | 'sticker' | 'sticker-failed'; weaponId?: string; preview?: Partial<Weapon> };
   'ringout': { player: PlayerId };
   /** Règles v2 (LSMASH) : perte d'une vie, point de sortie de l'arène et côté (bas = chute, haut = éjection vers le ciel). */
   'stock:lost': { player: PlayerId; stocksLeft: number; exitPos: Vec3; side: 'side' | 'top' | 'bottom' };
@@ -60,6 +62,8 @@ export interface EventMap {
   'ko': { player: PlayerId; cause: 'hp' | 'ringout' };
   'match:end': { winner: PlayerId };
   'commentary:line': { text: string; priority: number; audioUrl?: string; at?: number };
+  /** Lot LLOAD : le rideau de chargement s'ouvre sur une scène prête (map construite, shaders compilés). Bon moment pour « READY? ». */
+  'transition:open': { mapId: MapId };
   /** Lot LVOX (une seule voix) : émis par src/audio/barks.ts quand une réplique démarre RÉELLEMENT (que ce
    *  soit un bark pré-généré ou une ligne Gemini). Le sous-titre affiché doit toujours venir d'ici, jamais
    *  de `commentary:line` (qui ne garantit pas que la ligne est effectivement jouée à voix haute). */

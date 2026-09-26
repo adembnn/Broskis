@@ -159,6 +159,10 @@ export interface GameHooks {
   parry(offsetMs?: number): void;
   grabCrate(): void;
   scan(objectKey: string): void;
+  /** Pont de test headless (lot LSCAN-OBJ) : photo (URL/chemin) -> arme, en passant par le VRAI pipeline
+   * réseau (scan-object + sticker), pas par la clé locale de `scan`. Utile aux agents qui veulent vérifier
+   * le parcours complet photo -> carte d'arme sans piloter la webcam. */
+  scanObjectFromUrl?(url: string, opts?: { category?: Category; player?: PlayerId }): Promise<Weapon>;
   skipCamera(): void;
   forcerVictoire(player?: PlayerId): void;
   setSeed(n: number): void;
@@ -167,6 +171,10 @@ export interface GameHooks {
   input?(player: PlayerId, action: InputAction, down: boolean): void;
   animCamera?(player: PlayerId, shot: 'side' | 'front' | 'threeQuarter'): void;
   animPlay?(player: PlayerId, action: 'idle' | 'walk' | 'run' | 'jump' | 'throw' | 'blaster' | 'shield' | 'hitFront' | 'hitBack' | 'ko' | 'teeter' | 'parry'): void;
+  /** Lot LSCAN-PERSO : pont de test headless vers le pipeline photo -> combattant (src/ia/fighter). Charge
+   *  l'image à `url` (data URL ou chemin servi, ex. /tmp-test/face.png), la fait scanner par Gemini, et pose
+   *  le résultat dans state.players[player].fighter — prêt pour un hooks.startMatch() qui suit. */
+  scanFighterFromUrl?(url: string, player: PlayerId): void;
 }
 
 export interface AnimSample {

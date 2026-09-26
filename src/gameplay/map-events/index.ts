@@ -23,8 +23,8 @@ function applyEffect(ctx: Ctx, e: PlayerEffect) {
   startLaunch(ctx, e.player, vel, (1 - e.player) as PlayerId);
 }
 
-interface Schedule { nextWarnAt: number; eventAt: number | null; sdWarned: boolean; sdStarted: boolean; nextDropAt: number }
-let sched: Schedule = { nextWarnAt: 0, eventAt: null, sdWarned: false, sdStarted: false, nextDropAt: 0 };
+interface Schedule { nextWarnAt: number; eventAt: number | null; sdWarned: boolean; sdStarted: boolean; nextDropAt: number; count: number }
+let sched: Schedule = { nextWarnAt: 0, eventAt: null, sdWarned: false, sdStarted: false, nextDropAt: 0, count: 0 };
 
 function nextInterval(ctx: Ctx): number {
   return ctx.rng.range(RT.hazardEveryS[0], RT.hazardEveryS[1]);
@@ -34,7 +34,7 @@ export const install: Install = (ctx) => {
   onPlayerEffect((e) => applyEffect(ctx, e));
 
   ctx.bus.on('match:start', () => {
-    sched = { nextWarnAt: nextInterval(ctx) - RT.hazardWarnS, eventAt: null, sdWarned: false, sdStarted: false, nextDropAt: 0 };
+    sched = { nextWarnAt: nextInterval(ctx) - RT.hazardWarnS, eventAt: null, sdWarned: false, sdStarted: false, nextDropAt: 0, count: 0 };
   });
 
   ctx.loop.addSystem('gameplay-map-events', () => {
@@ -42,12 +42,15 @@ export const install: Install = (ctx) => {
     const t = getRuntime().fightTime;
     const mapId = ctx.state.mapId;
     const def = currentMapDef();
-    if (def && sched.eventAt == null && t >= sched.nextWarnAt) {
+    // `maxEvents` (lot LMAP2) : nombre maximal de déclenchements du danger de la map par match.
+    const allowed = def ? sched.count < (def.periodicEvent.maxEvents ?? Infinity) : false;
+    if (def && allowed && sched.eventAt == null && t >= sched.nextWarnAt) {
       ctx.bus.emit('map:warn', { mapId, kind: def.periodicEvent.kind, turnsLeft: 0 });
       sched.eventAt = t + RT.hazardWarnS;
     }
     if (def && sched.eventAt != null && t >= sched.eventAt) {
       ctx.bus.emit('map:event', { mapId, kind: def.periodicEvent.kind });
+      sched.count += 1;
       sched.eventAt = null;
       sched.nextWarnAt = t + nextInterval(ctx) - RT.hazardWarnS;
     }
