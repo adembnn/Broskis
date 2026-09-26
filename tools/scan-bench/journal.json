@@ -39,6 +39,26 @@
         "montre": 8
       },
       "reprise": false
+    },
+    {
+      "n": 3,
+      "horodatage": "2026-09-26_16h49",
+      "changement": "LBENCH : consigne Nano Banana (face ou profil, objet entier sans main ni câble, trous en magenta, jouet chunky, pas de violet), 2e essai Nano Banana 2 Lite après 14 s, catégorie selon la forme réelle et ordre des champs (objet, physique, puis catégorie), trous gardés dans le volume, despill du bord, tranche à la couleur de l'objet",
+      "moyenne": 6.95,
+      "injouables": 3,
+      "notes": {
+        "tasse-verre": 6.8,
+        "chaise-bureau": 7.6,
+        "feutre-velleda": 7.4,
+        "telephone": 7.4,
+        "mocassin": 7.2,
+        "tabouret-rotin": 6,
+        "pendule-newton": 4.92,
+        "lampe-champignon": 7.2,
+        "roi-echecs": 7.4,
+        "montre": 7.6
+      },
+      "reprise": false
     }
   ]
 }
