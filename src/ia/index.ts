@@ -8,6 +8,7 @@
 // (Caisse Snap), le seul moment propre à une arme qui n'est pas un bark générique.
 import type { Ctx, Install, PlayerId } from '../core/types';
 import { primeWeapon, sayScanReveal } from './commentary';
+import { scanFighter } from './fighter';
 import { scanObject } from './scan';
 import { setRuntimeCtx } from './runtime';
 
@@ -67,5 +68,20 @@ export const install: Install = (ctx) => {
     if (!res.ok) throw new Error(`scanObjectFromUrl: fetch ${url} failed (${res.status})`);
     const blob = await res.blob();
     return scanObject(blob, { category: opts.category, player: opts.player ?? ctx.state.active });
+  };
+
+  // window.gameHooks.scanFighterFromUrl(url, player) : même pont côté combattant (lot LSCAN-PERSO). `url`
+  // est fetch()é en Blob (data URL ou chemin servi, ex. /tmp-test/face.png) puis passé tel quel à scanFighter,
+  // qui appelle /api/scan-fighter (mêmes bornes stats/trait que le parcours UI).
+  ctx.hooks.scanFighterFromUrl = (url, player) => {
+    console.info(`[ia] scanFighterFromUrl(${url}, player=${player}) démarré…`);
+    fetch(url)
+      .then((r) => r.blob())
+      .then((blob) => scanFighter(blob))
+      .then((fighter) => {
+        ctx.state.players[player].fighter = fighter;
+        console.info('[ia] scanFighterFromUrl -> fighter posé dans state', fighter);
+      })
+      .catch((e) => console.error('[ia] scanFighterFromUrl', e));
   };
 };
