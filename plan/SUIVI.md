@@ -22,6 +22,6 @@ Réserver une ligne **avant** de commencer : nom + heure, commit + push de ce fi
 | LAN | Animation vivante façon Smash | élevé | **Gemini** (CLI) | LA | en cours | Gemini 13h20 | Gemini CLI, branche gem/LAN |
 | DASH | Tableau de bord en direct (localhost:4545) | nul | **Gemini** (CLI) | — | en cours | Gemini 13h20 | npm run dashboard |
 | LBAL | Simulateur d'équilibrage + 4 niveaux de difficulté | nul | **Gemini** (CLI) | LG | en cours | Gemini 13h20 | évalué par l'agent equilibreur |
-| LBK | Banque de voix « barks » (Gemini TTS Fenrir…) + lecteur | faible | **Titouan** | LV | en cours | Titouan (Claude, sous-agent) 13h25 | Clé Gemini déjà en .env local |
+| LBK | Banque de voix « barks » (Gemini TTS Fenrir…) + lecteur | faible | **Titouan** | LV | fait | Titouan (Claude, sous-agent) 13h25 → 14h10 | 252 fichiers (192 combattants + 60 animateur), 36 Mo, 0 échec. `npx tsc --noEmit` et `npm run build` OK. Déviation documentée dans plan/lots/LBK-banque-voix.md : texte TTS envoyé SANS le préfixe de ton (le modèle le lisait à voix haute, clips 10-16 s au lieu de 2-6 s) — le ton vient de la voix prébuilt + de l'écriture en CAPS/« !!! ». Un mot banni (« legendary ») corrigé après coup. Testé en vrai dans le jeu (`ctx.bus.emit('hit', …)` → fetch + lecture OK, 0 erreur console). |
 | LX | Adversaire IA (vague 2) | moyen | Adem | LG | à prendre | | |
 | LW | Scandex + voix clonée (vague 2) | faible | **Titouan** (Scandex) · Gemini (voix clonée) | LI, LU | à prendre | | |

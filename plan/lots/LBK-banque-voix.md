@@ -51,3 +51,49 @@ Responsable : **Titouan** (il a fait l'audio, lot LV) · Coût Claude : faible, 
 
 ## Commit
 Tes fichiers seulement. L'audio fait environ 30 Mo : c'est normal, commite-le. Puis pull, push, et mise à jour de `plan/SUIVI.md`.
+
+## Rendu (Titouan, Claude sous-agent, 26/09 13h25 → 14h10)
+- **Fait** : `tools/voices/generate-barks.mjs` (aucun paquet npm), `src/audio/barks.ts`, `tools/voices/LISEZMOI.md`,
+  installation dans `src/audio/index.ts` (import + 1 ligne, rien d'autre touché dans ce fichier).
+- **Chiffres** : 252 répliques dans `public/assets/voices/manifest.json` (192 combattants : 4 rôles × 16
+  événements × 3 variantes ; 60 animateur : 12 événements × 5 variantes). 0 échec de génération. Poids réel du
+  dossier `public/assets/voices/` : **36 Mo** (nettement moins que les ~30 Mo annoncés dans le lot — voir
+  décision ci-dessous, les clips sont plus courts que prévu, donc plus légers). `npx tsc --noEmit` et
+  `npm run build` passent.
+- **Contrôles faits** : script Node qui lit l'en-tête WAV (RIFF/WAVE + taille des données) des 252 fichiers :
+  0 fichier corrompu/vide. Durées mesurées : min 1,65 s / médiane 2,89 s / max 6,69 s (cohérent avec des
+  répliques de 2 à 8 mots criées). Test en conditions réelles dans le jeu (`npm run dev`, navigateur piloté) :
+  `window.ctx.bus.emit('hit', { target: 1, ... })` avec le combattant du joueur 1 en `rogue_hooded` a bien
+  déclenché le fetch de `/assets/voices/rogue/hit_light-1.wav` (200 OK), aucune erreur console. Pas d'écoute
+  humaine à l'oreille (agent sans sortie audio) — vérifié par mesure de durée/énergie (RMS par seconde, pas de
+  silence anormal) à la place, voir décision ci-dessous pour le détail de cette vérification.
+- **Décision / déviation notable (documentée, pas une invention silencieuse)** : le lot demandait d'envoyer au
+  TTS le texte **préfixé par la consigne de ton du tableau** (ex. « huge cartoon barbarian ROARING, very deep
+  gravelly… »). Un test A/B direct sur l'API a montré que `gemini-3.8-flash-tts` **lit cette consigne à voix
+  haute** au lieu de s'en servir comme simple direction d'acteur : les clips faisaient 10 à 16 s au lieu de
+  2 à 6 s, et contenaient la consigne elle-même déclamée (mesuré par le profil d'énergie RMS seconde par
+  seconde : discours continu sur toute la durée, pas de silence de remplissage). Écouter le contenu réel de
+  ces clips aurait donné des répliques de type monologue, pas des cris courts. J'ai donc changé le texte
+  effectivement envoyé au TTS pour qu'il ne contienne **que la réplique elle-même** (déjà en MAJUSCULES /
+  « !!! » / voyelles étirées, donc porteuse du ton) ; le ton du personnage vient de la voix Gemini prébuilt
+  (`role.voice` du tableau) et du style d'écriture, pas d'un préfixe parlé. La consigne de ton (`role.tone`)
+  reste utilisée pour guider l'**écriture** des répliques (étape A, gemini-3.1-pro-preview), seulement plus
+  pour la synthèse vocale (étape B). Détail et code dans `tools/voices/generate-barks.mjs` (commentaire au-dessus
+  de `synthesizeLine`) et `tools/voices/LISEZMOI.md`.
+- **Autre correction en cours de route** : une réplique générée par le modèle de texte contenait le mot banni
+  « legendary » (`api/_util.ts::stripBannedWords` l'interdit dans le reste du projet) — repéré par une
+  recherche automatique (tolérante aux voyelles étirées) sur `tools/voices/scripts-cache.json` après la
+  première génération. Les 2 occurrences (`announcer.victory` et `knight.victory`) ont été réécrites et les
+  2 fichiers audio correspondants régénérés (reprise ciblée, pas de relance complète).
+- **Approximation documentée** : `FighterDef` ne mémorise pas le modèle 3D de base d'un combattant `custom`
+  (perso photo en direct, lot LP, sans `glbUrl`). `src/audio/barks.ts` (`MODEL_TO_ROLE`) fait retomber
+  `custom` sur le rôle **chevalier (knight)**, par symétrie avec `src/scene/fighters/loader.ts` qui fait déjà
+  ce même choix par défaut pour le corps 3D d'un perso `custom` sans `glbUrl`.
+- **Frictions** : le premier lancement en arrière-plan du script de génération a été interrompu silencieusement
+  par la fin d'une session de shell (particularité de l'environnement d'exécution, pas un bug du script) ;
+  repéré via la reprise automatique (fichiers déjà écrits mais journal incomplet) et relancé proprement en
+  tâche de fond surveillée jusqu'au bout. Aucune perte de travail grâce à la reprise par fichier déjà présent.
+- **Reste à faire / pistes pour la suite** : pas d'écoute humaine réelle des fichiers (seulement des mesures
+  automatiques) — recommandé de faire un tour d'oreille rapide avant la démo si possible. Le taunt de
+  provocation (`taunt_turn`) est limité à 1 tour sur 2 par un compteur pair/impair déterministe (plutôt qu'un
+  tirage aléatoire), choisi pour rester testable par script par les agents du harnais.

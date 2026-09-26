@@ -1,0 +1,416 @@
+{
+  "announcer": {
+    "match_intro": [
+      "ARE YOUUUU READYYYY FOR BRAWWWWL!!!",
+      "IT IS TIIIIIME TO GET CRANKEEED!!!",
+      "LET US GET THIS MAAAATCH GOOOOING!!!",
+      "LAAADIES AND BROSKIS, LET US RUMBLEEE!!!",
+      "HERE WE GOOOO, PURE CHAOOOOOS!!!"
+    ],
+    "weigh_in": [
+      "WEIGHING IN WITH PURE STEEEEEEL!!!",
+      "CHECK OUUUUT THIS HEAVY HARDWAAAARE!!!",
+      "BRINGING THE PAAAAAIN TODAYYYY!!!",
+      "PACKING A MONSTER OF A MAAAASH!!!",
+      "LOOOOOK AT THAT WRECKING TOOOOOL!!!"
+    ],
+    "hit": [
+      "WHAT A SLAAPPP!!!",
+      "RIGHT IN THE KISSEEEER!!!",
+      "OHHH HE FELT THAAAAAT!!!",
+      "SOLID MAAAAASH!!!",
+      "BOOOOM, DIRECT HIIIIIT!!!"
+    ],
+    "crit": [
+      "ABSOLUTE DEVASTATIOOOON!!!",
+      "THAAAAAT HAS TO HUUUURT!!!",
+      "CRITICAAAAAL DAAMAGE, OUCHHHH!!!",
+      "HE JUST GOT FLATTENEEED!!!",
+      "MIND BLOWWWWING SMAAAASH!!!"
+    ],
+    "perfect": [
+      "PERFEEECT BLOOOCK!!!",
+      "UNBELIEVABLE TIIIMING, WOAAAH!!!",
+      "FLAAAAWLESS PARRYYYY!!!",
+      "NOT IN MY HOOUUUSE!!!",
+      "TURNED THAT RIGHT AROUUUUND!!!"
+    ],
+    "feint": [
+      "FOOOOLED HIM COMPLETELYYYY!!!",
+      "SWIIING AND A MIIIIISS!!!",
+      "THE OLD FAAAAKE OUUUUT!!!",
+      "PSYCHED HIM OUUUUUT!!!",
+      "NOBOOODY HOME THERE, FOLKS!!!"
+    ],
+    "ringout": [
+      "GOOOOING, GOOOING, GOOOOONE!!!",
+      "KNOCKED OUUUUTTA THE PAAARK!!!",
+      "HAVE A NIIICE FLIIIGHT!!!",
+      "CLEAAARED THE BOOOUUUNDS!!!",
+      "OUTTAAA HEEEERE, SEE YAAAA!!!"
+    ],
+    "ko": [
+      "HE IS OUT COOOOLD!!!",
+      "GOODNIIIGHT BROSKIIII!!!",
+      "KNOCKOUUUUUT, WE HAVE A KNOCKOUUUUUT!!!",
+      "DOOOOWN FOR THE COUNNNNT!!!",
+      "THAT IS AAAALL SHE WROOOOTE!!!"
+    ],
+    "sudden_death": [
+      "SUDDEEEN DEAAAAATH HAS ARRIVEEED!!!",
+      "THE WALLS ARE CLOSING IIIIIN!!!",
+      "NOOOOWHERE LEFT TO RUUUUN!!!",
+      "ONLY ONEEE CAAAAN SURVIIIVE!!!",
+      "IT ALL COMES DOWWWN TO THIIIS!!!"
+    ],
+    "crate_drop": [
+      "LOOOOK AT THE SKYYYYY!!!",
+      "INCOMIIIIING GOODIES, GRAB EEEEM!!!",
+      "FRESH LOOOOOT ON THE WAAAY!!!",
+      "CARE PACKAAAGE INBOUUUUND!!!",
+      "WE GOT CRAAAATES DROPPING NOWWWW!!!"
+    ],
+    "comeback": [
+      "FROM THE ASHES THEY RIIIISE!!!",
+      "UNBELIEVABLE TURNAROUUUUUND!!!",
+      "THE ULTIMAAATE COMEBAAAACK!!!",
+      "THEY ARE NOT DOOOONE YET!!!",
+      "FROM THE ASHES THEY RIIIISE!!!"
+    ],
+    "victory": [
+      "WE HAAAVE A CHAMPIOOOON!!!",
+      "THE ULTIMATE BROSKIIII WIIIIINS!!!",
+      "VAAAAST AND GLORIOUS VICTORYYYY!!!",
+      "WHAT A MOOOONSTROUS WIIIIIN!!!",
+      "ALL HAAIL THE KING OF BRAWWWWLS!!!"
+    ]
+  },
+  "barbarian": {
+    "hit_light": [
+      "GRAH! THAT ONLY TICKLES!",
+      "ARGH! WHAT A PUNY HIT!",
+      "OOF! IS THAT ALL?!"
+    ],
+    "hit_heavy": [
+      "BAAAH! A WORTHY STRIKE!",
+      "ROOOAR! HOW DARE YOU?!",
+      "UGGGH! MY THICK SKULL!"
+    ],
+    "crit_taken": [
+      "GRAAAAGH! MY GLORIOUS FLESH!",
+      "NOOOO! THAT ACTUALLY HURTS!",
+      "GAAARGH! I WILL CRUSH YOU!"
+    ],
+    "parry_perfect": [
+      "FEEBLE STRIKE! BAHAHAHA!",
+      "NOT TODAY, LITTLE WORM!",
+      "CLASH! I AM INVINCIBLE!"
+    ],
+    "parry_good": [
+      "NICE TRY! GRUUGH!",
+      "HA! FAR TOO SLOW!",
+      "MY SHIELD STANDS FIRM!"
+    ],
+    "whiff": [
+      "RAAAH! JUST STAND STILL!",
+      "GRAH! I SWUNG AT AIR!",
+      "WHRRRG! STOP YOUR COWARDLY MOVES!"
+    ],
+    "dodge": [
+      "HA! YOU COMPLETELY MISSED ME!",
+      "TOO QUICK FOR YOU! RAAAH!",
+      "SWOOOSH! BAHAHAHA!"
+    ],
+    "throw_effort": [
+      "YEET! RAAAAH!",
+      "EAT THIS HEAVY STEEL!",
+      "FLY, MY WEAPON! GRAH!"
+    ],
+    "jump_effort": [
+      "HUUUP! TO THE SKIES!",
+      "GRAAAH! MIGHTY LEAP!",
+      "BOUNCE LIKE MOUNTAIN GOAT!"
+    ],
+    "taunt_turn": [
+      "PREPARE TO BE SMASHED! RAAAAH!",
+      "I SMELL YOUR FEAR! BAHAHAHA!",
+      "COME MEET YOUR DOOM, LITTLE BUG!"
+    ],
+    "low_hp": [
+      "RAAAH! I WILL NEVER YIELD!",
+      "BLEEDING ONLY MAKES ME MAD! GRAAAH!",
+      "ONE LAST GLORIOUS SWING! RAAAAH!"
+    ],
+    "ringout_scream": [
+      "NOOOOOOOO! NOT LIKE THIIIIIS!",
+      "GRAAAAAAAAH! I CANNOT FLYYYYYY!",
+      "CURSE THE ABYYYYYSSS!"
+    ],
+    "ko": [
+      "BAHAHAHA! YOU STAY DOWN!",
+      "CRUSHED LIKE A TINY BUG! RAAAAH!",
+      "WEAKLING! BRING ME NEXT VICTIM!"
+    ],
+    "victory": [
+      "I AM THE TRUE CHAMPION! RAAAAAAH!",
+      "TIME FOR VICTORY BRAWL! BAHAHAHAHA!",
+      "GREATEST WARRIOR LIVES FOREVER! YEEEAH!"
+    ],
+    "crate_grab": [
+      "OOH! THIS IS MINE NOW!",
+      "LOOT FOR THE STRONG! GRAAAH!",
+      "TREASURE FROM THE CLOUDS! BAHAHAHA!"
+    ],
+    "new_weapon": [
+      "OOH! SHINY NEW SMASHING TOY!",
+      "I WILL BREAK BONES WITH THIS! RAAAAH!",
+      "A GLORIOUS WEAPON FOR ME! YEEEAH!"
+    ]
+  },
+  "knight": {
+    "hit_light": [
+      "OOF! UNCALLED FOR!!!",
+      "EGAD! MY ARMOR!!!",
+      "GAH! MERE SCRATCH!!!"
+    ],
+    "hit_heavy": [
+      "BLAST IT ALL! ARGHHH!!!",
+      "GOOD HEAVENS! OOOOUCH!!!",
+      "FOUL PLAY! RAAAGH!!!"
+    ],
+    "crit_taken": [
+      "MY BEAUTIFUL VISAGE!!! NOOOOO!!!",
+      "BY THE QUEEN! WAAAGH!!!",
+      "ABSOLUTE TREACHERY!!! YEOOOW!!!"
+    ],
+    "parry_perfect": [
+      "FLAWLESS TECHNIQUE! HAH!!!",
+      "NOT TODAY, KNAVE!!! YEEAAH!!!",
+      "ROYAL GUARD! BOOYAH!!!"
+    ],
+    "parry_good": [
+      "PREDICTABLE! HUAH!!!",
+      "DEFLECTED! YES!!!",
+      "NICE TRY, PEASANT!!!"
+    ],
+    "whiff": [
+      "BALDERDASH! I MISSED!!!",
+      "SLIPPED MY GRASP!!! RAAH!!!",
+      "CONFUSTICATE IT ALL!!!"
+    ],
+    "dodge": [
+      "TOO SLOW, RUFFIAN!!!",
+      "DANCING ON CLOUDS! WOO!!!",
+      "NOT EVEN CLOSE! HAH!!!"
+    ],
+    "throw_effort": [
+      "HAVE AT THEE! HRRAAAH!!!",
+      "TAKE THIS, SCOUNDREL! YAAAH!!!",
+      "CHIVALROUS STRIKE! HYAAAH!!!"
+    ],
+    "jump_effort": [
+      "UP WE GO! HOOO!!!",
+      "BOUNDING FORTH! HUP!!!",
+      "SOARING KNIGHT! HYAA!!!"
+    ],
+    "taunt_turn": [
+      "PREPARE TO BE VANQUISHED!!!",
+      "FACE MY ROYAL WRATH!!!",
+      "YIELD NOW, COMMONER!!!"
+    ],
+    "low_hp": [
+      "I SHALL NEVER SURRENDER!!! RAAAH!!!",
+      "TIS BUT A FLESH WOUND!!!",
+      "FOR KING AND COUNTRY! HYAAAH!!!"
+    ],
+    "ringout_scream": [
+      "AWAY I GOOOOOOOOO!!!",
+      "UNHAND MEEEEEEEEEEEEE!!!",
+      "CURSE YOUR SUDDEN BETRAYAAAAAAAL!!!"
+    ],
+    "ko": [
+      "A STUNNING DEFEAT!!! YES!!!",
+      "THE BATTLE IS WON!!! HUZZAH!!!",
+      "GOOD NIGHT, SWEET PRINCE!!!"
+    ],
+    "victory": [
+      "GLORY TO THE REALM! HUZZAAAAH!!!",
+      "I AM THE CHAMPION!!! YEEEAAAH!!!",
+      "ANOTHER GLORIOUS TALE WRITTEN!!!"
+    ],
+    "crate_grab": [
+      "A ROYAL BOON! MINE!!!",
+      "TREASURE FROM THE HEAVENS! YEEAH!!!",
+      "REINFORCEMENTS HAVE ARRIVED!!! WOO!!!"
+    ],
+    "new_weapon": [
+      "EXCALIBUR HERSELF WEEPS! BEHOLD!!!",
+      "A FINE ADDITION TO MY ARMORY!!!",
+      "SMASHING! ABSOLUTELY SMASHING!!! YES!!!"
+    ]
+  },
+  "mage": {
+    "hit_light": [
+      "OWEE! MY BEARD!!!",
+      "EEEEK! WATCH IT!",
+      "NYAAH! PAPER CUT!"
+    ],
+    "hit_heavy": [
+      "BLAAARGH! MY SPLEEEEN!",
+      "OOOF! RIGHT IN THE POTIONS!!!",
+      "YEEEOUCH! MY OLD BONES!!!"
+    ],
+    "crit_taken": [
+      "GAAAAAH! MY MAGIC CORE!!!",
+      "NOOOOO! MY BEAUTIFUL WAND!!!",
+      "REEEEEEE! I'M MELTING!!!"
+    ],
+    "parry_perfect": [
+      "AHAHAAA! I FORESAW THAT!!!",
+      "HEEHEEHEE! TOO SLOW, FOOL!!!",
+      "SHIELDS UP, NINCOMPOOP!!!"
+    ],
+    "parry_good": [
+      "NYAHA! NICE TRY!!!",
+      "BOING! RIGHT OFF ME!!!",
+      "EHEHE! NOT TODAY!!!"
+    ],
+    "whiff": [
+      "DAGNABBIT! MISSED!",
+      "WHOOOPSIE DAISY!!!",
+      "BAH! SLIPPERY CURSE!!!"
+    ],
+    "dodge": [
+      "ZOOOOP! YOU MISSED ME!!!",
+      "HEEHEE! OVER HEEERE!!!",
+      "SKEDADDLE! CAN'T TOUCH THIS!!!"
+    ],
+    "throw_effort": [
+      "YEEEET! FIRE IN THE HOLE!!!",
+      "ALAKAZAAAAM! TAKE THIS!!!",
+      "HNNNNG! EAT MAGIC!!!"
+    ],
+    "jump_effort": [
+      "HOOOPLA! UP I GO!!!",
+      "WHEEEE! BOUNCY SPELL!!!",
+      "HUP! GRAVITY DEFIED!!!"
+    ],
+    "taunt_turn": [
+      "I'LL TURN YOU INTO A TOAAAD!!!",
+      "PREPARE TO BE ZAPPED, WHIPSNAPPER!!!",
+      "CACKLE CACKLE! YOUR DOOM APPROACHES!!!"
+    ],
+    "low_hp": [
+      "MY MANA IS LEAKING!!!",
+      "I STILL HAVE ONE TRICK LEFT!!!",
+      "NOOO! I NEED A HEALING POTION!!!"
+    ],
+    "ringout_scream": [
+      "FLY, YOU FOOOOOOLS!!!",
+      "MY SPELL WORE OUUUUT!!!",
+      "YAAAAAAAAAAH! TOO MUCH GRAVITYYY!!!"
+    ],
+    "ko": [
+      "NAP TIME FOR YOU, BOZO!!!",
+      "HEEHEEHEE! DOWN FOR THE COUNT!!!",
+      "LIGHTS OUT, BONEHEAD!!!"
+    ],
+    "victory": [
+      "THE GRAND WIZARD REIGNS SUPREEEEEME!!!",
+      "WAHAHAHAAA! I ALCHEMIZED A WIIIN!!!",
+      "OOH YEEAAAH! WHO'S THE MAGIC MAN?!"
+    ],
+    "crate_grab": [
+      "OOH! SHINY NEW INGREDIENTS!!!",
+      "GIMME GIMME GIMME! ALL MINE!!!",
+      "JACKPOT! MAGICAL LOOT!!!"
+    ],
+    "new_weapon": [
+      "A NEW TOY?! HEEHEEHEE!!!",
+      "OOH, THIS WILL STING!!!",
+      "PHENOMENAL COSMIC POWERRR!!!"
+    ]
+  },
+  "rogue": {
+    "hit_light": [
+      "OW!!! WATCH IT!",
+      "HEY!!! MY HAIR!",
+      "EEEEK!!! CHEATER!"
+    ],
+    "hit_heavy": [
+      "OOUUGH!!! YOU MEANIE!!!",
+      "YAAARGH!!! NOT THE FACE!!!",
+      "GAAAAH!!! THAT ACTUALLY HURT!!!"
+    ],
+    "crit_taken": [
+      "WAAAAAH!!! UNFAIR UNFAIR UNFAAAIR!!!",
+      "NOOOOO!!! MOMMYYYY!!!",
+      "YEOOOOWCH!!! MY BONES!!!"
+    ],
+    "parry_perfect": [
+      "HA!!! TOO SLOW!!!",
+      "BOOOING!!! RIGHT BACK ATCHA!!!",
+      "DENIED!!! YOU STINK!!!"
+    ],
+    "parry_good": [
+      "NOPE!!! TRY AGAIN!!!",
+      "HEHE!!! I SAW THAT!!!",
+      "BLOCKED IT!!! LOSER!!!"
+    ],
+    "whiff": [
+      "WHOOPS!!! SLIPPED!!!",
+      "DARN IT!!! HOLD STILL!!!",
+      "GAHHH!!! CHEAP DODGE!!!"
+    ],
+    "dodge": [
+      "WOOOSH!!! MISSED ME!!!",
+      "HAHAHA!!! TOO SLUGGGISH!!!",
+      "YEEHEE!!! OVER HEEEEERE!!!"
+    ],
+    "throw_effort": [
+      "YAAAH!!! CATCH THIS!!!",
+      "HYAAAH!!! EAT DIRT!!!",
+      "YEET!!! INCOMINGGGG!!!"
+    ],
+    "jump_effort": [
+      "HUP!!! UP I GO!!!",
+      "WEEEEE!!! LOOK AT ME!!!",
+      "BOING!!! ALLEY OOP!!!"
+    ],
+    "taunt_turn": [
+      "MY TURN!!! PREPARE TO CRY!!!",
+      "WATCH AND LEARN!!! DUMMIES!!!",
+      "HAHAHA!!! I ALWAYS WIN!!!"
+    ],
+    "low_hp": [
+      "I AM NOT YIELDING!!! NEVERRRR!!!",
+      "YOU WONT BEAT ME!!! WAAAAH!!!",
+      "BACK OFF!!! IM STILL KICKING!!!"
+    ],
+    "ringout_scream": [
+      "WHYYYYYYYY!!! CURSE YOUUUUUU!!!",
+      "I HATE GRAVITYYYYYYY!!!",
+      "ILL BE BAAAAACK!!!"
+    ],
+    "ko": [
+      "SLEEP TIGHT!!! SNOOZER!!!",
+      "HAHAHA!!! WHAT A PUSHOVER!!!",
+      "NIGHTY NIGHT!!! LOSER!!!"
+    ],
+    "victory": [
+      "YEEES!!! I AM THE GREATEST!!!",
+      "CHAMPION!!! IN YOUR FACE!!!",
+      "WOOOOHOOO!!! WEEP AND BOOHOO!!!"
+    ],
+    "crate_grab": [
+      "MINE!!! ALL MINE!!!",
+      "OOH!!! PRESENTS FOR ME!!!",
+      "YOINK!!! FINDERS KEEPERS!!!"
+    ],
+    "new_weapon": [
+      "OH YEAH!!! NEW TOY!!!",
+      "SHINY!!! LETS BREAK STUFF!!!",
+      "HEHEHE!!! UPGRADE TIIIIIME!!!"
+    ]
+  }
+}
