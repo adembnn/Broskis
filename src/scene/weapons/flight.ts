@@ -596,19 +596,17 @@ export function installFlights(ctx: Ctx, deps: FlightDeps) {
     }
   }
 
-  // Lot LE2E : la face du sticker regarde le défenseur ; depuis la caméra du LANCEUR on ne voyait que le dos carton (la
-  // chaise lancée était méconnaissable). Avant chaque vue, un objet vu de dos fait demi-tour autour de la verticale :
-  // chaque vue voit sa face, la rotation propre (forme, masse) est gardée.
-  const _demiTour = new THREE.Quaternion().setFromAxisAngle(UP, Math.PI);
+  // Lot LE2E : un sticker qui culbute est souvent vu par la tranche ou de dos (carton) : depuis la caméra du LANCEUR, la
+  // chaise lancée était méconnaissable (retour d'Adem). Avant chaque vue, l'objet en vol fait face à la caméra de cette
+  // vue et tourne dans le plan de l'image, d'autant plus lentement qu'il est lourd (même vitesse que sa rotation propre).
   const _cam = new THREE.Vector3();
   ctx.three.onBeforeView((view) => {
     view.camera.getWorldPosition(_cam);
     for (const f of flights) {
       const m = f.model;
-      const face = m?.root.userData.le2eFace as THREE.Quaternion | undefined;
-      if (!m || !face || !m.root.visible) continue;
-      m.root.quaternion.copy(face);
-      if (_v.copy(_cam).sub(m.root.position).dot(f.axis) < 0) m.root.quaternion.premultiply(_demiTour);
+      if (!m || !m.root.visible || !m.root.userData.le2eFace) continue;
+      m.root.lookAt(_cam);
+      m.root.rotateZ(f.spinDir * f.omega * f.t * 0.5);
     }
   });
 
