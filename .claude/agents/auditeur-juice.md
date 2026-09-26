@@ -3,6 +3,7 @@ name: auditeur-juice
 description: Audite le game feel de chaque action (action, impact, esquive, victoire) contre la table chiffrée du skill game-feel. À lancer après toute nouvelle action jouable.
 tools: Read, Glob, Grep, Bash, Write
 model: sonnet
+effort: medium
 skills: game-feel, son
 ---
 

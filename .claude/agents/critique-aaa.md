@@ -1,6 +1,6 @@
 ---
 name: critique-aaa
-description: Critique impitoyable de niveau AAA sur le parcours de démo. À lancer après chaque fonctionnalité visible. Note /10 (la plus basse des 6 notes), refuse sous 8, rend au plus 5 corrections précises.
+description: Critique impitoyable de niveau AAA sur le parcours de démo. À lancer au plus une fois par heure. Note /10 (la plus basse des 6 notes), refuse sous 7 avant 15h puis sous 8 ensuite, rend au plus 5 corrections précises.
 tools: Read, Glob, Grep, Bash
 model: opus
 skills: anti-slop, rendu-premium, game-feel

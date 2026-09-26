@@ -1,19 +1,26 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run *)", "Bash(npm install *)", "Bash(npm i *)", "Bash(npx vite *)", "Bash(npx playwright *)",
+      "Bash(npm run *)", "Bash(npx vite *)", "Bash(npx playwright *)",
       "Bash(node tools/*)", "Bash(node captures/*)", "Bash(git status *)", "Bash(git add *)", "Bash(git commit *)",
       "Bash(git pull *)", "Bash(git log *)", "Bash(git diff *)", "Bash(git tag *)", "Bash(date *)",
-      "PowerShell(npm run *)", "PowerShell(npm install *)", "PowerShell(npm i *)", "PowerShell(npx vite *)", "PowerShell(npx playwright *)",
+      "PowerShell(npm run *)", "PowerShell(npx vite *)", "PowerShell(npx playwright *)",
       "PowerShell(node tools/*)", "PowerShell(node captures/*)", "PowerShell(git status *)", "PowerShell(git add *)", "PowerShell(git commit *)",
       "PowerShell(git pull *)", "PowerShell(git log *)", "PowerShell(git diff *)", "PowerShell(git tag *)", "PowerShell(Get-Date *)"
     ],
-    "ask": ["Bash(git push *)", "Bash(git reset *)", "PowerShell(git push *)", "PowerShell(git reset *)", "Bash(rm -rf *)", "PowerShell(Remove-Item -Recurse *)"],
+    "ask": [
+      "Bash(git push *)", "Bash(git reset *)", "Bash(npm install *)", "Bash(npm i *)",
+      "PowerShell(git push *)", "PowerShell(git reset *)", "PowerShell(npm install *)", "PowerShell(npm i *)",
+      "Bash(rm -rf *)", "PowerShell(Remove-Item -Recurse *)"
+    ],
     "deny": ["Read(./.env)", "Read(./.env.local)", "Bash(git push --force *)", "PowerShell(git push --force *)"]
   },
   "hooks": {
     "SessionStart": [
       { "hooks": [ { "type": "command", "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/debut-session.mjs\"", "timeout": 20 } ] }
+    ],
+    "UserPromptSubmit": [
+      { "hooks": [ { "type": "command", "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/heure.mjs\"", "timeout": 10 } ] }
     ],
     "PreToolUse": [
       { "matcher": "Bash|PowerShell", "hooks": [ { "type": "command", "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/garde-fou.mjs\"", "timeout": 10 } ] }
