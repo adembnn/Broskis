@@ -32,6 +32,30 @@ function loadGltf(url: string): Promise<GLTF> {
   return p;
 }
 
+// Clips de déplacement du pack KayKit Rig_Medium (même squelette que les persos) : le saut en 3 temps
+// (impulsion → en l'air → réception) que les GLB persos n'ont pas (ils n'ont qu'un « jump » complet).
+const MOVEMENT_PACK_URL = '/assets/packs/animations/Rig_Medium_MovementBasic.glb';
+const MOVEMENT_CLIPS: Record<string, string> = { Jump_Start: 'jumpStart', Jump_Idle: 'jumpAir', Jump_Land: 'jumpLand' };
+let movementClips: Promise<THREE.AnimationClip[]> | null = null;
+
+/** Charge une fois les clips de saut du pack. On ne garde que les rotations (+ la translation des hanches pour
+ * l'accroupi) : les translations des autres os et de `root` décaleraient le corps ou doubleraient la physique. */
+export function loadMovementClips(): Promise<THREE.AnimationClip[]> {
+  if (!movementClips) {
+    movementClips = loadGltf(MOVEMENT_PACK_URL)
+      .then((gltf) => gltf.animations
+        .filter((c) => MOVEMENT_CLIPS[c.name])
+        .map((c) => {
+          const clip = c.clone();
+          clip.name = MOVEMENT_CLIPS[c.name];
+          clip.tracks = clip.tracks.filter((t) => t.name.endsWith('.quaternion') || t.name === 'hips.position');
+          return clip;
+        }))
+      .catch((e) => { console.error('[fighters] clips de saut', e); return []; });
+  }
+  return movementClips;
+}
+
 /** Masque les armes/boucliers d'origine (mesh attaché à handslot.l/handslot.r) : le sticker les remplace. */
 export function hideHandAccessories(root: THREE.Object3D): void {
   root.traverse((obj) => {
