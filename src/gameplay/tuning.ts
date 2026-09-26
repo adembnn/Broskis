@@ -14,6 +14,8 @@ export const RT = {
   /** Au bord : on vacille ; en poussant ce temps-là, on passe dans le vide (0,5 s : le temps de lire « EDGE! »
    * en plein combat ; à 0,3 s, des joueurs qui tournent autour de l'adversaire tombaient tout seuls). */
   teeterPushS: 0.5,
+  /** Courir vers l'extérieur (cosinus avec la direction centre → joueur au-dessus de ce seuil) : on tombe sans vaciller. */
+  walkOffOutwardDot: 0.6,
   blockMoveMult: 0.4,
   chargeMoveMult: 0.85,
   /** Tir maintenu : charge de 0 à 1 entre chargeMinS et chargeFullS ; relâché tout seul après autoReleaseS. */
