@@ -41,6 +41,10 @@ export interface PlayerRuntime {
   /** Vitesse estimée (m/s), pour l'avance de visée de l'adversaire. */
   vel: Vec3;
   prevPos: Vec3;
+  /** Vitesse horizontale pilotée (m/s) : instantanée au sol, gardée en l'air (élan). */
+  hvel: [number, number];
+  /** Dernier instant (temps de jeu) où le perso touchait le sol : « coyote time ». */
+  lastGroundedAt: number;
 }
 
 export type CancelFn = () => void;
@@ -85,6 +89,8 @@ function makePlayerRuntime(): PlayerRuntime {
     blockStartMs: 0,
     vel: [0, 0, 0],
     prevPos: [0, 0, 0],
+    hvel: [0, 0],
+    lastGroundedAt: 0,
   };
 }
 
