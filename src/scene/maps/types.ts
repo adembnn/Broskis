@@ -11,7 +11,7 @@ import type { DetailKind } from './tokens';
 export const MAX_LEDGE_HEIGHT = 2.0;
 
 /** Revêtement d'une pièce : texture de détail triplanaire, repère monde ou objet, écrêtage en hauteur. */
-export interface SurfaceSpec { detail?: DetailKind; space?: 'world' | 'local'; clampY?: number }
+export interface SurfaceSpec { detail?: DetailKind; side?: DetailKind; space?: 'world' | 'local'; clampY?: number }
 
 export type PropKind =
   | 'decor'      // couvert fixe, jamais déclenché (caisse, bocal)

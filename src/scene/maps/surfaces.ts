@@ -76,6 +76,8 @@ function detailTexture(kind: DetailKind): THREE.DataTexture {
 
 export interface SurfaceOpts {
   detail?: DetailKind;
+  /** Détail des faces verticales (flancs), sinon le même que le dessus. */
+  side?: DetailKind;
   /** 'world' : détail fixe dans le monde (sols) ; 'local' : suit l'objet (accessoires qui roulent). */
   space?: 'world' | 'local';
   /** Aplatit les sommets au-dessus de cette hauteur (repère du modèle). */
@@ -86,8 +88,8 @@ const matCache = new Map<string, THREE.Material>();
 
 /** Copie du matériau avec détail triplanaire et/ou écrêtage en hauteur (chaîne l'onBeforeCompile existant). */
 export function surfaceMaterial(src: THREE.Material, opts: SurfaceOpts): THREE.Material {
-  if (!opts.detail && opts.clampY == null) return src;
-  const key = `${src.uuid}|${opts.detail ?? ''}|${opts.space ?? 'world'}|${opts.clampY ?? ''}`;
+  if ((!opts.detail && opts.clampY == null) || src.userData.surfaced) return src; // jamais deux fois (shader dupliqué)
+  const key = `${src.uuid}|${opts.detail ?? ''}|${opts.side ?? ''}|${opts.space ?? 'world'}|${opts.clampY ?? ''}`;
   const hit = matCache.get(key);
   if (hit) return hit;
   const mat = src.clone() as THREE.MeshStandardMaterial;
@@ -95,8 +97,10 @@ export function surfaceMaterial(src: THREE.Material, opts: SurfaceOpts): THREE.M
   const prevKey = src.customProgramCacheKey.bind(src);
   const s = opts.detail ? SURFACES[opts.detail] : null;
   const uDet = { value: opts.detail ? detailTexture(opts.detail) : null };
+  const uDetSide = { value: opts.detail ? detailTexture(opts.side ?? opts.detail) : null };
   const uScale = { value: s?.echelle ?? 1 };
   const uStrength = { value: s?.force ?? 0 };
+  const uBump = { value: s?.relief ?? 0 };
   const local = opts.space === 'local';
   mat.onBeforeCompile = (shader, renderer) => {
     prev(shader, renderer);
@@ -108,8 +112,10 @@ export function surfaceMaterial(src: THREE.Material, opts: SurfaceOpts): THREE.M
     }
     if (opts.detail) {
       shader.uniforms.uDet = uDet;
+      shader.uniforms.uDetSide = uDetSide;
       shader.uniforms.uDetScale = uScale;
       shader.uniforms.uDetStrength = uStrength;
+      shader.uniforms.uDetBump = uBump;
       vs = vs.replace('#include <common>', '#include <common>\nvarying vec3 vDetPos;\nvarying vec3 vDetNrm;')
         .replace('#include <project_vertex>', `#include <project_vertex>
         {
@@ -121,20 +127,34 @@ export function surfaceMaterial(src: THREE.Material, opts: SurfaceOpts): THREE.M
           vDetPos = (modelMatrix * dwp).xyz;
           vDetNrm = mat3(modelMatrix) * objectNormal;`}
         }`);
-      fs = fs.replace('#include <common>', '#include <common>\nuniform sampler2D uDet;\nuniform float uDetScale;\nuniform float uDetStrength;\nvarying vec3 vDetPos;\nvarying vec3 vDetNrm;')
+      fs = fs.replace('#include <common>', '#include <common>\nuniform sampler2D uDet;\nuniform sampler2D uDetSide;\nuniform float uDetScale;\nuniform float uDetStrength;\nuniform float uDetBump;\nvarying vec3 vDetPos;\nvarying vec3 vDetNrm;\nfloat gDetH = 0.5;')
         .replace('#include <color_fragment>', `#include <color_fragment>
         {
           vec3 bw = pow(abs(normalize(vDetNrm)), vec3(4.0));
           bw /= (bw.x + bw.y + bw.z + 1e-5);
           vec3 p = vDetPos * uDetScale;
-          float d = texture2D(uDet, p.zy).r * bw.x + texture2D(uDet, p.xz).r * bw.y + texture2D(uDet, p.xy).r * bw.z;
+          float d = texture2D(uDetSide, p.zy).r * bw.x + texture2D(uDet, p.xz).r * bw.y + texture2D(uDetSide, p.xy).r * bw.z;
+          gDetH = d;
           diffuseColor.rgb *= mix(1.0, d * 2.0, uDetStrength);
+        }`)
+        // Relief : la même texture sert de carte de hauteur (dérivées écran, sans UV ni tangentes).
+        .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+        {
+          vec3 sx = dFdx(-vViewPosition);
+          vec3 sy = dFdy(-vViewPosition);
+          vec3 r1 = cross(sy, normal);
+          vec3 r2 = cross(normal, sx);
+          float det = dot(sx, r1) * faceDirection;
+          vec2 dh = vec2(dFdx(gDetH), dFdy(gDetH)) * uDetBump;
+          vec3 grad = sign(det) * (dh.x * r1 + dh.y * r2);
+          normal = normalize(abs(det) * normal - grad);
         }`);
     }
     shader.vertexShader = vs;
     shader.fragmentShader = fs;
   };
-  mat.customProgramCacheKey = () => `${prevKey()}|surf-${opts.detail ?? ''}-${local ? 'l' : 'w'}-${opts.clampY ?? ''}`;
+  mat.customProgramCacheKey = () => `${prevKey()}|surf-${opts.detail ?? ''}-${opts.side ?? ''}-${local ? 'l' : 'w'}-${opts.clampY ?? ''}`;
+  mat.userData.surfaced = true;
   matCache.set(key, mat);
   return mat;
 }

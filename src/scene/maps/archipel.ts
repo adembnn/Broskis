@@ -96,14 +96,14 @@ function cailloux(): BackdropSpec[] {
   const out: BackdropSpec['items'][] = [[], [], []];
   let s = 23;
   const rnd = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
-  for (let i = 0; i < 90 && out.flat().length < 36; i++) {
+  for (let i = 0; i < 90 && out.flat().length < 22; i++) {
     const a = rnd() * Math.PI * 2;
     const r = 1.5 + rnd() * (SOCLE_PAR_ANNEAU * MIN_RING);
     const x = Math.cos(a) * r, z = Math.sin(a) * r;
     if (Math.hypot(Math.abs(x) - SPAWN_X, z) < 1.8) continue;
-    out[i % 3]!.push({ pos: [x, 0, z] as Vec3, yaw: rnd() * 6.28, scale: 1 + rnd() * 1.2 });
+    out[i % 3]!.push({ pos: [x, 0, z] as Vec3, yaw: rnd() * 6.28, scale: 0.8 + rnd() * 0.9 });
   }
-  return [HEX.pebbleA, HEX.pebbleC, HEX.pebbleE].map((url, i) => ({ build: { kind: 'model', url }, items: out[i]!, graded: false }));
+  return [HEX.pebbleA, HEX.pebbleC, HEX.pebbleE].map((url, i) => ({ build: { kind: 'model', url }, items: out[i]! }));
 }
 
 export function buildArchipelDef(): MapDef {
@@ -122,7 +122,7 @@ export function buildArchipelDef(): MapDef {
     tileModel: { kind: 'model', url: HEX.grass },
     tileHalfExtents: [1, 0.5, HEX_R],
     tileShape: 'hex',
-    tileSurface: { detail: 'herbe' },
+    tileSurface: { detail: 'herbe', side: 'pierre' },
     tileGrade: PLATEAU.archipelDalles,
     minRing: MIN_RING,
     ground: underside,

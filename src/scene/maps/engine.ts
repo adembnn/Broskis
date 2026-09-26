@@ -254,7 +254,21 @@ function buildProcedural(build: Extract<PropBuild, { kind: 'procedural' }>, mp: 
       break;
     }
     case 'shipDeck': {
-      g.add(outlineSlab(shipOutline(size[0], size[2]), size[1], build.color ?? mp.sol, grade));
+      const outline = shipOutline(size[0], size[2]);
+      g.add(outlineSlab(outline, size[1], build.color ?? mp.sol, grade));
+      // Liseré de plat-bord sombre, à fleur du pont (peint, pas de rebord) : le bord du vide se lit de loin.
+      const band = PLATEAU.liserePont;
+      const kx = 1 - band / (size[0] / 2), kz = 1 - band / (size[2] / 2);
+      const shape = new THREE.Shape(outline.map(([x, z]) => new THREE.Vector2(x, z)));
+      shape.holes.push(new THREE.Path(outline.map(([x, z]) => new THREE.Vector2(x * kx, z * kz)).reverse()));
+      const trimGeo = new THREE.ShapeGeometry(shape).rotateX(Math.PI / 2).translate(0, 0.004, 0);
+      const trimMat = flatMat(mp.matiere, grade, 0.7).clone();
+      trimMat.flatShading = false;
+      trimMat.side = THREE.DoubleSide;
+      trimMat.polygonOffset = true; trimMat.polygonOffsetFactor = -1; trimMat.polygonOffsetUnits = -1;
+      const trim = new THREE.Mesh(trimGeo, trimMat);
+      applySurface(trim, { detail: 'bois' });
+      g.add(trim);
       break;
     }
     case 'hull': {

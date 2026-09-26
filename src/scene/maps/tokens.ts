@@ -65,12 +65,13 @@ export function cuisineTokens(): CuisineTokens { return mapsToken.cuisine; }
 // ---------------------------------------------------------------------------
 export type DetailKind = 'bois' | 'herbe' | 'pierre' | 'faience';
 
-/** Texture de détail triplanaire : echelle = répétitions par mètre, force = 0 (rien) à 1 (plein contraste). */
-export const SURFACES: Record<DetailKind, { echelle: number; force: number }> = {
-  bois: { echelle: 0.45, force: 0.9 },
-  herbe: { echelle: 0.6, force: 0.85 },
-  pierre: { echelle: 0.5, force: 0.8 },
-  faience: { echelle: 0.4, force: 0.6 },
+/** Texture de détail triplanaire : echelle = répétitions par mètre, force = 0 (rien) à 1 (plein contraste),
+ *  relief = intensité du relief (la texture sert aussi de carte de hauteur). */
+export const SURFACES: Record<DetailKind, { echelle: number; force: number; relief: number }> = {
+  bois: { echelle: 0.45, force: 0.9, relief: 1.2 },
+  herbe: { echelle: 0.6, force: 0.85, relief: 1.6 },
+  pierre: { echelle: 0.5, force: 0.8, relief: 2.0 },
+  faience: { echelle: 0.4, force: 0.6, relief: 0.4 },
 };
 
 export const PLATEAU = {
@@ -78,6 +79,8 @@ export const PLATEAU = {
   archipelDalles: { saturation: 0.8, teinte: '#F6F0E4' },
   /** Variation de teinte par dalle / planche : ± luminosité, ± teinte (tours de roue chromatique). */
   variation: { luminosite: 0.16, teinte: 0.02 },
+  /** Galion : largeur (m) du liseré de plat-bord sombre peint au bord du pont. */
+  liserePont: 0.45,
   /** Grille-pain de la cuisine : chrome, bakélite, pain de mie, croûte, levier. */
   grillePain: { chrome: '#C9CFD2', bakelite: '#2B2522', mie: '#E8C489', croute: '#9A5A26', levier: '#D8402E', metal: 0.85, rugosite: 0.22 },
   /** Rouleau à pâtisserie : hêtre clair. */
