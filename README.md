@@ -19,7 +19,7 @@ Grab whatever is on your desk (a mug, a chair, your phone) and snap it. Ten seco
 No two matches are the same, because **your arsenal is the real world**.
 
 <p align="center">
-  <img src="docs/screens/impact.jpg" alt="Split-screen fight: a snapped office chair hits the opponent, the AI announcer comments" width="820">
+  <img src="docs/screens/arena-galion.jpg" alt="Split-screen fight on the Galleon: a snapped banana and sneaker fly, POP! and WHAM! on impact" width="820">
 </p>
 
 ## Why it can't exist without AI
@@ -85,16 +85,33 @@ And the physics goes further: **glass, phones, lamps and watches shatter** on im
 - **1 vs 1 in real time**, third person, lock-on aim, no mouse. Each player keeps their own half of the screen, and gamepads work too.
 - **Smash rules**: damage in %, knockback that grows with it, ring-outs, 2 lives each, double jump.
 - **Hold to charge**. Block, or land a **perfect parry** in the last 150 ms as the ring closes.
-- **3 arenas**: a floating Archipelago, a Galleon in the storm and a Giant Kitchen, all with open edges to fall off.
+- **Open edges**: run off the arena and you fall. Ring-outs are the whole game.
+- **Every weapon in the HUD is the object you snapped**: its sticker, its real name, its cooldown ring.
+
+### Three arenas, built like fighting-game stages
+
+- **The Archipelago** — a hexagon island floating over a sea of clouds, castles and windmills painted on the horizon.
+- **The Galleon** — a pirate deck in the storm, a ghost fleet and lightning behind you.
+- **The Giant Kitchen** — you fight on a countertop the size of a room: cutting boards, a stew pot, ketchup bottles.
+- Each arena has **cover that blocks the line of fire**, a **3-platform aerial route** reachable with the double jump, and props that **react when hit** (barrels squash and wobble, platforms dip when you land).
+- Painted 360° backdrops generated with Gemini's image model, so the scenery costs almost nothing to render.
 
 <p align="center">
-  <img src="docs/screens/fight.jpg" alt="Split screen: the snapped chair flies toward the opponent, visible in both views" width="820">
+  <img src="docs/screens/arena-archipel.jpg" alt="Split screen on the Archipelago: painted floating islands behind the fighters" width="49%">
+  <img src="docs/screens/arena-cuisine.jpg" alt="Split screen in the Giant Kitchen: fighting on a tiled countertop" width="49%">
 </p>
 
 ### An AI announcer who knows your weapons
 
 - A ring announcer, written by Gemini and voiced by Gemini TTS (voice *Fenrir*), **comments on your hits with your actual weapons**. Live example: *"Incoming corporate discipline in aerodynamic cylinder form!"*
 - The fighters shout with **Gradium** voices.
+- A light, upbeat soundtrack that **ducks under every voice line**, so you always hear the announcer.
+
+<p align="center">
+  <img src="docs/screens/end.jpg" alt="End screen: the winner with the real objects he fought with, and the MVP weapon" width="820">
+</p>
+
+The end screen shows **the real objects that won the match**, and the MVP weapon.
 
 ### Playing solo? Gemini coaches the bot
 
@@ -132,11 +149,15 @@ Put `GEMINI_API_KEY` (and `GRADIUM_API_KEY` for the fighters' voices) in `.env`.
 npm run demo
 ```
 
-Then open http://localhost:4173. On a laptop, run Chrome on the dedicated GPU (Windows Settings → Display → Graphics → Chrome → High performance).
+Then open http://localhost:4173 (add `?demo=1` for the stage demo: fixed seed, cached AI answers if the network drops). On a laptop, run Chrome on the dedicated GPU (Windows Settings → Display → Graphics → Chrome → High performance).
 
 ## Under the hood
 
 Three.js · TypeScript · Vite · Rapier physics · **Gemini 3.8 Flash** (vision, streamed JSON) · **Nano Banana** (Gemini image models) · **Gemini 3.1 Pro** (announcer lines) · **Gemini TTS** · **Gradium TTS** · Playwright end-to-end tests that play the real game with real photos.
+
+## Credits
+
+Music by **Kevin MacLeod** ([incompetech.com](https://incompetech.com)), licensed under [Creative Commons: By Attribution 4.0](https://creativecommons.org/licenses/by/4.0/): *Fluffing a Duck*, *Pixel Peeker Polka – faster*, *Volatile Reaction*. 3D characters and props by **Kay Lousberg** (KayKit, CC0) and **Kenney** (CC0).
 
 ---
 
