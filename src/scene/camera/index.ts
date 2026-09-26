@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { juice } from '../../art/tokens.js';
 import type { Ctx, Phase, PlayerId, Vec3 } from '../../core/types';
 import { registry } from '../registry';
-import { applyOcclusion, clearOcclusion, decorRoots, raycastOcclusion, resetOcclusion, stepOcclusion } from './occlusion';
+import { applyOcclusion, clearOcclusion, raycastOcclusion, refreshOccluders, resetOcclusion, stepOcclusion } from './occlusion';
 import { CameraRig } from './rig';
 import { RTVIEW } from './tokens';
 
@@ -38,12 +38,15 @@ export function installCamera(ctx: Ctx): [CameraRig, CameraRig] {
   const bumpHitstop = (seconds: number) => { ctx.loop.hitstop = Math.max(ctx.loop.hitstop, seconds); };
   const other = (p: PlayerId): PlayerId => (p === 0 ? 1 : 0);
 
+  let refreshAcc = 0;
   ctx.bus.on('match:start', () => {
     resetOcclusion();
+    refreshAcc = RTVIEW.occlusion.relectureS; // relit le décor à la prochaine image
     const split = ctx.state.split ?? !ctx.state.vsAI;
     three.setViewMode(split ? 'split' : 'solo', 0);
     for (const r of rigs) { r.unforce(); r.endLaunch(); r.snap(); } // recalées à la 1re image (spawns posés)
   });
+  ctx.bus.on('transition:open', () => { refreshAcc = RTVIEW.occlusion.relectureS; }); // map construite (lot LLOAD)
   ctx.bus.on('phase:change', ({ to }) => { if (MENUS.has(to)) three.setViewMode('solo', 0); });
   ctx.bus.on('respawn', ({ player }) => { rigs[player].endLaunch(); rigs[player].snap(); });
   ctx.bus.on('ledge:grab', ({ player }) => rigs[player].endLaunch());
@@ -88,18 +91,19 @@ export function installCamera(ctx: Ctx): [CameraRig, CameraRig] {
     const fov = three.viewMode === 'split' ? RTVIEW.fovScinde : RTVIEW.fovSolo;
     for (const r of rigs) r.update(real, fov); // les 2, même en solo : forwardOf sert aussi à l'IA
 
+    refreshAcc += real;
+    if (refreshAcc >= RTVIEW.occlusion.relectureS) { refreshAcc = 0; refreshOccluders(three.scene); }
     rayAcc += real;
     if (rayAcc >= 1 / RTVIEW.raycastHz) {
       rayAcc = 0;
-      const decor = decorRoots(three.scene);
       for (const p of [0, 1] as const) {
         const s = ctx.state.players[p].pos;
         chests[p].set(s[0], s[1] + RTVIEW.cibleHauteur, s[2]);
       }
       for (const p of [0, 1] as const) {
         if (!three.viewOf(p).visible) { clearOcclusion(p); continue; }
-        raycastOcclusion(p, decor, rigs[p].camera, chests);
-        rigs[p].probe(decor);
+        raycastOcclusion(p, rigs[p].camera, chests);
+        rigs[p].probe();
       }
     }
     stepOcclusion(real);

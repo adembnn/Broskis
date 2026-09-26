@@ -19,7 +19,8 @@ export const RTVIEW = {
   collision: { marge: 0.4, distanceMin: 2.2, rentre: 0.08, ressort: 0.35 }, // m, m, s, s
   cibleHauteur: 1.2,      // m : hauteur du torse visé par l'occlusion
   raycastHz: 15,          // occlusion + collision : rayons 15 fois par seconde, pas à chaque image
-  occlusion: { opacite: 0.15, fonduMs: 200 },
+  // rayonMin/Max (m) : taille des objets testés (boîtes) ; ni cailloux, ni sol/coque/ciel ; liste relue toutes les 2 s
+  occlusion: { opacite: 0.15, fonduMs: 200, rayonMin: 0.25, rayonMax: 7, relectureS: 2 },
   // Effets par vue (Smash) : jamais un plan partagé, la caméra reste sur SON joueur (règle d'Adem).
   koZoom: { fov: -12, focus: 0.75, retour: 0.35 },          // deg (négatif = zoom), 0..1, s
   ejection: { duree: 1.4, recul: 2.2, hauteur: 1.2, focus: 0.55, vitesseMin: 6 }, // s, m, m, 0..1, m/s

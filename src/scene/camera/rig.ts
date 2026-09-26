@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { juice } from '../../art/tokens.js';
 import type { Ctx, PlayerId, Vec3 } from '../../core/types';
 import { angleDelta, expFollow } from '../mathUtils';
+import { cameraInsideDecor } from './occlusion';
 import { createCameraShake, type CameraShake } from './shake';
 import { RTVIEW } from './tokens';
 
@@ -14,8 +15,6 @@ const _want = new THREE.Vector3();
 const _chest = new THREE.Vector3();
 const _look = new THREE.Vector3();
 const _opp = new THREE.Vector3();
-const _dir = new THREE.Vector3();
-const _ray = new THREE.Raycaster();
 
 export class CameraRig {
   readonly player: PlayerId;
@@ -98,37 +97,17 @@ export class CameraRig {
   }
 
   /**
-   * Collision caméra ↔ décor (15 Hz). Elle ne rentre que si la caméra finirait DANS un objet : un rayon retour
-   * (caméra → torse) qui touche le même objet prouve qu'elle est dehors, et l'occlusion suffit alors (rentrer
-   * derrière chaque plateforme collerait la caméra au perso). Mesuré : `hex_grass` derrière P1 → recul à 34 %.
+   * Collision caméra ↔ décor (15 Hz). Elle ne rentre que si la caméra finirait DANS un objet du décor ; sinon
+   * l'occlusion suffit (rentrer derrière chaque plateforme collait la caméra au perso : `hex_grass` derrière
+   * P1 → recul à 34 %, mesuré).
    */
-  probe(decor: THREE.Object3D[]): void {
+  probe(): void {
     _chest.set(this.anchor.x, this.anchor.y + RTVIEW.cibleHauteur, this.anchor.z);
     this.wanted(_want);
-    _dir.copy(_want).sub(_chest);
-    const len = _dir.length();
-    this.reachWant = 1;
-    this.lastHit = null;
-    if (len < 0.5) return;
-    _dir.divideScalar(len);
-    _ray.camera = this.camera; // exigé par THREE.Sprite.raycast
-    _ray.set(_chest, _dir);
-    _ray.near = 0.3;
-    _ray.far = len;
-    let first: THREE.Intersection | null = null;
-    for (const hit of _ray.intersectObjects(decor, true)) {
-      const m = hit.object as THREE.Mesh;
-      if (!m.isMesh || (m.material as THREE.Material & { transparent?: boolean }).transparent) continue;
-      first = hit;
-      break;
-    }
-    if (!first) return;
-    _ray.set(_want, _dir.negate());
-    _ray.near = 0;
-    _ray.far = len - 0.3;
-    if (_ray.intersectObject(first.object, false).length > 0) return; // caméra dehors : l'occlusion s'en charge
-    this.reachWant = Math.max(RTVIEW.collision.distanceMin / RTVIEW.distance, (first.distance - RTVIEW.collision.marge) / len);
-    this.lastHit = `${first.object.name || first.object.type} à ${first.distance.toFixed(2)} m`;
+    const len = _want.distanceTo(_chest);
+    const d = len < 0.5 ? null : cameraInsideDecor(_chest, _want);
+    this.reachWant = d == null ? 1 : Math.max(RTVIEW.collision.distanceMin / RTVIEW.distance, (d - RTVIEW.collision.marge) / len);
+    this.lastHit = d == null ? null : `décor à ${d.toFixed(2)} m`;
   }
 
   update(real: number, baseFov: number): void {
