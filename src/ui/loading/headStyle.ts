@@ -36,7 +36,7 @@ function css(): string {
 .lwait.has-3d .lwait-sheet.on { animation:none; clip-path:inset(0 0 0 0); transform:translate(34%, 44%) scale(.36) rotate(4deg);
   transition:transform ${durees.glisse}ms ${ui.courbes.sortie}; }
 .lwait-3d { position:absolute; inset:-10px -18px 0; width:calc(100% + 36px); height:calc(100% + 10px); display:block; }
-.lwait-stamp { position:absolute; left:50%; top:58%; padding:4px 16px 6px; font:400 44px/1 ${polices.titre}; color:${ui.vinyle};
+.lwait-stamp { position:absolute; left:50%; top:86%; padding:3px 14px 5px; font:400 34px/1 ${polices.titre}; color:${ui.vinyle};
   background:${ui.alerte}; -webkit-text-stroke:${ui.contourTexte.petit}px ${ui.encre}; paint-order:stroke fill;
   border:${ui.trait}px solid ${ui.encre}; border-radius:${ui.rayon}px; box-shadow:0 ${ui.epaisseur}px 0 ${ui.encre};
   transform:translate(-50%, -50%) rotate(-8deg) scale(1.9); opacity:0; pointer-events:none; }
@@ -58,13 +58,16 @@ function css(): string {
 @keyframes lwaitCheck { from { transform:scale(1.8); } }
 .lwait-steps li.fail i { background:${ui.alerte}; }
 .lwait-steps li.fail i::after { content:'!'; position:absolute; inset:0; display:grid; place-items:center; font:400 13px/1 ${polices.titre}; }
-.lwait-clock { margin-left:auto; font:400 16px/1 ${polices.titre}; opacity:.8; font-variant-numeric:tabular-nums; }
+.lwait-clock { flex:none; margin-left:auto; font:400 16px/1 ${polices.titre}; opacity:.8; font-variant-numeric:tabular-nums; white-space:nowrap; }
 .fighter-panel.p2 .lwait-clock { margin-left:0; margin-right:auto; }
-.lwait-read { display:flex; flex-wrap:wrap; align-items:center; gap:8px; min-height:34px; padding-left:29px; }
-.fighter-panel.p2 .lwait-read { flex-direction:row-reverse; padding-left:0; padding-right:29px; }
-.lwait-nick { margin:0; font:400 clamp(24px, 3.4vh, 34px)/1 ${polices.titre}; color:${ui.vinyle};
+.lwait-read { display:grid; justify-items:start; gap:5px; min-height:34px; padding-left:29px; }
+.fighter-panel.p2 .lwait-read { justify-items:end; padding-left:0; padding-right:29px; }
+.lwait-read:not(:has(.lwait-swatch, .lwait-tag)) .lwait-puces { display:none; }
+.lwait-puces { display:flex; flex-wrap:wrap; align-items:center; gap:7px; }
+.fighter-panel.p2 .lwait-puces { flex-direction:row-reverse; }
+.lwait-nick { margin:0; min-height:1em; font:400 clamp(24px, 3.4vh, 34px)/1 ${polices.titre}; color:${ui.vinyle};
   -webkit-text-stroke:${ui.contourTexte.petit}px ${ui.encre}; paint-order:stroke fill; overflow-wrap:anywhere; }
-.lwait-swatch { width:22px; height:22px; border-radius:50%; border:${ui.trait}px solid ${ui.encre}; box-shadow:0 0 0 ${ui.lisere}px ${ui.vinyle};
+.lwait-swatch { width:18px; height:18px; border-radius:50%; border:${ui.trait}px solid ${ui.encre}; box-shadow:0 0 0 ${ui.lisere}px ${ui.vinyle};
   animation:lwaitPop ${durees.glisse}ms ${ui.courbes.claque} both; }
 @keyframes lwaitPop { from { transform:scale(0); } }
 .lwait-tag { padding:3px 9px; font:800 13px/1 ${polices.texte}; text-transform:uppercase; background:${ui.vinyle};

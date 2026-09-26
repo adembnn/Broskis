@@ -47,6 +47,29 @@ const CRAYON = `<svg viewBox="0 0 60 60" aria-hidden="true"><g transform="rotate
   <path d="M24 40 L30 54 L36 40 Z" fill="${ui.papier}"/>
   <path d="M28 49 L30 54 L32 49 Z" fill="${ui.encre}" stroke="none"/></g></svg>`;
 
+/** Planche Nano Banana → aperçu léger au fond magenta retiré (même règle que src/ia/fighter), en quelques ms : le
+ * dessin se dévoile dès son arrivée, sans attendre le détourage complet ni la découpe face / dos. */
+async function apercuPlanche(url: string): Promise<string> {
+  const img = new Image();
+  img.src = url;
+  await img.decode();
+  const k = Math.min(1, 480 / Math.max(1, img.naturalWidth));
+  const w = Math.max(1, Math.round(img.naturalWidth * k));
+  const h = Math.max(1, Math.round(img.naturalHeight * k));
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  const g = c.getContext('2d', { willReadFrequently: true })!;
+  g.drawImage(img, 0, 0, w, h);
+  const d = g.getImageData(0, 0, w, h);
+  const p = d.data;
+  for (let i = 0; i < p.length; i += 4) {
+    if (p[i] > 150 && p[i + 2] > 150 && p[i + 1] < 110 && Math.abs(p[i] - p[i + 2]) < 90) p[i + 3] = 0;
+  }
+  g.putImageData(d, 0, 0);
+  return c.toDataURL('image/png');
+}
+
 export function mountHeadForge(opts: { photoUrl: string; player: PlayerId }): HeadForge {
   injectLoadingStyles();
   injectHeadStyles();
@@ -73,7 +96,9 @@ export function mountHeadForge(opts: { photoUrl: string; player: PlayerId }): He
   read.className = 'lwait-read';
   const nick = document.createElement('p');
   nick.className = 'lwait-nick';
-  read.append(nick);
+  const puces = document.createElement('div');
+  puces.className = 'lwait-puces';
+  read.append(nick, puces);
   li('face').after(read);
   const nickTw = typewriter(nick);
   const failBox = root.querySelector<HTMLDivElement>('.lwait-fail')!;
@@ -95,6 +120,7 @@ export function mountHeadForge(opts: { photoUrl: string; player: PlayerId }): He
   }, 100);
 
   let disposed = false;
+  let planche = '';
   let preview: HeadPreview | null = null;
   const couleurs = new Set<string>();
   let accessoire = '';
@@ -104,7 +130,7 @@ export function mountHeadForge(opts: { photoUrl: string; player: PlayerId }): He
     const s = document.createElement('span');
     s.className = 'lwait-swatch';
     s.style.background = c;
-    read.append(s);
+    puces.append(s);
   };
 
   const api: HeadForge = {
@@ -119,7 +145,7 @@ export function mountHeadForge(opts: { photoUrl: string; player: PlayerId }): He
         const tag = document.createElement('span');
         tag.className = 'lwait-tag';
         tag.textContent = a.accessory;
-        read.append(tag);
+        puces.append(tag);
       }
     },
     text(f) {
@@ -132,13 +158,16 @@ export function mountHeadForge(opts: { photoUrl: string; player: PlayerId }): He
       peindre();
     },
     sheet(url) {
-      if (disposed || !url || root.classList.contains('has-sheet')) return;
-      void detourSticker(url).then((src) => {
-        if (disposed) return;
-        sheetImg.src = src ?? url;
-        root.classList.add('has-sheet');
-        requestAnimationFrame(() => sheetImg.classList.add('on'));
-      });
+      if (disposed || !url || planche) return;
+      planche = url;
+      void apercuPlanche(url)
+        .catch(() => detourSticker(url))
+        .then((src) => {
+          if (disposed) return;
+          sheetImg.src = src ?? url;
+          root.classList.add('has-sheet');
+          requestAnimationFrame(() => sheetImg.classList.add('on'));
+        });
     },
     async head(f) {
       if (disposed) return false;

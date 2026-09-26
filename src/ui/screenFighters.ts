@@ -198,7 +198,7 @@ export function runFighterSelect(screenLayer: HTMLElement, vsAI = false): Promis
   function render() {
     const who = picks[0] && picks[1] ? null : picking;
     title.replaceChildren();
-    if (who == null) title.append('Fighters ready!');
+    if (who == null) title.append(picks.some(enCuisson) ? 'Drawing your fighters…' : 'Fighters ready!');
     else {
       title.append(el('span', `ptoken p${who + 1}`, `P${who + 1}`), ' choose your fighter');
     }

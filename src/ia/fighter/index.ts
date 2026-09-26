@@ -113,8 +113,9 @@ function modelePour(raw: ScanFighterApiResult): ModelId {
   return 'knight';
 }
 
-/** Le texte arrive vers 3 s : au-delà de ce délai, on n'attend plus que le portrait. */
-const TEXT_TIMEOUT_MS = 12_000;
+/** Le texte arrive vers 3 s ; en flux, il faut au moins 2 allers-retours (lancement, relève) : sur un réseau lent (8 s
+ * par requête, film LE2E) il arrive vers 16 s. Au-delà de ce délai, on n'attend plus que le portrait. */
+const TEXT_TIMEOUT_MS = 25_000;
 
 interface PortraitApiResult { faceUrl?: string; imageReason?: string | null; timings?: { imageMs: number; imageModel?: string } }
 

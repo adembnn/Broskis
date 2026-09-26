@@ -18,7 +18,7 @@ export interface HeadPreview {
 }
 
 /** Caméra (fov en degrés, marge autour du perso), tour complet en s, départ de 3/4 (rad) pour lire le volume. */
-const VUE = { fov: 24, marge: 1.1, tourS: 5, depart: -0.6 };
+const VUE = { fov: 24, marge: 1.04, tourS: 5, depart: -0.6 };
 /** Construction : claque du corps, puis la tête plate qui se gonfle (s depuis l'apparition). */
 const CONSTRUCTION = { corps: durees.glisse / 1000, teteDebut: durees.glisse / 1000, tete: (durees.glisse * 2) / 1000, plat: 0.06 };
 
