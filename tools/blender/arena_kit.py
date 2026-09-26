@@ -529,8 +529,11 @@ def island_colorfn(a, b, depth, top='grass'):
         # --- bois de pont (galion)
         if zone == 'plank':
             grain = noise.noise(Vector((p.x * 0.35, p.y * 4.0, tone * 3.0)))
-            c = mix(PAL['plank'], PAL['plank_l'] if tone > 0 else PAL['plank_d'], abs(tone) * 0.5)
+            c = mix(PAL['plank'], PAL['plank_l'] if tone > 0 else PAL['plank_d'], abs(tone) * 0.8)
             return c * (1.0 + 0.07 * grain)
+        if zone in ('paint_teal', 'paint_cream'):  # peinture délavée par le sel : mêlée au bois du pont
+            base = PAL['paint'] if zone == 'paint_teal' else PAL['beam']
+            return mix(base, PAL['plank'], 0.3) * (1.0 + 0.06 * noise.noise(Vector((p.x * 0.9, p.y * 0.9, 4.0))))
         if zone == 'gap':
             return PAL['gap']
         if zone in ('beam_top', 'beam_chamfer', 'beam_side'):
@@ -861,6 +864,24 @@ def build_ile_lointaine(variant):
 PLAT_DIMS = {'S': (1.6, 1.0), 'M': (2.3, 1.2), 'L': (3.1, 1.4)}  # demi-longueur X, demi-largeur Z (m)
 
 
+def compass_rose(mb, r_long, r_short, r_in, z, segs=32):
+    """Rose des vents peinte (délavée) au centre du pont : 8 pointes à deux tons + un anneau. Le « ring » du galion."""
+    half = math.pi / 8
+    for k in range(8):
+        th = k * math.pi / 4
+        R = r_long if k % 2 == 0 else r_short
+        c = mb.v((0.0, 0.0, z))
+        tip = mb.v((math.cos(th) * R, math.sin(th) * R, z))
+        bl = mb.v((math.cos(th - half) * r_in, math.sin(th - half) * r_in, z))
+        br = mb.v((math.cos(th + half) * r_in, math.sin(th + half) * r_in, z))
+        mb.f((c, bl, tip), 'paint_teal' if k % 2 == 0 else 'paint_cream', 0.0)
+        mb.f((c, tip, br), 'paint_cream' if k % 2 == 0 else 'paint_teal', 0.0)
+    r0, r1 = r_short + 0.35, r_short + 0.62
+    inner = mb.ring([Vector((math.cos(2 * math.pi * i / segs) * r0, math.sin(2 * math.pi * i / segs) * r0, z)) for i in range(segs)])
+    outer = mb.ring([Vector((math.cos(2 * math.pi * i / segs) * r1, math.sin(2 * math.pi * i / segs) * r1, z)) for i in range(segs)])
+    mb.bridge(inner, outer, 'paint_teal')
+
+
 def build_plateau_pont():
     """Galion : pont ovale en lames délavées, liseré de poutres blanchies par le sel, coque à clins sous le pont."""
     a, b = 13.5, 10.0  # pivot temps réel : 27 x 20 m
@@ -872,6 +893,7 @@ def build_plateau_pont():
                          rim={'width': 0.55, 'len': 1.9, 'top': 0.07, 'bot': -0.24, 'chamfer': 0.05, 'style': 'beam', 'gap': 0.03},
                          tip=(0.0, 0.0), seed=2.7, jr=0.02, jz=0.0, earth=0.32, ledge_in=0.07, ledge_frac=0.0,
                          ledge_h=0.07, chamfer_in=0.1, top_kw={'width': 0.5, 'gap': 0.04})
+    compass_rose(mb, 3.6, 2.1, 0.55, 0.012)
     meta = {'role': 'plateau', 'variante': 'planches de pont', 'map': 'galion',
             'surface': {'forme': 'superellipse', 'demiX': a, 'demiZ': b, 'exposant': 2.2, 'y': 0.0, 'liseré': 0.5,
                         'contour': contour_three(ol)},

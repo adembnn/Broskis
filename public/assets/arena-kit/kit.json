@@ -1,6 +1,6 @@
 {
  "lot": "LKIT",
- "genere": "2026-09-26T13:26",
+ "genere": "2026-09-26T13:32",
  "unites": "mètres, Y vers le haut ; ancre = centre du dessus marchable à y = 0 (sauf mention « ancre » dans la pièce)",
  "chargement": "GLTFLoader.setMeshoptDecoder(MeshoptDecoder) (EXT_meshopt_compression + KHR_mesh_quantization, déjà géré par src/scene/maps/loader.ts)",
  "matiere": {
@@ -709,9 +709,9 @@
      20.078
     ]
    },
-   "trianglesSource": 2674,
-   "triangles": 2674,
-   "ko": 39.1
+   "trianglesSource": 2754,
+   "triangles": 2754,
+   "ko": 39.7
   },
   {
    "role": "plateforme",
