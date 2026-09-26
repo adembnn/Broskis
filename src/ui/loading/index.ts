@@ -10,7 +10,12 @@
 //       des données, sticker qui claque à son arrivée. forge.root à poser où l'on veut.
 //   typewriter(el).set(texteConnuJusquIci)   texte qui s'écrit au fil de l'eau (flux : continue au lieu de recommencer)
 //   mountTips(el) / nextTip()         astuces de jeu en anglais qui tournent pendant une attente
+//   mountHeadForge({ photoUrl, player })   (lot LWAIT) attente du snap de la tête dans l'encart du joueur : étapes
+//       réelles (traits → text → sheet → head), perso 3D qui se construit, tampon Ready!, échec avec boutons.
+//   mountHeadPreview(fighter, player)      perso 3D seul ; `ready` = grosse tête posée ET dessinée.
 export { coverMatchStart } from './match';
+export { mountHeadForge, type HeadForge } from './headForge';
+export { mountHeadPreview, type HeadPreview } from './headPreview';
 export { getCurtain, type Curtain } from './curtain';
 export { mountForgeView, type ForgeView } from './forge';
 export { typewriter, type Typewriter } from './typewriter';

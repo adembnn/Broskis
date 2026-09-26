@@ -1,17 +1,30 @@
 // Choix des 2 combattants façon Smash (lot LUX) : grille de portraits (4 persos + « Snap yourself »), jetons P1/P2
 // posés sur la case choisie, un grand encart par joueur en bas (portrait, nom, réplique, bouton « Use my voice »
 // du lot LW2). Contre l'IA, la machine prend un perso au hasard. Un seul appel à l'action : READY TO FIGHT!
+import { durees } from '../art/tokens.js';
 import type { FighterDef, PlayerId } from '../core/types';
 import { promptVoiceClone } from '../ia/voice';
-import { SCAN_ISSUE_TEXT, prechaufferScanFighter, scanFighterReport, type FighterScanIssue } from '../ia/fighter';
+import { prechaufferScanFighter, scanFighterReport, type FighterScanIssue } from '../ia/fighter';
 import { getRuntimeCtx } from '../ia/runtime';
 import { mountCapture } from './capture';
 import { button, clear, el, menuScreen } from './dom';
 import { mountForge } from './forge';
 import { CAMERA_SVG } from './icons';
+import { mountHeadForge, mountTips, type HeadForge } from './loading';
 import { fighterPortrait } from './portraits';
 import { FIGHTER_PRESETS } from './presets';
 import { mountVitrine, type Vitrine } from '../scene/fighter-custom/vitrine';
+
+/** Lot LWAIT : l'écran attend la tête jusqu'à 30 s, puis c'est le joueur qui décide (Retry ou tête par défaut). */
+const ATTENTE_TETE_MS = 30_000;
+/** Message clair par problème (anglais), et si « Retry » doit reprendre une photo (la même ne marchera pas). */
+const ECHEC: Record<Exclude<FighterScanIssue, null>, [string, boolean]> = {
+  'no-face': ['No face found. Face the camera in good light.', true],
+  blocked: ["This photo can't be drawn. Try another one.", true],
+  timeout: ['Still drawing after 30 s: the AI is slow right now. Keep waiting, or:', false],
+  'no-portrait': ["Your cartoon head didn't come out this time.", false],
+  offline: ["Can't reach the AI. Check the connection.", false],
+};
 
 /** Photo d'une personne (lot LFACE) : capture seule. La forge tourne ensuite dans l'encart du joueur, pendant que
  * l'autre joueur fait déjà son scan. */
@@ -86,7 +99,11 @@ export function runFighterSelect(screenLayer: HTMLElement, vsAI = false): Promis
   // Vitrine 3D (lot LFACE) : les 2 persos côte à côte à la place de la grille dès qu'un perso photo est prêt.
   const stage = el('div', 'fighter-stage');
   stage.hidden = true;
-  card.append(head, grid, side, stage, panels, foot);
+  // Lot LWAIT : une astuce de jeu tourne sous les encarts tant qu'une tête se prépare.
+  const tip = el('p', 'lwait-tip');
+  tip.hidden = true;
+  let tipStop: (() => void) | null = null;
+  card.append(head, grid, side, stage, panels, tip, foot);
   screenLayer.append(root);
 
   const picks: [FighterDef | null, FighterDef | null] = [null, null];
@@ -94,10 +111,13 @@ export function runFighterSelect(screenLayer: HTMLElement, vsAI = false): Promis
   const human = (p: PlayerId) => !(vsAI && p === 1);
   const tiles = new Map<string, HTMLDivElement>();
   const voiceReady: [boolean, boolean] = [false, false];
-  const scanIssues: [FighterScanIssue, FighterScanIssue] = [null, null];
   const scanned = new Set<string>(); // persos issus d'une photo : nom modifiable
-  const pending = new Set<string>(); // nom et couleurs arrivés (~3 s), portrait encore en cours (~9 s)
+  // Lot LWAIT : perso photo dont la tête n'est pas ENCORE affichée sur le perso 3D (ou joueur qui doit décider).
+  const pending = new Set<string>();
   const enCuisson = (f: FighterDef | null) => isForging(f) || (!!f && pending.has(f.id));
+  // Écran d'attente de la tête, par joueur (il survit aux render() : on le déplace d'un encart à l'autre).
+  const forges: [HeadForge | null, HeadForge | null] = [null, null];
+  const decision: [boolean, boolean] = [false, false]; // échec affiché : le joueur doit choisir
   prechaufferScanFighter();
   let vitrine: Vitrine | null = null;
   let vitrineIds = '';
@@ -126,17 +146,20 @@ export function runFighterSelect(screenLayer: HTMLElement, vsAI = false): Promis
     const f = picks[p];
     const box = el('div', `fighter-panel p${p + 1}${picking === p && !f ? ' picking' : ''}`);
     box.append(el('span', `ptoken p${p + 1}`, human(p) ? `P${p + 1}` : 'AI'));
-    if (isForging(f)) {
+    const forge = forges[p];
+    if (forge) {
+      // Lot LWAIT : étapes réelles, perso 3D, tampon Ready! ; l'encart ne redevient normal qu'après.
+      box.classList.add('lwait-on');
+      box.append(forge.root);
+    } else if (isForging(f)) {
       box.append(mountForge(`Drawing P${p + 1}'s big head…`).root);
     } else if (f) {
-      box.append(pending.has(f.id) ? mountForge(`Drawing ${f.name}'s big head…`).root : fighterPortrait(f, p));
+      box.append(fighterPortrait(f, p));
       const text = el('div', 'fighter-panel-text');
       text.append(scanned.has(f.id) && human(p) ? nameField(f, p) : el('strong', 'fighter-panel-name', f.name));
-      const issue = scanIssues[p];
-      if (issue && scanned.has(f.id)) text.append(el('span', 'fighter-issue', SCAN_ISSUE_TEXT[issue]));
-      else if (f.catchphrase) text.append(el('span', 'fighter-quote', `"${f.catchphrase}"`));
+      if (f.catchphrase) text.append(el('span', 'fighter-quote', `"${f.catchphrase}"`));
       box.append(text);
-      if (scanned.has(f.id) && human(p)) box.append(button(issue ? 'Retry' : 'New photo', 'b-btn small alt', () => void snapFor(p)));
+      if (scanned.has(f.id) && human(p)) box.append(button('New photo', 'b-btn small alt', () => void snapFor(p)));
       if (human(p)) {
         if (voiceReady[p]) box.append(el('span', 'voice-badge', 'Voice ready'));
         else
@@ -193,6 +216,19 @@ export function runFighterSelect(screenLayer: HTMLElement, vsAI = false): Promis
     }
     panels.replaceChildren(panel(0), panel(1));
     ready.disabled = !(picks[0] && picks[1]) || picks.some(enCuisson);
+    // Lot LWAIT : le bouton dit ce qu'on attend (on ne part jamais sans sa tête).
+    const attendus = ([0, 1] as PlayerId[]).filter((k) => enCuisson(picks[k]));
+    const hesite = attendus.find((k) => decision[k]);
+    ready.textContent =
+      hesite != null ? `P${hesite + 1}: retry or use a default head`
+      : attendus.length === 2 ? 'Waiting for both heads…'
+      : attendus.length === 1 ? `Waiting for P${attendus[0] + 1}'s head…`
+      : 'Ready to fight!';
+    ready.classList.toggle('lwait-wait', attendus.length > 0);
+    const cuisson = forges.some(Boolean);
+    tip.hidden = !cuisson;
+    if (cuisson && !tipStop) tipStop = mountTips(tip);
+    else if (!cuisson && tipStop) { tipStop(); tipStop = null; }
     const montrer = !!(picks[0] && picks[1]) && !picks.some(enCuisson) && picks.some((f) => !!f && scanned.has(f.id)) && !regrid;
     const ids = montrer ? `${picks[0]!.id}|${picks[1]!.id}` : '';
     if (ids !== vitrineIds) {
@@ -231,8 +267,8 @@ export function runFighterSelect(screenLayer: HTMLElement, vsAI = false): Promis
   const icon = el('div', 'snap-icon');
   icon.innerHTML = CAMERA_SVG;
   snap.append(icon, el('span', 'fighter-tile-name', 'Snap yourself'), el('span', 'fighter-tokens'));
-  /** Photo du joueur p, puis forge dans SON encart : le tour passe tout de suite à l'autre joueur (2 scans en
-   * parallèle). À l'arrivée, le perso photo remplace la forge, sauf si le joueur a choisi autre chose entre-temps. */
+  /** Photo du joueur p, puis son écran d'attente dans SON encart : le tour passe tout de suite à l'autre joueur (2 scans
+   * en parallèle). */
   async function snapFor(p: PlayerId): Promise<void> {
     grid.hidden = true;
     side.hidden = false;
@@ -241,41 +277,125 @@ export function runFighterSelect(screenLayer: HTMLElement, vsAI = false): Promis
     grid.hidden = false;
     clear(side);
     if (!blob) return;
+    void lancerScan(p, blob);
+  }
+
+  /** Lot LWAIT : chaque étape RÉELLE du scan avance l'écran d'attente ; le perso n'est « prêt » que quand sa grosse tête
+   * est affichée sur le perso 3D. Échec ou 30 s sans tête : le joueur choisit (Retry ou tête par défaut) ; une tête
+   * qui arrive pendant qu'il hésite est prise tout de suite. */
+  async function lancerScan(p: PlayerId, blob: Blob): Promise<void> {
+    forges[p]?.dispose();
+    decision[p] = false;
+    const forge = mountHeadForge({ photoUrl: URL.createObjectURL(blob), player: p });
+    forges[p] = forge;
+    getRuntimeCtx()?.bus.emit('ui:click', { kind: 'shutter' }); // le déclic de l'appareil
     const forging: FighterDef = { id: `${FORGING}${p}-${Date.now()}`, name: 'Forging…', model: 'knight', hpMax: 100, power: 3, agility: 3 };
+    let courant: FighterDef = forging;
+    let report: Awaited<ReturnType<typeof scanFighterReport>> | null = null;
     tiles.set(forging.id, snap);
     picking = p;
     choose(forging);
-    const report = await scanFighterReport(blob, {
-      // Nom, réplique et couleurs d'abord (~3 s) : l'encart les montre pendant que la tête se dessine.
-      onText: (f) => {
-        if (picks[p] !== forging) return;
-        picks[p] = f;
-        pending.add(f.id);
-        scanned.add(f.id);
-        tiles.delete(forging.id);
-        tiles.set(f.id, snap);
+    const actif = () => forges[p] === forge && picks[p] === courant;
+    /** Le perso de cet essai (texte arrivé, ou tête arrivée sans texte) remplace la forge dans l'état. */
+    const adopter = (f: FighterDef) => {
+      if (!actif() || courant === f) return;
+      tiles.delete(courant.id);
+      pending.delete(courant.id);
+      courant = f;
+      picks[p] = f;
+      pending.add(f.id);
+      scanned.add(f.id);
+      tiles.set(f.id, snap);
+      render();
+    };
+    let teteEnCours = false;
+    const surTete = async (f: FighterDef) => {
+      if (teteEnCours) return;
+      teteEnCours = true;
+      adopter(f);
+      if (!actif()) return;
+      decision[p] = false;
+      forge.clearFail();
+      render();
+      const ok = await forge.head(f);
+      if (!actif()) return;
+      if (ok === false) {
+        teteEnCours = false;
+        echec("Your head didn't stick to the body.", false);
+        return;
+      }
+      // Tête affichée sur le perso 3D (ou, sans WebGL ici, en 2D) : on peut partir. Le tampon reste un instant.
+      pending.delete(f.id);
+      render();
+      window.setTimeout(() => {
+        if (forges[p] !== forge) return;
+        forge.dispose();
+        forges[p] = null;
         render();
+      }, durees.bandeau + durees.glisse);
+    };
+    /** Échec : message clair et 2 choix ; rien ne part tout seul. */
+    const echec = (message: string, nouvellePhoto: boolean) => {
+      if (!actif()) return;
+      decision[p] = true;
+      forge.fail(message, [
+        [nouvellePhoto ? 'New photo' : 'Retry', () => (nouvellePhoto ? void snapFor(p) : void lancerScan(p, blob))],
+        ['Use a default head', () => teteParDefaut()],
+      ]);
+      render();
+    };
+    /** Le perso sans grosse tête (tête KayKit) ; une copie, pour qu'une tête tardive ne le change plus. */
+    const teteParDefaut = () => {
+      if (!actif()) return;
+      const base = courant === forging ? report?.fighter ?? courant : courant;
+      const f: FighterDef = {
+        ...base,
+        id: `${base.id}-default`,
+        portraitUrl: undefined,
+        look: base.look ? { ...base.look, faceUrl: undefined, backUrl: undefined } : undefined,
+      };
+      forge.dispose();
+      forges[p] = null;
+      decision[p] = false;
+      tiles.delete(courant.id);
+      pending.delete(courant.id);
+      courant = f;
+      picks[p] = f;
+      scanned.add(f.id);
+      tiles.set(f.id, snap);
+      render();
+    };
+    report = await scanFighterReport(blob, {
+      attenteMs: ATTENTE_TETE_MS,
+      onProgress: (e) => {
+        if (!actif()) return;
+        if (e.step === 'traits') forge.traits(e.preview);
+        else if (e.step === 'text') {
+          adopter(e.fighter);
+          forge.text(e.fighter);
+        } else if (e.step === 'sheet') forge.sheet(e.url);
+        else void surTete(e.fighter);
       },
     });
-    tiles.delete(forging.id);
-    pending.delete(report.fighter.id);
-    if (picks[p] !== forging && picks[p] !== report.fighter) return; // le joueur a choisi autre chose entre-temps
-    picks[p] = report.fighter;
-    scanIssues[p] = report.issue;
-    scanned.add(report.fighter.id);
-    tiles.set(report.fighter.id, snap);
-    render();
+    if (!actif() || teteEnCours) return;
+    if (!report.issue) {
+      // Même photo déjà réussie (cache) : aucune étape n'est passée, on construit directement.
+      forge.text(report.fighter);
+      void surTete(report.fighter);
+      return;
+    }
+    const [message, nouvellePhoto] = ECHEC[report.issue];
+    echec(message, nouvellePhoto);
   }
 
   snap.addEventListener('click', () => void snapFor(picking));
   grid.append(snap);
   render();
 
-  // Lot LE2E : portrait arrivé après le délai (réseau lent) → le message d'échec disparaît, encart et vitrine le montrent.
+  // Lot LE2E : portrait arrivé après le délai sur un perso choisi → encart et vitrine le montrent.
   const offPortrait = getRuntimeCtx()?.bus.on('fighter:portrait', ({ fighterId }) => {
     const p = ([0, 1] as PlayerId[]).find((k) => picks[k]?.id === fighterId);
     if (p == null || !root.isConnected) return;
-    scanIssues[p] = null;
     vitrineIds = '';
     render();
   });
@@ -286,6 +406,8 @@ export function runFighterSelect(screenLayer: HTMLElement, vsAI = false): Promis
       vitrine?.dispose();
       vitrine = null;
       offPortrait?.();
+      for (const f of forges) f?.dispose();
+      tipStop?.();
       resolve([picks[0], picks[1]]);
     });
   });

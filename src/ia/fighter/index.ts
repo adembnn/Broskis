@@ -32,10 +32,31 @@ const PORTRAIT_REQUEST_MS = 75_000;
 
 /** Portrait arrivé après le délai d'écran : complète LE MÊME FighterDef (déjà dans l'état du match) et prévient la scène.
  * La planche est découpée d'abord : la face ET le dos de la tête arrivent ensemble (lot LFACE). */
-function portraitTardif(fighter: FighterDef, planche: string): void {
+function portraitTardif(fighter: FighterDef, planche: string, onProgress?: (e: FighterScanProgress) => void): void {
   void appliquerPortrait(fighter, planche).then(() => {
+    onProgress?.({ step: 'head', fighter });
     getRuntimeCtx()?.bus.emit('fighter:portrait', { fighterId: fighter.id, faceUrl: fighter.portraitUrl ?? planche, backUrl: fighter.look?.backUrl });
   });
+}
+
+/** Lot LWAIT : ce que l'IA a déjà écrit (flux Gemini), champs COMPLETS et nettoyés seulement. */
+export interface FighterTraitsPreview { nickname?: string; catchphrase?: string; hair?: string; outfit?: string[]; accessory?: string; faceFound?: boolean }
+
+/** Étapes réelles d'un scan de visage (lot LWAIT), pour l'écran d'attente, dans l'ordre d'arrivée (texte et dessin
+ * avancent en parallèle) : 'traits' champs du texte au fil de l'eau · 'text' nom, stats et couleurs connus ·
+ * 'sheet' planche face + dos arrivée (fond magenta, pas encore découpée) · 'head' face et dos posés sur le FighterDef. */
+export type FighterScanProgress =
+  | { step: 'traits'; preview: FighterTraitsPreview }
+  | { step: 'text'; fighter: FighterDef }
+  | { step: 'sheet'; url: string }
+  | { step: 'head'; fighter: FighterDef };
+
+export interface FighterScanOptions {
+  onText?: (f: FighterDef) => void;
+  onProgress?: (e: FighterScanProgress) => void;
+  /** Attente maximum du portrait avant de rendre la main avec 'timeout' (défaut 12 s). La requête continue : une tête
+   * tardive arrive encore par 'head' et `fighter:portrait`. L'écran de choix passe 30 s (lot LWAIT). */
+  attenteMs?: number;
 }
 
 interface ScanFighterApiResult {
@@ -55,8 +76,8 @@ interface ScanFighterApiResult {
   timings?: { textMs: number; imageMs: number; imageModel?: string };
 }
 
-/** Ce qui a coincé, pour un message clair à l'écran (null = tout va bien). */
-export type FighterScanIssue = null | 'no-face' | 'no-portrait' | 'blocked' | 'timeout';
+/** Ce qui a coincé, pour un message clair à l'écran (null = tout va bien). 'offline' : aucune réponse du serveur. */
+export type FighterScanIssue = null | 'no-face' | 'no-portrait' | 'blocked' | 'timeout' | 'offline';
 
 export interface FighterScanReport {
   fighter: FighterDef;
@@ -73,6 +94,7 @@ export const SCAN_ISSUE_TEXT: Record<Exclude<FighterScanIssue, null>, string> = 
   'no-portrait': "Your cartoon head didn't come out this time. Try again, or fight as is.",
   blocked: "That photo can't be used. Try another one.",
   timeout: 'Your head is still being drawn: it will pop in during the fight.',
+  offline: "Can't reach the AI. Check the connection, then retry.",
 };
 
 const cache = new Map<string, Promise<FighterScanReport>>();
@@ -115,23 +137,90 @@ function construire(raw: ScanFighterApiResult): FighterDef {
   };
 }
 
-/** Réponse en 2 temps (recherche R3) : nom, stats et couleurs (~3 s, `onText`), puis le portrait (~9 s) qui
- * complète LE MÊME objet FighterDef (look.faceUrl, portraitUrl). */
-async function scanner(base64: string, mimeType: string, resizeMs: number, onText?: (f: FighterDef) => void): Promise<FighterScanReport> {
+const SCAN_URL = '/api/scan-fighter';
+const HEX = /^#[0-9a-f]{6}$/i;
+
+/** Champ texte d'un JSON en cours d'écriture, seulement une fois la chaîne fermée (jamais un début de mot). */
+function champComplet(text: string, key: string): string | undefined {
+  const m = new RegExp(`"${key}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`).exec(text);
+  if (!m) return undefined;
+  try { return JSON.parse(`"${m[1]}"`) as string; } catch { return undefined; }
+}
+
+/** Mêmes bornes que le serveur (api/scan-fighter.ts : traits) : mots bannis retirés, longueur plafonnée. */
+const propre = (s: string | undefined, max: number) => {
+  const t = s?.replace(/\b(epic|legendary)\b/gi, '').replace(/\s{2,}/g, ' ').trim();
+  return t ? t.slice(0, max).trim() : undefined;
+};
+
+/** Aperçu nettoyé du texte partiel : couleurs valides, surnom et réplique complets (lot LWAIT). */
+function apercuTraits(text: string): FighterTraitsPreview | null {
+  const a: FighterTraitsPreview = {};
+  const face = /"faceFound"\s*:\s*(true|false)/.exec(text)?.[1];
+  if (face) a.faceFound = face === 'true';
+  const hair = champComplet(text, 'hairColor')?.trim();
+  if (hair && HEX.test(hair)) a.hair = hair;
+  const outfit = [champComplet(text, 'outfitPrimary'), champComplet(text, 'outfitSecondary')].map((c) => c?.trim()).filter((c): c is string => !!c && HEX.test(c));
+  if (outfit.length) a.outfit = outfit;
+  const acc = champComplet(text, 'accessory');
+  if (acc && acc !== 'none' && /^[a-z]{2,12}$/.test(acc)) a.accessory = acc;
+  const nick = propre(champComplet(text, 'nickname'), 14);
+  if (nick) a.nickname = nick;
+  const cri = propre(champComplet(text, 'catchphrase'), 48);
+  if (cri) a.catchphrase = cri;
+  return Object.keys(a).length ? a : null;
+}
+
+interface ReleveTexte { text: string; done: boolean; result: ScanFighterApiResult | null; error: string | null }
+
+/** Texte (nom, stats, couleurs) AU FIL DE L'EAU (lot LWAIT) : le serveur lance generateContentStream, le navigateur
+ * relève le texte partiel en long polling et chaque champ complet part en aperçu. Serveur sans flux ou tâche perdue :
+ * appel classique avec le temps qui reste. Jamais plus de TEXT_TIMEOUT_MS. */
+async function lireTexte(corps: { imageBase64: string; mimeType: string }, onApercu: (a: FighterTraitsPreview) => void): Promise<ScanFighterApiResult | null> {
+  const fin = performance.now() + TEXT_TIMEOUT_MS;
+  const reste = () => Math.max(500, fin - performance.now());
+  const classique = () => (fin - performance.now() > 1500 ? postJson<ScanFighterApiResult>(SCAN_URL, { ...corps, part: 'text' }, reste()) : Promise.resolve(null));
+  const lance = await postJson<{ jobId?: string } & Partial<ScanFighterApiResult>>(SCAN_URL, { ...corps, part: 'text', stream: true }, reste());
+  if (!lance) return classique();
+  if (!lance.jobId) return lance.nickname ? (lance as ScanFighterApiResult) : classique();
+  let vu = 0;
+  while (performance.now() < fin) {
+    const r = await postJson<ReleveTexte>(SCAN_URL, { jobId: lance.jobId }, reste());
+    if (!r) return classique();
+    if (r.text.length > vu) {
+      vu = r.text.length;
+      const a = apercuTraits(r.text);
+      if (a) onApercu(a);
+    }
+    if (r.done) return r.result;
+  }
+  return null;
+}
+
+/** Réponse en 2 temps (recherche R3) : nom, stats et couleurs (~3 s, `onText`, au fil de l'eau depuis LWAIT), puis le
+ * portrait qui complète LE MÊME objet FighterDef (look.faceUrl, portraitUrl). */
+async function scanner(base64: string, mimeType: string, resizeMs: number, opts: FighterScanOptions): Promise<FighterScanReport> {
   const t0 = performance.now();
   const corps = { imageBase64: base64, mimeType };
-  const portraitP = postJson<PortraitApiResult>('/api/scan-fighter', { ...corps, part: 'portrait' }, PORTRAIT_REQUEST_MS);
-  const raw = await postJson<ScanFighterApiResult>('/api/scan-fighter', { ...corps, part: 'text' }, TEXT_TIMEOUT_MS);
+  const progres = (e: FighterScanProgress) => { try { opts.onProgress?.(e); } catch (err) { console.error('[scanFighter] progress', err); } };
+  const portraitP = postJson<PortraitApiResult>(SCAN_URL, { ...corps, part: 'portrait' }, PORTRAIT_REQUEST_MS);
+  // Planche arrivée (même en retard) : l'écran d'attente la dévoile tout de suite, avant la découpe.
+  void portraitP.then((p) => { if (p?.faceUrl) progres({ step: 'sheet', url: p.faceUrl }); });
+  const raw = await lireTexte(corps, (preview) => progres({ step: 'traits', preview }));
   const textMs = Math.round(performance.now() - t0);
   let fighter: FighterDef | null = raw && raw.faceFound !== false ? construire(raw) : null;
-  if (fighter) onText?.(fighter);
-  // L'écran n'attend pas plus que le délai joueur ; la requête, elle, continue (portrait tardif ci-dessous).
+  if (fighter) {
+    opts.onText?.(fighter);
+    progres({ step: 'text', fighter });
+  }
+  // L'écran n'attend pas plus que le délai demandé ; la requête, elle, continue (portrait tardif ci-dessous).
+  const attente = opts.attenteMs ?? SCAN_FIGHTER_TIMEOUT_MS;
   let enRetard = false;
-  const delai = new Promise<null>((r) => setTimeout(() => { enRetard = true; r(null); }, Math.max(0, SCAN_FIGHTER_TIMEOUT_MS - (performance.now() - t0))));
+  const delai = new Promise<null>((r) => setTimeout(() => { enRetard = true; r(null); }, Math.max(0, attente - (performance.now() - t0))));
   const portrait = await Promise.race([portraitP, delai]);
   if (!portrait && enRetard && fighter) {
     const f = fighter;
-    void portraitP.then((tard) => { if (tard?.faceUrl) portraitTardif(f, tard.faceUrl); });
+    void portraitP.then((tard) => { if (tard?.faceUrl) portraitTardif(f, tard.faceUrl, opts.onProgress); });
   }
   const total = Math.round(performance.now() - t0);
   const ms = { resize: resizeMs, total, text: textMs, image: portrait?.timings?.imageMs };
@@ -139,11 +228,12 @@ async function scanner(base64: string, mimeType: string, resizeMs: number, onTex
   if (!fighter && raw && faceUrl) fighter = construire(raw); // « pas de visage » selon Gemini, mais un portrait quand même
   if (!fighter && faceUrl) fighter = { ...FALLBACK_FIGHTER, id: makeId(), look: { primary: '#3b6fd8', secondary: '#2b2b2b' } };
   if (!fighter) {
-    const issue: FighterScanIssue = raw?.faceFound === false ? 'no-face' : total >= SCAN_FIGHTER_TIMEOUT_MS - 50 ? 'timeout' : 'no-portrait';
+    const issue: FighterScanIssue = raw?.faceFound === false ? 'no-face' : !raw && !portrait && !enRetard ? 'offline' : total >= attente - 50 ? 'timeout' : 'no-portrait';
     return { fighter: FALLBACK_FIGHTER, issue, ms };
   }
   if (faceUrl) {
     await appliquerPortrait(fighter, faceUrl);
+    progres({ step: 'head', fighter });
     return { fighter, issue: null, ms, portraitModel: portrait?.timings?.imageModel };
   }
   const reason = portrait?.imageReason;
@@ -240,8 +330,9 @@ export function prechaufferScanFighter(): void {
 }
 
 /** Photo → combattant avec le compte rendu (problème éventuel, temps mesurés). Ne rejette jamais.
- * `onText` : appelé dès que le nom et les couleurs sont connus, avant le portrait. */
-export async function scanFighterReport(image: Blob | string, opts: { onText?: (f: FighterDef) => void } = {}): Promise<FighterScanReport> {
+ * `onText` : appelé dès que le nom et les couleurs sont connus, avant le portrait. `onProgress` : toutes les étapes
+ * réelles (lot LWAIT). Même photo déjà réussie : réponse du cache, sans étapes. */
+export async function scanFighterReport(image: Blob | string, opts: FighterScanOptions = {}): Promise<FighterScanReport> {
   if (typeof image === 'string' && !isDataUrl(image)) return { fighter: FALLBACK_FIGHTER, issue: 'no-face', ms: { resize: 0, total: 0 } };
   try {
     const t0 = performance.now();
@@ -250,7 +341,7 @@ export async function scanFighterReport(image: Blob | string, opts: { onText?: (
     const cle = empreinte(base64);
     let p = cache.get(cle);
     if (!p) {
-      p = scanner(base64, mimeType, resize, opts.onText);
+      p = scanner(base64, mimeType, resize, opts);
       cache.set(cle, p);
       // Un échec ne reste pas en cache : « Retry » avec la même photo relance vraiment l'IA.
       void p.then((r) => { if (r.issue) cache.delete(cle); });

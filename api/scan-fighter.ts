@@ -14,6 +14,9 @@ interface ScanFighterRequest {
   /** Réponse en 2 temps (recherche R3) : 'text' (nom, stats, couleurs, ~3 s) et 'portrait' (~9 s) appelés en
    * parallèle par le client ; sans `part`, les deux dans une seule réponse (ancien contrat). */
   part?: 'text' | 'portrait';
+  /** Lot LWAIT : avec part 'text', réponse immédiate { jobId }, puis relève du texte partiel avec { jobId }. */
+  stream?: boolean;
+  jobId?: string;
 }
 
 const RESPONSE_SCHEMA = {
@@ -40,6 +43,9 @@ const RESPONSE_SCHEMA = {
     catchphrase: { type: Type.STRING, description: 'A funny battle cry, max 6 words (English).' },
   },
   required: ['faceFound', 'nickname', 'hairColor', 'skinColor', 'hairStyle', 'outfitPrimary', 'outfitSecondary', 'accessory', 'stats', 'trait', 'catchphrase'],
+  // Lot LWAIT (flux) : ce qu'on observe d'abord (cheveux, accessoire, tenue), PUIS le surnom qui s'en inspire. Sans
+  // cet ordre, Gemini écrit par ordre alphabétique et invente le surnom avant d'avoir regardé la tenue.
+  propertyOrdering: ['faceFound', 'hairColor', 'skinColor', 'hairStyle', 'accessory', 'outfitPrimary', 'outfitSecondary', 'nickname', 'catchphrase', 'stats', 'trait'],
 };
 
 function buildTextPrompt(): string {
@@ -179,7 +185,7 @@ const handler: ApiHandler<ScanFighterRequest> = async ({ body, env }) => {
   let imageMs = 0;
 
   const mime = body.mimeType || mimeType;
-  const appelTraits = () => ai.models.generateContent({
+  const requeteTraits = () => ({
     model: GEMINI_TEXT_MODEL,
     contents: [{ role: 'user', parts: [{ text: buildTextPrompt() }, { inlineData: { mimeType: mime, data } }] }],
     config: {
@@ -188,7 +194,8 @@ const handler: ApiHandler<ScanFighterRequest> = async ({ body, env }) => {
       responseSchema: RESPONSE_SCHEMA,
       abortSignal: serverTimeout(TEXT_TIMEOUT_MS),
     },
-  }).then((r) => traits(JSON.parse(r.text ?? '{}')));
+  });
+  const appelTraits = () => ai.models.generateContent(requeteTraits()).then((r) => traits(JSON.parse(r.text ?? '{}')));
   // Une relance si Gemini répond une erreur (surcharge 503 vue en test à 2 joueurs), jamais après un délai dépassé.
   const lireTraits = () => appelTraits().catch((e) => {
     if (/abort|timeout/i.test(String((e as Error)?.message))) throw e;
@@ -216,6 +223,7 @@ const handler: ApiHandler<ScanFighterRequest> = async ({ body, env }) => {
   };
 
   try {
+    if (body.part === 'text' && body.stream) return ok({ jobId: demarrerFlux(ai, requeteTraits(), lireTraits, t0) });
     if (body.part === 'text') {
       const t = await lireTraits();
       return ok({ ...t, timings: { textMs: Date.now() - t0 } });
@@ -236,4 +244,55 @@ const handler: ApiHandler<ScanFighterRequest> = async ({ body, env }) => {
   }
 };
 
-export default handler;
+// ---------------------------------------------------------------------------
+// Lot LWAIT : texte au fil de l'eau (generateContentStream), même mécanique que api/scan-object.ts (lot LLOAD) : le
+// serveur de dev ne renvoie que des réponses entières, donc le texte partiel reste ici et le navigateur le relève en
+// long polling ({ jobId } : attente jusqu'à 400 ms d'un nouveau morceau). Le résultat final passe par traits(), comme
+// sans flux. Flux coupé : un appel classique (avec sa relance). jobId inconnu → 404, le client repasse en classique.
+// ---------------------------------------------------------------------------
+interface TacheFlux { text: string; done: boolean; result?: unknown; error?: string; startedAt: number }
+const taches = new Map<string, TacheFlux>();
+const TACHE_TTL_MS = 60_000;
+const RELEVE_MS = 400;
+
+function demarrerFlux(ai: GoogleGenAI, requete: Parameters<GoogleGenAI['models']['generateContentStream']>[0], secours: () => Promise<Traits>, t0: number): string {
+  const now = Date.now();
+  for (const [k, j] of taches) if (now - j.startedAt > TACHE_TTL_MS) taches.delete(k);
+  const id = `${now.toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  const tache: TacheFlux = { text: '', done: false, startedAt: now };
+  taches.set(id, tache);
+  void (async () => {
+    try {
+      try {
+        const flux = await ai.models.generateContentStream(requete);
+        for await (const morceau of flux) tache.text += morceau.text ?? '';
+        tache.result = { ...traits(JSON.parse(tache.text || '{}')), timings: { textMs: Date.now() - t0 } };
+      } catch (err) {
+        if (/abort|timeout/i.test(String((err as Error)?.message))) throw err;
+        console.error('[api/scan-fighter] flux, appel classique :', String((err as Error)?.message ?? err).slice(0, 160));
+        tache.result = { ...(await secours()), timings: { textMs: Date.now() - t0 } };
+      }
+    } catch (err) {
+      tache.error = String((err as Error)?.message ?? err).slice(0, 200);
+    } finally {
+      tache.done = true;
+    }
+  })();
+  return id;
+}
+
+async function releverFlux(jobId: string) {
+  const tache = taches.get(jobId);
+  if (!tache) return fail(404, 'unknown job');
+  const vu = tache.text.length;
+  const t0 = Date.now();
+  while (!tache.done && tache.text.length === vu && Date.now() - t0 < RELEVE_MS) await new Promise((r) => setTimeout(r, 25));
+  if (tache.done) taches.delete(jobId);
+  // Le texte partiel n'est qu'un aperçu : le client n'en montre que des champs complets et nettoyés.
+  return ok({ text: tache.text, done: tache.done, result: tache.result ?? null, error: tache.error ?? null });
+}
+
+const avecReleve: ApiHandler<ScanFighterRequest> = async (req) =>
+  typeof req.body?.jobId === 'string' ? releverFlux(req.body.jobId) : handler(req);
+
+export default avecReleve;
