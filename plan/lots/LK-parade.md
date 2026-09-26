@@ -1,4 +1,5 @@
 # Lot LK · Parade avancée : repères, difficulté, combos (validé par Adem)
+> **Obsolète depuis le pivot temps réel (15h25)** pour : parade du défenseur au tour par tour, feintes, rythme « tic tic TAC » ; remplacés par le blocage et l'anneau du projectile entrant. Référence : `plan/PIVOT-TEMPS-REEL.md`.
 Responsable : Adem (sous-agent Sonnet) · Coût : moyen · Dépend de : LG, LA, LU, LV fusionnés
 
 ## Trois règles

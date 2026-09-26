@@ -1,11 +1,11 @@
 // Le mur-bouclier : l'objet scanné grandit en sticker géant à la taille EXACTE du collider du gameplay
 // (largeur = stat b, hauteur = stat a, projectiles.ts), monte du sol avec un rebond et soulève de la poussière.
-// Touché : étincelles + vacillement. Disparaît en se décollant quand son temps est écoulé (temps réel) ou à la
-// revanche.
+// Touché : étincelles + vacillement. Disparaît en se décollant quand son temps est écoulé (RT.shieldLifeS) ou
+// à la revanche.
 import * as THREE from 'three';
 import type { Ctx, PlayerId, Vec3, Weapon } from '../../core/types';
 import { lerp } from '../../gameplay/trajectory';
-import { SHIELD_HEIGHT_MAX, SHIELD_HEIGHT_MIN, SHIELD_WIDTH_MAX, SHIELD_WIDTH_MIN } from '../../gameplay/tuning';
+import { RT, SHIELD_HEIGHT_MAX, SHIELD_HEIGHT_MIN, SHIELD_WIDTH_MAX, SHIELD_WIDTH_MIN } from '../../gameplay/tuning';
 import { excludeFromOcclusion } from '../registry';
 import type { BlastFx } from './blast';
 import { WEAPON_FX } from './tokens';
@@ -27,8 +27,6 @@ interface Wall {
 
 const _l = new THREE.Vector3();
 const _inv = new THREE.Matrix4();
-const REALTIME_LIFE_S = 5; // pivot temps réel : mur de 5 s (plan/PIVOT-TEMPS-REEL.md)
-const TURN_PHASES = new Set(['turn-intro', 'move', 'aim', 'resolve', 'snap-time']);
 
 export function installShields(ctx: Ctx, blast: BlastFx) {
   const root = new THREE.Group();
@@ -43,10 +41,10 @@ export function installShields(ctx: Ctx, blast: BlastFx) {
     const me = ctx.state.players[player].pos;
     const yaw = Math.atan2(pos[0] - me[0], pos[2] - me[2]);
     const base = new THREE.Vector3(pos[0], pos[1] - height / 2, pos[2]);
-    const model = new WeaponModel(weapon);
+    const model = new WeaponModel(weapon, true); // épaisseur fixée par le mur lui-même
     root.add(model.root);
-    const realtime = !TURN_PHASES.has(ctx.state.phase);
-    walls.push({ owner: player, model, base, yaw, width, height, t: 0, wobble: 0, wobbleV: 0, life: realtime ? REALTIME_LIFE_S : Infinity, leaving: 0 });
+    // Durée de vie = celle du collider (RT.shieldLifeS, en temps de jeu comme dans combat.ts).
+    walls.push({ owner: player, model, base, yaw, width, height, t: 0, wobble: 0, wobbleV: 0, life: RT.shieldLifeS, leaving: 0 });
     blast.dust(base, width * 0.6 + 0.6, 18);
     blast.fxAdd.burst(base.clone().setY(base.y + 0.2), { count: 10, color: [weapon.palette[0], weapon.palette[1]], speed: [2, 5], life: [0.3, 0.6], size: [0.1, 0.2], gravity: 8 });
   }

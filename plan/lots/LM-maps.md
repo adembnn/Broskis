@@ -1,4 +1,5 @@
 # Lot LM · Maps et décor dynamique
+> **Obsolète depuis le pivot temps réel (15h25)** pour : dangers de map comptés en tours ; ils passent sur minuterie (20 à 30 s, annoncés 3 s avant). Référence : `plan/PIVOT-TEMPS-REEL.md`.
 Responsable : Adem (sous-agent Sonnet) · Coût : élevé · Dépend de : L0, packs téléchargés (`plan/ASSETS.md`)
 
 ## Tes chemins
