@@ -142,6 +142,10 @@ export interface GameHooks {
   parry(offsetMs?: number): void;
   grabCrate(): void;
   scan(objectKey: string): void;
+  /** Pont de test headless (lot LSCAN-OBJ) : photo (URL/chemin) -> arme, en passant par le VRAI pipeline
+   * réseau (scan-object + sticker), pas par la clé locale de `scan`. Utile aux agents qui veulent vérifier
+   * le parcours complet photo -> carte d'arme sans piloter la webcam. */
+  scanObjectFromUrl?(url: string, opts?: { category?: Category; player?: PlayerId }): Promise<Weapon>;
   skipCamera(): void;
   forcerVictoire(player?: PlayerId): void;
   setSeed(n: number): void;

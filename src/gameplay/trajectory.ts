@@ -5,12 +5,12 @@ import type * as RAPIER from '@dimforge/rapier3d-compat';
 import type { Category, Ctx, PlayerId, Trait, Vec3 } from '../core/types';
 import { getRuntime, otherPlayer } from './runtime';
 import {
-  CATEGORY_TUNING, GRENADE_ARC_GRAVITY, GRENADE_BOUNCE_RESTITUTION, GRENADE_BOUNCES_MAX, GRENADE_BOUNCES_MIN,
-  GRENADE_LIFT_RATIO, GRENADE_RADIUS_MAX, GRENADE_RADIUS_MIN, SHIELD_PLACE_DISTANCE, TRAIT_TUNING,
+  CATEGORY_TUNING, GRENADE_ARC_GRAVITY, GRENADE_LOB_DEG, GRENADE_RADIUS_MAX, GRENADE_RADIUS_MIN, GRENADE_RANGE_MIN,
+  GRENADE_RANGE_SPAN, SHIELD_PLACE_DISTANCE, SHOT_ORIGIN_HEIGHT,
 } from './tuning';
 
 interface TrajectoryWeapon { category: Category; stats: { a: number; b: number; c: number }; trait?: Trait }
-import { add, fromRapier, normalize, toRapier } from './vec3';
+import { add, normalize, toRapier } from './vec3';
 
 export interface TrajectoryResult {
   path: Vec3[];
@@ -34,7 +34,7 @@ function castFrom(ctx: Ctx, shooter: PlayerId, origin: Vec3, dir: Vec3, maxToi: 
   const { RAPIER: R, world } = ctx.physics;
   const shooterCollider = getRuntime().players[shooter].collider ?? undefined;
   const ray = new R.Ray(toRapier(origin), toRapier(dir));
-  return world.castRayAndGetNormal(ray, maxToi, true, undefined, undefined, shooterCollider);
+  return world.castRayAndGetNormal(ray, maxToi, true, undefined, undefined, shooterCollider, undefined, (c) => !c.isSensor());
 }
 
 function hitKind(hit: RAPIER.RayColliderIntersection): { kind: string; player?: PlayerId } {
@@ -57,62 +57,52 @@ function simulateStraight(ctx: Ctx, shooter: PlayerId, weapon: TrajectoryWeapon,
   return { path: [origin, impact], impact, hitPlayer, travelMs, splashRadius: 0, bounces: [] };
 }
 
-/** Grenade : balistique en cloche, rebonds, puis explosion (rayon) au point de repos ou au bout des rebonds. */
-function simulateArc(ctx: Ctx, shooter: PlayerId, weapon: TrajectoryWeapon, origin: Vec3, dir: Vec3, power: number): TrajectoryResult {
-  const tuning = CATEGORY_TUNING.grenade;
-  const speed = tuning.speed * (0.7 + 0.6 * power);
-  const gravity = GRENADE_ARC_GRAVITY;
-  let pos = origin;
-  // Portance ajoutée pour une vraie cloche haute (gravité déjà réduite par rapport au monde physique).
-  let vel: Vec3 = [dir[0] * speed, dir[1] * speed + speed * GRENADE_LIFT_RATIO, dir[2] * speed];
-  const path: Vec3[] = [pos];
-  const bounces: Vec3[] = [];
-  // Trait `bouncy` : quelques rebonds de plus que le tirage de la stat « bounce » (c).
-  let bouncesLeft = Math.round(lerp(GRENADE_BOUNCES_MIN, GRENADE_BOUNCES_MAX, weapon.stats.c))
-    + (weapon.trait === 'bouncy' ? TRAIT_TUNING.bouncy.extraBounces : 0);
-  const dt = 1 / 30;
-  let t = 0;
-  const maxSteps = 240;
-  let traveled = 0;
-  for (let i = 0; i < maxSteps; i++) {
-    vel = [vel[0], vel[1] - gravity * dt, vel[2]];
-    const step: Vec3 = [vel[0] * dt, vel[1] * dt, vel[2] * dt];
-    const stepLen = Math.hypot(step[0], step[1], step[2]);
-    if (stepLen > 0.0001) {
-      const hit = castFrom(ctx, shooter, pos, normalize(step), stepLen);
-      if (hit) {
-        const info = hitKind(hit);
-        const hitPoint = add(pos, normalize(step), hit.timeOfImpact);
-        if (info.kind === 'player' && info.player === otherPlayer(shooter)) {
-          path.push(hitPoint);
-          return finishArc(shooter, hitPoint, path, bounces, t + (hit.timeOfImpact / stepLen) * dt, weapon.stats);
-        }
-        if (bouncesLeft <= 0) {
-          path.push(hitPoint);
-          return finishArc(shooter, hitPoint, path, bounces, t + (hit.timeOfImpact / stepLen) * dt, weapon.stats);
-        }
-        bouncesLeft -= 1;
-        bounces.push(hitPoint);
-        const n = fromRapier(hit.normal ?? { x: 0, y: 1, z: 0 });
-        const vn = vel[0] * n[0] + vel[1] * n[1] + vel[2] * n[2];
-        vel = [
-          (vel[0] - 2 * vn * n[0]) * GRENADE_BOUNCE_RESTITUTION,
-          (vel[1] - 2 * vn * n[1]) * GRENADE_BOUNCE_RESTITUTION,
-          (vel[2] - 2 * vn * n[2]) * GRENADE_BOUNCE_RESTITUTION,
-        ];
-        pos = hitPoint;
-        path.push(pos);
-        t += (hit.timeOfImpact / stepLen) * dt;
-        continue;
-      }
-    }
-    pos = add(pos, step);
-    path.push(pos);
-    t += dt;
-    traveled += stepLen;
-    if (traveled > tuning.maxRange * 2) break;
+/** Grenade (règles v2) : cloche calculée pour RETOMBER SUR LE POINT VISÉ (l'adversaire quand la visée est
+ * calée), explosion au premier contact (sol, mur, joueur). Sans point visé (script par angles), la portée
+ * vient de la charge : GRENADE_RANGE_MIN + charge × GRENADE_RANGE_SPAN mètres dans la direction visée. */
+function simulateArc(ctx: Ctx, shooter: PlayerId, weapon: TrajectoryWeapon, origin: Vec3, dir: Vec3, power: number, aimPoint: Vec3 | null): TrajectoryResult {
+  const g = GRENADE_ARC_GRAVITY;
+  let target: Vec3;
+  if (aimPoint) target = aimPoint;
+  else {
+    const h = Math.hypot(dir[0], dir[2]) || 1;
+    const dist = GRENADE_RANGE_MIN + Math.max(0, Math.min(1, power)) * GRENADE_RANGE_SPAN;
+    target = [origin[0] + (dir[0] / h) * dist, origin[1] - SHOT_ORIGIN_HEIGHT, origin[2] + (dir[2] / h) * dist];
   }
-  return finishArc(shooter, pos, path, bounces, t, weapon.stats);
+  let dx = target[0] - origin[0];
+  let dz = target[2] - origin[2];
+  let D = Math.hypot(dx, dz);
+  const maxRange = CATEGORY_TUNING.grenade.maxRange;
+  if (D > maxRange) { dx *= maxRange / D; dz *= maxRange / D; D = maxRange; }
+  if (D < 0.5) { D = 0.5; dx = dx || 0.5; }
+  const ux = dx / (Math.hypot(dx, dz) || 1), uz = dz / (Math.hypot(dx, dz) || 1);
+  const hDiff = target[1] - origin[1];
+  // v² = g·D² / (2·cos²θ·(D·tanθ − h)) ; on relève l'angle si la cible est trop haute.
+  let theta = (GRENADE_LOB_DEG * Math.PI) / 180;
+  let denom = 2 * Math.cos(theta) ** 2 * (D * Math.tan(theta) - hDiff);
+  if (denom <= 0.1) { theta = (70 * Math.PI) / 180; denom = Math.max(0.1, 2 * Math.cos(theta) ** 2 * (D * Math.tan(theta) - hDiff)); }
+  const speed = Math.sqrt((g * D * D) / denom);
+  let vel: Vec3 = [ux * Math.cos(theta) * speed, Math.sin(theta) * speed, uz * Math.cos(theta) * speed];
+  let pos = origin;
+  const path: Vec3[] = [pos];
+  const step = 1 / 30;
+  let t = 0;
+  for (let i = 0; i < 240; i++) {
+    vel = [vel[0], vel[1] - g * step, vel[2]];
+    const d: Vec3 = [vel[0] * step, vel[1] * step, vel[2] * step];
+    const len = Math.hypot(d[0], d[1], d[2]);
+    const hit = len > 1e-4 ? castFrom(ctx, shooter, pos, normalize(d), len) : null;
+    if (hit) {
+      const hp = add(pos, normalize(d), hit.timeOfImpact);
+      path.push(hp);
+      return finishArc(shooter, hp, path, [], t + (hit.timeOfImpact / len) * step, weapon.stats);
+    }
+    pos = add(pos, d);
+    path.push(pos);
+    t += step;
+    if (pos[1] < origin[1] - 12) break; // tombée dans le vide : explose en bas, loin de tout
+  }
+  return finishArc(shooter, pos, path, [], t, weapon.stats);
 }
 
 function finishArc(shooter: PlayerId, impact: Vec3, path: Vec3[], bounces: Vec3[], t: number, stats: { a: number; b: number; c: number }): TrajectoryResult {
@@ -132,9 +122,10 @@ export function predictTrajectory(
   origin: Vec3,
   dirRaw: Vec3,
   power: number,
+  aimPoint: Vec3 | null = null,
 ): TrajectoryResult {
   const dir = normalize(dirRaw);
   if (weapon.category === 'shield') return simulateShield(origin, dir);
-  if (weapon.category === 'grenade') return simulateArc(ctx, shooter, weapon, origin, dir, power);
+  if (weapon.category === 'grenade') return simulateArc(ctx, shooter, weapon, origin, dir, power, aimPoint);
   return simulateStraight(ctx, shooter, weapon, origin, dir, power);
 }

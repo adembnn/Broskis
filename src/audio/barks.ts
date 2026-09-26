@@ -156,6 +156,18 @@ function makeShaperCurve(amount: number): Float32Array<ArrayBuffer> {
 }
 
 function buildVoiceChain(ctx: AudioContext, destination: AudioNode, withEcho: boolean): VoiceChain {
+  // Combattants : voix Gradium telle quelle, juste un compresseur doux pour tenir le niveau
+  // (retour d'Adem : l'effet stade est réservé à l'animateur).
+  if (!withEcho) {
+    const soft = ctx.createDynamicsCompressor();
+    soft.threshold.value = -18;
+    soft.ratio.value = 3;
+    soft.attack.value = 0.005;
+    soft.release.value = 0.12;
+    soft.connect(destination);
+    return { input: soft, playbackRate: 1 };
+  }
+
   const highpass = ctx.createBiquadFilter();
   highpass.type = 'highpass';
   highpass.frequency.value = 120;
@@ -180,11 +192,6 @@ function buildVoiceChain(ctx: AudioContext, destination: AudioNode, withEcho: bo
   makeupGain.gain.value = 1.35;
 
   highpass.connect(peak).connect(shaper).connect(compressor).connect(makeupGain);
-
-  if (!withEcho) {
-    makeupGain.connect(destination);
-    return { input: highpass, playbackRate: 1.05 };
-  }
 
   // Écho : délai 110 ms, retour 0.22, mélange 0.25 (dry + wet).
   const dry = ctx.createGain();

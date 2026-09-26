@@ -12,7 +12,10 @@
     "video": "node tools/capture.mjs --parcours --demo --video",
     "planche": "node tools/planche.mjs",
     "anim": "node tools/anim/anim-eval.mjs",
-    "dashboard": "node tools/dashboard/server.mjs"
+    "dashboard": "node tools/dashboard/server.mjs",
+    "perf": "node tools/perf/bench.mjs",
+    "demo": "vite build && vite preview --port 4173 --strictPort",
+    "demo:chrome": "node tools/perf/chrome-nvidia.mjs"
   },
   "devDependencies": {
     "@types/three": "^0.186.0",

@@ -5,25 +5,116 @@ import type { Category, FighterDef, Trait, Weapon } from '../core/types';
 
 // ---------- Tour ----------
 export const TURN_BANNER_S = 1;
+/** Règles v2 : 15 s sans rien faire → tir automatique de l'arme 1 à 60 % (le tour ne se bloque jamais). */
 export const TURN_FALLBACK_TIMER_S = 15;
+/** Plafond absolu d'un tour (même en bougeant la souris sans fin) : tir automatique au-delà. */
+export const TURN_HARD_CAP_S = 30;
+export const AUTOFIRE_POWER = 0.6;
 export const SUDDEN_DEATH_TURN = 7;
 export const WEAPON_COOLDOWN_TURNS = 1;
-/** Pause dramatique (temps de jeu) entre le KO et le calcul du vainqueur : laisse le lot LA jouer l'éjection. */
-export const KO_PAUSE_S = 1.8;
+/** « READY? » puis « GO! » 1,2 s plus tard (contrôles bloqués entre les deux). */
+export const READY_GO_S = 1.2;
+/** « GO! » attend le sol de la map (chargement asynchrone), au plus ce temps-là. */
+export const GO_MAX_WAIT_MS = 12000;
+/** Bandeau du tour 1, raccourci : le « GO! » sert déjà de signal de départ. */
+export const FIRST_TURN_BANNER_S = 0.3;
+/** « GAME! » : ralenti de 1 s (temps réel) avant `match:end`. */
+export const GAME_SLOWMO = { factor: 0.3, ms: 1000 };
+/** Attente maximale (temps réel) d'un perso encore en vol avant de passer le tour. */
+export const SETTLE_TIMEOUT_MS = 7000;
 
 // ---------- Déplacement (le budget lui-même est MOVE_BUDGET/JUMP_COST dans core/state.ts) ----------
 export const MOVE_SPEED = 4; // m/s au clavier
 export const JUMP_VELOCITY = 5.6; // m/s, vitesse verticale initiale du saut
+/** 2e saut (gratuit, seulement en l'air) : un peu plus fort, c'est le saut de rattrapage. */
+export const AIR_JUMP_VELOCITY = 6.4;
+export const MAX_JUMPS_PER_TURN = 2;
 export const GRAVITY = 20; // m/s², un peu plus nerveux que la gravité par défaut du monde Rapier
 export const EDGE_RAYCAST_AHEAD = 0.35; // m devant les pieds, dans la direction du pas
 export const EDGE_RAYCAST_DEPTH = 1.35; // m sous les pieds : au-delà, c'est le vide
+/** Bord : on s'arrête et on vacille (`teeter`) ; en insistant ce temps-là, on marche dans le vide. */
+export const TEETER_PUSH_THROUGH_S = 0.45;
+/** Découpe d'un grand déplacement (script) en petits pas, pour s'arrêter pile au bord. */
+export const MOVE_SUBSTEP_M = 0.2;
 export const CHARACTER_RADIUS = 0.4;
 export const CHARACTER_HALF_HEIGHT = 0.5; // capsule : hauteur droite hors les deux demi-sphères
-export const RINGOUT_Y = -5;
+/** Zone d'explosion du bas. Au-dessus du `voidY` des maps (-5) : le moteur de map n'émet pas un 2e `ringout`. */
+export const RINGOUT_Y = -4.5;
 export const CRATE_PICKUP_RADIUS = 1.4;
+
+// ---------- Règles v2 façon Smash (lot LSMASH) : %, vies, bords ouverts ----------
+export const STOCKS_DEFAULT = 2;
+export const STOCKS_DEMO = 1;
+/** Dégâts en % par point de puissance (stat a). */
+export const PCT_PER_POWER = 14;
+/** Bonus du perso : × (1 + (power − 5) × ce facteur). */
+export const FIGHTER_POWER_PCT_FACTOR = 0.04;
+/** Charge : dégâts × (CHARGE_DAMAGE_MIN + CHARGE_DAMAGE_SPAN × charge). */
+export const CHARGE_DAMAGE_MIN = 0.85;
+export const CHARGE_DAMAGE_SPAN = 0.3;
+/** La rafale entière du blaster vaut environ ce multiple d'un coup, répartie sur ses tirs. */
+export const BLASTER_BURST_DAMAGE_RATIO = 1.1;
+export const THROWABLE_DAMAGE_MULT = 1.1;
+export const CRIT_CHANCE_V2 = 0.1;
+export const CRIT_MULT_V2 = 1.35;
+export const NICE_DAMAGE_MULT = 1.25;
+/** Plafond d'un seul coup (hors BRO SMASH et mort subite). */
+export const MAX_PCT_PER_HIT = 50;
+/** Recul (formule Smash simplifiée) : vitesse = (base_arme + charge × k1) × (1 + %après/100 × k2). */
+export const LAUNCH_K1 = 0.4;
+export const LAUNCH_K2 = 6;
+/** Base de recul par catégorie : base + parStat × stat (throwable : c = knockback ; grenade : a + c ; blaster : a, par tir). */
+export const LAUNCH_BASE = {
+  throwable: { base: 1.35, perC: 0.13 },
+  grenade: { base: 1.3, perA: 0.08, perC: 0.05 },
+  blaster: { base: 0.5, perA: 0.05, k1: 0.2 },
+} as const;
+/** Plafond de (base + charge) après traits, avant BRO SMASH : empêche les éjections sous 40 %. */
+export const LAUNCH_BASE_CAP = 2.7;
+export const HEAVY_LAUNCH_MULT = 1.2;
+/** Poids du perso : recul × (100 / hpMax)^WEIGHT_EXP (hpMax sert de « poids » en v2). */
+export const WEIGHT_EXP = 0.5;
+export const LAUNCH_ANGLE_DEG = 35;
+export const LAUNCH_GRAVITY = 20;
+/** Décélération horizontale en vol (m/s²), façon « decay » de Smash. */
+export const LAUNCH_AIR_DECEL = 2.5;
+/** Glissade après l'atterrissage (m/s²). */
+export const LAUNCH_GROUND_DECEL = 22;
+/** En dessous : fin du vol, le perso reprend pied. */
+export const LAUNCH_END_SPEED = 0.6;
+/** Zone d'explosion latérale : au-delà du rayon de l'arène + cette marge. */
+export const BLAST_SIDE_MARGIN = 8;
+/** Zone d'explosion du haut (m au-dessus du plateau) : « star KO ». */
+export const BLAST_TOP = 16;
+/** BRO SMASH (« Final Smash ») : prochain tir après `super:ready`. */
+export const BRO_SMASH = { launchMult: 1.8, damageMult: 1.5 };
+/** Jauge BRO (0 à 100) : gains par parade, NICE, % reçus et % infligés. */
+export const BRO_GAIN = { perfect: 12, good: 6, nice: 10, perPctTaken: 0.45, perPctDealt: 0.25 };
+/** Réapparition : au-dessus du centre, flotte un instant puis tombe. */
+export const RESPAWN_DELAY_S = 1.1;
+export const RESPAWN_HEIGHT = 3;
+export const RESPAWN_HOVER_S = 1.2;
+/** Rattrapage au bord : distance horizontale max au bord, et bande verticale sous le plateau. */
+export const LEDGE_GRAB_DIST = 1.5;
+export const LEDGE_MIN_BELOW = 0.5;
+/** Pendant son propre tour, avec un saut en réserve : accroche plus bas (≈ 0,35 s pour tenter le double saut). */
+export const LEDGE_OWN_TURN_MIN_BELOW = 1.2;
+export const LEDGE_MAX_BELOW = 3.2;
+/** Perso accroché : pieds à cette profondeur sous le plateau. */
+export const LEDGE_HANG_DROP = 1.3;
+export const LEDGE_CLIMB_COST = 2;
+/** Mort subite : les deux joueurs passent à ce %. */
+export const SUDDEN_DEATH_PCT = 150;
 
 // ---------- Visée / charge ----------
 export const AIM_CHARGE_MS = 1200;
+/** Charge maintenue au maximum au-delà de ce temps : le tir part tout seul (jamais de blocage). */
+export const AIM_OVERHOLD_MS = 1500;
+/** Visée auto : reste calée sur l'adversaire tant que la souris n'a pas bougé de plus de ce nombre de pixels. */
+export const AIM_LOCK_BREAK_PX = 40;
+/** Aimant : un point visé à moins de cette distance (m) de l'adversaire se cale sur lui. */
+export const AIM_MAGNET_M = 1.8;
+export const FIRE_KEY = 'KeyF';
 export const JUMP_KEY = 'ShiftLeft'; // Espace/Entrée réservés à la parade (voir parry.ts)
 /** Hauteur du point de tir/visée au-dessus des pieds (mains/torse). */
 export const SHOT_ORIGIN_HEIGHT = 1.1;
@@ -51,6 +142,11 @@ export const CATEGORY_TUNING: Record<Category, CategoryTuning> = {
 export const GRENADE_ARC_GRAVITY = 7;
 /** Portance initiale de la grenade, en fraction de sa vitesse de lancement (cloche plus ou moins haute). */
 export const GRENADE_LIFT_RATIO = 0.7;
+/** Règles v2 : la grenade retombe sur le point visé, lancée à cet angle (cloche lisible). */
+export const GRENADE_LOB_DEG = 50;
+/** Portée d'une grenade visée par angles (script/IA) : min + charge × span mètres. */
+export const GRENADE_RANGE_MIN = 5;
+export const GRENADE_RANGE_SPAN = 12;
 
 // Rafale du blaster : nombre de tirs (stat b, 1..6 → 3..5) et intervalle entre tirs.
 export const BLASTER_SHOTS_MIN = 3;
@@ -74,19 +170,6 @@ export const SHIELD_WIDTH_MAX = 3.2;
 export const SHIELD_HEIGHT_MIN = 1.2;
 export const SHIELD_HEIGHT_MAX = 2.4;
 export const SHIELD_THICKNESS = 0.25;
-
-// ---------- Dégâts / recul (façon % de Smash : le recul grandit quand les PV baissent) ----------
-export const DAMAGE_PER_POWER = 7.5;
-export const FIGHTER_POWER_DAMAGE_FACTOR = 0.06; // bonus de dégâts par point de `power` du perso
-export const CRIT_CHANCE = 0.12;
-export const CRIT_MULT = 1.5;
-export const KNOCKBACK_BASE = 4;
-export const KNOCKBACK_HP_SCALING = 3; // à 0 PV, le recul est multiplié par (1 + ce facteur)
-export const KNOCKBACK_DAMAGE_FACTOR = 0.08;
-export const KNOCKBACK_UP_RATIO = 0.35; // part verticale du recul
-export const KO_EXTRA_KNOCKBACK_MULT = 1.7; // éjection spectaculaire à 0 PV
-export const RECOVERY_SETTLE_S = 1.4; // durée corps dynamique avant resynchro kinématique
-export const EJECT_KNOCKBACK_THRESHOLD = 11; // au-delà : aim:update.ejects = true (prédiction)
 
 // ---------- Traits (version de base, à affiner) ----------
 export const TRAIT_TUNING = {
