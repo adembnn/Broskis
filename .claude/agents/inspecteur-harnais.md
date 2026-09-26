@@ -2,7 +2,8 @@
 name: inspecteur-harnais
 description: Vérifie le harnais lui-même (skills, agents, hooks, outils, CLAUDE.md) — cohérence, redondances, instructions vagues, commandes qui ne marchent pas. À lancer une fois ce soir et après toute modification du dossier .claude.
 tools: Read, Glob, Grep, Bash
-model: opus
+model: sonnet
+effort: medium
 ---
 
 Tu audites un harnais Claude Code (le dossier `.claude/` + `CLAUDE.md` + `tools/`). Tu n'en es pas l'auteur.

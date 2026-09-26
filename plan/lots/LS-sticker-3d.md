@@ -20,10 +20,14 @@ Quand on scanne un objet, Nano Banana le redessine en arme cartoon sur un fond u
   5. `THREE.Shape` puis `ExtrudeGeometry` (épaisseur ≈ 0,06, petit biseau) ;
   6. face avant texturée (UV calées sur la boîte du contour) ;
   7. tranche couleur carton ;
-  8. bord blanc de 2 à 3 % autour, comme un vrai sticker.
-- **Matériau toon** : reprendre `createToonMaterial` et `addOutline` de `C:\Users\Adem\repos\bagarre-de-taverne\toon-kit.js`.
+  8. bord blanc de 2 à 3 % autour, comme un vrai sticker, **seulement s'il manque** (Nano Banana Pro le dessine déjà, voir ci-dessous).
+- **Vraies images de test** : `public/test/stickers/` (`duck-grenade.jpg`, `mug-blaster.jpg`, `pan-shield.jpg`), générées par Nano Banana Pro (`gemini-3-pro-image`) avec le prompt du jeu. Constats :
+  - c'est du **JPEG** 1408 × 768, pas du PNG : le magenta n'est pas pur, il faut une tolérance (distance de teinte) et un despill sur le liseré ;
+  - le modèle dessine **déjà un bord blanc de sticker** et un contour brun épais : ne pas doubler le bord ;
+  - il peut y avoir des **zones parasites** (rectangles clairs dans les coins de `duck-grenade.jpg`) : ne garder que la **plus grande composante connexe** du masque, puis boucher ses trous intérieurs.
+- **Matériau toon** : reprendre `createToonMaterial` et `addOutline` de `reference/bagarre-de-taverne/toon-kit.js`.
 - **Page de test** : `src/scene/sticker/preview.html`, ouverte avec `npm run dev` à `http://localhost:5173/src/scene/sticker/preview.html`.
-  - Elle charge 3 images de test (dessine-les toi-même sur fond `#FF00FF`, ou demande-les à Adem) ;
+  - Elle charge les 3 images de test de `public/test/stickers/` ;
   - elle les fait tourner en 3D.
 - **Performance** : moins de 50 ms par sticker, au plus environ 400 sommets par contour.
 

@@ -1,10 +1,13 @@
 // Les « yeux » des agents : ouvre le jeu dans un navigateur piloté, prend des captures,
 // mesure images/seconde, relève les erreurs console, lit window.gameState, calcule des métriques d'image.
-// Usage : node tools/capture.mjs [--url http://localhost:5173] [--parcours] [--demo] [--video]
+// Usage : node tools/capture.mjs [--url http://localhost:5173] [--parcours] [--demo] [--video] [--out captures/<nom>]
 //   --parcours : joue demo/parcours.json (étapes de la démo) et capture chaque étape.
 //   --demo     : ajoute ?demo=1 (mode démo : graine fixe, IA en cache).
 //   --video    : enregistre aussi une vidéo (captures/video/) — sert de vidéo de secours.
-// Code de sortie 1 si erreurs console, page plantée ou écran vide : `npm run verifier` échoue alors.
+//   --out      : dossier de sortie (défaut `captures`) — utile pour que deux agents en parallèle
+//                n'écrasent pas les captures l'un de l'autre (ex. --out captures/agentA).
+// Code de sortie 1 si erreurs console, page plantée, écran vide ou hook de parcours.json absent :
+// `npm run verifier` échoue alors.
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync, existsSync, readFileSync, readdirSync, unlinkSync } from 'node:fs';
@@ -13,7 +16,7 @@ const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
 let url = opt('--url', 'http://localhost:5173');
 if (args.includes('--demo')) url += (url.includes('?') ? '&' : '?') + 'demo=1';
-const OUT = 'captures';
+const OUT = opt('--out', 'captures');
 mkdirSync(OUT, { recursive: true });
 for (const f of readdirSync(OUT)) if (f.endsWith('.png')) unlinkSync(`${OUT}/${f}`); // on repart de captures propres
 
@@ -71,7 +74,15 @@ try {
     // Format : [{ "nom": "premiere-action", "hook": "action", "arg": "boule de feu", "attendre": "gameState.enCours == null", "attente": 500 }, ...]
     // "attendre" = condition JavaScript sur la page (max 8 s) ; "attente" = pause fixe en ms ensuite.
     for (const e of JSON.parse(readFileSync('demo/parcours.json', 'utf8'))) {
-      if (e.hook) await page.evaluate(([h, a]) => window.gameHooks?.[h]?.(a), [e.hook, e.arg]);
+      if (e.hook) {
+        const trouve = await page.evaluate(([h, a]) => {
+          const fn = window.gameHooks?.[h];
+          if (typeof fn !== 'function') return false;
+          fn(a);
+          return true;
+        }, [e.hook, e.arg]);
+        if (!trouve) erreurs.push(`Étape « ${e.nom} » : hook « ${e.hook} » absent de window.gameHooks (vérifie demo/parcours.json et le code du jeu).`);
+      }
       if (e.touche) await page.keyboard.press(e.touche);
       if (e.clic) await page.mouse.click(e.clic[0], e.clic[1]);
       if (e.attendre) await page.waitForFunction(`(() => { try { return !!(window.${e.attendre}); } catch { return false; } })()`, null, { timeout: 8000 }).catch(() => erreurs.push(`Étape « ${e.nom} » : condition jamais atteinte (${e.attendre})`));

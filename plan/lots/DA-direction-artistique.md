@@ -2,7 +2,7 @@
 Responsable : Adem (agent `directeur-artistique`, Opus) · Coût : moyen · Dépend de : références de LD si elles existent
 
 ## Contexte
-Style cartoon de Bagarre de Taverne (`C:\Users\Adem\repos\bagarre-de-taverne\design-system-cartoon.md`) :
+Style cartoon de Bagarre de Taverne (`reference/bagarre-de-taverne/design-system-cartoon.md`) :
 - toon en 3 paliers, encre `#2B1D14` à la place du noir ;
 - panneaux d'interface à plat, contour de 3 px, ombre dure ;
 - Lilita One + Nunito.

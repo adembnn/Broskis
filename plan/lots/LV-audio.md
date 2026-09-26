@@ -5,7 +5,7 @@ Responsable : **Titouan** · Coût : faible · Dépend de : L0 (bus et noms d'é
 `src/audio/**` (rien d'autre)
 
 ## À reprendre
-`C:\Users\Adem\repos\bagarre-de-taverne\src\audio.js` : sons synthétisés en WebAudio, sans fichier à télécharger.
+`reference/bagarre-de-taverne/src/audio.js` : sons synthétisés en WebAudio, sans fichier à télécharger.
 
 ## Sortie attendue (`install(ctx)` dans `src/audio/index.ts`)
 1. **Bruitages** : un son par événement du bus, avec une variation de hauteur de ±5 % à chaque lecture.

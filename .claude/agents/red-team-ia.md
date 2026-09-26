@@ -3,6 +3,7 @@ name: red-team-ia
 description: Attaque l'IA du jeu (adversaire, personnage ou interprète Gemini) pour la piéger avant le jury — injection de consignes, sorts surpuissants, hors-sujet, contenus gênants. À lancer quand l'IA est branchée et avant 18h.
 tools: Read, Glob, Grep, Bash, Write
 model: sonnet
+effort: medium
 maxTurns: 25
 skills: ia-en-jeu
 ---
