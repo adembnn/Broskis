@@ -42,8 +42,9 @@ export function createHooks(bus: Bus, getState: () => GameState, rng: Rng): Game
       bus.emit('match:end', { winner: player });
     },
     setSeed(n) { rng.setSeed(n); getState().seed = n; },
-    // Compatibilité avec demo/parcours.json du harnais : une « action » texte = scanner l'objet nommé.
     action(text) { hooks.scan(text); },
+    animCamera: () => notReady('animCamera'),
+    animPlay: () => notReady('animPlay'),
   };
   window.gameHooks = hooks;
   return hooks;

@@ -55,7 +55,7 @@ export function installFighters(ctx: Ctx): FighterSystem {
 
   async function spawn(player: PlayerId): Promise<void> {
     const def = ctx.state.players[player].fighter ?? defaultFighter(player);
-    const rig = await buildFighterRig(def, player);
+    const rig = await buildFighterRig(def, player, ctx);
     rigs[player] = rig;
     const pos = ctx.state.players[player].pos;
     rig.container.position.set(pos[0], pos[1], pos[2]);
@@ -166,6 +166,25 @@ export function installFighters(ctx: Ctx): FighterSystem {
       applyVinylRank(r1, d1 > d0 ? 0 : 1);
     }
   }, 200);
+
+  ctx.hooks.animPlay = (player, action) => {
+    const rig = rigs[player];
+    if (rig) {
+      if (action.toLowerCase().includes('ko') || action.toLowerCase().includes('death')) {
+        rig.animator.play('death', { loop: false, fade: 0.1 });
+      } else if (action === 'blaster') {
+        rig.animator.play('cast', { loop: false, fade: 0.1 });
+      } else if (action === 'hitFront') {
+        rig.animator.play('hit', { loop: false, fade: 0.05 });
+      } else if (action === 'hitBack') {
+        rig.animator.play('hitB', { loop: false, fade: 0.05 });
+      } else if (action === 'parry') {
+        rig.animator.play('block', { loop: false, fade: 0.05 });
+      } else {
+        rig.animator.play(action, { loop: true, fade: 0.1 });
+      }
+    }
+  };
 
   return { getRig: (p) => rigs[p] };
 }

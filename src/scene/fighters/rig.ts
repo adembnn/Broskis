@@ -1,7 +1,7 @@
 // Assemble un combattant : container (position/orientation) > squashWrapper (échelle animée) > modèle KayKit.
 import * as THREE from 'three';
 import { applyFighterLook } from '../fighter-custom';
-import type { FighterDef, PlayerId } from '../../core/types';
+import type { FighterDef, PlayerId, Ctx } from '../../core/types';
 import { LOCAL_TOKENS } from '../localTokens';
 import { setVinylRenderOrder } from '../render/toon';
 import { FighterAnimator } from './animator';
@@ -39,7 +39,7 @@ export function defaultFighter(player: 0 | 1): FighterDef {
   };
 }
 
-export async function buildFighterRig(fighter: FighterDef, player: PlayerId): Promise<FighterRig> {
+export async function buildFighterRig(fighter: FighterDef, player: PlayerId, ctx: Ctx): Promise<FighterRig> {
   const { root, animations, vinylMeshes } = await instantiateFighterModel(fighter, player);
   if (fighter.look) {
     try { await applyFighterLook(root, fighter.look); } catch (e) { console.error('[fighters] applyFighterLook', e); }
@@ -51,7 +51,7 @@ export async function buildFighterRig(fighter: FighterDef, player: PlayerId): Pr
   container.add(squashWrapper);
   container.name = `fighter-${fighter.id}`;
 
-  const animator = new FighterAnimator(root, animations, LOCAL_TOKENS.fighterScale);
+  const animator = new FighterAnimator(root, animations, LOCAL_TOKENS.fighterScale, player, ctx);
   animator.play(animator.has('idle') ? 'idle' : animations[0]?.name ?? 'idle');
 
   return {

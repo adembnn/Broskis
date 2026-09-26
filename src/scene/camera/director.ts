@@ -285,6 +285,26 @@ export class CameraDirector {
     });
   }
 
+  /** Pour anim-eval (lot LAN) : caméra neutre de face, côté ou 3/4. */
+  forceAnimCamera(player: PlayerId, shot: 'side' | 'front' | 'threeQuarter'): void {
+    this.mode = 'follow'; // Statique
+    this.lastActive = null;
+    const p = this.ctx.state.players[player].pos;
+    const center = new THREE.Vector3(p[0], p[1] + 1.2, p[2]);
+    let az = 0;
+    if (shot === 'front') az = 0;
+    if (shot === 'side') az = Math.PI / 2;
+    if (shot === 'threeQuarter') az = Math.PI / 4;
+    
+    // Le perso fait face à PI/2 (pour joueur 0) ou -PI/2 (joueur 1) en base
+    const facing = player === 0 ? Math.PI / 2 : -Math.PI / 2;
+    az += facing;
+
+    const r = 3;
+    this.pos.set(center.x + Math.sin(az) * r, center.y, center.z + Math.cos(az) * r);
+    this.look.copy(center);
+  }
+
   /** Appelé chaque image (camera/index.ts) : en mode 'follow', vise l'épaule de qui la caméra "tient" (lastActive) ;
    * sinon la transition en cours (`runTransition`) écrit déjà pos/look — on ne fait qu'amortir le FOV vers sa base. */
   update(dt: number): void {

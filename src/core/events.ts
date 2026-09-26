@@ -9,6 +9,7 @@ export interface EventMap {
   'move:update': { player: PlayerId; pos: Vec3; moveLeft: number };
   'move:jump': { player: PlayerId };
   'weapon:pick': { player: PlayerId; index: number };
+  'anim:release': { player: PlayerId; weapon: Weapon; handPos: Vec3 };
   /** Aides de visée : trajectoire prévue, point d'impact, recul prévu, éjection probable. */
   'aim:update': { player: PlayerId; dir: Vec3; power: number; path?: Vec3[]; impact?: Vec3; knockback?: Vec3; ejects?: boolean };
   'fire': { player: PlayerId; weapon: Weapon; dir: Vec3; power: number };

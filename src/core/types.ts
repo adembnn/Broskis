@@ -136,6 +136,45 @@ export interface GameHooks {
   forcerVictoire(player?: PlayerId): void;
   setSeed(n: number): void;
   action(text: string): void;
+  animCamera?(player: PlayerId, shot: 'side' | 'front' | 'threeQuarter'): void;
+  animPlay?(player: PlayerId, action: 'idle' | 'walk' | 'run' | 'jump' | 'throw' | 'blaster' | 'shield' | 'hitFront' | 'hitBack' | 'ko' | 'teeter' | 'parry'): void;
+}
+
+export interface AnimSample {
+  t: number;
+  player: 0 | 1;
+  clip: string;
+  weight: number;
+  groundSpeed: number;
+  animRate: number;
+  footSlideCm: [number, number];
+  footGapCm: [number, number];
+  facingErrDeg?: number;
+  lookErrDeg?: number;
+  handPos?: [number, number, number];
+  spineRotVar?: number;
+  layers?: { footIK: boolean; lookAt: boolean; lean: number; squash: number };
+}
+
+export interface AnimEvent {
+  t: number;
+  player: 0 | 1;
+  kind: 'transition' | 'release' | 'spawn' | 'hit-react' | 'land' | 'footstep' | 'teeter';
+  from?: string;
+  to?: string;
+  durationMs?: number;
+  handPos?: [number, number, number];
+  spawnPos?: [number, number, number];
+}
+
+declare global {
+  interface Window {
+    animMetrics?: {
+      samples: AnimSample[];
+      events: AnimEvent[];
+      reset(): void;
+    };
+  }
 }
 
 export interface Ctx {

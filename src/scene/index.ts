@@ -11,8 +11,12 @@ import { installEnvironment } from './render/environment';
 import { installPostFx } from './render/postfx';
 import { installParryFx } from './parry-fx';
 import type { Install } from '../core/types';
+import { animMetricsImpl } from './animation/metrics';
 
 export const install: Install = (ctx) => {
+  if (typeof window !== 'undefined') {
+    window.animMetrics = animMetricsImpl;
+  }
   installEnvironment(ctx);
   installPostFx(ctx);
   installFighters(ctx);
