@@ -9,7 +9,7 @@
 //   --shot        : capture d'écran en fin de match (tools/perf/out/<map>-<gpu>-<q>.png).
 //   --profile     : profil CPU (échantillonneur Chrome) pendant le match, top des fonctions les plus coûteuses.
 //   --toggle      : essais A/B à chaud (nobloom = rendu direct sans post-traitement, noshadow = ombres figées,
-//                   pr1 = ratio de pixels 1).
+//                   pr1 = ratio de pixels 1, unelumiere = une seule pile de lumières au lieu de deux).
 // Sans --url, lance son propre Vite sur --port (5300-5399) et n'arrête QUE ce processus-là à la fin.
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
@@ -109,6 +109,13 @@ const COMPTEUR_RENDU = (toggles) => {
   if (toggles.includes('nobloom')) c.three.render = () => r.render(c.three.scene, c.three.camera);
   if (toggles.includes('noshadow')) { r.shadowMap.autoUpdate = false; r.shadowMap.needsUpdate = true; }
   if (toggles.includes('pr1')) { r.setPixelRatio(1); window.dispatchEvent(new Event('resize')); }
+  // unelumiere : une seule pile de lumières (celle de la map, intensités ×2) au lieu de LA + map superposées.
+  if (toggles.includes('unelumiere')) c.bus.on('phase:change', ({ to }) => {
+    const map = c.three.scene.children.find((o) => o.name?.startsWith('map-'));
+    if (to !== 'move' || !map) return;
+    for (const o of c.three.scene.children) if (o.isLight) o.visible = false;
+    map.traverse((o) => { if (o.isLight && !o.userData.x2) { o.intensity *= 2; o.userData.x2 = true; } });
+  });
   // Relevé au début de chaque image (le rAF des instruments passe avant celui du jeu) : compte toute l'image
   // précédente, quel que soit le chemin de rendu (post-traitement ou rendu direct en qualité basse).
   const S = (window.__rinfo = { calls: [], tris: [] });
