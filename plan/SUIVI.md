@@ -12,7 +12,7 @@ Réserver une ligne **avant** de commencer : nom + heure, commit + push de ce fi
 | LG | Gameplay | élevé | Adem (sous-agent) | L0 | fait | Adem (sous-agent) 12h10 | Fusionné (13h). |
 | LI | Pipeline IA + serveur | moyen | Adem (sous-agent) | L0 | fait | Adem (sous-agent) 12h10 | Fusionné (13h). |
 | LU | Interface | moyen | Adem (sous-agent) | L0, DA | fait | Adem (sous-agent) 12h10 | Fusionné (13h). |
-| LP | Perso photo en direct | moyen | Adem (sous-agent) | LI | en cours | Gemini 13h20 | Gemini CLI, branche gem/LP |
+| LP | Perso photo en direct | moyen | Adem (sous-agent) | LI | fait | Gemini 13h20 | Terminé, fichiers : api/scan-fighter.ts, src/ia/fighter/index.ts, src/scene/fighter-custom/index.ts, plan/rendus/LP.md |
 | LS | Sticker 3D | faible | **Titouan** | — | fait | Titouan (Claude) 11h26 → 12h45 | Voir rendu dans plan/lots/LS-sticker-3d.md. Pas encore poussé (accès GitHub en lecture seule). |
 | LV | Audio et voix | faible | **Titouan** | L0 | fait | Titouan (Claude, sous-agent) 12h46 | `npx tsc --noEmit` et `npm run build` OK. Ajout de l'événement `ui:click` dans `src/core/events.ts` (absent du contrat, nécessaire pour les clics d'interface — voir détails dans plan/lots/LV-audio.md). Test à l'oreille non fait (agent sans sortie audio) : vérifié à la place par `ctx.bus.emit(...)` en console sur tous les événements, aucune exception. |
 | LP2 | Vedettes 3D préparées (sans Tripo : MCP Blender + Rodin gratuit) | faible | PC d'Adem (Gemini) | MCP Blender | à prendre | | |
