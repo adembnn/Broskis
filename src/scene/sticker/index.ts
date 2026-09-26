@@ -12,6 +12,7 @@
 import * as THREE from 'three';
 import { createToonMaterial, addOutline } from '../../../reference/bagarre-de-taverne/toon-kit.js';
 import type { Category } from '../../core/types';
+import { geometrieCoussin, type Coussin } from './gonflage';
 
 export interface StickerOptions {
   /** Épaisseur du carton (unités monde). Défaut 0,06 (plan/lots/LS-sticker-3d.md). */
@@ -25,6 +26,11 @@ export interface StickerOptions {
   border?: number;
   /** Hauteur totale visée pour le sticker (le plus grand des deux axes est mis à l'échelle sur cette valeur). */
   height?: number;
+  /**
+   * Faces bombées selon la distance au bord (lot LBENCH, voir gonflage.ts). Par défaut : oui, sauf si `depth`
+   * est imposé (la tête du perso photo garde son carton plat). L'épaisseur maximale reste EPAISSEUR_TOTALE.
+   */
+  gonflage?: boolean;
 }
 
 const MAGENTA_KEY = { r: 255, g: 0, b: 255 };
@@ -46,6 +52,12 @@ const HOLE_MIN_PX = 40;
 const MAX_HOLES = 16;
 /** Sommets max par trou (le contour extérieur garde MAX_CONTOUR_POINTS). */
 const MAX_HOLE_POINTS = 120;
+
+/** Épaisseur au plus épais d'un sticker de hauteur 1 : src/scene/weapons/visual.ts (TEMPLATE_DEPTH) compte dessus
+ *  pour caler l'épaisseur sur la profondeur réelle de l'objet. */
+const EPAISSEUR_TOTALE = 0.082;
+/** Part de cette épaisseur donnée au bombé des deux faces ; le reste est le carton du bord (lot LBENCH). */
+const PART_BOMBE = 0.6;
 
 /** Palette carton par défaut, utilisée si aucune palette d'arme n'est fournie. */
 const CARDBOARD_TRANCHE = '#c9a36a';
@@ -455,9 +467,12 @@ export async function makeSticker(
   src: string | HTMLImageElement,
   opts: StickerOptions = {},
 ): Promise<THREE.Group> {
-  const depth = opts.depth ?? 0.06;
-  const borderFrac = opts.border ?? 0;
   const targetHeight = opts.height ?? 1;
+  const gonfle = opts.gonflage ?? opts.depth === undefined;
+  // Gonflé : carton du bord = 40 % de l'épaisseur (biseaux compris : profondeur × 1,8), bombé = 60 % en deux faces.
+  const depth = opts.depth ?? (gonfle ? (targetHeight * EPAISSEUR_TOTALE * (1 - PART_BOMBE)) / 1.8 : 0.06);
+  const bombe = gonfle ? (targetHeight * EPAISSEUR_TOTALE * PART_BOMBE) / 2 : 0;
+  const borderFrac = opts.border ?? 0;
 
   const img = typeof src === 'string' ? await loadImage(src) : src;
   const keyed = chromaKey(img);
@@ -528,8 +543,12 @@ export async function makeSticker(
     bevelSegments: 1,
     curveSegments: 6,
   });
-  geometry.center();
-  applyFrontUVs(geometry, { minX, minY, pxWidth, pxHeight, scale, imgWidth: keyed.width, imgHeight: keyed.height });
+  // Comme geometry.center(), mais on garde la translation : UV et coussins du gonflage s'y calent.
+  geometry.computeBoundingBox();
+  const decalage = geometry.boundingBox!.getCenter(new THREE.Vector3()).negate();
+  geometry.translate(decalage.x, decalage.y, decalage.z);
+  applyFrontUVs(geometry, { minX, minY, pxWidth, pxHeight, scale, imgWidth: keyed.width, imgHeight: keyed.height, dx: decalage.x, dy: decalage.y });
+  const dist = distanceAuBord(analysisCanvas);
 
   const texture = new THREE.CanvasTexture(keyed);
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -544,8 +563,24 @@ export async function makeSticker(
   // Lot LBENCH : la tranche prend la couleur dominante de l'objet. Avant, elle recevait la projection du contour
   // dessiné (encre sombre) : dès que l'épaisseur suit la physique (jusqu'à 65 % de la largeur), l'objet devenait
   // un bloc noir (juge Gemini : « tranche 3D noire opaque »).
-  const edgeMaterial = createToonMaterial(couleurTranche(keyed, analysisCanvas, analysisScale), { steps: 3 });
-  const materials = [frontMaterial, edgeMaterial];
+  const couleurCorps = couleurTranche(keyed, analysisCanvas, analysisScale, dist);
+  const edgeMaterial = createToonMaterial(couleurCorps, { steps: 3 });
+  // Dos uni (retour d'Adem, 16h55 : « on doit lire UN seul objet sous tous les angles ») : la silhouette à la
+  // couleur de l'objet avec un liseré blanc de sticker, au lieu de l'image en miroir (qui dédoublait l'objet).
+  const dosTexture = new THREE.CanvasTexture(texteDos(keyed, analysisCanvas, dist, couleurCorps));
+  dosTexture.colorSpace = THREE.SRGBColorSpace;
+  const dosMaterial = createToonMaterial(0xffffff, { map: dosTexture, transparent: true, steps: 3 });
+  dosMaterial.side = THREE.DoubleSide;
+  const materials = [frontMaterial, edgeMaterial, dosMaterial];
+  // Le groupe 0 d'ExtrudeGeometry contient les deux faces : d'abord l'arrière (z négatif), puis l'avant, à parts
+  // égales. On le coupe en deux pour donner au dos son propre matériau.
+  const faces = geometry.groups.find((g) => g.materialIndex === 0);
+  if (faces) {
+    const moitie = faces.count / 2;
+    geometry.addGroup(faces.start, moitie, 2);
+    faces.start += moitie;
+    faces.count = moitie;
+  }
 
   const mesh = new THREE.Mesh(geometry, materials);
   addOutline(mesh, 0.012, OUTLINE_INK);
@@ -566,7 +601,22 @@ export async function makeSticker(
   }
 
   group.add(mesh);
-  group.userData.sticker = { pxWidth, pxHeight, contourPoints: contour.length, holes: shape.holes.length };
+
+  // Gonflage (lot LBENCH) : un coussin bombé sur chaque face, découpé par l'alpha de la texture (alphaTest).
+  if (bombe > 0) {
+    const coussin: Coussin = {
+      dist, aw: analysisCanvas.width, ah: analysisCanvas.height, analysisScale,
+      minX, minY, pxWidth, pxHeight, scale, imgWidth: keyed.width, imgHeight: keyed.height,
+      decalage, zFace: geometry.boundingBox!.max.z + decalage.z, amplitude: bombe,
+    };
+    const matAvant = createToonMaterial(0xffffff, { map: texture, steps: 3 });
+    matAvant.alphaTest = 0.5;
+    const matDos = createToonMaterial(0xffffff, { map: dosTexture, steps: 3 });
+    matDos.alphaTest = 0.5;
+    group.add(new THREE.Mesh(geometrieCoussin(coussin, 1), matAvant), new THREE.Mesh(geometrieCoussin(coussin, -1), matDos));
+  }
+
+  group.userData.sticker = { pxWidth, pxHeight, contourPoints: contour.length, holes: shape.holes.length, bombe };
   return group;
 }
 
@@ -596,8 +646,7 @@ function distanceAuBord(canvas: HTMLCanvasElement): Float32Array {
  * Couleur dominante du CORPS de l'objet (loin du bord, donc hors contour d'encre et bord blanc du sticker),
  * un peu assombrie : c'est la couleur de la tranche. Histogramme sur 4 bits par canal.
  */
-function couleurTranche(keyed: HTMLCanvasElement, analysis: HTMLCanvasElement, analysisScale: number): THREE.Color {
-  const dist = distanceAuBord(analysis);
+function couleurTranche(keyed: HTMLCanvasElement, analysis: HTMLCanvasElement, analysisScale: number, dist: Float32Array): THREE.Color {
   const { width: aw, height: ah } = analysis;
   // Loin du bord (3 % de l'image) ; un objet tout fin (feutre, pieds) n'a pas de tel pixel : on se rapproche.
   let seuil = Math.max(3, 0.03 * Math.max(aw, ah));
@@ -621,7 +670,47 @@ function couleurTranche(keyed: HTMLCanvasElement, analysis: HTMLCanvasElement, a
   for (const c of compte.values()) if (!meilleur || c.n > meilleur.n) meilleur = c;
   if (!meilleur) return new THREE.Color(CARDBOARD_TRANCHE);
   const couleur = new THREE.Color().setRGB(meilleur.r / meilleur.n / 255, meilleur.g / meilleur.n / 255, meilleur.b / meilleur.n / 255, THREE.SRGBColorSpace);
-  return couleur.multiplyScalar(0.82);
+  return couleur.multiplyScalar(ASSOMBRI_TRANCHE);
+}
+
+/** Tranche et dos : couleur dominante de l'objet assombrie de 15 % (retour d'Adem). */
+const ASSOMBRI_TRANCHE = 0.85;
+/** Liseré blanc du dos, en fraction de la plus grande dimension du masque. */
+const LISERE_DOS = 0.018;
+
+/**
+ * Texture du dos : la silhouette de l'objet (alpha du détourage) en blanc, et l'intérieur, à plus de LISERE_DOS du
+ * bord, à la couleur de l'objet. Calculé sur le masque d'analyse puis agrandi (bord lissé par l'agrandissement).
+ */
+function texteDos(keyed: HTMLCanvasElement, analysis: HTMLCanvasElement, dist: Float32Array, couleur: THREE.Color): HTMLCanvasElement {
+  const { width: aw, height: ah } = analysis;
+  const interieur = document.createElement('canvas');
+  interieur.width = aw;
+  interieur.height = ah;
+  const ic = interieur.getContext('2d')!;
+  const img = ic.createImageData(aw, ah);
+  const lisere = Math.max(1.5, LISERE_DOS * Math.max(aw, ah));
+  const hex = couleur.getHex(); // sRGB
+  const [r, g, b] = [(hex >> 16) & 255, (hex >> 8) & 255, hex & 255];
+  for (let i = 0; i < aw * ah; i++) {
+    if (dist[i] < lisere) continue;
+    img.data[i * 4] = r;
+    img.data[i * 4 + 1] = g;
+    img.data[i * 4 + 2] = b;
+    img.data[i * 4 + 3] = 255;
+  }
+  ic.putImageData(img, 0, 0);
+  const dos = document.createElement('canvas');
+  dos.width = keyed.width;
+  dos.height = keyed.height;
+  const ctx = dos.getContext('2d')!;
+  ctx.drawImage(keyed, 0, 0);
+  ctx.globalCompositeOperation = 'source-in';
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, dos.width, dos.height);
+  ctx.globalCompositeOperation = 'source-atop';
+  ctx.drawImage(interieur, 0, 0, dos.width, dos.height);
+  return dos;
 }
 
 /** Copie `canvas` à l'échelle `scale` (≤ 1). Renvoie le même canvas si `scale` vaut 1. */
@@ -648,6 +737,8 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 interface UvMapping {
   minX: number; minY: number; pxWidth: number; pxHeight: number; scale: number;
   imgWidth: number; imgHeight: number;
+  /** Translation déjà appliquée à la géométrie (centrage), retirée avant de retrouver les pixels. */
+  dx?: number; dy?: number;
 }
 
 /**
@@ -660,8 +751,8 @@ function applyFrontUVs(geometry: THREE.ExtrudeGeometry, m: UvMapping): void {
   const uv = geometry.attributes.uv as THREE.BufferAttribute;
   const position = geometry.attributes.position as THREE.BufferAttribute;
   for (let i = 0; i < position.count; i++) {
-    const x = position.getX(i);
-    const y = position.getY(i);
+    const x = position.getX(i) - (m.dx ?? 0);
+    const y = position.getY(i) - (m.dy ?? 0);
     // Inverse la transformation shapePoints (voir makeSticker) pour retrouver les pixels
     // d'origine, puis normalise par la taille réelle du canvas source (pas par la boîte du
     // contour) : c'est ça qui donne des UV alignés sur la bonne portion de la texture.
