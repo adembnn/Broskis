@@ -78,7 +78,8 @@ export function mountForgeView(opts: { photoUrl?: string; label?: string } = {})
     if (disposed) return;
     try {
       if (weapon?.name) name.set(weapon.name);
-      if (step === 'partial') { status.set(STATUS.partial); return; }
+      // Flux Gemini : l'objet reconnu s'affiche dès qu'il est écrit (preuve visible que l'IA a compris la photo).
+      if (step === 'partial') { status.set(weapon?.object ? `Gemini sees: ${weapon.object}` : STATUS.partial); return; }
       if (step === 'reading') return;
       if (step === 'stats') {
         if (stickerShown) return;

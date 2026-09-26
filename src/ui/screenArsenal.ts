@@ -65,8 +65,10 @@ async function forgeAndCard(
   return new Promise((resolve) => {
     clear(area);
     const wrap = el('div', 'weapon-confirm');
-    wrap.append(forge.root);
-    wrap.append(
+    const pair = el('div', 'lload-pair'); // LLOAD : forge (sticker en cours) et carte côte à côte, Confirm reste visible
+    wrap.append(pair);
+    pair.append(forge.root);
+    pair.append(
       renderWeaponCard(weapon, {
         player,
         cardNumber: slotNumber,
