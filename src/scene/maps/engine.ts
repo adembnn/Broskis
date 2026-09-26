@@ -440,7 +440,8 @@ async function buildTileVisuals(map: LoadedMap) {
 async function buildGroundVisuals(map: LoadedMap) {
   for (const piece of map.def.ground) {
     const parent = map.def.id === 'galion' ? map.deckGroup : map.group;
-    const obj = await addPart(map, parent, { build: piece.build, offset: piece.pos, yaw: piece.yaw, scale: piece.scale }, map.backGrade, true);
+    const grade = piece.tint ? { saturation: map.backGrade.saturation, tint: map.mapPalette[piece.tint] } : map.backGrade;
+    const obj = await addPart(map, parent, { build: piece.build, offset: piece.pos, yaw: piece.yaw, scale: piece.scale }, grade, true);
     obj.name = piece.id;
     if (piece.id.startsWith('plateau')) excludeFromOcclusion(obj); // le sol ne s'efface jamais ; un mât, si
   }

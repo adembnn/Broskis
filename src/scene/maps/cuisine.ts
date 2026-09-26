@@ -16,10 +16,12 @@ const SPAWN_X = 5;
 // Plateau : l'îlot (KayKit Restaurant, agrandi) ; seul le dessus est jouable.
 // ---------------------------------------------------------------------------
 function plateau(): { pieces: GroundPiece[]; collider: StaticCollider } {
-  // kitchencounter_straight_A : x ±1, y [0,1], z [-1, 1.04] (base au sol).
-  const sx = TOP_HALF_X, sz = TOP_HALF_Z / 1.02;
+  // kitchencounter_straight_A : x ±1, y [0,1], z [-1, 1.04] (base au sol), agrandi et un peu en retrait
+  // sous le billot : le billot déborde comme un vrai plan de travail.
+  const bx = TOP_HALF_X - 0.4, bz = (TOP_HALF_Z - 0.4) / 1.02;
   const pieces: GroundPiece[] = [
-    { id: 'plateau_ilot', build: { kind: 'model', url: RESTAURANT.counter }, pos: [0, -COUNTER_H, -0.02 * sz], scale: [sx, COUNTER_H, sz], collider: null },
+    { id: 'plateau_billot', build: { kind: 'procedural', shape: 'deck', size: [TOP_HALF_X * 2, 0.6, TOP_HALF_Z * 2] }, pos: [0, 0, 0], collider: null },
+    { id: 'plateau_ilot', build: { kind: 'model', url: RESTAURANT.counter }, pos: [0, -COUNTER_H - 0.6, -0.02 * bz], scale: [bx, COUNTER_H, bz], collider: null, tint: 'matiere' },
   ];
   return { pieces, collider: { id: 'counter_top', pos: [0, -0.5, 0], collider: { type: 'box', hx: TOP_HALF_X, hy: 0.5, hz: TOP_HALF_Z } } };
 }
@@ -72,10 +74,10 @@ function fond(): BackdropSpec[] {
   for (let i = -4; i <= 4; i++) for (let j = -4; j <= 3; j++) floor.push({ pos: [i * 16, -COUNTER_H - 2, j * 16] as Vec3, scale: [4, 1, 4] });
   return [
     { build: { kind: 'model', url: RESTAURANT.floor }, items: floor },
-    { build: { kind: 'model', url: RESTAURANT.fridge }, items: [{ pos: [-30, -COUNTER_H - 2, -34], yaw: 0.2, scale: 11 }] },
-    { build: { kind: 'model', url: RESTAURANT.oven }, items: [{ pos: [4, -COUNTER_H - 2, -40], scale: 11 }, { pos: [26, -COUNTER_H - 2, -40], scale: 11 }] },
-    { build: { kind: 'model', url: RESTAURANT.cabinet }, items: [{ pos: [4, -COUNTER_H - 2, -44], scale: 11 }, { pos: [26, -COUNTER_H - 2, -44], scale: 11 }] },
-    { build: { kind: 'model', url: RESTAURANT.wallWindow }, items: [{ pos: [-10, -COUNTER_H - 2, -50], scale: 12 }, { pos: [38, -COUNTER_H - 2, -50], scale: 12 }] },
+    { build: { kind: 'model', url: RESTAURANT.fridge }, items: [{ pos: [-40, -COUNTER_H - 2, -50], yaw: 0.25, scale: 14 }] },
+    { build: { kind: 'model', url: RESTAURANT.oven }, items: [{ pos: [2, -COUNTER_H - 2, -58], scale: 14 }, { pos: [30, -COUNTER_H - 2, -58], scale: 14 }] },
+    { build: { kind: 'model', url: RESTAURANT.cabinet }, items: [{ pos: [2, -COUNTER_H - 2, -62], scale: 14 }, { pos: [30, -COUNTER_H - 2, -62], scale: 14 }] },
+    { build: { kind: 'model', url: RESTAURANT.wallWindow }, items: [{ pos: [-18, -COUNTER_H - 2, -68], scale: 15 }, { pos: [42, -COUNTER_H - 2, -68], scale: 15 }] },
   ];
 }
 

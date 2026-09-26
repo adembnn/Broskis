@@ -58,6 +58,8 @@ export interface GroundPiece {
   yaw?: number;
   scale?: number | Vec3;
   collider: ColliderSpec | null;
+  /** Teinte multipliée prise dans la palette de la map (ex. 'matiere' pour assombrir une façade). */
+  tint?: 'fond' | 'sol' | 'matiere' | 'accent';
 }
 
 /** Collider fixe sans visuel propre (le vrai bord jouable, indépendant des modèles). */
