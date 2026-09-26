@@ -67,11 +67,12 @@ export const SETTLE_TIMEOUT_MS = 7000;
 
 // ---------- Déplacement (le budget lui-même est MOVE_BUDGET/JUMP_COST dans core/state.ts) ----------
 export const MOVE_SPEED = 4; // m/s au clavier
-/** Sauts (temps réel, exigences LJUMP) : avec GRAVITY = 20, saut ≈ 1,4 m + double saut ≈ 1,3 m = 2,7 m
- * (≥ 2,6 m : les plateformes à 2,3 m sont atteignables). */
-export const JUMP_VELOCITY = 7.5; // m/s, vitesse verticale initiale du saut
-/** 2e saut (seulement en l'air) : le saut de rattrapage. */
-export const AIR_JUMP_VELOCITY = 7.2;
+// Lot LJUMP (plan/lots/LJUMP-saut.md). Avant : 5,6 / 6,4 m/s -> saut 0,78 m, double saut ≈ 1,8 m, plateformes
+// (2,0 à 2,4 m) inatteignables. Hauteur d'un saut = v² / (2 × GRAVITY), intégration exacte (character.ts).
+export const JUMP_VELOCITY = 6.6; // m/s -> apex 1,09 m : franchit une marche de 1 m (dalle tombée, rebord, caisse)
+/** 2e saut (en l'air) : plus fort, c'est le saut de rattrapage. Au sommet du 1er : +1,50 m -> apex ≈ 2,59 m, dessus
+ * d'une plateforme de 2,0 m (MAX_LEDGE_HEIGHT de LMAP3) avec 0,6 m de marge ; ≈ 2,37 m s'il part 0,15 s en retard. */
+export const AIR_JUMP_VELOCITY = 7.75;
 export const MAX_JUMPS_PER_TURN = 2;
 /** « Coyote time » : on peut encore faire le saut du sol juste après avoir quitté le bord (s). */
 export const COYOTE_S = 0.1;
@@ -79,6 +80,10 @@ export const COYOTE_S = 0.1;
 export const AIR_ACCEL = 5;
 export const AIR_DRAG = 0.4;
 export const GRAVITY = 20; // m/s², un peu plus nerveux que la gravité par défaut du monde Rapier
+/** Plateforme traversable : au sommet du saut ou en descente, pieds jusqu'à ce nombre de m sous son dessus
+ * (corps dans son emprise) -> posé dessus. Évite de rater une plateforme de quelques centimètres. */
+export const ONEWAY_SNAP_BELOW = 0.35;
+export const ONEWAY_SNAP_MAX_VY = 1.5; // m/s
 export const EDGE_RAYCAST_AHEAD = 0.35; // m devant les pieds, dans la direction du pas
 export const EDGE_RAYCAST_DEPTH = 1.35; // m sous les pieds : au-delà, c'est le vide
 /** Bord : on s'arrête et on vacille (`teeter`) ; en insistant ce temps-là, on marche dans le vide. */

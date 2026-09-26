@@ -22,8 +22,16 @@ let cachedAtTurn = -1;
 /** Filtre des rayons « sol » : ni joueur, ni capteur, ni collider désactivé (plateforme traversable vide). */
 export function isGroundCollider(c: RAPIER.Collider): boolean {
   if (c.isSensor() || !c.isEnabled()) return false;
+  if (isFallingDebris(c)) return false;
   const data = c.parent()?.userData as { kind?: string } | undefined;
   return data?.kind !== 'player';
+}
+
+/** Débris en chute libre (dalle de l'Archipel qui tombe, lot LJUMP) : ce n'est plus un sol. Sinon le perso
+ * « surfe » la dalle jusqu'au vide au lieu de tomber (et de pouvoir sauter ou se rattraper au bord). */
+export function isFallingDebris(c: RAPIER.Collider): boolean {
+  const body = c.parent();
+  return !!body && body.isDynamic() && body.linvel().y < -1;
 }
 
 /** Hauteur du sol sous `point` (rayon vers le bas sur `maxDist` m), ou null s'il n'y a que du vide. */
