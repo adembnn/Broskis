@@ -1,8 +1,10 @@
 // Occlusion PAR VUE (lot RTVIEW, repris de LFIX2/LPERF) : le décor qui masque un perso devient transparent
-// dans la vue où il masque, et seulement là. Rayons caméra → torse des 2 persos, sur le décor seulement (persos,
-// sol, effets exclus : registry.occlusionExcluded). Le fondu porte sur un CLONE du matériau, pris au 1er fondu
-// et rendu à la fin : un accessoire qui partage son matériau avec d'autres ne les estompe pas avec lui.
-// Les opacités de chaque vue sont posées juste avant de dessiner cette vue (ctx.three.onBeforeView).
+// dans la vue où il masque, et seulement là. Le fondu porte sur un CLONE du matériau, pris au 1er fondu et
+// rendu à la fin : un accessoire qui partage son matériau avec d'autres ne les estompe pas avec lui. Les
+// opacités de chaque vue sont posées juste avant de dessiner cette vue (ctx.three.onBeforeView).
+// Perf (mesuré sur le Galion) : un rayon « triangle par triangle » sur toute la map coûtait ~30 ms par passage
+// en écran scindé (pics à 15 Hz). On teste donc des BOÎTES, sur une liste d'objets du décor de taille
+// « accessoire » (ni sol, ni coque, ni ciel) tenue à jour toutes les 2 s : moins de 0,1 ms par passage.
 import * as THREE from 'three';
 import type { PlayerId } from '../../core/types';
 import { registry } from '../registry';
@@ -19,43 +21,58 @@ interface Faded {
   opacity: [number, number];
 }
 
-const raycaster = new THREE.Raycaster();
+const ray = new THREE.Ray();
+const box = new THREE.Box3();
+const hitPoint = new THREE.Vector3();
 const dir = new THREE.Vector3();
+const scale = new THREE.Vector3();
 const faded = new Map<THREE.Mesh, Faded>();
 // Dernier résultat des rayons, gardé tel quel entre deux passages (15 Hz) : sinon le fondu clignoterait.
 const hits: [Set<THREE.Mesh>, Set<THREE.Mesh>] = [new Set(), new Set()];
+let candidates: THREE.Mesh[] = [];
 
-function isExcluded(obj: THREE.Object3D): boolean {
-  let o: THREE.Object3D | null = obj;
-  while (o) {
-    if (registry.occlusionExcluded.has(o)) return true;
-    o = o.parent;
+function collect(o: THREE.Object3D, out: THREE.Mesh[]): void {
+  // Plateformes à sauter (maps/engine.ts les exclut) : en troisième personne, une planche entre la caméra et
+  // son perso le cachait entièrement (Cuisine, planche à découper, mesuré). Seul le plateau ne s'efface jamais.
+  const excluded = registry.occlusionExcluded.has(o) && !o.name.startsWith('oneway-');
+  if (!o.visible || excluded || registry.fighterRoots.includes(o)) return;
+  const m = o as THREE.Mesh;
+  if (m.isMesh && !(m as THREE.InstancedMesh).isInstancedMesh && !m.userData.isOutline && !Array.isArray(m.material)) {
+    const g = m.geometry;
+    if (!g.boundingBox) g.computeBoundingBox();
+    if (!g.boundingSphere) g.computeBoundingSphere();
+    m.getWorldScale(scale);
+    const r = g.boundingSphere!.radius * Math.max(Math.abs(scale.x), Math.abs(scale.y), Math.abs(scale.z));
+    if (r >= RTVIEW.occlusion.rayonMin && r <= RTVIEW.occlusion.rayonMax) out.push(m);
   }
-  return false;
+  for (const c of o.children) collect(c, out);
 }
 
-/** Racines du décor : ni persos, ni objets exclus (tester un perso animé recalcule chaque sommet, lot LPERF). */
-export function decorRoots(scene: THREE.Scene): THREE.Object3D[] {
-  return scene.children.filter((c) => !registry.occlusionExcluded.has(c) && !registry.fighterRoots.includes(c));
+/** Relit le décor (nouvelle map, pièces qui tombent) : objets de taille accessoire, hors persos et exclus. */
+export function refreshOccluders(scene: THREE.Scene): void {
+  const out: THREE.Mesh[] = [];
+  for (const c of scene.children) collect(c, out);
+  candidates = out;
+}
+
+/** Boîte monde d'un objet (celle de sa géométrie, transformée) : suit les pièces qui bougent. */
+function worldBox(m: THREE.Mesh): THREE.Box3 {
+  return box.copy(m.geometry.boundingBox!).applyMatrix4(m.matrixWorld);
 }
 
 /** Rayons de la caméra de `view` vers les cibles (torses) : ce qui coupe un rayon sera estompé dans cette vue. */
-export function raycastOcclusion(view: PlayerId, decor: THREE.Object3D[], camera: THREE.Camera, targets: THREE.Vector3[]): void {
+export function raycastOcclusion(view: PlayerId, camera: THREE.Camera, targets: THREE.Vector3[]): void {
   const set = hits[view];
   set.clear();
   for (const target of targets) {
     dir.copy(target).sub(camera.position);
     const dist = dir.length();
     if (dist <= 0.3) continue;
-    dir.normalize();
-    raycaster.set(camera.position, dir);
-    raycaster.camera = camera; // exigé par THREE.Sprite.raycast (sinon une erreur à chaque passage)
-    raycaster.near = 0.05;
-    raycaster.far = dist - 0.3; // marge : ne masque jamais la cible elle-même
-    for (const hit of raycaster.intersectObjects(decor, true)) {
-      const mesh = hit.object as THREE.Mesh;
-      if (!mesh.isMesh || Array.isArray(mesh.material) || isExcluded(mesh)) continue;
-      set.add(mesh);
+    ray.set(camera.position, dir.divideScalar(dist));
+    const far = dist - 0.3; // marge : ne masque jamais la cible elle-même
+    for (const m of candidates) {
+      if (!m.parent || !ray.intersectBox(worldBox(m), hitPoint)) continue;
+      if (hitPoint.distanceTo(camera.position) <= far) set.add(m);
     }
   }
   for (const mesh of set) {
@@ -66,6 +83,27 @@ export function raycastOcclusion(view: PlayerId, decor: THREE.Object3D[], camera
     mesh.material = clone;
     faded.set(mesh, { original, clone, base: original.opacity, baseDepthWrite: original.depthWrite, opacity: [original.opacity, original.opacity] });
   }
+}
+
+/**
+ * Collision caméra ↔ décor : si la caméra voulue tombe DANS un objet du décor, distance (depuis `from`, le torse)
+ * où le rayon torse → caméra y entre ; sinon null (l'occlusion suffit : rentrer derrière chaque plateforme
+ * collerait la caméra au perso).
+ */
+export function cameraInsideDecor(from: THREE.Vector3, cam: THREE.Vector3): number | null {
+  let best: number | null = null;
+  dir.copy(cam).sub(from);
+  const len = dir.length();
+  if (len < 1e-3) return null;
+  ray.set(from, dir.divideScalar(len));
+  for (const m of candidates) {
+    if (!m.parent || !worldBox(m).containsPoint(cam)) continue;
+    if (box.containsPoint(from)) continue; // le perso est lui-même dans la boîte (sous un toit, contre un mât) : on ignore
+    if (!ray.intersectBox(box, hitPoint)) continue;
+    const d = hitPoint.distanceTo(from);
+    if (best == null || d < best) best = d;
+  }
+  return best;
 }
 
 /** Vue cachée (mode solo) : plus rien n'y est masqué. */
@@ -101,7 +139,7 @@ export function applyOcclusion(view: PlayerId): void {
   }
 }
 
-/** Nouveau match (autre map) : tout redevient opaque tout de suite. */
+/** Nouveau match (autre map) : tout redevient opaque tout de suite, la liste du décor est à relire. */
 export function resetOcclusion(): void {
   for (const [mesh, e] of faded) {
     mesh.material = e.original;
@@ -110,4 +148,5 @@ export function resetOcclusion(): void {
   faded.clear();
   hits[0].clear();
   hits[1].clear();
+  candidates = [];
 }
