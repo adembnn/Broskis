@@ -4,7 +4,7 @@
 // Blocage : on avance à 40 %. Tir en charge : 85 %.
 import type { Ctx, PlayerId, Vec3 } from '../core/types';
 import * as cameraApi from '../scene/camera';
-import { applyMove, startJump, stepVerticalMotion, syncBodyToState } from './character';
+import { applyMove, dropThrough, standingOnOneWay, startJump, stepVerticalMotion, syncBodyToState } from './character';
 import type { PlayerInput } from './controls';
 import { checkCratePickup } from './crate';
 import { setTeeter, stepFalls } from './launch';
@@ -59,11 +59,14 @@ export function climbLedge(ctx: Ctx, player: PlayerId): void {
 }
 
 /** Saut : 2 au plus avant de retoucher le sol (le 2e en l'air). « Coyote time » : juste après avoir quitté le
- * bord, le saut compte encore comme un saut du sol. Accroché au bord : remonte. */
-export function jump(ctx: Ctx, player: PlayerId): void {
+ * bord, le saut compte encore comme un saut du sol. Accroché au bord : remonte. Reculer + saut sur une
+ * plateforme traversable : on la traverse vers le bas. */
+export function jump(ctx: Ctx, player: PlayerId, down = false): void {
   if (!canMove(ctx, player)) return;
   const rt = getRuntime().players[player];
   if (rt.ledge) { climbLedge(ctx, player); return; }
+  // « Bas + saut » debout sur une plateforme traversable : on descend à travers (façon Smash).
+  if (down && rt.grounded && standingOnOneWay(ctx, player)) { dropThrough(ctx, player); return; }
   if (rt.jumpsUsed >= RT.maxJumps) return;
   const fromGround = rt.jumpsUsed === 0 && (rt.grounded || ctx.loop.time - rt.lastGroundedAt <= COYOTE_S);
   startJump(player, fromGround ? JUMP_VELOCITY : AIR_JUMP_VELOCITY);
@@ -104,7 +107,7 @@ export function stepPlayerControl(ctx: Ctx, player: PlayerId, input: PlayerInput
   }
   rt.wasGrounded = rt.grounded;
   if (!canMove(ctx, player)) { rt.edgePushS = 0; rt.hvel = [0, 0]; return; }
-  if (input.pressed.has('jump')) jump(ctx, player);
+  if (input.pressed.has('jump')) jump(ctx, player, input.move[1] < -0.5);
   const [mx, my] = input.move;
   const [fx, fz] = viewForward(ctx, player);
   const rx = -fz, rz = fx; // droite de la vue (y vers le haut)

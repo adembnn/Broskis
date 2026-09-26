@@ -8,7 +8,7 @@ import { createPlayer } from '../core/state';
 import { getSpawnPoints } from '../scene/maps/api';
 import { getArena } from './arena';
 import { forceSuperReady } from './bro';
-import { ensureAllPlayerBodies, teleport } from './character';
+import { ensureAllPlayerBodies, oneWayBoxes, teleport } from './character';
 import { fireWeapon } from './combat';
 import { clearInputs, setHookInput } from './controls';
 import { launchVector } from './formulas';
@@ -85,6 +85,9 @@ declare global {
       arena(): unknown;
       runtime(player: PlayerId): unknown;
       projectiles(): unknown;
+      /** Test : pose un perso à (x, y, z) ; et liste des plateformes traversables. */
+      place(player: PlayerId, x: number, y: number, z: number): void;
+      oneWay(): unknown;
     };
   }
 }
@@ -133,5 +136,11 @@ export function install(ctx: Ctx): void {
       };
     },
     projectiles: () => liveProjectiles().map((p) => ({ id: p.id, owner: p.owner, pos: p.pos })),
+    place: (player, x, y, z) => {
+      teleport(ctx, player, [x, y, z]);
+      const rt = getRuntime().players[player];
+      rt.prevPos = [x, y, z]; rt.grounded = false; rt.vy = 0; rt.launch = null; rt.ledge = null;
+    },
+    oneWay: () => oneWayBoxes(ctx),
   };
 }

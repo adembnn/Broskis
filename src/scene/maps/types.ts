@@ -4,6 +4,14 @@
 // Règles LMAP2 (façon Smash « Battlefield ») : un plateau principal net au-dessus du vide, bords francs,
 // 2-3 plateformes traversables, 1-2 couverts, 1 danger annoncé ; le décor d'ambiance est HORS du plateau.
 import type { MapId, Vec3 } from '../../core/types';
+import type { DetailKind } from './tokens';
+
+/** Hauteur max (m) du dessus d'une plateforme ou d'une marche au-dessus du plateau (lot LMAP3).
+ *  Contrat avec le saut (lot LJUMP) : le double saut doit dépasser cette hauteur avec de la marge. */
+export const MAX_LEDGE_HEIGHT = 2.0;
+
+/** Revêtement d'une pièce : texture de détail triplanaire, repère monde ou objet, écrêtage en hauteur. */
+export interface SurfaceSpec { detail?: DetailKind; side?: DetailKind; space?: 'world' | 'local'; clampY?: number }
 
 export type PropKind =
   | 'decor'      // couvert fixe, jamais déclenché (caisse, bocal)
@@ -13,8 +21,8 @@ export type PropKind =
   | 'cannon';    // coup -> tire un boulet le long d'un axe peint au sol
 
 export type PropBuild =
-  | { kind: 'model'; url: string; node?: string; hide?: string[] }
-  | { kind: 'procedural'; shape: 'toaster' | 'rollingPin' | 'rock' | 'slab' | 'deck' | 'shipDeck' | 'hull' | 'giantFallback'; color?: string; size?: Vec3 };
+  | { kind: 'model'; url: string; node?: string; hide?: string[]; surface?: SurfaceSpec; /** false : pas de grade (pleine couleur) */ graded?: boolean }
+  | { kind: 'procedural'; shape: 'toaster' | 'rollingPin' | 'rock' | 'slab' | 'deck' | 'shipDeck' | 'hull' | 'giantFallback'; color?: string; size?: Vec3; surface?: SurfaceSpec };
 
 /** Dimensions en unités LOCALES de l'asset, multipliées par `scale` du PropSpec. StaticCollider : unités monde. */
 export type ColliderSpec =
@@ -62,6 +70,8 @@ export interface GroundPiece {
   collider: ColliderSpec | null;
   /** Teinte multipliée prise dans la palette de la map (ex. 'matiere' pour assombrir une façade). */
   tint?: 'fond' | 'sol' | 'matiere' | 'accent';
+  /** Archipel : socle rocheux qui rétrécit avec les anneaux (échelle X/Z = apothème(anneau) / apothème du modèle). */
+  shrinkWithRing?: { base: number; perRing: number; modelApothem: number };
 }
 
 /** Collider fixe sans visuel propre (le vrai bord jouable, indépendant des modèles). */
@@ -101,6 +111,9 @@ export interface MapDef {
   tileHalfExtents?: Vec3;
   /** 'hex' : collider en prisme hexagonal exact (rayon = tileHalfExtents[2]). */
   tileShape?: 'hex' | 'box';
+  /** Revêtement et grade des dalles (LMAP3 : pleine couleur + détail + variation par dalle). */
+  tileSurface?: SurfaceSpec;
+  tileGrade?: { saturation: number; teinte: string };
   /** Dernier anneau qui peut tomber (les anneaux intérieurs restent : îlot final). */
   minRing?: number;
   ground: GroundPiece[];

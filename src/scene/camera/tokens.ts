@@ -10,7 +10,9 @@ export const RTVIEW = {
   hauteur: 3.2,           // m au-dessus de ses pieds
   lateral: 0.9,           // m à droite : vue par-dessus l'épaule, l'adversaire n'est pas caché
   visee: 0.62,            // point visé entre les 2 : 0 = son joueur, 1 = l'adversaire
-  viseeHauteur: 1.0,      // m au-dessus du sol pour le point visé
+  viseeHauteur: -0.4,     // m (sol = 0) : point visé bas, le perso reste entre 46 et 67 % de la hauteur, au-dessus du HUD
+  suiviHauteur: 0.35,     // part de la hauteur de l'adversaire suivie : quand il saute, son joueur ne file pas sous le HUD
+  chute: { debut: -0.5, plein: -3, focus: 0.7 }, // m, m, 0..1 : sous le plateau, la caméra regarde SON joueur tomber
   axeMin: 0.8,            // m : plus près, on garde l'angle précédent (pas de toupie quand ils se superposent)
   lissage: 0.12,          // s : suivi de la position et de l'angle
   lissageY: 0.2,          // s : la hauteur suit plus mollement (sauts lisibles)
@@ -18,7 +20,8 @@ export const RTVIEW = {
   collision: { marge: 0.4, distanceMin: 2.2, rentre: 0.08, ressort: 0.35 }, // m, m, s, s
   cibleHauteur: 1.2,      // m : hauteur du torse visé par l'occlusion
   raycastHz: 15,          // occlusion + collision : rayons 15 fois par seconde, pas à chaque image
-  occlusion: { opacite: 0.15, fonduMs: 200 },
+  // rayonMin/Max (m) : taille des objets testés (boîtes) ; ni cailloux, ni sol/coque/ciel ; liste relue toutes les 2 s
+  occlusion: { opacite: 0.15, fonduMs: 200, rayonMin: 0.25, rayonMax: 7, relectureS: 2 },
   // Effets par vue (Smash) : jamais un plan partagé, la caméra reste sur SON joueur (règle d'Adem).
   koZoom: { fov: -12, focus: 0.75, retour: 0.35 },          // deg (négatif = zoom), 0..1, s
   ejection: { duree: 1.4, recul: 2.2, hauteur: 1.2, focus: 0.55, vitesseMin: 6 }, // s, m, m, 0..1, m/s

@@ -11,8 +11,9 @@ export const RT = {
   /** Fraction de la vitesse au sol disponible en l'air (contrôle aérien). */
   airControl: 0.85,
   maxJumps: 2,
-  /** Au bord : on vacille ; en poussant ce temps-là, on passe dans le vide. */
-  teeterPushS: 0.3,
+  /** Au bord : on vacille ; en poussant ce temps-là, on passe dans le vide (0,5 s : le temps de lire « EDGE! »
+   * en plein combat ; à 0,3 s, des joueurs qui tournent autour de l'adversaire tombaient tout seuls). */
+  teeterPushS: 0.5,
   blockMoveMult: 0.4,
   chargeMoveMult: 0.85,
   /** Tir maintenu : charge de 0 à 1 entre chargeMinS et chargeFullS ; relâché tout seul après autoReleaseS. */
@@ -93,6 +94,8 @@ export const GRAVITY = 20; // m/s², un peu plus nerveux que la gravité par dé
  * (corps dans son emprise) -> posé dessus. Évite de rater une plateforme de quelques centimètres. */
 export const ONEWAY_SNAP_BELOW = 0.35;
 export const ONEWAY_SNAP_MAX_VY = 1.5; // m/s
+/** « Bas + saut » sur une plateforme traversable : on la traverse vers le bas pendant ce temps (s). */
+export const DROP_THROUGH_S = 0.35;
 export const EDGE_RAYCAST_AHEAD = 0.35; // m devant les pieds, dans la direction du pas
 export const EDGE_RAYCAST_DEPTH = 1.35; // m sous les pieds : au-delà, c'est le vide
 /** Bord : on s'arrête et on vacille (`teeter`) ; en insistant ce temps-là, on marche dans le vide. */
