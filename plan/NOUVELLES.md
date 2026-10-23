@@ -1,6 +1,57 @@
 # Nouvelles de l'orchestration (à lire en premier, surtout pour le Claude de Titouan)
 Fil tenu par la session principale (Claude, PC d'Adem). Le plus récent en haut. Fais `git pull` avant chaque tâche.
 
+## Reprise post-hackathon · Voodoo propose un test 3 jours App Store/Play Store
+Écrit par la session de Titouan (hors harnais du jour J), après un audit de code en lecture seule
+(aucun fichier modifié par cet audit). Contexte : Voodoo met BROSKIS en test 3 jours sur les stores,
+scaling + rémunération si ça marche. Objectif : passer en app mobile native. **Décision prise par
+Titouan et Adem : la bêta de test est en 1 contre bot uniquement, aucun réseau, aucun ajout d'ami,
+aucun matchmaking.** Rien de ce qui suit n'est encore codé — à discuter avant de commencer.
+
+**Constats de l'audit (lecture seule, voir l'historique de conversation de Titouan pour le détail
+complet si besoin) :**
+- **Portage mobile** : Capacitor recommandé (pas de réécriture native), aucune dépendance
+  bloquante trouvée. ~3-5 j pour une coquille qui tourne, perfs jamais mesurées sur GPU mobile réel.
+- **Contrôles tactiles** : à construire entièrement (rien n'existe, tout est clavier/manette
+  aujourd'hui), mais le point d'ancrage (`gameHooks.input`) est déjà le bon et déjà utilisé par le
+  bot. ~5-8 j.
+- **Réseau 1v1 (2 téléphones séparés)** : **écarté pour cette bêta**, justement parce que c'est le
+  chantier de loin le plus lourd (4 à 8 semaines, le backend Vercel actuel ne peut pas porter de
+  temps réel réseau — aucun état partagé entre deux requêtes, confirmé dans `api/_vercel.ts`).
+  Gardé pour une phase ultérieure, pas pour ce test.
+- **Bot de lancement** : bonne nouvelle, `src/gameplay/ai/bot.ts` (RealtimeBot, 4 niveaux) est déjà
+  solide et mesuré (`plan/rendus/RTBOT.md`). Réutilisable, juste à recalibrer pour du tactile
+  (jamais testé hors clavier).
+- **Coût IA — le point le plus important** : **aucun quota serveur n'existe aujourd'hui.** Rien
+  n'empêche un joueur de relancer un scan d'arme ou de visage à l'infini (`api/scan-object.ts`,
+  `api/scan-fighter.ts`, `api/sticker.ts` : zéro notion de compte/quota/session persistante,
+  recherche de `account`/`userId`/`auth` dans `src/` et `api/` : zéro résultat). Décision produit :
+  **1 tête générée à la création du compte, 1 arme scannée gratuite, le reste vient d'ailleurs qu'un
+  nouvel appel IA complet** (bibliothèque partagée à construire, qui se remplit au fil des vrais
+  scans plutôt que pré-remplie à la main) — à appliquer **côté serveur**, pas juste côté interface.
+  Egalement repéré : jusqu'à 2-3 modèles image lancés **en parallèle** par scan (le premier arrivé
+  gagne) — à vérifier si les perdants sont quand même facturés, sinon passer à un seul modèle
+  déterministe divise le coût par 2-3 sans rien changer à l'expérience.
+- **Voix : décision prise, les voix en direct sont abandonnées pour cette version.** On garde
+  uniquement les 252 répliques déjà enregistrées du hackathon (`src/audio/barks.ts`, coût marginal
+  nul). À couper : `api/tts.ts` (animateur en direct), `api/voice-clone.ts`, `api/voice-lines.ts`
+  (clonage de voix).
+- **Modération obligatoire pour la soumission Play Store** (vérifié sur la politique IA générative
+  de Google Play, pas juste une précaution) : un **mécanisme de signalement de contenu généré
+  offensant, dans l'app**, est une exigence de soumission, pas une option — rien de tel n'existe
+  aujourd'hui. Les comptes de test fournis à Google Play lors de la revue doivent avoir accès à
+  toutes les fonctionnalités IA, rien caché derrière un mur payant pour la revue.
+- **Palier gratuit Gemini écarté pour la prod** : trop limité pour un vrai public (quelques
+  requêtes/minute, centaine à ~1500/jour selon les sources, modèles Pro retirés du gratuit en avril
+  2026) — viderait le quota en quelques minutes avec de vrais testeurs. Le plafond par compte +
+  bibliothèque partagée est la vraie réponse au coût, pas un modèle plus faible.
+- **Autre risque non résolu** : aucun compte utilisateur persistant côté serveur n'existe
+  aujourd'hui (tout est en mémoire/localStorage) — à trancher avant de coder les quotas, puisque le
+  stockage des comptes et le choix d'architecture réseau (même abandonné pour cette bêta) sont liés.
+
+**Pas touché par cette note** : aucun fichier de `src/`, `api/`, ni `plan/SUIVI.md`. Préparer un vrai
+plan de lots (façon hackathon) une fois ces points discutés avec Adem.
+
 ## 18h25 · FIN DU CHANTIER (Adem, 18h12) : `main` = version de rendu
 - **Plus aucun nouveau chantier.** Tous les agents de la session principale sont arrêtés, leurs résultats vérifiés sont fusionnés et poussés.
 - **Ajouté depuis 18h00** :
